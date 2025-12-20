@@ -1,0 +1,199 @@
+/* ============================================
+ * TEXT STYLES
+ * ============================================ */
+
+.text {
+  font-family: var(--font-secondary);
+  line-height: var(--leading-relaxed);
+  margin: 0;
+}
+
+/* Text Sizes */
+.size-xs {
+  font-size: var(--text-xs);
+}
+
+.size-sm {
+  font-size: var(--text-sm);
+}
+
+.size-base {
+  font-size: var(--text-base);
+}
+
+.size-lg {
+  font-size: var(--text-lg);
+}
+
+.size-xl {
+  font-size: var(--text-xl);
+}
+
+.size-2xl {
+  font-size: var(--text-2xl);
+}
+
+/* Text Weights */
+.weight-light {
+  font-weight: var(--font-weight-light);
+}
+
+.weight-regular {
+  font-weight: var(--font-weight-regular);
+}
+
+.weight-medium {
+  font-weight: var(--font-weight-medium);
+}
+
+.weight-semibold {
+  font-weight: var(--font-weight-semibold);
+}
+
+.weight-bold {
+  font-weight: var(--font-weight-bold);
+}
+
+.weight-extrabold {
+  font-weight: var(--font-weight-extrabold);
+}
+
+.weight-black {
+  font-weight: var(--font-weight-black);
+}
+
+/* Text Colors */
+.color-primary {
+  color: var(--color-text-primary);
+}
+
+.color-secondary {
+  color: var(--color-text-secondary);
+}
+
+.color-muted {
+  color: var(--color-text-muted);
+}
+
+.color-inverse {
+  color: var(--color-text-inverse);
+}
+
+.color-accent {
+  color: var(--color-accent);
+}
+
+.color-success {
+  color: var(--color-success);
+}
+
+.color-error {
+  color: var(--color-error);
+}
+
+/* Alignment */
+.align-start {
+  text-align: start;
+}
+
+.align-center {
+  text-align: center;
+}
+
+.align-end {
+  text-align: end;
+}
+
+/* Truncate */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============================================
+ * HEADING STYLES
+ * ============================================ */
+
+.heading {
+  font-family: var(--font-primary);
+  line-height: var(--leading-tight);
+  margin: 0;
+  letter-spacing: var(--tracking-tight);
+}
+
+/* Heading Levels */
+.heading-1 {
+  font-size: var(--text-6xl);
+}
+
+.heading-2 {
+  font-size: var(--text-5xl);
+}
+
+.heading-3 {
+  font-size: var(--text-4xl);
+}
+
+.heading-4 {
+  font-size: var(--text-3xl);
+}
+
+.heading-5 {
+  font-size: var(--text-2xl);
+}
+
+.heading-6 {
+  font-size: var(--text-xl);
+}
+
+/* Heading Colors */
+.heading-color-primary {
+  color: var(--color-text-primary);
+}
+
+.heading-color-secondary {
+  color: var(--color-text-secondary);
+}
+
+.heading-color-muted {
+  color: var(--color-text-muted);
+}
+
+.heading-color-inverse {
+  color: var(--color-text-inverse);
+}
+
+.heading-color-accent {
+  color: var(--color-accent);
+}
+
+/* ============================================
+ * RESPONSIVE TYPOGRAPHY
+ * ============================================ */
+
+@media (max-width: 768px) {
+  .heading-1 {
+    font-size: var(--text-4xl);
+  }
+
+  .heading-2 {
+    font-size: var(--text-3xl);
+  }
+
+  .heading-3 {
+    font-size: var(--text-2xl);
+  }
+
+  .heading-4 {
+    font-size: var(--text-xl);
+  }
+
+  .heading-5 {
+    font-size: var(--text-lg);
+  }
+
+  .heading-6 {
+    font-size: var(--text-base);
+  }
+}

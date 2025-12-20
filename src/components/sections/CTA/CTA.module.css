@@ -1,0 +1,127 @@
+.cta {
+  position: relative;
+  padding-block: var(--space-32);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-50) 0%,
+    var(--color-background) 50%,
+    var(--color-accent-50) 100%
+  );
+  overflow: hidden;
+}
+
+.container {
+  position: relative;
+  max-width: var(--container-7xl);
+  margin-inline: auto;
+  padding-inline: var(--space-6);
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding-inline: var(--space-8);
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding-inline: var(--space-12);
+  }
+}
+
+/* Background Circle */
+.backgroundCircle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80vw;
+  height: 80vw;
+  max-width: 800px;
+  max-height: 800px;
+  border-radius: var(--radius-full);
+  background: radial-gradient(
+    circle,
+    var(--color-primary-200) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+/* Content */
+.content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-6);
+  z-index: var(--z-default);
+}
+
+.heading {
+  font-size: var(--text-4xl);
+}
+
+@media (min-width: 768px) {
+  .heading {
+    font-size: var(--text-6xl);
+  }
+}
+
+.headingAccent {
+  color: var(--color-primary);
+}
+
+.description {
+  max-width: 36rem;
+}
+
+/* Buttons */
+.buttons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-block-start: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .buttons {
+    flex-direction: row;
+  }
+}
+
+/* App Stores */
+.stores {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  margin-block-start: var(--space-8);
+}
+
+.storeLogos {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.storeBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-lg);
+  background-color: var(--color-neutral-800);
+  color: var(--color-text-inverse);
+  transition: background-color var(--duration-fast) var(--ease-default);
+}
+
+.storeBadge:hover {
+  background-color: var(--color-neutral-700);
+}
+
+.storeBadge svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}

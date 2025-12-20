@@ -1,0 +1,42 @@
+.wordContainer {
+  display: inline-block;
+}
+
+.word {
+  display: inline-block;
+  will-change: transform, opacity, filter;
+}
+
+.letterContainer {
+  display: inline-block;
+  perspective: 1000px;
+}
+
+.letter {
+  display: inline-block;
+  will-change: transform, opacity;
+  transform-style: preserve-3d;
+}
+
+.lineRevealContainer {
+  overflow: hidden;
+}
+
+.lineRevealContent {
+  will-change: clip-path;
+}
+
+.counter {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+}
+
+.typingContainer {
+  display: inline-block;
+}
+
+.cursor {
+  display: inline-block;
+  margin-inline-start: var(--space-0-5);
+  font-weight: var(--font-weight-light);
+}

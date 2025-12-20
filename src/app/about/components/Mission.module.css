@@ -1,0 +1,81 @@
+.mission {
+  padding-block: var(--space-24);
+  background-color: var(--color-background);
+}
+
+.container {
+  max-width: var(--container-7xl);
+  margin-inline: auto;
+  padding-inline: var(--space-6);
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding-inline: var(--space-8);
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding-inline: var(--space-12);
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-12);
+}
+
+@media (min-width: 1024px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+/* Text Content */
+.textContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.missionText {
+  margin-block-end: var(--space-4);
+}
+
+/* Values Grid */
+.valuesGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .valuesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.valueCard {
+  padding: var(--space-6);
+  background-color: var(--color-background-secondary);
+  border-radius: var(--radius-xl);
+  border: var(--border-width-thin) solid var(--color-border);
+}
+
+.valueIcon {
+  font-size: var(--text-3xl);
+  display: block;
+  margin-block-end: var(--space-3);
+}
+
+.valueTitle {
+  font-family: var(--font-primary);
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
+  margin-block-end: var(--space-2);
+}
