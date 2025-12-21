@@ -1,34 +1,22 @@
 {
-  "name": "sync",
+  "name": "sync-monorepo",
   "version": "1.0.0",
   "private": true,
-  "description": "Civic consensus platform for Israeli municipalities",
+  "description": "Sync - Civic consensus platform for Israeli municipalities",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "typecheck": "tsc --noEmit",
-    "format": "prettier --write ."
-  },
-  "dependencies": {
-    "@clerk/nextjs": "^5.7.0",
-    "@studio-freight/lenis": "^1.0.42",
-    "clsx": "^2.1.1",
-    "framer-motion": "^11.11.0",
-    "next": "^15.0.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "resend": "^4.0.0",
-    "zustand": "^5.0.0"
+    "dev": "turbo dev",
+    "dev:web": "turbo dev --filter=@sync/web",
+    "dev:mobile": "turbo dev --filter=@sync/mobile",
+    "build": "turbo build",
+    "build:web": "turbo build --filter=@sync/web",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "clean": "turbo clean && rm -rf node_modules",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "eslint": "^9.0.0",
-    "eslint-config-next": "^15.0.0",
     "prettier": "^3.4.0",
+    "turbo": "^2.3.0",
     "typescript": "^5.7.0"
   },
   "engines": {

@@ -1,0 +1,62 @@
+{
+  "expo": {
+    "name": "סינק",
+    "slug": "sync",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "sync",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2563EB"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "il.co.sync.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "אנחנו צריכים את המיקום שלך כדי לאמת שאתה נמצא ברשות המקומית הרלוונטית להצבעה.",
+        "NSLocationAlwaysUsageDescription": "אנחנו צריכים את המיקום שלך כדי לאמת שאתה נמצא ברשות המקומית הרלוונטית להצבעה."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#2563EB"
+      },
+      "package": "il.co.sync.app",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "אנחנו צריכים את המיקום שלך כדי לאמת שאתה נמצא ברשות המקומית הרלוונטית להצבעה."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "your-project-id"
+      }
+    }
+  }
+}

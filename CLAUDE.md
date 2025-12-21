@@ -10,10 +10,14 @@
 # Install dependencies
 pnpm install
 
-# Run development server
+# Run all apps in development
 pnpm dev
 
-# Build for production
+# Run specific app
+pnpm dev --filter @sync/web
+pnpm dev --filter @sync/mobile
+
+# Build all packages
 pnpm build
 
 # Run linting
@@ -23,7 +27,7 @@ pnpm lint
 pnpm typecheck
 ```
 
-## Project Structure
+## Monorepo Structure
 
 ```
 /
@@ -40,20 +44,37 @@ pnpm typecheck
 │   │   ├── hooks/              # Custom React hooks
 │   │   └── providers/          # Context providers
 │   │
-│   └── mobile/                 # React Native app (future)
+│   └── mobile/                 # Expo React Native app
+│       ├── app/                # Expo Router screens
+│       │   ├── (auth)/         # Auth flow screens
+│       │   ├── (tabs)/         # Main tab screens
+│       │   ├── settings/       # Settings screens
+│       │   └── vote/           # Vote detail screens
+│       ├── src/
+│       │   ├── hooks/          # Custom React hooks
+│       │   └── lib/            # Utilities
+│       └── assets/             # Images and fonts
 │
 ├── packages/
-│   ├── design-system/          # Shared design tokens
+│   ├── shared/                 # Shared types, constants, utils
+│   │   └── src/
+│   │       ├── types/          # TypeScript types
+│   │       ├── constants/      # App constants
+│   │       └── utils/          # Helper functions
+│   │
 │   ├── api-client/             # API client library
-│   ├── qubik-sdk/              # Qubik blockchain wrapper
-│   └── types/                  # Shared TypeScript types
-│
-├── services/
-│   ├── auth/                   # Clerk authentication
-│   ├── blockchain/             # Qubik integration
-│   ├── database/               # Converge database
-│   ├── payments/               # Green Invoice + Grow
-│   └── email/                  # Resend email service
+│   │   └── src/
+│   │       ├── client.ts       # Base API client
+│   │       ├── votes.ts        # Votes API
+│   │       ├── users.ts        # Users API
+│   │       └── payments.ts     # Payments API
+│   │
+│   └── design-tokens/          # Shared design tokens
+│       └── src/
+│           ├── colors.ts       # Color palette
+│           ├── typography.ts   # Font scales
+│           ├── spacing.ts      # Spacing scale
+│           └── animations.ts   # Animation config
 │
 └── docs/                       # Documentation
     └── PRD.md                  # Product Requirements
@@ -61,12 +82,31 @@ pnpm typecheck
 
 ## Tech Stack
 
+### Web (apps/web)
+
 | Layer | Technology | Purpose |
 |-------|------------|---------|
-| Frontend | Next.js 17 | Web application framework |
+| Framework | Next.js 17 | Web application |
 | Animations | Framer Motion | Motion and transitions |
 | Smooth Scroll | Lenis | Silky scroll experience |
 | Styling | CSS Modules | Scoped component styles |
+
+### Mobile (apps/mobile)
+
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| Framework | Expo SDK 52 | React Native runtime |
+| Navigation | Expo Router v4 | File-based routing |
+| Styling | NativeWind | Tailwind for RN |
+| State | Zustand | State management |
+| Animations | Reanimated | Native animations |
+| Location | expo-location | GPS verification |
+| Browser | expo-web-browser | Payment redirect |
+
+### Shared
+
+| Layer | Technology | Purpose |
+|-------|------------|---------|
 | Auth | Clerk | User authentication |
 | Blockchain | Qubik | Vote recording & tokens |
 | Database | Converge | Secondary data storage |
@@ -75,6 +115,52 @@ pnpm typecheck
 | Email | Resend | Transactional emails |
 | Hosting | Vercel | Deployment platform |
 
+## Packages
+
+### @sync/shared
+
+Shared types, constants, and utilities:
+
+```typescript
+// Types
+import type { Vote, UserProfile, PaymentIntent } from '@sync/shared';
+
+// Constants
+import { VOTE_COST, CREATE_VOTE_COST, MUNICIPALITIES } from '@sync/shared';
+
+// Utils
+import { formatCurrency, formatDate, getTimeRemaining } from '@sync/shared';
+```
+
+### @sync/api-client
+
+API client for all endpoints:
+
+```typescript
+import { initializeApiClient, votesApi, usersApi, paymentsApi } from '@sync/api-client';
+
+// Initialize with auth token
+initializeApiClient({
+  baseUrl: 'https://api.sync.co.il',
+  getToken: async () => await getAuthToken(),
+});
+
+// Use APIs
+const votes = await votesApi.getActiveVotes();
+const profile = await usersApi.getProfile();
+```
+
+### @sync/design-tokens
+
+Shared design tokens:
+
+```typescript
+import { colors, typography, spacing, animations } from '@sync/design-tokens';
+
+// Use in NativeWind config or CSS-in-JS
+const primaryColor = colors.primary[600]; // '#2563EB'
+```
+
 ## Design System
 
 ### CRITICAL: No Hardcoded Values
@@ -82,12 +168,18 @@ pnpm typecheck
 **NEVER** use hardcoded colors, sizes, or spacing. Always use design tokens:
 
 ```tsx
-// ❌ WRONG
+// ❌ WRONG - Web
 <div style={{ color: '#2563EB', padding: '16px' }}>
 
-// ✅ CORRECT
+// ✅ CORRECT - Web
 <div className={styles.container}>
 // With CSS: color: var(--color-primary); padding: var(--space-4);
+
+// ❌ WRONG - Mobile
+<View style={{ backgroundColor: '#2563EB' }}>
+
+// ✅ CORRECT - Mobile
+<View className="bg-primary-600">
 ```
 
 ### Typography Scale (1.2 - Minor Third)
@@ -146,70 +238,28 @@ pnpm typecheck
 --space-24: 6rem     /* 96px  */
 ```
 
-### Animation Tokens
+## Mobile App Screens
 
-```css
---duration-fast:    150ms
---duration-normal:  300ms
---duration-slow:    500ms
+### Auth Flow (`apps/mobile/app/(auth)/`)
+- `index.tsx` - Welcome screen
+- `sign-in.tsx` - Sign in with Clerk
+- `sign-up.tsx` - Sign up with email verification
+- `onboarding.tsx` - Municipality selection
 
---ease-default:     cubic-bezier(0.4, 0, 0.2, 1)
---ease-bounce:      cubic-bezier(0.68, -0.55, 0.265, 1.55)
-```
+### Main Tabs (`apps/mobile/app/(tabs)/`)
+- `index.tsx` - Home/Active Votes
+- `votes.tsx` - All Votes (with filters)
+- `create.tsx` - Create Vote (3-step wizard)
+- `profile.tsx` - User Profile & Stats
 
-## Component Patterns
+### Vote Detail (`apps/mobile/app/vote/`)
+- `[id].tsx` - Vote details, GPS verification, voting
 
-### Animation Components
-
-Use Framer Motion for all animations:
-
-```tsx
-import { motion } from 'framer-motion';
-import { fadeInUp, staggerContainer } from '@/lib/animations';
-
-export function AnimatedSection({ children }) {
-  return (
-    <motion.section
-      variants={staggerContainer}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true }}
-    >
-      {children}
-    </motion.section>
-  );
-}
-```
-
-### Typography Components
-
-```tsx
-// Always use semantic typography components
-<Heading level={1}>כותרת ראשית</Heading>
-<Text variant="body">טקסט גוף</Text>
-<Text variant="caption" color="muted">טקסט משני</Text>
-```
-
-### RTL Considerations
-
-All components must be RTL-first:
-
-```css
-/* Use logical properties */
-margin-inline-start: var(--space-4);  /* Not margin-left */
-padding-inline-end: var(--space-2);   /* Not padding-right */
-text-align: start;                    /* Not text-align: right */
-```
-
-## Lenis Smooth Scroll
-
-```tsx
-// Initialize in providers/LenisProvider.tsx
-import Lenis from '@studio-freight/lenis';
-
-// Use scroll-triggered animations
-const { scrollYProgress } = useScroll();
-```
+### Settings (`apps/mobile/app/settings/`)
+- `profile.tsx` - Edit profile
+- `municipality.tsx` - Change municipality
+- `notifications.tsx` - Notification preferences
+- `verification.tsx` - Identity verification
 
 ## API Routes
 
@@ -220,17 +270,21 @@ const { scrollYProgress } = useScroll();
 ### Votes
 - `GET /api/votes` - List votes (with municipality filter)
 - `GET /api/votes/[id]` - Get vote details
-- `POST /api/votes` - Create new vote (50₪)
-- `POST /api/votes/[id]/participate` - Cast vote (1₪)
+- `POST /api/votes` - Create new vote (₪50)
+- `POST /api/votes/[id]/participate` - Cast vote (₪1)
+- `POST /api/votes/[id]/verify-location` - GPS verification
 
 ### User
 - `GET /api/user/profile` - Get user profile
-- `PUT /api/user/profile` - Update profile
+- `POST /api/user/profile` - Create profile
+- `PATCH /api/user/profile` - Update profile
 - `GET /api/user/votes` - User's voting history
 - `GET /api/user/tokens` - Token balance
+- `POST /api/user/verify-location` - Verify user location
 
 ### Payments
 - `POST /api/payments/create` - Create payment intent
+- `GET /api/payments/[id]/status` - Check payment status
 - `POST /api/payments/webhook` - Green Invoice webhook
 
 ## Environment Variables
@@ -239,6 +293,7 @@ const { scrollYProgress } = useScroll();
 # Clerk
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
+EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=
 
 # Qubik Blockchain
 QUBIK_API_KEY=
@@ -260,6 +315,33 @@ RESEND_API_KEY=
 
 # App
 NEXT_PUBLIC_APP_URL=https://sync.co.il
+EXPO_PUBLIC_API_URL=https://api.sync.co.il
+```
+
+## Mobile Development
+
+### Running the app
+
+```bash
+# Start Expo development server
+cd apps/mobile
+npx expo start
+
+# Run on iOS simulator
+npx expo run:ios
+
+# Run on Android emulator
+npx expo run:android
+```
+
+### Building for production
+
+```bash
+# Build iOS
+eas build --platform ios
+
+# Build Android
+eas build --platform android
 ```
 
 ## Code Style
@@ -269,7 +351,7 @@ NEXT_PUBLIC_APP_URL=https://sync.co.il
 - No `any` types - use proper typing
 - Interface for objects, type for unions
 
-### Imports
+### Imports (Web)
 ```tsx
 // Order: React, Next, external, internal, styles
 import { useState } from 'react';
@@ -279,84 +361,69 @@ import { Button } from '@/components/ui/Button';
 import styles from './Component.module.css';
 ```
 
+### Imports (Mobile)
+```tsx
+// Order: React, React Native, Expo, external, internal
+import { useState } from 'react';
+import { View, Text, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
+import Animated from 'react-native-reanimated';
+import { votesApi } from '@sync/api-client';
+```
+
 ### Naming Conventions
 - Components: PascalCase (`VoteCard.tsx`)
 - Hooks: camelCase with `use` prefix (`useVotes.ts`)
 - Utils: camelCase (`formatCurrency.ts`)
 - CSS Modules: camelCase (`styles.container`)
+- NativeWind: Tailwind classes (`className="bg-primary-600"`)
 - Design tokens: kebab-case (`--color-primary`)
-
-## Testing
-
-```bash
-# Run unit tests
-pnpm test
-
-# Run e2e tests
-pnpm test:e2e
-
-# Run type checking
-pnpm typecheck
-```
-
-## Deployment
-
-### Vercel Configuration
-- Framework: Next.js
-- Build Command: `pnpm build`
-- Output Directory: `.next`
-- Node Version: 20.x
-
-### Environment Setup
-1. Configure all environment variables in Vercel
-2. Set up Clerk webhooks to point to production URL
-3. Configure Green Invoice webhooks
-4. Verify Qubik network connection
 
 ## Common Tasks
 
-### Adding a New Page
+### Adding a New Web Page
 1. Create file in `apps/web/app/[route]/page.tsx`
 2. Add metadata export
 3. Use design system tokens only
 4. Implement RTL layout
 
-### Adding a New Component
-1. Create in appropriate directory under `components/`
-2. Create accompanying `.module.css` file
-3. Export from `components/index.ts`
-4. Document props with TypeScript
+### Adding a New Mobile Screen
+1. Create file in `apps/mobile/app/[route].tsx`
+2. Use NativeWind for styling
+3. Import from shared packages
+4. Add RTL support with `flex-row-reverse`
 
-### Adding Animations
-1. Define variants in `lib/animations.ts`
-2. Use `motion` components from Framer Motion
-3. Respect `prefers-reduced-motion`
-4. Use animation tokens for timing
+### Adding a Shared Type
+1. Add to `packages/shared/src/types/`
+2. Export from `packages/shared/src/types/index.ts`
+3. Re-export from `packages/shared/src/index.ts`
+
+### Adding an API Endpoint
+1. Add method to appropriate file in `packages/api-client/src/`
+2. Use proper TypeScript types from `@sync/shared`
 
 ## Troubleshooting
 
 ### Common Issues
 
 **Hebrew text not displaying correctly**
-- Ensure `dir="rtl"` on html element
-- Use Heebo/Assistant fonts
-- Check font loading in `_app.tsx`
+- Web: Ensure `dir="rtl"` on html element
+- Mobile: Use `flex-row-reverse` for RTL layouts
 
-**Lenis not working**
-- Verify provider wraps app
-- Check for conflicting scroll libraries
-- Ensure smooth scroll CSS is applied
+**NativeWind classes not working**
+- Check `tailwind.config.js` content paths
+- Verify `global.css` is imported in `_layout.tsx`
+- Run `npx expo start -c` to clear cache
 
-**Design tokens not applying**
-- Verify CSS custom properties are defined in `:root`
-- Check import order of global styles
-- Ensure CSS Modules are properly scoped
+**Shared packages not resolving**
+- Run `pnpm install` at root
+- Check `metro.config.js` for monorepo setup
+- Verify package `main` field in package.json
 
-## Key Contacts
-
-- Product: See PRD.md
-- Technical: Check code comments
-- Design: Design system in `/packages/design-system`
+**Expo location not working**
+- Check location permissions in `app.json`
+- Request permissions before accessing location
+- Test on physical device (simulators have limited GPS)
 
 ---
 
