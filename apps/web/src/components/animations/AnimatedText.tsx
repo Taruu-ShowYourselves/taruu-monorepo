@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode } from 'react';
+import React from 'react';
 import { motion, Variants } from 'framer-motion';
 import clsx from 'clsx';
 import styles from './AnimatedText.module.css';
@@ -151,7 +151,7 @@ export function AnimatedLetters({
 // ============================================
 
 interface AnimatedLineRevealProps {
-  children: ReactNode;
+  children: React.ReactNode;
   className?: string;
   delay?: number;
 }
@@ -174,7 +174,7 @@ export function AnimatedLineReveal({
           delay,
         }}
       >
-        {children}
+        {children as any}
       </motion.div>
     </div>
   );
@@ -209,44 +209,9 @@ export function AnimatedCounter({
       initial={{ opacity: 0 }}
       whileInView={{ opacity: 1 }}
       viewport={{ once: true }}
+      transition={{ delay }}
     >
-      <motion.span
-        initial={{ opacity: 0 }}
-        whileInView={{
-          opacity: 1,
-        }}
-        viewport={{ once: true }}
-        transition={{ delay }}
-      >
-        {prefix}
-      </motion.span>
-      <motion.span
-        initial={{ textContent: String(from) }}
-        whileInView={{
-          textContent: String(to),
-        }}
-        viewport={{ once: true }}
-        transition={{
-          duration,
-          delay,
-          ease: 'easeOut',
-        }}
-        onUpdate={(latest) => {
-          // This is handled by framer-motion's textContent animation
-        }}
-      >
-        {to.toLocaleString('he-IL')}
-      </motion.span>
-      <motion.span
-        initial={{ opacity: 0 }}
-        whileInView={{
-          opacity: 1,
-        }}
-        viewport={{ once: true }}
-        transition={{ delay: delay + duration * 0.5 }}
-      >
-        {suffix}
-      </motion.span>
+      {prefix}{to.toLocaleString('he-IL')}{suffix}
     </motion.span>
   );
 }
@@ -310,7 +275,7 @@ export function AnimatedTyping({
 // ============================================
 
 interface AnimatedScaleRevealProps {
-  children: ReactNode;
+  children: React.ReactNode;
   className?: string;
   delay?: number;
 }
@@ -336,7 +301,7 @@ export function AnimatedScaleReveal({
         ease: [0.25, 0.1, 0.25, 1],
       }}
     >
-      {children}
+      {children as any}
     </motion.div>
   );
 }
@@ -346,7 +311,7 @@ export function AnimatedScaleReveal({
 // ============================================
 
 interface AnimatedFadeInUpProps {
-  children: ReactNode;
+  children: React.ReactNode;
   className?: string;
   delay?: number;
   duration?: number;
@@ -373,7 +338,7 @@ export function AnimatedFadeInUp({
         ease: [0.25, 0.1, 0.25, 1],
       }}
     >
-      {children}
+      {children as any}
     </motion.div>
   );
 }

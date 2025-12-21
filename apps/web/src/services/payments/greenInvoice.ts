@@ -73,10 +73,11 @@ class GreenInvoiceService {
     }
 
     const data = await response.json();
-    this.accessToken = data.token;
+    const token = data.token as string;
+    this.accessToken = token;
     this.tokenExpiry = new Date(Date.now() + data.expiresIn * 1000);
 
-    return this.accessToken;
+    return token;
   }
 
   private async request<T>(

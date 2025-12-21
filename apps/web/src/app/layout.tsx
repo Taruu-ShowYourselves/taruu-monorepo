@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { ClerkProvider } from '@clerk/nextjs';
-import { heHE } from '@clerk/localizations';
+import { heIL } from '@clerk/localizations';
 import { LenisProvider } from '@/providers/LenisProvider';
 import '@/styles/globals.css';
 
@@ -72,7 +72,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider localization={heHE}>
+    <ClerkProvider localization={heIL as any}>
       <html lang="he" dir="rtl">
         <body>
           <LenisProvider>{children}</LenisProvider>

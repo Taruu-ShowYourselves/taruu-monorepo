@@ -23,7 +23,7 @@ interface EmailTemplate {
 }
 
 class EmailService {
-  private resend: Resend;
+  private resend: Resend | null = null;
   private config: EmailConfig;
 
   constructor() {
@@ -32,7 +32,16 @@ class EmailService {
       fromEmail: 'noreply@sync.co.il',
       fromName: 'סינק',
     };
-    this.resend = new Resend(this.config.apiKey);
+  }
+
+  private getResend(): Resend {
+    if (!this.resend) {
+      if (!this.config.apiKey) {
+        throw new Error('RESEND_API_KEY is not configured');
+      }
+      this.resend = new Resend(this.config.apiKey);
+    }
+    return this.resend;
   }
 
   private getFromAddress(): string {
@@ -48,7 +57,7 @@ class EmailService {
   }): Promise<void> {
     const template = this.getWelcomeTemplate(params.firstName);
 
-    await this.resend.emails.send({
+    await this.getResend().emails.send({
       from: this.getFromAddress(),
       to: params.to,
       subject: template.subject,
@@ -70,7 +79,7 @@ class EmailService {
   }): Promise<void> {
     const template = this.getVoteNotificationTemplate(params);
 
-    await this.resend.emails.send({
+    await this.getResend().emails.send({
       from: this.getFromAddress(),
       to: params.to,
       subject: template.subject,
@@ -94,7 +103,7 @@ class EmailService {
   }): Promise<void> {
     const template = this.getVoteResultsTemplate(params);
 
-    await this.resend.emails.send({
+    await this.getResend().emails.send({
       from: this.getFromAddress(),
       to: params.to,
       subject: template.subject,
@@ -116,7 +125,7 @@ class EmailService {
   }): Promise<void> {
     const template = this.getPaymentReceiptTemplate(params);
 
-    await this.resend.emails.send({
+    await this.getResend().emails.send({
       from: this.getFromAddress(),
       to: params.to,
       subject: template.subject,

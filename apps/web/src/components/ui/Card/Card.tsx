@@ -1,56 +1,44 @@
 'use client';
 
-import { forwardRef, ReactNode } from 'react';
-import { motion, HTMLMotionProps } from 'framer-motion';
+import React from 'react';
 import clsx from 'clsx';
 import styles from './Card.module.css';
 
 type CardVariant = 'default' | 'elevated' | 'outlined' | 'filled';
 type CardPadding = 'none' | 'sm' | 'md' | 'lg' | 'xl';
 
-interface CardProps extends HTMLMotionProps<'div'> {
+interface CardProps {
   variant?: CardVariant;
   padding?: CardPadding;
   interactive?: boolean;
-  children: ReactNode;
+  className?: string;
+  children: React.ReactNode;
 }
 
-export const Card = forwardRef<HTMLDivElement, CardProps>(
-  (
-    {
-      variant = 'default',
-      padding = 'md',
-      interactive = false,
-      className,
-      children,
-      ...props
-    },
-    ref
-  ) => {
-    return (
-      <motion.div
-        ref={ref}
-        className={clsx(
-          styles.card,
-          styles[variant],
-          styles[`padding-${padding}`],
-          interactive && styles.interactive,
-          className
-        )}
-        whileHover={interactive ? { y: -4 } : undefined}
-        transition={{ duration: 0.2 }}
-        {...props}
-      >
-        {children}
-      </motion.div>
-    );
-  }
-);
-
-Card.displayName = 'Card';
+export function Card({
+  variant = 'default',
+  padding = 'md',
+  interactive = false,
+  className,
+  children,
+}: CardProps) {
+  return (
+    <div
+      className={clsx(
+        styles.card,
+        styles[variant],
+        styles[`padding-${padding}`],
+        interactive && styles.interactive,
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
 
 interface CardHeaderProps {
-  children: ReactNode;
+  children: React.ReactNode;
   className?: string;
 }
 
@@ -63,7 +51,7 @@ export function CardHeader({ children, className }: CardHeaderProps) {
 }
 
 interface CardContentProps {
-  children: ReactNode;
+  children: React.ReactNode;
   className?: string;
 }
 
@@ -76,7 +64,7 @@ export function CardContent({ children, className }: CardContentProps) {
 }
 
 interface CardFooterProps {
-  children: ReactNode;
+  children: React.ReactNode;
   className?: string;
 }
 
