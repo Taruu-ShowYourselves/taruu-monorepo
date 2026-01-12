@@ -1,0 +1,160 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  padding: var(--space-6);
+}
+
+.content {
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+}
+
+.logoLink {
+  text-decoration: none;
+  display: inline-block;
+  margin-bottom: var(--space-6);
+}
+
+.logo {
+  font-family: 'Frank Ruhl Libre', var(--font-primary);
+  font-size: var(--text-4xl);
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.02em;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.title {
+  font-family: var(--font-primary);
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  color: white;
+  margin: 0 0 var(--space-2);
+}
+
+.subtitle {
+  font-family: var(--font-secondary);
+  font-size: var(--text-lg);
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0 0 var(--space-8);
+}
+
+.authCard {
+  background: white;
+  border-radius: var(--radius-2xl);
+  padding: var(--space-8);
+  box-shadow: var(--shadow-xl);
+}
+
+.error {
+  background-color: var(--color-error-50);
+  color: var(--color-error);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
+  font-family: var(--font-secondary);
+  font-size: var(--text-sm);
+  text-align: right;
+}
+
+.googleButton {
+  background: white;
+  border: 2px solid var(--color-neutral-200);
+  color: var(--color-text-primary);
+  font-family: var(--font-primary);
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-4);
+  transition:
+    border-color var(--duration-fast) var(--ease-default),
+    box-shadow var(--duration-fast) var(--ease-default);
+}
+
+.googleButton:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+}
+
+.terms {
+  font-family: var(--font-secondary);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--space-4);
+  line-height: 1.6;
+}
+
+.link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: var(--space-6) 0;
+  gap: var(--space-4);
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: var(--color-border);
+}
+
+.divider span {
+  font-family: var(--font-secondary);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.switchLink {
+  text-decoration: none;
+  display: block;
+}
+
+.features {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-6);
+  margin-top: var(--space-8);
+  flex-wrap: wrap;
+}
+
+.feature {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.featureIcon {
+  font-size: var(--text-lg);
+}
+
+.featureText {
+  font-family: var(--font-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+@media (max-width: 480px) {
+  .features {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .feature {
+    justify-content: center;
+  }
+}

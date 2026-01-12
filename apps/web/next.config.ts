@@ -7,17 +7,21 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'img.clerk.com',
+        hostname: 'lh3.googleusercontent.com', // Google profile images
       },
       {
         protocol: 'https',
-        hostname: 'images.clerk.dev',
+        hostname: 'platform-lookaside.fbsbx.com', // Facebook profile images
+      },
+      {
+        protocol: 'https',
+        hostname: 'instagram.com',
       },
     ],
   },
 
   experimental: {
-    optimizePackageImports: ['framer-motion', '@clerk/nextjs'],
+    optimizePackageImports: ['framer-motion'],
   },
 
   async headers() {

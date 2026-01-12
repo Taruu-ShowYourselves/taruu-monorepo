@@ -29,8 +29,8 @@ class EmailService {
   constructor() {
     this.config = {
       apiKey: process.env.RESEND_API_KEY || '',
-      fromEmail: 'noreply@sync.co.il',
-      fromName: 'סינק',
+      fromEmail: 'noreply@taro.co.il',
+      fromName: 'תַּרְאוּ',
     };
   }
 
@@ -119,11 +119,46 @@ class EmailService {
     to: string;
     firstName: string;
     amount: number;
-    type: 'vote' | 'create_vote';
+    type: 'vote' | 'create_vote' | 'vote_participation' | 'vote_creation';
     receiptUrl: string;
     tokensEarned: number;
   }): Promise<void> {
     const template = this.getPaymentReceiptTemplate(params);
+
+    await this.getResend().emails.send({
+      from: this.getFromAddress(),
+      to: params.to,
+      subject: template.subject,
+      html: template.html,
+      text: template.text,
+    });
+  }
+
+  /**
+   * Send newsletter verification email (double opt-in)
+   */
+  async sendNewsletterVerificationEmail(params: {
+    to: string;
+    verificationToken: string;
+  }): Promise<void> {
+    const template = this.getNewsletterVerificationTemplate(params);
+
+    await this.getResend().emails.send({
+      from: this.getFromAddress(),
+      to: params.to,
+      subject: template.subject,
+      html: template.html,
+      text: template.text,
+    });
+  }
+
+  /**
+   * Send newsletter welcome email (after verification)
+   */
+  async sendNewsletterWelcomeEmail(params: {
+    to: string;
+  }): Promise<void> {
+    const template = this.getNewsletterWelcomeTemplate();
 
     await this.getResend().emails.send({
       from: this.getFromAddress(),
@@ -140,7 +175,7 @@ class EmailService {
 
   private getWelcomeTemplate(firstName: string): EmailTemplate {
     return {
-      subject: 'ברוכים הבאים לסינק! 🎉',
+      subject: 'ברוכים הבאים לתַּרְאוּ! 🎉',
       html: `
         <!DOCTYPE html>
         <html dir="rtl" lang="he">
@@ -151,13 +186,13 @@ class EmailService {
         <body style="font-family: 'Heebo', Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px;">
           <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 40px;">
             <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #2563EB; font-size: 32px; margin: 0;">סינק</h1>
+              <h1 style="color: #2563EB; font-size: 32px; margin: 0;">תַּרְאוּ</h1>
             </div>
 
             <h2 style="color: #171717; font-size: 24px; margin-bottom: 16px;">שלום ${firstName}! 👋</h2>
 
             <p style="color: #525252; font-size: 16px; line-height: 1.6;">
-              ברוכים הבאים למשפחת סינק! אנחנו שמחים שהצטרפת אלינו במסע לשינוי
+              ברוכים הבאים למשפחת תַּרְאוּ! אנחנו שמחים שהצטרפת אלינו במסע לשינוי
               הדרך שבה אזרחים משתתפים בקבלת החלטות מקומיות.
             </p>
 
@@ -168,7 +203,7 @@ class EmailService {
             <ul style="color: #525252; font-size: 16px; line-height: 1.8;">
               <li>להצביע על נושאים מקומיים ברשות שלך</li>
               <li>ליזום הצבעות חדשות</li>
-              <li>לצבור טוקני Sync</li>
+              <li>לצבור טוקני Taro</li>
               <li>לעקוב אחרי החלטות והשפעות</li>
             </ul>
 
@@ -187,7 +222,7 @@ class EmailService {
         </body>
         </html>
       `,
-      text: `שלום ${firstName}! ברוכים הבאים לסינק. עכשיו אתה יכול להצביע על נושאים מקומיים ברשות שלך.`,
+      text: `שלום ${firstName}! ברוכים הבאים לתַּרְאוּ. עכשיו אתה יכול להצביע על נושאים מקומיים ברשות שלך.`,
     };
   }
 
@@ -216,7 +251,7 @@ class EmailService {
         <body style="font-family: 'Heebo', Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px;">
           <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 40px;">
             <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #2563EB; font-size: 32px; margin: 0;">סינק</h1>
+              <h1 style="color: #2563EB; font-size: 32px; margin: 0;">תַּרְאוּ</h1>
             </div>
 
             <h2 style="color: #171717; font-size: 24px; margin-bottom: 16px;">שלום ${params.firstName}!</h2>
@@ -277,7 +312,7 @@ class EmailService {
         <body style="font-family: 'Heebo', Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px;">
           <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 40px;">
             <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #2563EB; font-size: 32px; margin: 0;">סינק</h1>
+              <h1 style="color: #2563EB; font-size: 32px; margin: 0;">תַּרְאוּ</h1>
             </div>
 
             <h2 style="color: #171717; font-size: 24px; margin-bottom: 16px;">שלום ${params.firstName}!</h2>
@@ -327,15 +362,15 @@ class EmailService {
   private getPaymentReceiptTemplate(params: {
     firstName: string;
     amount: number;
-    type: 'vote' | 'create_vote';
+    type: 'vote' | 'create_vote' | 'vote_participation' | 'vote_creation';
     receiptUrl: string;
     tokensEarned: number;
   }): EmailTemplate {
-    const paymentDescription =
-      params.type === 'vote' ? 'השתתפות בהצבעה' : 'יצירת הצבעה';
+    const isVote = params.type === 'vote' || params.type === 'vote_participation';
+    const paymentDescription = isVote ? 'השתתפות בהצבעה' : 'יצירת הצבעה';
 
     return {
-      subject: `קבלה עבור ${paymentDescription} - סינק`,
+      subject: `קבלה עבור ${paymentDescription} - תַּרְאוּ`,
       html: `
         <!DOCTYPE html>
         <html dir="rtl" lang="he">
@@ -346,7 +381,7 @@ class EmailService {
         <body style="font-family: 'Heebo', Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px;">
           <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 40px;">
             <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #2563EB; font-size: 32px; margin: 0;">סינק</h1>
+              <h1 style="color: #2563EB; font-size: 32px; margin: 0;">תַּרְאוּ</h1>
             </div>
 
             <h2 style="color: #171717; font-size: 24px; margin-bottom: 16px;">תודה ${params.firstName}!</h2>
@@ -366,7 +401,7 @@ class EmailService {
               </div>
               <div style="display: flex; justify-content: space-between;">
                 <span style="color: #737373;">טוקנים שנצברו:</span>
-                <span style="color: #10B981; font-weight: 600;">${params.tokensEarned} SYNC</span>
+                <span style="color: #10B981; font-weight: 600;">${params.tokensEarned} TARO</span>
               </div>
             </div>
 
@@ -385,7 +420,116 @@ class EmailService {
         </body>
         </html>
       `,
-      text: `תודה ${params.firstName}! התשלום שלך עבור ${paymentDescription} בסך ₪${params.amount} התקבל בהצלחה. צברת ${params.tokensEarned} טוקני SYNC.`,
+      text: `תודה ${params.firstName}! התשלום שלך עבור ${paymentDescription} בסך ₪${params.amount} התקבל בהצלחה. צברת ${params.tokensEarned} טוקני TARO.`,
+    };
+  }
+
+  private getNewsletterVerificationTemplate(params: {
+    verificationToken: string;
+  }): EmailTemplate {
+    const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/newsletter/verify?token=${params.verificationToken}`;
+
+    return {
+      subject: 'אמתו את ההרשמה לניוזלטר סינק',
+      html: `
+        <!DOCTYPE html>
+        <html dir="rtl" lang="he">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: 'Heebo', Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 40px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #2563EB; font-size: 32px; margin: 0;">סינק</h1>
+            </div>
+
+            <h2 style="color: #171717; font-size: 24px; margin-bottom: 16px;">אמתו את כתובת האימייל שלכם</h2>
+
+            <p style="color: #525252; font-size: 16px; line-height: 1.6;">
+              תודה שנרשמתם לניוזלטר של סינק! לפני שנתחיל לשלוח לכם עדכונים,
+              אנא אשרו את כתובת האימייל שלכם בלחיצה על הכפתור למטה.
+            </p>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${verifyUrl}" style="background-color: #2563EB; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
+                אשרו את ההרשמה
+              </a>
+            </div>
+
+            <p style="color: #737373; font-size: 14px; line-height: 1.6;">
+              אם הכפתור לא עובד, העתיקו והדביקו את הקישור הזה בדפדפן:
+              <br>
+              <a href="${verifyUrl}" style="color: #2563EB; word-break: break-all;">${verifyUrl}</a>
+            </p>
+
+            <p style="color: #737373; font-size: 14px; line-height: 1.6;">
+              לא נרשמתם לניוזלטר? אפשר להתעלם מהאימייל הזה.
+            </p>
+
+            <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 30px 0;">
+
+            <p style="color: #737373; font-size: 14px; text-align: center;">
+              הקול שלך. הקהילה שלך. העתיד שלנו.
+            </p>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `אמתו את ההרשמה לניוזלטר סינק. לחצו על הקישור הבא: ${verifyUrl}`,
+    };
+  }
+
+  private getNewsletterWelcomeTemplate(): EmailTemplate {
+    return {
+      subject: 'ברוכים הבאים לניוזלטר סינק! 🎉',
+      html: `
+        <!DOCTYPE html>
+        <html dir="rtl" lang="he">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: 'Heebo', Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 40px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #2563EB; font-size: 32px; margin: 0;">סינק</h1>
+            </div>
+
+            <h2 style="color: #171717; font-size: 24px; margin-bottom: 16px;">ההרשמה אושרה!</h2>
+
+            <p style="color: #525252; font-size: 16px; line-height: 1.6;">
+              תודה שאישרתם את ההרשמה! מעכשיו תקבלו עדכונים על:
+            </p>
+
+            <ul style="color: #525252; font-size: 16px; line-height: 1.8;">
+              <li>הצבעות חדשות ברשות המקומית שלכם</li>
+              <li>תוצאות הצבעות שהשתתפתם בהן</li>
+              <li>חדשות ועדכונים מפלטפורמת סינק</li>
+              <li>טיפים להשפעה על הקהילה שלכם</li>
+            </ul>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}/download" style="background-color: #2563EB; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
+                הורידו את האפליקציה
+              </a>
+            </div>
+
+            <p style="color: #737373; font-size: 14px; line-height: 1.6;">
+              רוצים לקחת את ההשתתפות צעד קדימה? הורידו את אפליקציית סינק
+              והתחילו להצביע על נושאים שחשובים לכם!
+            </p>
+
+            <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 30px 0;">
+
+            <p style="color: #737373; font-size: 14px; text-align: center;">
+              הקול שלך. הקהילה שלך. העתיד שלנו.
+            </p>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `ברוכים הבאים לניוזלטר סינק! ההרשמה שלכם אושרה. הורידו את האפליקציה: ${process.env.NEXT_PUBLIC_APP_URL}/download`,
     };
   }
 }

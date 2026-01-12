@@ -1,0 +1,21 @@
+# Robots.txt for Taro - Community Voting Platform
+# https://taro.co.il
+
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://taro.co.il/sitemap.xml
+
+# Block admin and API routes
+Disallow: /api/
+Disallow: /admin/
+
+# Allow important pages
+Allow: /he/
+Allow: /en/
+Allow: /he/votes
+Allow: /en/votes
+
+# Crawl-delay for polite crawling
+Crawl-delay: 1

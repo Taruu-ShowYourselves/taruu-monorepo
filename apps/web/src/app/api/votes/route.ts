@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getSessionFromRequest } from '@/services/auth/session';
 import { convergeService } from '@/services/converge';
 
 /**
@@ -10,7 +10,12 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const municipality = searchParams.get('municipality');
-    const status = searchParams.get('status') as 'pending' | 'active' | 'completed' | 'cancelled' | null;
+    const status = searchParams.get('status') as
+      | 'pending'
+      | 'active'
+      | 'completed'
+      | 'cancelled'
+      | null;
 
     let votes;
 
@@ -40,27 +45,39 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const session = await getSessionFromRequest(request);
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
-    const { title, description, municipality, options, startDate, endDate, paymentTxId } = body;
+    const {
+      title,
+      description,
+      municipality,
+      options,
+      startDate,
+      endDate,
+      paymentTxId,
+    } = body;
 
     // Validate required fields
-    if (!title || !description || !municipality || !options || !startDate || !endDate) {
+    if (
+      !title ||
+      !description ||
+      !municipality ||
+      !options ||
+      !startDate ||
+      !endDate
+    ) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    // Validate payment (in production, verify with Green Invoice)
+    // Validate payment (in production, verify with Stripe)
     if (!paymentTxId) {
       return NextResponse.json(
         { error: 'Payment required to create a vote' },
@@ -69,19 +86,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Create vote options with initial count
-    const voteOptions = options.map((opt: { label: string; description?: string }, index: number) => ({
-      id: `opt_${Date.now()}_${index}`,
-      label: opt.label,
-      description: opt.description,
-      voteCount: 0,
-    }));
+    const voteOptions = options.map(
+      (opt: { label: string; description?: string }, index: number) => ({
+        id: `opt_${Date.now()}_${index}`,
+        label: opt.label,
+        description: opt.description,
+        voteCount: 0,
+      })
+    );
 
     // Create the vote
     const vote = await convergeService.createVote({
       title,
       description,
       municipality,
-      creatorId: userId,
+      creatorId: session.userId,
       status: new Date(startDate) <= new Date() ? 'active' : 'pending',
       options: voteOptions,
       startDate: new Date(startDate),

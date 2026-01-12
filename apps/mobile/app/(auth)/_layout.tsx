@@ -1,10 +1,16 @@
 import { Redirect, Stack } from 'expo-router';
-import { useAuth } from '@clerk/clerk-expo';
+import { useAuthStore } from '@/stores/authStore';
 
 export default function AuthLayout() {
-  const { isSignedIn } = useAuth();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isLoading = useAuthStore((state) => state.isLoading);
 
-  if (isSignedIn) {
+  // Don't redirect while still loading
+  if (isLoading) {
+    return null;
+  }
+
+  if (isAuthenticated) {
     return <Redirect href="/(tabs)" />;
   }
 

@@ -1,17 +1,14 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { votesApi, paymentsApi } from '@sync/api-client';
 import { CREATE_VOTE_COST, formatCurrency } from '@sync/shared';
-import * as WebBrowser from 'expo-web-browser';
 
 export default function CreateVoteScreen() {
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   // Form state
@@ -84,42 +81,21 @@ export default function CreateVoteScreen() {
     }
   };
 
-  const handleSubmit = async () => {
-    setLoading(true);
-    setError('');
+  const handleSubmit = () => {
+    // Navigate to Stripe payment screen with vote creation data
+    const validOptions = options.filter((o) => o.trim());
 
-    try {
-      // Create payment intent
-      const paymentIntent = await paymentsApi.createPaymentIntent({
-        amount: CREATE_VOTE_COST,
+    router.push({
+      pathname: '/payment/checkout',
+      params: {
         type: 'create_vote',
-        metadata: {
-          title,
-          description,
-          options: options.filter((o) => o.trim()),
-          duration,
-        },
-      });
-
-      // Open payment page
-      const result = await WebBrowser.openBrowserAsync(paymentIntent.paymentUrl);
-
-      if (result.type === 'cancel') {
-        Alert.alert('התשלום בוטל', 'ניתן לנסות שוב מאוחר יותר');
-        return;
-      }
-
-      // After successful payment, the vote will be created via webhook
-      Alert.alert(
-        'ההצבעה נוצרה!',
-        'ההצבעה שלכם תפורסם לאחר אישור התשלום',
-        [{ text: 'אישור', onPress: () => router.replace('/(tabs)') }]
-      );
-    } catch (err: any) {
-      setError(err.message || 'שגיאה ביצירת ההצבעה');
-    } finally {
-      setLoading(false);
-    }
+        title,
+        description,
+        options: JSON.stringify(validOptions),
+        duration: String(duration),
+        returnPath: '/(tabs)',
+      },
+    });
   };
 
   return (
@@ -293,7 +269,7 @@ export default function CreateVoteScreen() {
                 </Text>
               </View>
               <Text className="text-xs text-neutral-500 font-assistant text-right mt-2">
-                התשלום מאובטח דרך Green Invoice
+                תשלום מאובטח דרך Stripe
               </Text>
             </View>
           </Animated.View>
@@ -308,19 +284,12 @@ export default function CreateVoteScreen() {
       {/* Action Button */}
       <View className="px-5 pb-6">
         <Pressable
-          className={`py-4 rounded-xl items-center ${
-            loading ? 'bg-neutral-300' : 'bg-primary-600 active:bg-primary-700'
-          }`}
+          className="py-4 rounded-xl items-center bg-primary-600 active:bg-primary-700"
           onPress={step < 3 ? handleNext : handleSubmit}
-          disabled={loading}
         >
-          {loading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text className="text-white text-lg font-heebo font-semibold">
-              {step < 3 ? 'המשך' : `שלם ${formatCurrency(CREATE_VOTE_COST)} וצור הצבעה`}
-            </Text>
-          )}
+          <Text className="text-white text-lg font-heebo font-semibold">
+            {step < 3 ? 'המשך' : `שלם ${formatCurrency(CREATE_VOTE_COST)} וצור הצבעה`}
+          </Text>
         </Pressable>
       </View>
     </SafeAreaView>

@@ -103,7 +103,7 @@ class QubikService {
   async mintTokens(params: {
     walletAddress: string;
     amount: number;
-    reason: 'vote' | 'create_vote';
+    reason: 'vote' | 'create_vote' | 'vote_participation' | 'vote_creation';
   }): Promise<TokenMint> {
     const response = await fetch(`${this.config.baseUrl}/tokens/mint`, {
       method: 'POST',

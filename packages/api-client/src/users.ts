@@ -7,7 +7,8 @@ import type {
   UserProfile,
   UserProfileInput,
   UserProfileUpdate,
-  SocialConnection,
+  SocialProof,
+  SocialPlatform,
   TokenBalance,
   TokenTransaction,
 } from '@sync/shared';
@@ -63,9 +64,9 @@ export const usersApi = {
   /**
    * Get user's social connections
    */
-  async getSocialConnections(): Promise<SocialConnection[]> {
+  async getSocialProofs(): Promise<SocialProof[]> {
     const client = getApiClient();
-    const response = await client.get<{ connections: SocialConnection[] }>(
+    const response = await client.get<{ connections: SocialProof[] }>(
       '/api/user/social-connections'
     );
     return response.connections;
@@ -75,11 +76,11 @@ export const usersApi = {
    * Connect a social account
    */
   async connectSocialAccount(
-    platform: SocialConnection['platform'],
+    platform: SocialProof['platform'],
     accessToken: string
-  ): Promise<SocialConnection> {
+  ): Promise<SocialProof> {
     const client = getApiClient();
-    const response = await client.post<{ connection: SocialConnection }>(
+    const response = await client.post<{ connection: SocialProof }>(
       '/api/user/social-connections',
       { platform, accessToken }
     );
@@ -90,7 +91,7 @@ export const usersApi = {
    * Disconnect a social account
    */
   async disconnectSocialAccount(
-    platform: SocialConnection['platform']
+    platform: SocialProof['platform']
   ): Promise<void> {
     const client = getApiClient();
     await client.delete(`/api/user/social-connections/${platform}`);

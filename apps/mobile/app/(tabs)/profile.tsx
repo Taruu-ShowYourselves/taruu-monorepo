@@ -2,12 +2,10 @@ import { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useAuth, useUser } from '@clerk/clerk-expo';
+import { useAuthStore, useUser, useSyncTokenBalance, useIdentityScore } from '@/stores/authStore';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { usersApi, paymentsApi } from '@sync/api-client';
-import { UserProfile, TokenBalance } from '@sync/shared';
-import { formatCurrency } from '@sync/shared';
+import { getIdentityLevelLabel } from '@sync/shared';
 
 function StatCard({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
@@ -48,30 +46,11 @@ function MenuItem({
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { signOut } = useAuth();
-  const { user } = useUser();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [tokens, setTokens] = useState<TokenBalance | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [profileData, tokenData] = await Promise.all([
-          usersApi.getProfile(),
-          paymentsApi.getTokenBalance(),
-        ]);
-        setProfile(profileData);
-        setTokens(tokenData);
-      } catch (err) {
-        console.error('Error fetching profile:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
+  const signOut = useAuthStore((state) => state.signOut);
+  const user = useUser();
+  const syncTokenBalance = useSyncTokenBalance();
+  const identityScore = useIdentityScore();
+  const [loading, setLoading] = useState(false);
 
   const handleSignOut = () => {
     Alert.alert(
@@ -83,6 +62,7 @@ export default function ProfileScreen() {
           text: 'התנתק',
           style: 'destructive',
           onPress: async () => {
+            setLoading(true);
             await signOut();
             router.replace('/(auth)');
           },
@@ -108,7 +88,7 @@ export default function ProfileScreen() {
             <View className="flex-row-reverse items-center">
               <View className="w-16 h-16 rounded-full bg-white items-center justify-center">
                 <Text className="text-2xl font-heebo font-bold text-primary-600">
-                  {user?.firstName?.[0] || user?.emailAddresses?.[0]?.emailAddress?.[0] || '?'}
+                  {user?.firstName?.[0] || user?.email?.[0] || '?'}
                 </Text>
               </View>
               <View className="flex-1 mr-4">
@@ -116,7 +96,39 @@ export default function ProfileScreen() {
                   {user?.firstName || 'משתמש'} {user?.lastName || ''}
                 </Text>
                 <Text className="text-primary-200 font-assistant text-right">
-                  {profile?.municipality || 'לא הוגדר'}
+                  {user?.municipality || 'לא הוגדר'}
+                </Text>
+              </View>
+            </View>
+          </Animated.View>
+        </View>
+
+        {/* Identity Score Badge */}
+        <View className="px-5 -mt-8">
+          <Animated.View entering={FadeInDown.duration(400).delay(50)}>
+            <View className="bg-white rounded-xl p-4 border border-neutral-100 flex-row-reverse items-center justify-between">
+              <View className="flex-row-reverse items-center gap-3">
+                <View className="w-10 h-10 rounded-full bg-primary-100 items-center justify-center">
+                  <Ionicons name="shield-checkmark" size={20} color="#2563EB" />
+                </View>
+                <View>
+                  <Text className="text-sm text-neutral-500 font-assistant text-right">
+                    ציון זהות
+                  </Text>
+                  <Text className="text-lg font-heebo font-bold text-neutral-900 text-right">
+                    {identityScore?.total || 0}/100
+                  </Text>
+                </View>
+              </View>
+              <View className={`px-3 py-1 rounded-full ${
+                identityScore?.level === 'trusted' ? 'bg-primary-100' :
+                identityScore?.level === 'verified' ? 'bg-green-100' : 'bg-neutral-100'
+              }`}>
+                <Text className={`font-heebo text-sm ${
+                  identityScore?.level === 'trusted' ? 'text-primary-600' :
+                  identityScore?.level === 'verified' ? 'text-green-600' : 'text-neutral-600'
+                }`}>
+                  {getIdentityLevelLabel(identityScore?.level || 'basic')}
                 </Text>
               </View>
             </View>
@@ -124,22 +136,22 @@ export default function ProfileScreen() {
         </View>
 
         {/* Stats Cards */}
-        <View className="px-5 -mt-10">
+        <View className="px-5 mt-4">
           <Animated.View entering={FadeInDown.duration(400).delay(100)} className="flex-row gap-3">
             <StatCard
               icon="checkmark-circle"
               label="הצבעות"
-              value={profile?.totalVotes?.toString() || '0'}
+              value="0"
             />
             <StatCard
               icon="star"
               label="טוקנים"
-              value={tokens?.balance?.toString() || '0'}
+              value={syncTokenBalance.toString()}
             />
             <StatCard
               icon="create"
               label="יצרתם"
-              value={profile?.votesCreated?.toString() || '0'}
+              value="0"
             />
           </Animated.View>
         </View>
@@ -147,12 +159,12 @@ export default function ProfileScreen() {
         {/* Token Balance Card */}
         <View className="px-5 mt-4">
           <Animated.View entering={FadeInDown.duration(400).delay(200)}>
-            <View className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-5">
+            <View className="bg-primary-600 rounded-2xl p-5">
               <View className="flex-row-reverse justify-between items-center">
                 <View>
-                  <Text className="text-primary-200 font-assistant text-right">יתרת טוקנים</Text>
+                  <Text className="text-primary-200 font-assistant text-right">יתרת טוקנים SYNC</Text>
                   <Text className="text-3xl font-heebo font-bold text-white text-right">
-                    {tokens?.balance || 0}
+                    {syncTokenBalance}
                   </Text>
                 </View>
                 <View className="bg-white/20 rounded-full p-3">
@@ -160,7 +172,7 @@ export default function ProfileScreen() {
                 </View>
               </View>
               <Text className="text-primary-200 font-assistant text-right text-sm mt-3">
-                כל הצבעה מזכה ב-1 טוקן. ניתן להמיר טוקנים להנחות והטבות.
+                כל הצבעה מזכה ב-3 טוקנים. ניתן להמיר טוקנים להנחות והטבות.
               </Text>
             </View>
           </Animated.View>
@@ -190,8 +202,13 @@ export default function ProfileScreen() {
               />
               <MenuItem
                 icon="shield-checkmark"
-                label="אימות זהות"
+                label="אימות תושבות"
                 onPress={() => router.push('/settings/verification')}
+              />
+              <MenuItem
+                icon="share-social"
+                label="חיבור רשתות חברתיות"
+                onPress={() => router.push('/settings/social-connections')}
               />
             </View>
           </Animated.View>

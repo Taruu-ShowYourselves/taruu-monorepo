@@ -5,8 +5,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import * as WebBrowser from 'expo-web-browser';
-import { votesApi, paymentsApi } from '@sync/api-client';
+import { votesApi } from '@sync/api-client';
 import { Vote, VoteOption, VOTE_COST, formatCurrency, getTimeRemaining } from '@sync/shared';
 import { shareVote } from '@/src/lib/share';
 
@@ -83,7 +82,6 @@ export default function VoteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [vote, setVote] = useState<Vote | null>(null);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [hasVoted, setHasVoted] = useState(false);
   const [locationVerified, setLocationVerified] = useState(false);
@@ -160,37 +158,17 @@ export default function VoteDetailScreen() {
       if (!verified) return;
     }
 
-    setSubmitting(true);
-    try {
-      // Create payment intent for vote
-      const paymentIntent = await paymentsApi.createPaymentIntent({
-        amount: VOTE_COST,
+    // Navigate to Stripe payment screen with vote details
+    router.push({
+      pathname: '/payment/checkout',
+      params: {
         type: 'vote',
-        metadata: {
-          voteId: id,
-          optionId: selectedOption,
-        },
-      });
-
-      // Open payment page
-      const result = await WebBrowser.openBrowserAsync(paymentIntent.paymentUrl);
-
-      if (result.type === 'cancel') {
-        Alert.alert('התשלום בוטל', 'ניתן לנסות שוב');
-        return;
-      }
-
-      // After successful payment, the vote is recorded via webhook
-      // Refresh to show updated results
-      await fetchVote();
-      setHasVoted(true);
-
-      Alert.alert('הצבעתכם נקלטה!', 'תודה על ההשתתפות');
-    } catch (err: any) {
-      Alert.alert('שגיאה', err.message || 'לא ניתן להשלים את ההצבעה');
-    } finally {
-      setSubmitting(false);
-    }
+        voteId: id,
+        optionId: selectedOption,
+        voteTitle: vote.title,
+        returnPath: `/vote/${id}`,
+      },
+    });
   };
 
   if (loading) {
@@ -354,28 +332,27 @@ export default function VoteDetailScreen() {
       {/* Vote Button */}
       {isActive && !hasVoted && (
         <Animated.View entering={FadeInUp.duration(400)} className="px-5 pb-6 pt-2 bg-white border-t border-neutral-100">
-          <View className="flex-row-reverse items-center mb-3">
+          <View className="flex-row-reverse items-center mb-2">
             <Ionicons name="information-circle" size={16} color="#9CA3AF" />
             <Text className="text-sm text-neutral-500 font-assistant mr-2">
               עלות הצבעה: {formatCurrency(VOTE_COST)} • נרשם בבלוקצ'יין
             </Text>
           </View>
+          <Text className="text-xs text-neutral-400 font-assistant text-center mb-3">
+            דמי ההשתתפות מחזקים פעולה קהילתית ושקיפות—לא "תשלום עבור דעה".
+          </Text>
           <Pressable
             className={`py-4 rounded-xl items-center ${
-              selectedOption && !submitting
+              selectedOption
                 ? 'bg-primary-600 active:bg-primary-700'
                 : 'bg-neutral-300'
             }`}
             onPress={handleVote}
-            disabled={!selectedOption || submitting}
+            disabled={!selectedOption}
           >
-            {submitting ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text className="text-white text-lg font-heebo font-semibold">
-                הצביעו עכשיו
-              </Text>
-            )}
+            <Text className="text-white text-lg font-heebo font-semibold">
+              הצביעו עכשיו
+            </Text>
           </Pressable>
         </Animated.View>
       )}

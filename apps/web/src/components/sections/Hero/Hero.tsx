@@ -9,38 +9,54 @@ import {
   AnimatedWords,
   AnimatedFadeInUp,
 } from '@/components/animations';
+import { useReducedMotion } from '@/hooks';
+import { HeroParallax } from './HeroParallax';
+import type { Locale } from '@/lib/i18n';
 import styles from './Hero.module.css';
 
-export function Hero() {
+interface HeroProps {
+  locale?: Locale;
+}
+
+export function Hero({ locale = 'he' }: HeroProps) {
+  const reducedMotion = useReducedMotion();
+
+  const t = {
+    backgroundText: locale === 'en' ? 'Democracy' : 'דמוקרטיה',
+    title1: locale === 'en' ? 'The Local Voice,' : 'הקול המקומי,',
+    title2: locale === 'en' ? 'In a Measurable Way.' : 'בצורה שאפשר\u00A0למדוד.',
+    subtitle: locale === 'en'
+      ? 'Taro helps communities form a transparent civic majority on issues that truly matter. We create an objective picture that helps authorities understand residents\' wishes and act in coordination with the community.'
+      : 'תַּרְאוּ עוזרת לקהילות לגבש רוב אזרחי שקוף בנושאים שבאמת חשובים לנו. אנחנו מייצרים תמונת מצב אובייקטיבית שעוזרת לרשויות להבין את רצון התושבים לעומק ולפעול בתיאום עם הקהילה.',
+    downloadBtn: locale === 'en' ? 'Download App - Coming Soon!' : 'הורדת האפליקציה - בקרוב!',
+    viewVotesBtn: locale === 'en' ? 'View Public Votes' : 'צפייה בהצבעות פומביות',
+    pilot: locale === 'en' ? 'Pilot running in Kiryat Tivon. Features and procedures evolve with the community.' : 'פיילוט בהרצה בקריית טבעון. התכונות והנהלים מתפתחים יחד עם הקהילה.',
+  };
+
   return (
     <section className={styles.hero}>
+      {/* Parallax Background Layers */}
+      <HeroParallax />
+
       <div className={styles.container}>
         {/* Background Typography */}
         <motion.div
           className={styles.backgroundText}
-          initial={{ opacity: 0 }}
+          initial={{ opacity: reducedMotion ? 0.03 : 0 }}
           animate={{ opacity: 0.03 }}
-          transition={{ duration: 1, delay: 0.5 }}
+          transition={{ duration: reducedMotion ? 0 : 1, delay: reducedMotion ? 0 : 0.5 }}
         >
-          דמוקרטיה
+          {t.backgroundText}
         </motion.div>
 
         <div className={styles.content}>
-          {/* Badge */}
-          <AnimatedFadeInUp className={styles.badge}>
-            <span className={styles.badgeIcon}>✦</span>
-            <span>מופעל על בלוקצ׳יין Qubik</span>
-          </AnimatedFadeInUp>
-
           {/* Main Heading */}
           <h1 className={styles.heading}>
-            <AnimatedLetters text="הקול שלך." delay={0.2} />
+            <AnimatedLetters text={t.title1} delay={0.2} />
             <br />
             <span className={styles.headingAccent}>
-              <AnimatedLetters text="הקהילה שלך." delay={0.5} />
+              <AnimatedLetters text={t.title2} delay={0.5} />
             </span>
-            <br />
-            <AnimatedLetters text="העתיד שלנו." delay={0.8} />
           </h1>
 
           {/* Subtitle */}
@@ -52,7 +68,7 @@ export function Hero() {
           >
             <Text size="xl" color="secondary" align="center">
               <AnimatedWords
-                text="סינק מאפשרת לתושבים להצביע על החלטות מקומיות, לעקוב אחרי התקדמות, ולהשפיע על העתיד של הקהילה שלהם - הכל באמצעות טכנולוגיית בלוקצ׳יין שקופה ומאובטחת."
+                text={t.subtitle}
                 delay={1.4}
               />
             </Text>
@@ -63,60 +79,30 @@ export function Hero() {
             className={styles.cta}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 1.8 }}
+            transition={{ duration: 0.6, delay: 1.6 }}
           >
-            <Link href="/download">
-              <Button size="xl">
-                הורידו את האפליקציה
-              </Button>
-            </Link>
-            <Link href="/votes">
+            <Button size="xl" disabled>
+              {t.downloadBtn}
+            </Button>
+            <Link href={`/${locale}/votes`}>
               <Button variant="outline" size="xl">
-                צפו בהצבעות פומביות
+                {t.viewVotesBtn}
               </Button>
             </Link>
           </motion.div>
 
-          {/* Trust Indicators */}
+          {/* Beta Disclaimer */}
           <motion.div
-            className={styles.trust}
+            className={styles.betaDisclaimer}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 2.2 }}
           >
-            <div className={styles.trustItem}>
-              <span className={styles.trustNumber}>100%</span>
-              <span className={styles.trustLabel}>שקיפות</span>
-            </div>
-            <div className={styles.trustDivider} />
-            <div className={styles.trustItem}>
-              <span className={styles.trustNumber}>₪1</span>
-              <span className={styles.trustLabel}>להצבעה</span>
-            </div>
-            <div className={styles.trustDivider} />
-            <div className={styles.trustItem}>
-              <span className={styles.trustNumber}>GPS</span>
-              <span className={styles.trustLabel}>מאומת</span>
-            </div>
+            <Text size="xs" color="muted" align="center">
+              {t.pilot}
+            </Text>
           </motion.div>
         </div>
-
-        {/* Scroll Indicator */}
-        <motion.div
-          className={styles.scrollIndicator}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 2.5 }}
-        >
-          <motion.div
-            className={styles.scrollMouse}
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          >
-            <div className={styles.scrollWheel} />
-          </motion.div>
-          <span className={styles.scrollText}>גללו למטה</span>
-        </motion.div>
       </div>
     </section>
   );

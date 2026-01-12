@@ -101,7 +101,7 @@ export function Stats() {
           </AnimatedFadeInUp>
           <AnimatedFadeInUp delay={0.1}>
             <Heading level={2} color="inverse" align="center">
-              סינק במספרים
+              תַּרְאוּ במספרים
             </Heading>
           </AnimatedFadeInUp>
         </div>

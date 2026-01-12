@@ -35,11 +35,13 @@
 }
 
 .logoText {
-  font-family: var(--font-primary);
-  font-size: var(--text-2xl);
-  font-weight: var(--font-weight-black);
+  font-family: var(--font-secular-one), var(--font-primary);
+  font-size: var(--text-3xl);
+  font-weight: 400;
   color: var(--color-primary);
-  letter-spacing: var(--tracking-tight);
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+  text-shadow: 0 1px 2px rgba(37, 99, 235, 0.1);
 }
 
 .desktopNav {
@@ -188,4 +190,120 @@
   padding-block-start: var(--space-4);
   border-block-start: var(--border-width-thin) solid var(--color-border);
   margin-block-start: var(--space-2);
+}
+
+.mobileLanguageToggle {
+  display: flex;
+  justify-content: center;
+  margin-block-end: var(--space-2);
+}
+
+/* User Menu */
+.userMenu {
+  position: relative;
+}
+
+.avatarButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--radius-full);
+  transition: box-shadow var(--duration-fast) var(--ease-default);
+}
+
+.avatarButton:hover {
+  box-shadow: 0 0 0 2px var(--color-primary-100);
+}
+
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background-color: var(--color-primary);
+  color: white;
+  font-family: var(--font-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-full);
+}
+
+.userDropdown {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  min-width: 200px;
+  background-color: var(--color-background);
+  border: var(--border-width-thin) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-2);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition:
+    opacity var(--duration-fast) var(--ease-default),
+    visibility var(--duration-fast) var(--ease-default),
+    transform var(--duration-fast) var(--ease-default);
+  z-index: var(--z-dropdown);
+}
+
+.userMenu:hover .userDropdown,
+.userMenu:focus-within .userDropdown {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.userInfo {
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.userName {
+  font-family: var(--font-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.userEmail {
+  font-family: var(--font-primary);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.divider {
+  border: none;
+  border-top: var(--border-width-thin) solid var(--color-border);
+  margin: var(--space-1) 0;
+}
+
+.dropdownItem {
+  display: block;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-primary);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  text-decoration: none;
+  text-align: right;
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-default);
+}
+
+.dropdownItem:hover {
+  background-color: var(--color-neutral-100);
 }

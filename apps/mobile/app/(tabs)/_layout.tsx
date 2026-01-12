@@ -1,13 +1,14 @@
-import { Tabs } from 'expo-router';
-import { useAuth } from '@clerk/clerk-expo';
-import { Redirect } from 'expo-router';
+import { Tabs, Redirect } from 'expo-router';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuthStore } from '@/stores/authStore';
 
 export default function TabsLayout() {
-  const { isSignedIn, isLoaded } = useAuth();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const user = useAuthStore((state) => state.user);
 
-  if (!isLoaded) {
+  if (isLoading) {
     return (
       <View className="flex-1 items-center justify-center bg-white">
         <Text className="text-neutral-500">טוען...</Text>
@@ -15,8 +16,19 @@ export default function TabsLayout() {
     );
   }
 
-  if (!isSignedIn) {
+  if (!isAuthenticated) {
     return <Redirect href="/(auth)" />;
+  }
+
+  // Check if user needs to complete verification
+  // Redirect to verification if not completed
+  const verificationStatus = user?.verificationStatus;
+  if (verificationStatus && verificationStatus !== 'completed') {
+    // Allow access if verification is active but not blocking
+    // Only redirect if verification hasn't started
+    if (verificationStatus === 'not_started') {
+      return <Redirect href="/verification" />;
+    }
   }
 
   return (

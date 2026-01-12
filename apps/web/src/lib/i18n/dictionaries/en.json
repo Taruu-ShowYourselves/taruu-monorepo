@@ -1,0 +1,129 @@
+{
+  "meta": {
+    "title": "Taro | Local Community Voting Platform Israel",
+    "description": "Community voting platform with GPS verification and transparent results. Vote on local issues in Kiryat Tivon and shape your community's future. Only 3 NIS participation fee.",
+    "keywords": "community voting, local democracy, Kiryat Tivon, online voting, Israeli municipalities, public transparency, civic participation, local council, GPS resident verification"
+  },
+  "nav": {
+    "home": "Home",
+    "about": "About",
+    "votes": "Votes",
+    "whatsapp": "Pilot WhatsApp",
+    "login": "Login",
+    "signup": "Sign Up",
+    "support": "Support Project",
+    "comingSoon": "Coming Soon"
+  },
+  "hero": {
+    "title1": "The Local Voice,",
+    "title2": "In a Measurable Way.",
+    "subtitle": "Taro helps communities form a transparent civic majority on issues that truly matter. We create an objective picture that helps authorities understand residents' wishes and act in coordination with the community.",
+    "cta": {
+      "download": "Download App - Coming Soon!",
+      "viewVotes": "View Public Votes"
+    },
+    "badges": {
+      "transparency": "Full Result Transparency",
+      "price": "₪3 Participation Fee to Strengthen Community Voice",
+      "verification": "Location-Based Resident Verification (GPS)"
+    },
+    "pilot": "Pilot running in Kiryat Tivon. Features and procedures evolve with the community."
+  },
+  "features": {
+    "title": "Why Does This Exist?",
+    "items": [
+      {
+        "title": "Real Local Issues",
+        "description": "What concerns the street and neighborhood. You decide what goes to vote and propose topics for consensus."
+      },
+      {
+        "title": "Verified Residents Only",
+        "description": "Only those who live within the municipality participate and influence. GPS verification ensures the voice is local and authentic."
+      },
+      {
+        "title": "Transparent Results for Everyone",
+        "description": "See the full picture in real time. No \"closed rooms\" - data is visible to residents and council alike."
+      },
+      {
+        "title": "Focused Community Dialogue",
+        "description": "Reducing noise and verbal hostility in favor of an organized tool that creates clarity and consensus."
+      },
+      {
+        "title": "Full Financial Transparency",
+        "description": "The participation fee (₪3) is clearly divided: ₪2 goes to a community trust fund for experts and public interest advancement, ₪1 goes to platform maintenance and development."
+      }
+    ]
+  },
+  "howItWorks": {
+    "title": "How Does It Work?",
+    "steps": [
+      {
+        "number": "01",
+        "title": "Easy Registration",
+        "description": "Email or phone, quick verification — that's it, you're part of the influential community."
+      },
+      {
+        "number": "02",
+        "title": "See What's Happening (Or Propose a Topic)",
+        "description": "Discover active votes in Kiryat Tivon, or propose a new topic you want to bring to the agenda."
+      },
+      {
+        "number": "03",
+        "title": "Vote and Participate",
+        "description": "Choose a position, verify presence (GPS), and participate with ₪3 fee that backs your position professionally."
+      },
+      {
+        "number": "04",
+        "title": "Follow the Results",
+        "description": "Watch data in real time. Results are presented to the council as a clear, transparent, data-backed community position."
+      }
+    ]
+  },
+  "pilot": {
+    "label": "Starting from Home",
+    "title": "Kiryat Tivon Pilot: Join as Partners",
+    "description": "To make this tool truly accurate for us, we've created a quiet WhatsApp group where we consult on development stages, refine user experience, and think together about the first topics for voting.",
+    "municipality": "First Municipality",
+    "municipalityValue": "Kiryat Tivon",
+    "date": "First Vote Date",
+    "dateValue": "23.01.26",
+    "cta": {
+      "whatsapp": "Join the Pilot WhatsApp Group",
+      "email": "Sign Up for Email Updates on Vote Opening"
+    }
+  },
+  "cta": {
+    "label": "Join Now",
+    "title1": "It's Time",
+    "title2": "To Make Your Voice Heard",
+    "description": "Join residents already shaping the future of their community.",
+    "whatsapp": "Join WhatsApp",
+    "updates": "Sign Up for Updates",
+    "appNotice": "App will be available for download soon on App Store and Google Play"
+  },
+  "footer": {
+    "tagline": "Your Voice. Your Community.\nOur Future.",
+    "product": "Product",
+    "support": "Support",
+    "legal": "Legal",
+    "copyright": "Taro. All rights reserved.",
+    "builtBy": "Built with love by"
+  },
+  "comingSoon": {
+    "title": "Coming Soon",
+    "description": "We're working on it. Join our WhatsApp group to get updates.",
+    "whatsapp": "Join Pilot WhatsApp",
+    "home": "Back to Home",
+    "votes": {
+      "title": "Voting Board Coming Soon",
+      "description": "The first vote in Kiryat Tivon will start on 23.01.26. Join the pilot WhatsApp to be the first to know."
+    },
+    "download": {
+      "title": "App Coming Soon",
+      "description": "The app will be available for download on App Store and Google Play before the first vote. Meanwhile, join the pilot WhatsApp."
+    }
+  },
+  "whatsapp": {
+    "button": "Pilot WhatsApp"
+  }
+}

@@ -2,6 +2,15 @@
  * Shared Utilities
  */
 
+// Re-export DID utilities
+export * from './did';
+
+// Re-export identity score utilities
+export * from './identityScore';
+
+// Re-export retry utilities
+export * from './retry';
+
 /**
  * Format currency in ILS
  */

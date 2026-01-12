@@ -1,0 +1,30 @@
+# Supabase Configuration
+# Run `supabase start` to start local development
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = false  # We use custom Google OAuth, not Supabase Auth
+site_url = "http://localhost:3000"
+
+[storage]
+enabled = false  # Not using Supabase Storage currently
+
+[realtime]
+enabled = false  # Not using realtime subscriptions currently
+
+# Functions
+[functions]
+verify_jwt_secret = "your-jwt-secret-for-local-dev"

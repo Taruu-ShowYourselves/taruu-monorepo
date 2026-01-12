@@ -1,39 +1,23 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useSignIn } from '@clerk/clerk-expo';
+import { useAuthStore } from '@/stores/authStore';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 export default function SignInScreen() {
-  const { signIn, setActive, isLoaded } = useSignIn();
   const router = useRouter();
+  const signInWithGoogle = useAuthStore((state) => state.signInWithGoogle);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const error = useAuthStore((state) => state.error);
+  const setError = useAuthStore((state) => state.setError);
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const handleGoogleSignIn = async () => {
+    setError(null);
+    const success = await signInWithGoogle(false);
 
-  const handleSignIn = async () => {
-    if (!isLoaded) return;
-
-    setLoading(true);
-    setError('');
-
-    try {
-      const result = await signIn.create({
-        identifier: email,
-        password,
-      });
-
-      if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId });
-        router.replace('/(tabs)');
-      }
-    } catch (err: any) {
-      setError(err.errors?.[0]?.message || 'שגיאה בהתחברות');
-    } finally {
-      setLoading(false);
+    if (success) {
+      router.replace('/(tabs)');
     }
   };
 
@@ -50,102 +34,82 @@ export default function SignInScreen() {
           </Text>
         </Animated.View>
 
-        {/* Form */}
+        {/* Error */}
+        {error ? (
+          <Animated.View entering={FadeInDown.duration(200)}>
+            <View className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+              <Text className="text-red-600 text-center font-assistant">
+                {error}
+              </Text>
+            </View>
+          </Animated.View>
+        ) : null}
+
+        {/* Google Sign In */}
         <Animated.View
           entering={FadeInDown.duration(400).delay(200)}
           className="gap-4"
         >
-          {/* Email */}
-          <View>
-            <Text className="text-sm font-medium text-neutral-700 mb-2 font-assistant">
-              אימייל
-            </Text>
-            <TextInput
-              className="border border-neutral-300 rounded-xl px-4 py-3 text-right font-assistant"
-              placeholder="your@email.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={email}
-              onChangeText={setEmail}
-            />
-          </View>
-
-          {/* Password */}
-          <View>
-            <Text className="text-sm font-medium text-neutral-700 mb-2 font-assistant">
-              סיסמה
-            </Text>
-            <TextInput
-              className="border border-neutral-300 rounded-xl px-4 py-3 text-right font-assistant"
-              placeholder="הסיסמה שלך"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
-          </View>
-
-          {/* Error */}
-          {error ? (
-            <Text className="text-red-500 text-center font-assistant">
-              {error}
-            </Text>
-          ) : null}
-
-          {/* Sign In Button */}
           <Pressable
-            className="bg-primary-600 py-4 rounded-xl items-center mt-4 active:bg-primary-700"
-            onPress={handleSignIn}
-            disabled={loading}
+            className="bg-white border-2 border-neutral-200 py-4 rounded-xl items-center flex-row justify-center gap-3 active:border-primary-500"
+            onPress={handleGoogleSignIn}
+            disabled={isLoading}
           >
-            {loading ? (
-              <ActivityIndicator color="white" />
+            {isLoading ? (
+              <ActivityIndicator color="#2563EB" />
             ) : (
-              <Text className="text-white text-lg font-heebo font-semibold">
-                התחברות
-              </Text>
+              <>
+                <GoogleIcon />
+                <Text className="text-neutral-700 font-heebo font-medium text-lg">
+                  התחבר עם Google
+                </Text>
+              </>
             )}
           </Pressable>
         </Animated.View>
 
-        {/* Divider */}
+        {/* Features */}
         <Animated.View
           entering={FadeInDown.duration(400).delay(400)}
-          className="flex-row items-center my-6"
+          className="flex-row justify-center gap-6 mt-8 flex-wrap"
         >
-          <View className="flex-1 h-px bg-neutral-200" />
-          <Text className="mx-4 text-neutral-500 font-assistant">או</Text>
-          <View className="flex-1 h-px bg-neutral-200" />
+          <View className="flex-row items-center gap-2">
+            <Text className="text-lg">🔒</Text>
+            <Text className="text-neutral-600 font-assistant text-sm">
+              מאובטח בבלוקצ׳יין
+            </Text>
+          </View>
+          <View className="flex-row items-center gap-2">
+            <Text className="text-lg">📍</Text>
+            <Text className="text-neutral-600 font-assistant text-sm">
+              אימות מיקום
+            </Text>
+          </View>
+          <View className="flex-row items-center gap-2">
+            <Text className="text-lg">🎫</Text>
+            <Text className="text-neutral-600 font-assistant text-sm">
+              טוקנים לתרומה
+            </Text>
+          </View>
         </Animated.View>
 
-        {/* Social Login */}
+        {/* Divider */}
         <Animated.View
           entering={FadeInDown.duration(400).delay(500)}
-          className="gap-3"
+          className="flex-row items-center my-8"
         >
-          <Pressable className="border border-neutral-300 py-4 rounded-xl items-center flex-row justify-center gap-3">
-            <Text className="text-neutral-700 font-heebo font-medium">
-              המשך עם Google
-            </Text>
-          </Pressable>
-
-          <Pressable className="border border-neutral-300 py-4 rounded-xl items-center flex-row justify-center gap-3">
-            <Text className="text-neutral-700 font-heebo font-medium">
-              המשך עם Apple
-            </Text>
-          </Pressable>
+          <View className="flex-1 h-px bg-neutral-200" />
+          <Text className="mx-4 text-neutral-500 font-assistant">
+            אין לך חשבון?
+          </Text>
+          <View className="flex-1 h-px bg-neutral-200" />
         </Animated.View>
 
         {/* Sign Up Link */}
-        <Animated.View
-          entering={FadeInDown.duration(400).delay(600)}
-          className="flex-row justify-center mt-8"
-        >
-          <Text className="text-neutral-600 font-assistant">
-            אין לך חשבון?{' '}
-          </Text>
+        <Animated.View entering={FadeInDown.duration(400).delay(600)}>
           <Link href="/(auth)/sign-up" asChild>
-            <Pressable>
-              <Text className="text-primary-600 font-semibold font-assistant">
+            <Pressable className="border-2 border-primary-600 py-4 rounded-xl items-center">
+              <Text className="text-primary-600 text-lg font-heebo font-semibold">
                 הירשמו עכשיו
               </Text>
             </Pressable>
@@ -153,5 +117,15 @@ export default function SignInScreen() {
         </Animated.View>
       </View>
     </SafeAreaView>
+  );
+}
+
+// Google icon component
+function GoogleIcon() {
+  return (
+    <View className="w-5 h-5">
+      {/* Simple G icon - in production use proper SVG */}
+      <Text className="text-xl font-bold text-blue-500">G</Text>
+    </View>
   );
 }

@@ -1,230 +1,138 @@
-# Sync (סינק)
+# תַּרְאוּ (Taro)
 
-> Civic consensus platform for Israeli municipalities
-
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
-[![Expo](https://img.shields.io/badge/Expo-SDK%2052-000.svg)](https://expo.dev/)
-[![Next.js](https://img.shields.io/badge/Next.js-17-black.svg)](https://nextjs.org/)
+A civic consensus platform for Israeli municipalities. Citizens vote on local affairs with transparent results, GPS verification, and community-backed positions.
 
 ## Overview
 
-Sync empowers Israeli citizens to participate in local democracy through transparent, blockchain-verified consensus voting. Citizens can vote on municipal affairs with multi-layer verification including GPS pinning, financial authentication, and social signatures.
+Taro helps communities form a transparent civic majority on issues that truly matter. We create an objective picture that helps authorities understand residents' wishes and act in coordination with the community.
 
-### Key Features
+**Currently in pilot in Kiryat Tivon.**
 
-- 🗳️ **Transparent Voting** - All votes recorded on Qubik blockchain
-- 📍 **GPS Verification** - Confirm voters are within municipality boundaries
-- 💳 **Financial Authentication** - ₪1 vote / ₪50 to create vote
-- 🪙 **Token Rewards** - Earn Sync tokens for civic participation
-- 🔐 **Multi-layer Auth** - Clerk + Social Signature + GPS + Payment
+## Features
 
-## Quick Start
+- **Transparent Voting** - Real-time results presented to local councils
+- **GPS Verification** - Location-based resident verification
+- **Community Voice** - ₪3 participation fee backs positions professionally
+- **Bilingual Support** - Full Hebrew (RTL) and English (LTR) support
 
-### Prerequisites
+## Tech Stack
 
-- Node.js 20+
-- pnpm 8+
-- iOS/Android device with Expo Go (for mobile testing)
+### Web App (`apps/web`)
+- **Framework**: Next.js 15 with App Router
+- **Styling**: CSS Modules with design tokens
+- **Animations**: Framer Motion
+- **Smooth Scroll**: Lenis
+- **i18n**: Locale-based routing (`/he`, `/en`)
 
-### Installation
+### Mobile App (`apps/mobile`)
+- **Framework**: Expo SDK 52 / React Native
+- **Navigation**: Expo Router v4
+- **Styling**: NativeWind (Tailwind for RN)
+- **State**: Zustand
+- **Animations**: Reanimated
+
+### Services
+- **Auth**: Custom SEL-DID system
+- **Database**: Supabase
+- **Payments**: Green Invoice (Israeli payment processing)
+- **Newsletter**: Beehiiv
+- **Hosting**: Vercel
+
+## Getting Started
 
 ```bash
-# Clone the repository
-git clone https://github.com/SaharBarak/Taro.git
-cd Taro
-
 # Install dependencies
 pnpm install
 
-# Set up environment variables
-cp .env.example .env.local
-# Edit .env.local with your API keys
-```
-
-### Development
-
-```bash
-# Run all apps
+# Run all apps in development
 pnpm dev
 
-# Run web only
+# Run specific app
 pnpm dev --filter @sync/web
-
-# Run mobile only
 pnpm dev --filter @sync/mobile
+
+# Build all packages
+pnpm build
+
+# Run linting
+pnpm lint
+
+# Run type checking
+pnpm typecheck
 ```
-
-### Testing on iPhone
-
-**Website:**
-```bash
-# Start web server
-pnpm dev --filter @sync/web
-
-# In another terminal, expose via ngrok
-ngrok http 3000
-```
-Open the ngrok URL on your iPhone.
-
-**Mobile App:**
-```bash
-cd apps/mobile
-npx expo start --tunnel
-```
-Scan the QR code with your iPhone camera (Expo Go required).
 
 ## Project Structure
 
 ```
+/
 ├── apps/
-│   ├── web/                 # Next.js 17 website
-│   └── mobile/              # Expo React Native app
+│   ├── web/                    # Next.js website
+│   │   ├── src/
+│   │   │   ├── app/            # App router (with [locale] support)
+│   │   │   ├── components/     # React components
+│   │   │   ├── lib/            # Utilities and i18n
+│   │   │   ├── styles/         # Global styles and tokens
+│   │   │   └── hooks/          # Custom React hooks
+│   │   └── public/             # Static assets
+│   │
+│   └── mobile/                 # Expo React Native app
+│       ├── app/                # Expo Router screens
+│       └── src/                # Source code
+│
 ├── packages/
-│   ├── shared/              # Types, constants, utilities
-│   ├── api-client/          # API client library
-│   └── design-tokens/       # Design system tokens
-└── docs/
-    └── PRD.md               # Product Requirements
+│   ├── shared/                 # Shared types, constants, utils
+│   ├── api-client/             # API client library
+│   └── design-tokens/          # Shared design tokens
+│
+└── docs/                       # Documentation
 ```
-
-## Tech Stack
-
-### Web
-- **Framework:** Next.js 17
-- **Animations:** Framer Motion + Lenis
-- **Styling:** CSS Modules + Design Tokens
-
-### Mobile
-- **Framework:** Expo SDK 52
-- **Navigation:** Expo Router v4
-- **Styling:** NativeWind (Tailwind)
-- **Animations:** React Native Reanimated
-
-### Backend Services
-- **Auth:** Clerk
-- **Blockchain:** Qubik
-- **Database:** Converge
-- **Payments:** Green Invoice + Grow
-- **Email:** Resend
-
-## Design System
-
-Hebrew RTL-first design with strict token usage:
-
-```tsx
-// ✅ Correct
-<View className="bg-primary-600 p-4">
-
-// ❌ Wrong - no hardcoded values
-<View style={{ backgroundColor: '#2563EB' }}>
-```
-
-### Typography Scale (1.2 Minor Third)
-- Fonts: Heebo (headings), Assistant (body)
-- Scale: xs → 7xl (0.694rem → 4.3rem)
-
-### Colors
-- Primary: Trust Blue (#2563EB)
-- Secondary: Growth Green (#10B981)
-- Accent: Innovation Purple (#8B5CF6)
 
 ## Environment Variables
 
+Create `.env.local` in `apps/web/`:
+
 ```env
-# Clerk Authentication
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
-CLERK_SECRET_KEY=
-EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=
+# Beehiiv Newsletter
+BEEHIIV_API_KEY=your_api_key
+BEEHIIV_PUBLICATION_ID=pub_your_publication_id
 
-# Qubik Blockchain
-QUBIK_API_KEY=
-QUBIK_NETWORK=mainnet
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 
-# Converge Database
-CONVERGE_API_KEY=
-CONVERGE_PROJECT_ID=
-
-# Payments
-GREEN_INVOICE_API_KEY=
-GREEN_INVOICE_SECRET=
-GROW_API_KEY=
-
-# Email
-RESEND_API_KEY=
-
-# App URLs
-NEXT_PUBLIC_APP_URL=https://sync.co.il
-EXPO_PUBLIC_API_URL=https://api.sync.co.il
+# Other services as needed
 ```
 
-## Mobile App Screens
+## Design System
 
-| Screen | Route | Description |
-|--------|-------|-------------|
-| Welcome | `/(auth)` | App introduction |
-| Sign In | `/(auth)/sign-in` | Clerk authentication |
-| Sign Up | `/(auth)/sign-up` | Registration + verification |
-| Onboarding | `/(auth)/onboarding` | Municipality selection |
-| Home | `/(tabs)` | Active votes feed |
-| All Votes | `/(tabs)/votes` | Searchable vote list |
-| Create | `/(tabs)/create` | 3-step vote wizard |
-| Profile | `/(tabs)/profile` | Stats & settings |
-| Vote Detail | `/vote/[id]` | GPS verify + vote |
+The project uses a consistent design system with:
+- **Typography**: Heebo (headings), Assistant (body) - Hebrew-optimized fonts
+- **Colors**: Primary (Trust Blue #2563EB), Secondary (Growth Green #10B981)
+- **Spacing**: 4px base unit scale
+- **Direction**: RTL for Hebrew, LTR for English
 
-## API Endpoints
-
-### Votes
-- `GET /api/votes` - List votes
-- `GET /api/votes/[id]` - Vote details
-- `POST /api/votes` - Create vote (₪50)
-- `POST /api/votes/[id]/participate` - Cast vote (₪1)
-- `POST /api/votes/[id]/verify-location` - GPS check
-
-### User
-- `GET /api/user/profile` - Get profile
-- `POST /api/user/profile` - Create profile
-- `PATCH /api/user/profile` - Update profile
-- `GET /api/user/tokens` - Token balance
-
-### Payments
-- `POST /api/payments/create` - Payment intent
-- `POST /api/payments/webhook` - Green Invoice webhook
-
-## Scripts
-
-```bash
-pnpm dev          # Start development servers
-pnpm build        # Build all packages
-pnpm lint         # Run ESLint
-pnpm typecheck    # TypeScript validation
-pnpm test         # Run tests
-```
+See `CLAUDE.md` for full design token documentation.
 
 ## Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing`)
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## Roadmap
+## Support the Project
 
-- [x] Core website with landing pages
-- [x] Mobile app with auth flow
-- [x] Vote creation and participation UI
-- [ ] Clerk authentication integration
-- [ ] Qubik blockchain integration
-- [ ] Green Invoice payment processing
-- [ ] Social Signature algorithm
-- [ ] Municipality GPS boundaries
-- [ ] Token economy activation
+[Support on IsraelGives](https://my.israelgives.org/he/fundme/taroo)
+
+## Links
+
+- [WhatsApp Pilot Group](https://chat.whatsapp.com/FITvea9IVsn2Ljie1yCrAc)
 
 ## License
 
-MIT © 2024 Sync
+All rights reserved. © תַּרְאוּ (Taro)
 
 ---
 
-**Built with ❤️ for Israeli civic engagement**
+Built with love by [saharbarak.dev](https://saharbarak.dev)

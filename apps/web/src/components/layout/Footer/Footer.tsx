@@ -4,37 +4,50 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Text } from '@/components/ui/Typography';
 import { AnimatedFadeInUp } from '@/components/animations';
+import type { Locale } from '@/lib/i18n';
 import styles from './Footer.module.css';
 
-const footerLinks = {
+const WHATSAPP_LINK = 'https://chat.whatsapp.com/FITvea9IVsn2Ljie1yCrAc';
+const ISRAELGIVES_LINK = 'https://my.israelgives.org/he/fundme/taroo';
+
+interface FooterProps {
+  locale?: Locale;
+}
+
+const getFooterLinks = (locale: Locale) => ({
   product: {
-    title: 'המוצר',
+    title: locale === 'en' ? 'Product' : 'המוצר',
     links: [
-      { href: '/about', label: 'אודות' },
-      { href: '/votes', label: 'הצבעות פומביות' },
-      { href: '/download', label: 'הורדת האפליקציה' },
-      { href: '/pricing', label: 'מחירון' },
+      { href: `/${locale}/about`, label: locale === 'en' ? 'About' : 'אודות' },
+      { href: `/${locale}/votes`, label: locale === 'en' ? 'Votes' : 'הצבעות' },
+      { href: WHATSAPP_LINK, label: locale === 'en' ? 'Pilot WhatsApp' : 'וואטסאפ הפיילוט', external: true },
+      { href: ISRAELGIVES_LINK, label: locale === 'en' ? 'Support Project' : 'תמכו בפרויקט', external: true },
     ],
   },
   support: {
-    title: 'תמיכה',
+    title: locale === 'en' ? 'Support' : 'תמיכה',
     links: [
-      { href: '/help', label: 'מרכז עזרה' },
-      { href: '/contact', label: 'יצירת קשר' },
-      { href: '/faq', label: 'שאלות נפוצות' },
+      { href: `/${locale}/faq`, label: locale === 'en' ? 'FAQ' : 'שאלות נפוצות' },
+      { href: `/${locale}/contact`, label: locale === 'en' ? 'Contact' : 'יצירת קשר' },
     ],
   },
   legal: {
-    title: 'משפטי',
+    title: locale === 'en' ? 'Legal' : 'משפטי',
     links: [
-      { href: '/privacy', label: 'מדיניות פרטיות' },
-      { href: '/terms', label: 'תנאי שימוש' },
-      { href: '/cookies', label: 'מדיניות עוגיות' },
+      { href: `/${locale}/privacy`, label: locale === 'en' ? 'Privacy Policy' : 'מדיניות פרטיות' },
+      { href: `/${locale}/terms`, label: locale === 'en' ? 'Terms of Use' : 'תנאי שימוש' },
     ],
   },
-};
+});
 
-export function Footer() {
+export function Footer({ locale = 'he' }: FooterProps) {
+  const footerLinks = getFooterLinks(locale);
+
+  const t = {
+    tagline: locale === 'en' ? 'Your Voice. Your Community.\nOur Future.' : 'הקול שלך. הקהילה שלך.\nהעתיד שלנו.',
+    copyright: locale === 'en' ? 'Taro. All rights reserved.' : 'תַּרְאוּ. כל הזכויות שמורות.',
+    builtBy: locale === 'en' ? 'Built with love by' : 'נבנה באהבה על ידי',
+  };
   const currentYear = new Date().getFullYear();
 
   return (
@@ -43,17 +56,17 @@ export function Footer() {
         <div className={styles.grid}>
           {/* Brand Column */}
           <AnimatedFadeInUp className={styles.brandColumn}>
-            <Link href="/" className={styles.logo}>
-              <span className={styles.logoText}>סינק</span>
+            <Link href={`/${locale}`} className={styles.logo}>
+              <span className={`${styles.logoText} logo-text`}>תַּרְאוּ</span>
             </Link>
             <Text size="base" color="muted" className={styles.tagline}>
-              הקול שלך. הקהילה שלך.
+              {t.tagline.split('\n')[0]}
               <br />
-              העתיד שלנו.
+              {t.tagline.split('\n')[1]}
             </Text>
             <div className={styles.socialLinks}>
               <a
-                href="https://twitter.com/sync_il"
+                href="https://twitter.com/taro_il"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.socialLink}
@@ -64,7 +77,7 @@ export function Footer() {
                 </svg>
               </a>
               <a
-                href="https://facebook.com/sync.il"
+                href="https://facebook.com/taro.il"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.socialLink}
@@ -75,7 +88,7 @@ export function Footer() {
                 </svg>
               </a>
               <a
-                href="https://linkedin.com/company/sync-il"
+                href="https://linkedin.com/company/taro-il"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.socialLink}
@@ -99,9 +112,20 @@ export function Footer() {
               <ul className={styles.linkList}>
                 {section.links.map((link) => (
                   <li key={link.href}>
-                    <Link href={link.href} className={styles.link}>
-                      {link.label}
-                    </Link>
+                    {link.external ? (
+                      <a
+                        href={link.href}
+                        className={styles.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link href={link.href} className={styles.link}>
+                        {link.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -118,10 +142,18 @@ export function Footer() {
           transition={{ delay: 0.4 }}
         >
           <Text size="sm" color="muted">
-            {currentYear} סינק. כל הזכויות שמורות.
+            {currentYear} {t.copyright}
           </Text>
           <Text size="sm" color="muted">
-            נבנה באהבה בישראל
+            {t.builtBy}{' '}
+            <a
+              href="https://saharbarak.dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.signatureLink}
+            >
+              saharbarak.dev
+            </a>
           </Text>
         </motion.div>
       </div>

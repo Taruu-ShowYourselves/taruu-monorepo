@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth, currentUser } from '@clerk/nextjs/server';
+import {
+  getSessionFromRequest,
+  getSessionFromCookies,
+} from '@/services/auth/session';
 import { convergeService } from '@/services/converge';
 import { qubikService } from '@/services/qubik';
 import { emailService } from '@/services/email';
@@ -8,28 +11,30 @@ import { emailService } from '@/services/email';
  * GET /api/user/profile
  * Get the current user's profile
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const session = await getSessionFromRequest(request);
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const profile = await convergeService.getUserByClerkId(userId);
+    const profile = await convergeService.getUserByGoogleId(session.googleId);
 
     if (!profile) {
-      return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
     // Get token balance from blockchain
-    const tokenBalance = await qubikService.getTokenBalance(profile.qubikWalletAddress);
+    let tokenBalance = 0;
+    try {
+      tokenBalance = await qubikService.getTokenBalance(
+        profile.qubikWalletAddress
+      );
+    } catch (e) {
+      // Qubik might not be configured in dev
+      console.warn('Could not fetch token balance:', e);
+    }
 
     return NextResponse.json({
       profile: {
@@ -48,21 +53,20 @@ export async function GET() {
 
 /**
  * POST /api/user/profile
- * Create a new user profile (called after Clerk signup)
+ * Create a new user profile (called after Google signup)
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const session = await getSessionFromRequest(request);
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check if profile already exists
-    const existingProfile = await convergeService.getUserByClerkId(userId);
+    const existingProfile = await convergeService.getUserByGoogleId(
+      session.googleId
+    );
 
     if (existingProfile) {
       return NextResponse.json(
@@ -71,17 +75,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await currentUser();
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 400 }
-      );
-    }
-
     const body = await request.json();
-    const { municipality } = body;
+    const { municipality, firstName, lastName, phone } = body;
 
     if (!municipality) {
       return NextResponse.json(
@@ -91,27 +86,61 @@ export async function POST(request: NextRequest) {
     }
 
     // Create Qubik wallet
-    const walletAddress = await qubikService.createWallet(userId);
+    let walletAddress = '';
+    try {
+      walletAddress = await qubikService.createWallet(session.userId);
+    } catch (e) {
+      // Qubik might not be configured in dev
+      console.warn('Could not create Qubik wallet:', e);
+      walletAddress = `mock-wallet-${session.userId}`;
+    }
 
     // Create profile
     const profile = await convergeService.createUser({
-      clerkId: userId,
+      googleId: session.googleId,
+      did: session.did,
       qubikWalletAddress: walletAddress,
-      firstName: user.firstName || '',
-      lastName: user.lastName || '',
-      email: user.emailAddresses[0]?.emailAddress || '',
-      phone: user.phoneNumbers[0]?.phoneNumber,
+      firstName: firstName || '',
+      lastName: lastName || '',
+      email: session.email,
+      phone,
       municipality,
-      verificationStatus: 'pending',
-      socialConnections: [],
+      verificationStatus: {
+        phase: 'not_started',
+        checkInsCompleted: 0,
+        checkInsTotal: 0,
+      },
+      socialProofs: [
+        {
+          platform: 'google' as const,
+          platformUserId: session.googleId,
+          displayName: session.email,
+          email: session.email,
+          verifiedAt: new Date(),
+          stampWeight: 40,
+        },
+      ],
+      identityScore: {
+        total: 40,
+        breakdown: {
+          google: 40,
+          facebook: 0,
+          instagram: 0,
+        },
+        level: 'basic' as const,
+      },
       syncTokenBalance: 0,
     });
 
     // Send welcome email
-    await emailService.sendWelcomeEmail({
-      to: profile.email,
-      firstName: profile.firstName,
-    });
+    try {
+      await emailService.sendWelcomeEmail({
+        to: profile.email,
+        firstName: profile.firstName,
+      });
+    } catch (e) {
+      console.warn('Could not send welcome email:', e);
+    }
 
     return NextResponse.json({ profile }, { status: 201 });
   } catch (error) {
@@ -129,28 +158,22 @@ export async function POST(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const session = await getSessionFromRequest(request);
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const profile = await convergeService.getUserByClerkId(userId);
+    const profile = await convergeService.getUserByGoogleId(session.googleId);
 
     if (!profile) {
-      return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
     }
 
     const body = await request.json();
     const allowedUpdates = ['firstName', 'lastName', 'phone', 'municipality'];
 
-    const updates: Record<string, any> = {};
+    const updates: Record<string, unknown> = {};
 
     for (const key of allowedUpdates) {
       if (body[key] !== undefined) {

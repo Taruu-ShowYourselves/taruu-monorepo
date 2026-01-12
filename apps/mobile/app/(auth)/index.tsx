@@ -74,7 +74,7 @@ export default function WelcomeScreen() {
           </View>
           <View className="w-px h-10 bg-neutral-200" />
           <View className="items-center">
-            <Text className="text-lg font-bold text-neutral-800">₪1</Text>
+            <Text className="text-lg font-bold text-neutral-800">₪3</Text>
             <Text className="text-sm text-neutral-500">להצבעה</Text>
           </View>
           <View className="w-px h-10 bg-neutral-200" />

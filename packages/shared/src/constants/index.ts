@@ -3,8 +3,8 @@
  */
 
 // Payment amounts in ILS
-export const VOTE_COST = 1;
-export const CREATE_VOTE_COST = 50;
+export const VOTE_COST = 3;
+export const CREATE_VOTE_COST = 200;
 
 // Token conversion rate (1 ILS = 1 SYNC token)
 export const TOKEN_RATE = 1;
@@ -58,4 +58,9 @@ export const API_ENDPOINTS = {
   user: '/api/user',
   payments: '/api/payments',
   auth: '/api/auth',
+  verification: '/api/verification',
+  social: '/api/social',
 } as const;
+
+// Re-export error messages
+export * from './errors';

@@ -2,9 +2,13 @@
  * Green Invoice Payment Service
  *
  * Handles payment processing for:
- * - Vote participation (₪1)
+ * - Vote participation (₪3)
  * - Vote creation (₪50)
  * - Receipt generation
+ *
+ * Integrates with:
+ * - Qubik for token minting (1 ILS = 1 SYNC token)
+ * - Resend for payment receipts
  */
 
 interface GreenInvoiceConfig {
@@ -38,6 +42,10 @@ interface PaymentWebhookEvent {
   amount: number;
   metadata: Record<string, string>;
 }
+
+// Payment amounts in ILS
+const VOTE_PARTICIPATION_AMOUNT = 3; // ₪3
+const VOTE_CREATION_AMOUNT = 200; // ₪200
 
 class GreenInvoiceService {
   private config: GreenInvoiceConfig;
@@ -104,23 +112,26 @@ class GreenInvoiceService {
   }
 
   /**
-   * Create a payment intent for vote participation (₪1)
+   * Create a payment intent for vote participation (₪3)
    */
   async createVotePayment(params: {
-    oderId: string;
+    orderId: string;
     voteId: string;
+    voteTitle?: string;
+    userId: string;
     email: string;
     name: string;
+    municipality?: string;
   }): Promise<PaymentIntent> {
     const data = await this.request<any>('/payments/form', {
       method: 'POST',
       body: JSON.stringify({
-        description: 'הצבעה בסינק',
+        description: `השתתפות בהצבעה: ${params.voteTitle || params.voteId}`,
         type: 320, // Payment type
         lang: 'he',
         currency: 'ILS',
         vatType: 0,
-        amount: 1,
+        amount: VOTE_PARTICIPATION_AMOUNT,
         maxPayments: 1,
         client: {
           name: params.name,
@@ -129,28 +140,31 @@ class GreenInvoiceService {
         income: [
           {
             catalogNum: 'SYNC-VOTE-001',
-            description: 'תרומה להצבעה',
+            description: 'השתתפות בהצבעה',
             quantity: 1,
-            price: 1,
+            price: VOTE_PARTICIPATION_AMOUNT,
             currency: 'ILS',
             vatType: 0,
           },
         ],
-        remarks: `Vote: ${params.voteId}`,
+        remarks: `Vote: ${params.voteId} | User: ${params.userId}`,
         successUrl: `${process.env.NEXT_PUBLIC_APP_URL}/votes/${params.voteId}/success`,
         failureUrl: `${process.env.NEXT_PUBLIC_APP_URL}/votes/${params.voteId}/failed`,
         notifyUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/webhook`,
         custom: JSON.stringify({
-          oderId: params.oderId,
+          orderId: params.orderId,
           voteId: params.voteId,
-          type: 'vote',
+          userId: params.userId,
+          type: 'vote_participation',
+          tokensToMint: VOTE_PARTICIPATION_AMOUNT, // 1 ILS = 1 SYNC token
+          municipality: params.municipality || '',
         }),
       }),
     });
 
     return {
       id: data.id,
-      amount: 1,
+      amount: VOTE_PARTICIPATION_AMOUNT,
       currency: 'ILS',
       status: 'pending',
       paymentUrl: data.url,
@@ -159,23 +173,25 @@ class GreenInvoiceService {
   }
 
   /**
-   * Create a payment intent for vote creation (₪50)
+   * Create a payment intent for vote creation (₪200)
    */
   async createVoteCreationPayment(params: {
-    oderId: string;
+    orderId: string;
     voteTitle: string;
+    userId: string;
     email: string;
     name: string;
+    municipality?: string;
   }): Promise<PaymentIntent> {
     const data = await this.request<any>('/payments/form', {
       method: 'POST',
       body: JSON.stringify({
-        description: 'יצירת הצבעה בסינק',
+        description: `יצירת הצבעה: ${params.voteTitle || 'הצבעה חדשה'}`,
         type: 320,
         lang: 'he',
         currency: 'ILS',
         vatType: 0,
-        amount: 50,
+        amount: VOTE_CREATION_AMOUNT,
         maxPayments: 1,
         client: {
           name: params.name,
@@ -186,26 +202,29 @@ class GreenInvoiceService {
             catalogNum: 'SYNC-CREATE-001',
             description: 'דמי יצירת הצבעה',
             quantity: 1,
-            price: 50,
+            price: VOTE_CREATION_AMOUNT,
             currency: 'ILS',
             vatType: 0,
           },
         ],
-        remarks: `Create Vote: ${params.voteTitle}`,
-        successUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/votes/create/success`,
-        failureUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/votes/create/failed`,
+        remarks: `Create Vote: ${params.voteTitle} | User: ${params.userId}`,
+        successUrl: `${process.env.NEXT_PUBLIC_APP_URL}/votes/create/success`,
+        failureUrl: `${process.env.NEXT_PUBLIC_APP_URL}/votes/create/failed`,
         notifyUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/webhook`,
         custom: JSON.stringify({
-          oderId: params.oderId,
+          orderId: params.orderId,
           voteTitle: params.voteTitle,
-          type: 'create_vote',
+          userId: params.userId,
+          type: 'vote_creation',
+          tokensToMint: VOTE_CREATION_AMOUNT, // 1 ILS = 1 SYNC token
+          municipality: params.municipality || '',
         }),
       }),
     });
 
     return {
       id: data.id,
-      amount: 50,
+      amount: VOTE_CREATION_AMOUNT,
       currency: 'ILS',
       status: 'pending',
       paymentUrl: data.url,
@@ -259,4 +278,17 @@ class GreenInvoiceService {
 }
 
 export const greenInvoiceService = new GreenInvoiceService();
+
+/**
+ * Get payment amounts for display
+ */
+export function getPaymentAmounts() {
+  return {
+    voteParticipation: VOTE_PARTICIPATION_AMOUNT, // ₪3
+    voteCreation: VOTE_CREATION_AMOUNT, // ₪200
+    currency: 'ILS',
+  };
+}
+
+export { VOTE_PARTICIPATION_AMOUNT, VOTE_CREATION_AMOUNT };
 export type { PaymentIntent, PaymentResult, PaymentWebhookEvent };

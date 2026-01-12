@@ -1,128 +1,117 @@
 'use client';
 
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Heading, Text } from '@/components/ui/Typography';
-import { AnimatedFadeInUp, AnimatedWords } from '@/components/animations';
+import type { Locale } from '@/lib/i18n';
 import styles from './HowItWorks.module.css';
 
-const steps = [
+interface HowItWorksProps {
+  locale?: Locale;
+}
+
+const getSteps = (locale: Locale) => [
   {
     number: '01',
-    title: 'הירשמו והתחברו',
-    description:
-      'צרו חשבון באמצעות Clerk, חברו את הרשתות החברתיות שלכם לאימות החתימה החברתית, ואמתו את זהותכם.',
-    details: [
-      'הרשמה מהירה עם אימייל או טלפון',
-      'חיבור חשבונות רשתות חברתיות',
-      'אימות זהות מאובטח',
-    ],
+    title: locale === 'en' ? 'Easy Registration' : 'נרשמים בקלות',
+    description: locale === 'en'
+      ? 'Email or phone, quick verification — that\'s it, you\'re part of the influential community.'
+      : 'אימייל או טלפון, אימות קצר — וזהו, אתם חלק מהקהילה המשפיעה.',
   },
   {
     number: '02',
-    title: 'גלו הצבעות מקומיות',
-    description:
-      'צפו בהצבעות פעילות ברשות המקומית שלכם, קראו על הנושאים השונים, והבינו את ההשלכות של כל החלטה.',
-    details: [
-      'סינון לפי רשות מקומית אוטומטי',
-      'מידע מפורט על כל הצבעה',
-      'תגובות ודיונים קהילתיים',
-    ],
+    title: locale === 'en' ? 'See What\'s Happening (Or Propose a Topic)' : 'רואים מה קורה (או מציעים נושא)',
+    description: locale === 'en'
+      ? 'Discover active votes in Kiryat Tivon, or propose a new topic you want to bring to the agenda.'
+      : 'מגלים הצבעות פעילות בקריית טבעון, או מציעים נושא חדש שחשוב לכם להעלות לסדר היום.',
   },
   {
     number: '03',
-    title: 'הצביעו ותרמו ₪1',
-    description:
-      'בחרו את האפשרות המועדפת עליכם, אמתו את מיקומכם באמצעות GPS, ותרמו ₪1 כאות רצינות והוכחת אזרחות.',
-    details: [
-      'אימות GPS בזמן אמת',
-      'תשלום מאובטח דרך Green Invoice',
-      'קבלת טוקני Sync כתמורה',
-    ],
+    title: locale === 'en' ? 'Vote and Participate' : 'מצביעים ומשתתפים',
+    description: locale === 'en'
+      ? 'Choose a position, verify presence (GPS), and participate with ₪3 fee that backs your position professionally.'
+      : 'בוחרים עמדה, מאמתים נוכחות (GPS) ומשתתפים ב-₪3 דמי השתתפות שנותנים גב מקצועי לעמדה שלכם.',
   },
   {
     number: '04',
-    title: 'עקבו אחרי התוצאות',
-    description:
-      'צפו בתוצאות בזמן אמת, קבלו עדכונים על החלטות שהתקבלו, ועקבו אחרי יישום ההחלטות ברשות המקומית.',
-    details: [
-      'תוצאות שקופות על הבלוקצ׳יין',
-      'התראות על עדכונים חשובים',
-      'מעקב אחרי יישום החלטות',
-    ],
+    title: locale === 'en' ? 'Follow the Results' : 'עוקבים אחרי התוצאות',
+    description: locale === 'en'
+      ? 'Watch data in real time. Results are presented to the council as a clear, transparent, data-backed community position.'
+      : 'צופים בנתונים בזמן אמת. התוצאות מוגשות למועצה כעמדה קהילתית ברורה, שקופה ומגובה בנתונים.',
   },
 ];
 
-export function HowItWorks() {
+export function HowItWorks({ locale = 'he' }: HowItWorksProps) {
+  const steps = getSteps(locale);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const t = {
+    label: locale === 'en' ? 'How It Works' : 'איך זה עובד',
+    title: locale === 'en' ? 'Four Simple Steps' : 'ארבעה צעדים פשוטים',
+    subtitle: locale === 'en'
+      ? 'From registration to real impact on your community'
+      : 'מההרשמה ועד להשפעה אמיתית על הקהילה שלכם',
+  };
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ['start end', 'end start'],
   });
 
-  const lineHeight = useTransform(scrollYProgress, [0.1, 0.9], ['0%', '100%']);
+  // Horizontal scroll: cards slide in from off-screen as user scrolls (desktop only)
+  // On mobile, use native touch scroll instead
+  const x = useTransform(scrollYProgress, [0, 0.5], ['100%', '0%']);
+
+  // Progress bar width based on scroll
+  const progressWidth = useTransform(scrollYProgress, [0.15, 0.85], ['0%', '100%']);
 
   return (
     <section className={styles.howItWorks} ref={containerRef}>
-      <div className={styles.container}>
-        {/* Section Header */}
-        <div className={styles.header}>
-          <AnimatedFadeInUp>
-            <Text size="lg" color="accent" weight="semibold" align="center">
-              איך זה עובד
-            </Text>
-          </AnimatedFadeInUp>
-          <AnimatedFadeInUp delay={0.1}>
-            <Heading level={2} align="center">
-              <AnimatedWords text="ארבעה צעדים פשוטים" delay={0.2} />
-            </Heading>
-          </AnimatedFadeInUp>
-          <AnimatedFadeInUp delay={0.2}>
-            <Text size="xl" color="secondary" align="center" className={styles.description}>
-              מההרשמה ועד להשפעה אמיתית על הקהילה שלכם - התהליך פשוט, מאובטח ושקוף.
-            </Text>
-          </AnimatedFadeInUp>
-        </div>
+      {/* Header - Fixed at top */}
+      <div className={styles.header}>
+        <Text size="lg" color="accent" weight="semibold" align="center">
+          {t.label}
+        </Text>
+        <Heading level={2} align="center">
+          {t.title}
+        </Heading>
+        <Text size="xl" color="secondary" align="center" className={styles.description}>
+          {t.subtitle}
+        </Text>
+      </div>
 
-        {/* Steps */}
-        <div className={styles.steps}>
-          {/* Progress Line */}
-          <div className={styles.progressLine}>
-            <motion.div className={styles.progressFill} style={{ height: lineHeight }} />
-          </div>
+      {/* Horizontal Progress Line */}
+      <div className={styles.progressLine}>
+        <motion.div className={styles.progressFill} style={{ width: progressWidth }} />
+      </div>
 
-          {steps.map((step, index) => (
-            <AnimatedFadeInUp
-              key={step.number}
-              delay={0.1 * index}
-              className={styles.step}
-            >
-              <div className={styles.stepNumber}>
-                <span>{step.number}</span>
-              </div>
-              <div className={styles.stepContent}>
+      {/* Horizontal Marquee Track */}
+      <div className={styles.trackWrapper}>
+        <motion.div
+          className={styles.track}
+          style={isMobile ? undefined : { x }}
+        >
+          {steps.map((step) => (
+            <div key={step.number} className={styles.card}>
+              <div className={styles.cardHeader}>
+                <div className={styles.stepNumber}>
+                  <span>{step.number}</span>
+                </div>
                 <h3 className={styles.stepTitle}>{step.title}</h3>
-                <Text size="lg" color="secondary" className={styles.stepDescription}>
-                  {step.description}
-                </Text>
-                <ul className={styles.stepDetails}>
-                  {step.details.map((detail, detailIndex) => (
-                    <motion.li
-                      key={detailIndex}
-                      initial={{ opacity: 0, x: -10 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: 0.3 + detailIndex * 0.1 }}
-                    >
-                      <span className={styles.checkIcon}>✓</span>
-                      {detail}
-                    </motion.li>
-                  ))}
-                </ul>
               </div>
-            </AnimatedFadeInUp>
+              <Text size="base" color="secondary" className={styles.stepDescription}>
+                {step.description}
+              </Text>
+            </div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );
