@@ -1,0 +1,105 @@
+/* Container */
+.container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+/* Track - the background bar */
+.track {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-full);
+  background-color: var(--color-neutral-200);
+  overflow: hidden;
+}
+
+/* Size variants */
+.sm .track {
+  height: 4px;
+}
+
+.md .track {
+  height: 8px;
+}
+
+.lg .track {
+  height: 12px;
+}
+
+/* Fill - the progress indicator */
+.fill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  will-change: transform, opacity;
+}
+
+/* Color variants */
+.primary .fill {
+  background: linear-gradient(
+    to left,
+    var(--color-primary),
+    var(--color-primary-light)
+  );
+}
+
+.secondary .fill {
+  background: linear-gradient(
+    to left,
+    var(--color-secondary),
+    var(--color-secondary-light)
+  );
+}
+
+.success .fill {
+  background: linear-gradient(
+    to left,
+    var(--color-success),
+    var(--color-success-light, #34d399)
+  );
+}
+
+/* Label */
+.label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  min-width: 3ch;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Circular progress */
+.circular {
+  display: block;
+}
+
+.circularTrack {
+  stroke: var(--color-neutral-200);
+}
+
+.circularFill {
+  will-change: stroke-dashoffset;
+}
+
+.circular.primary .circularFill {
+  stroke: var(--color-primary);
+}
+
+.circular.secondary .circularFill {
+  stroke: var(--color-secondary);
+}
+
+.circular.success .circularFill {
+  stroke: var(--color-success);
+}
+
+/* Reduced motion - instant transitions */
+@media (prefers-reduced-motion: reduce) {
+  .fill,
+  .circularFill {
+    transition: none !important;
+  }
+}

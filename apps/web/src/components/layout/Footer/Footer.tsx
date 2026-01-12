@@ -121,7 +121,15 @@ export function Footer() {
             {currentYear} סינק. כל הזכויות שמורות.
           </Text>
           <Text size="sm" color="muted">
-            נבנה באהבה בישראל
+            נבנה באהבה בישראל · built with love by{' '}
+            <a
+              href="https://saharbarak.dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.signatureLink}
+            >
+              saharbarak.dev
+            </a>
           </Text>
         </motion.div>
       </div>

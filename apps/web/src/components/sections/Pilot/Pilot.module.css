@@ -1,0 +1,105 @@
+.pilot {
+  position: relative;
+  padding-block: var(--space-24);
+  background-color: var(--color-neutral-900);
+  overflow: hidden;
+}
+
+/* Background Typography */
+.backgroundText {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-primary);
+  font-size: 25vw;
+  font-weight: var(--font-weight-black);
+  color: var(--color-neutral-800);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.5;
+}
+
+.container {
+  position: relative;
+  max-width: var(--container-7xl);
+  margin-inline: auto;
+  padding-inline: var(--space-6);
+  z-index: var(--z-default);
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding-inline: var(--space-8);
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding-inline: var(--space-12);
+  }
+}
+
+/* Header */
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  margin-block-end: var(--space-16);
+  text-align: center;
+}
+
+.subtitle {
+  max-width: 40ch;
+}
+
+/* Grid */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-8);
+  max-width: 600px;
+  margin-inline: auto;
+}
+
+@media (min-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Info Card */
+.infoCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-8);
+  background-color: var(--color-neutral-800);
+  border-radius: var(--radius-xl);
+  border: var(--border-width-thin) solid var(--color-neutral-700);
+}
+
+.cardIcon {
+  font-size: var(--text-4xl);
+  margin-block-end: var(--space-4);
+}
+
+.cardLabel {
+  font-family: var(--font-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary-400);
+  margin-block-end: var(--space-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* CTA */
+.cta {
+  display: flex;
+  justify-content: center;
+  margin-block-start: var(--space-12);
+}

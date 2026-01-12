@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import { ClerkProvider } from '@clerk/nextjs';
 import { heIL } from '@clerk/localizations';
 import { LenisProvider } from '@/providers/LenisProvider';
@@ -75,6 +76,9 @@ export default function RootLayout({
     <ClerkProvider localization={heIL as any}>
       <html lang="he" dir="rtl">
         <body>
+          <Script id="developer-console-message" strategy="afterInteractive">
+            {`console.log("%cתֵּרָאוּ • built with love by saharbarak.dev", "font-weight:600; font-size:12px;");`}
+          </Script>
           <LenisProvider>{children}</LenisProvider>
         </body>
       </html>

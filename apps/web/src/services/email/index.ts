@@ -134,6 +134,41 @@ class EmailService {
     });
   }
 
+  /**
+   * Send newsletter verification email (double opt-in)
+   */
+  async sendNewsletterVerificationEmail(params: {
+    to: string;
+    verificationToken: string;
+  }): Promise<void> {
+    const template = this.getNewsletterVerificationTemplate(params);
+
+    await this.getResend().emails.send({
+      from: this.getFromAddress(),
+      to: params.to,
+      subject: template.subject,
+      html: template.html,
+      text: template.text,
+    });
+  }
+
+  /**
+   * Send newsletter welcome email (after verification)
+   */
+  async sendNewsletterWelcomeEmail(params: {
+    to: string;
+  }): Promise<void> {
+    const template = this.getNewsletterWelcomeTemplate();
+
+    await this.getResend().emails.send({
+      from: this.getFromAddress(),
+      to: params.to,
+      subject: template.subject,
+      html: template.html,
+      text: template.text,
+    });
+  }
+
   // ============================================
   // EMAIL TEMPLATES
   // ============================================
@@ -386,6 +421,115 @@ class EmailService {
         </html>
       `,
       text: `תודה ${params.firstName}! התשלום שלך עבור ${paymentDescription} בסך ₪${params.amount} התקבל בהצלחה. צברת ${params.tokensEarned} טוקני SYNC.`,
+    };
+  }
+
+  private getNewsletterVerificationTemplate(params: {
+    verificationToken: string;
+  }): EmailTemplate {
+    const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/newsletter/verify?token=${params.verificationToken}`;
+
+    return {
+      subject: 'אמתו את ההרשמה לניוזלטר סינק',
+      html: `
+        <!DOCTYPE html>
+        <html dir="rtl" lang="he">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: 'Heebo', Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 40px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #2563EB; font-size: 32px; margin: 0;">סינק</h1>
+            </div>
+
+            <h2 style="color: #171717; font-size: 24px; margin-bottom: 16px;">אמתו את כתובת האימייל שלכם</h2>
+
+            <p style="color: #525252; font-size: 16px; line-height: 1.6;">
+              תודה שנרשמתם לניוזלטר של סינק! לפני שנתחיל לשלוח לכם עדכונים,
+              אנא אשרו את כתובת האימייל שלכם בלחיצה על הכפתור למטה.
+            </p>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${verifyUrl}" style="background-color: #2563EB; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
+                אשרו את ההרשמה
+              </a>
+            </div>
+
+            <p style="color: #737373; font-size: 14px; line-height: 1.6;">
+              אם הכפתור לא עובד, העתיקו והדביקו את הקישור הזה בדפדפן:
+              <br>
+              <a href="${verifyUrl}" style="color: #2563EB; word-break: break-all;">${verifyUrl}</a>
+            </p>
+
+            <p style="color: #737373; font-size: 14px; line-height: 1.6;">
+              לא נרשמתם לניוזלטר? אפשר להתעלם מהאימייל הזה.
+            </p>
+
+            <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 30px 0;">
+
+            <p style="color: #737373; font-size: 14px; text-align: center;">
+              הקול שלך. הקהילה שלך. העתיד שלנו.
+            </p>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `אמתו את ההרשמה לניוזלטר סינק. לחצו על הקישור הבא: ${verifyUrl}`,
+    };
+  }
+
+  private getNewsletterWelcomeTemplate(): EmailTemplate {
+    return {
+      subject: 'ברוכים הבאים לניוזלטר סינק! 🎉',
+      html: `
+        <!DOCTYPE html>
+        <html dir="rtl" lang="he">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: 'Heebo', Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; padding: 40px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #2563EB; font-size: 32px; margin: 0;">סינק</h1>
+            </div>
+
+            <h2 style="color: #171717; font-size: 24px; margin-bottom: 16px;">ההרשמה אושרה!</h2>
+
+            <p style="color: #525252; font-size: 16px; line-height: 1.6;">
+              תודה שאישרתם את ההרשמה! מעכשיו תקבלו עדכונים על:
+            </p>
+
+            <ul style="color: #525252; font-size: 16px; line-height: 1.8;">
+              <li>הצבעות חדשות ברשות המקומית שלכם</li>
+              <li>תוצאות הצבעות שהשתתפתם בהן</li>
+              <li>חדשות ועדכונים מפלטפורמת סינק</li>
+              <li>טיפים להשפעה על הקהילה שלכם</li>
+            </ul>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}/download" style="background-color: #2563EB; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
+                הורידו את האפליקציה
+              </a>
+            </div>
+
+            <p style="color: #737373; font-size: 14px; line-height: 1.6;">
+              רוצים לקחת את ההשתתפות צעד קדימה? הורידו את אפליקציית סינק
+              והתחילו להצביע על נושאים שחשובים לכם!
+            </p>
+
+            <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 30px 0;">
+
+            <p style="color: #737373; font-size: 14px; text-align: center;">
+              הקול שלך. הקהילה שלך. העתיד שלנו.
+            </p>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `ברוכים הבאים לניוזלטר סינק! ההרשמה שלכם אושרה. הורידו את האפליקציה: ${process.env.NEXT_PUBLIC_APP_URL}/download`,
     };
   }
 }

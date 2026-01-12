@@ -90,6 +90,23 @@ interface Participation {
   createdAt: Date;
 }
 
+// Newsletter signup types
+type SignupStatus = 'pending' | 'verified' | 'unsubscribed';
+type SignupSource = 'homepage_cta' | 'footer' | 'landing_page' | 'blog' | 'campaign' | 'other';
+
+interface NewsletterSignup {
+  id: string;
+  email: string;
+  status: SignupStatus;
+  source: SignupSource;
+  sourcePage?: string;
+  verificationToken?: string;
+  verifiedAt?: Date;
+  unsubscribedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 class ConvergeService {
   private config: ConvergeConfig;
 
@@ -273,7 +290,80 @@ class ConvergeService {
     );
     return result.documents;
   }
+
+  // ============================================
+  // NEWSLETTER SIGNUP OPERATIONS
+  // ============================================
+
+  async createNewsletterSignup(data: {
+    email: string;
+    source: SignupSource;
+    sourcePage?: string;
+    verificationToken?: string;
+  }): Promise<NewsletterSignup> {
+    return this.request<NewsletterSignup>('/collections/newsletter_signups/documents', {
+      method: 'POST',
+      body: JSON.stringify({
+        ...data,
+        status: 'pending' as SignupStatus,
+      }),
+    });
+  }
+
+  async getNewsletterSignupByEmail(email: string): Promise<NewsletterSignup | null> {
+    try {
+      const result = await this.request<{ documents: NewsletterSignup[] }>(
+        `/collections/newsletter_signups/documents?filter=email:${encodeURIComponent(email)}`
+      );
+      return result.documents[0] || null;
+    } catch {
+      return null;
+    }
+  }
+
+  async getNewsletterSignupByToken(token: string): Promise<NewsletterSignup | null> {
+    try {
+      const result = await this.request<{ documents: NewsletterSignup[] }>(
+        `/collections/newsletter_signups/documents?filter=verificationToken:${token}`
+      );
+      return result.documents[0] || null;
+    } catch {
+      return null;
+    }
+  }
+
+  async verifyNewsletterSignup(id: string): Promise<NewsletterSignup> {
+    return this.request<NewsletterSignup>(`/collections/newsletter_signups/documents/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        status: 'verified' as SignupStatus,
+        verifiedAt: new Date().toISOString(),
+        verificationToken: null,
+        updatedAt: new Date().toISOString(),
+      }),
+    });
+  }
+
+  async unsubscribeNewsletter(id: string): Promise<NewsletterSignup> {
+    return this.request<NewsletterSignup>(`/collections/newsletter_signups/documents/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        status: 'unsubscribed' as SignupStatus,
+        unsubscribedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }),
+    });
+  }
+
+  async getAllNewsletterSignups(status?: SignupStatus): Promise<NewsletterSignup[]> {
+    let endpoint = '/collections/newsletter_signups/documents?orderBy=createdAt:desc';
+    if (status) {
+      endpoint += `&filter=status:${status}`;
+    }
+    const result = await this.request<{ documents: NewsletterSignup[] }>(endpoint);
+    return result.documents;
+  }
 }
 
 export const convergeService = new ConvergeService();
-export type { UserProfile, SocialConnection, Vote, VoteOption, VoteResults, Participation };
+export type { UserProfile, SocialConnection, Vote, VoteOption, VoteResults, Participation, NewsletterSignup, SignupSource, SignupStatus };

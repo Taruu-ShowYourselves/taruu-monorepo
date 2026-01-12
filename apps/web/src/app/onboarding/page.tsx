@@ -102,14 +102,14 @@ export default function OnboardingPage() {
                   <span className={styles.featureIcon}>🔒</span>
                   <div>
                     <strong>הצבעות מאובטחות</strong>
-                    <p>כל הצבעה נרשמת בבלוקצ׳יין</p>
+                    <p>כל הצבעה נשמרת ומאומתת</p>
                   </div>
                 </div>
                 <div className={styles.feature}>
-                  <span className={styles.featureIcon}>🪙</span>
+                  <span className={styles.featureIcon}>📊</span>
                   <div>
-                    <strong>צברו טוקנים</strong>
-                    <p>כל הצבעה מזכה ב-1 טוקן</p>
+                    <strong>עקבו אחרי התוצאות</strong>
+                    <p>תמונה ברורה לאורך זמן</p>
                   </div>
                 </div>
               </div>

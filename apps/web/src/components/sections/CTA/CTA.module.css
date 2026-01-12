@@ -77,6 +77,13 @@
   max-width: 36rem;
 }
 
+/* Newsletter Form */
+.newsletterWrapper {
+  width: 100%;
+  max-width: 32rem;
+  margin-block-start: var(--space-4);
+}
+
 /* Buttons */
 .buttons {
   display: flex;

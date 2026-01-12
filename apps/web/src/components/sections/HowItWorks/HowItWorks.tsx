@@ -3,52 +3,51 @@
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useRef } from 'react';
 import { Heading, Text } from '@/components/ui/Typography';
-import { AnimatedFadeInUp, AnimatedWords } from '@/components/animations';
 import styles from './HowItWorks.module.css';
 
 const steps = [
   {
     number: '01',
-    title: 'הירשמו והתחברו',
+    title: 'נרשמים בקלות',
     description:
-      'צרו חשבון באמצעות Clerk, חברו את הרשתות החברתיות שלכם לאימות החתימה החברתית, ואמתו את זהותכם.',
+      'אימייל או טלפון, ואז אימות קצר - וזהו, אתם בפנים.',
     details: [
-      'הרשמה מהירה עם אימייל או טלפון',
-      'חיבור חשבונות רשתות חברתיות',
-      'אימות זהות מאובטח',
+      'הרשמה פשוטה תוך דקה',
+      'אימות קצר לאבטחת החשבון',
+      'מוכנים להשתתף',
     ],
   },
   {
     number: '02',
-    title: 'גלו הצבעות מקומיות',
+    title: 'רואים מה פתוח באזור שלכם',
     description:
-      'צפו בהצבעות פעילות ברשות המקומית שלכם, קראו על הנושאים השונים, והבינו את ההשלכות של כל החלטה.',
+      'הצבעות פעילות לפי הרשות המקומית שלכם - תראו על מה מצביעים ומה ההשלכות.',
     details: [
-      'סינון לפי רשות מקומית אוטומטי',
-      'מידע מפורט על כל הצבעה',
-      'תגובות ודיונים קהילתיים',
+      'הצבעות רלוונטיות לאזור שלכם',
+      'מידע ברור על כל נושא',
+      'דיונים עם תושבים אחרים',
     ],
   },
   {
     number: '03',
-    title: 'הצביעו ותרמו ₪1',
+    title: 'מצביעים ומשתתפים',
     description:
-      'בחרו את האפשרות המועדפת עליכם, אמתו את מיקומכם באמצעות GPS, ותרמו ₪1 כאות רצינות והוכחת אזרחות.',
+      'בוחרים את העמדה שלכם, מאמתים שאתם באזור, ומשלמים ₪3 דמי השתתפות.',
     details: [
-      'אימות GPS בזמן אמת',
-      'תשלום מאובטח דרך Green Invoice',
-      'קבלת טוקני Sync כתמורה',
+      'אימות מיקום פשוט',
+      'תשלום מאובטח',
+      'ההצבעה נרשמת מיד',
     ],
   },
   {
     number: '04',
-    title: 'עקבו אחרי התוצאות',
+    title: 'עוקבים אחרי התוצאות והעדכונים',
     description:
-      'צפו בתוצאות בזמן אמת, קבלו עדכונים על החלטות שהתקבלו, ועקבו אחרי יישום ההחלטות ברשות המקומית.',
+      'תמונה ברורה לאורך זמן - תראו את התוצאות, תקבלו עדכונים, ותעקבו אחרי מה שקורה.',
     details: [
-      'תוצאות שקופות על הבלוקצ׳יין',
+      'תוצאות שקופות ומאומתות',
       'התראות על עדכונים חשובים',
-      'מעקב אחרי יישום החלטות',
+      'מעקב אחרי יישום ההחלטות',
     ],
   },
 ];
@@ -60,69 +59,58 @@ export function HowItWorks() {
     offset: ['start end', 'end start'],
   });
 
-  const lineHeight = useTransform(scrollYProgress, [0.1, 0.9], ['0%', '100%']);
+  // Horizontal scroll: move track from right to left as user scrolls (RTL layout)
+  // Start with cards visible on right, scroll reveals more to the left
+  const x = useTransform(scrollYProgress, [0, 1], ['0%', '-60%']);
+
+  // Progress bar width based on scroll
+  const progressWidth = useTransform(scrollYProgress, [0.15, 0.85], ['0%', '100%']);
 
   return (
     <section className={styles.howItWorks} ref={containerRef}>
-      <div className={styles.container}>
-        {/* Section Header */}
-        <div className={styles.header}>
-          <AnimatedFadeInUp>
-            <Text size="lg" color="accent" weight="semibold" align="center">
-              איך זה עובד
-            </Text>
-          </AnimatedFadeInUp>
-          <AnimatedFadeInUp delay={0.1}>
-            <Heading level={2} align="center">
-              <AnimatedWords text="ארבעה צעדים פשוטים" delay={0.2} />
-            </Heading>
-          </AnimatedFadeInUp>
-          <AnimatedFadeInUp delay={0.2}>
-            <Text size="xl" color="secondary" align="center" className={styles.description}>
-              מההרשמה ועד להשפעה אמיתית על הקהילה שלכם - התהליך פשוט, מאובטח ושקוף.
-            </Text>
-          </AnimatedFadeInUp>
-        </div>
+      {/* Header - Fixed at top */}
+      <div className={styles.header}>
+        <Text size="lg" color="accent" weight="semibold" align="center">
+          איך זה עובד
+        </Text>
+        <Heading level={2} align="center">
+          ארבעה צעדים פשוטים
+        </Heading>
+        <Text size="xl" color="secondary" align="center" className={styles.description}>
+          מההרשמה ועד להשפעה אמיתית על הקהילה שלכם
+        </Text>
+      </div>
 
-        {/* Steps */}
-        <div className={styles.steps}>
-          {/* Progress Line */}
-          <div className={styles.progressLine}>
-            <motion.div className={styles.progressFill} style={{ height: lineHeight }} />
-          </div>
+      {/* Horizontal Progress Line */}
+      <div className={styles.progressLine}>
+        <motion.div className={styles.progressFill} style={{ width: progressWidth }} />
+      </div>
 
-          {steps.map((step, index) => (
-            <AnimatedFadeInUp
-              key={step.number}
-              delay={0.1 * index}
-              className={styles.step}
-            >
-              <div className={styles.stepNumber}>
-                <span>{step.number}</span>
-              </div>
-              <div className={styles.stepContent}>
+      {/* Horizontal Marquee Track */}
+      <div className={styles.trackWrapper}>
+        <motion.div className={styles.track} style={{ x }}>
+          {steps.map((step) => (
+            <div key={step.number} className={styles.card}>
+              <div className={styles.cardHeader}>
+                <div className={styles.stepNumber}>
+                  <span>{step.number}</span>
+                </div>
                 <h3 className={styles.stepTitle}>{step.title}</h3>
-                <Text size="lg" color="secondary" className={styles.stepDescription}>
-                  {step.description}
-                </Text>
-                <ul className={styles.stepDetails}>
-                  {step.details.map((detail, detailIndex) => (
-                    <motion.li
-                      key={detailIndex}
-                      initial={{ opacity: 0, x: -10 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: 0.3 + detailIndex * 0.1 }}
-                    >
-                      <span className={styles.checkIcon}>✓</span>
-                      {detail}
-                    </motion.li>
-                  ))}
-                </ul>
               </div>
-            </AnimatedFadeInUp>
+              <Text size="base" color="secondary" className={styles.stepDescription}>
+                {step.description}
+              </Text>
+              <ul className={styles.stepDetails}>
+                {step.details.map((detail, detailIndex) => (
+                  <li key={detailIndex}>
+                    <span className={styles.checkIcon}>✓</span>
+                    {detail}
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

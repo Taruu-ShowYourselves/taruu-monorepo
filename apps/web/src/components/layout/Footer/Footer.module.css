@@ -143,3 +143,15 @@
     flex-direction: row;
   }
 }
+
+/* Signature Link */
+.signatureLink {
+  color: var(--color-primary-light);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-default);
+}
+
+.signatureLink:hover {
+  color: var(--color-text-inverse);
+  text-decoration: underline;
+}

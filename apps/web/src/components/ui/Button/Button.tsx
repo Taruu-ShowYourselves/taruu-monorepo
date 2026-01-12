@@ -1,7 +1,10 @@
 'use client';
 
 import React from 'react';
+import { motion } from 'framer-motion';
 import clsx from 'clsx';
+import { useReducedMotion } from '@/hooks';
+import { buttonPress, buttonHover, iconNudge } from '@/lib/animations';
 import styles from './Button.module.css';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'link';
@@ -24,6 +27,8 @@ interface ButtonProps {
   disabled?: boolean;
   type?: 'button' | 'submit' | 'reset';
   onClick?: React.MouseEventHandler<HTMLButtonElement>;
+  /** Disable micro-animations (overrides system preference) */
+  disableAnimation?: boolean;
 }
 
 export function Button({
@@ -38,12 +43,17 @@ export function Button({
   disabled,
   type = 'button',
   onClick,
+  disableAnimation = false,
 }: ButtonProps) {
+  const prefersReducedMotion = useReducedMotion();
   const isDisabled = disabled || isLoading;
   const normalizedSize = sizeMap[size] || size;
 
+  // Disable animations if user prefers reduced motion or explicitly disabled
+  const shouldAnimate = !prefersReducedMotion && !disableAnimation && !isDisabled;
+
   return (
-    <button
+    <motion.button
       type={type}
       className={clsx(
         styles.button,
@@ -55,6 +65,8 @@ export function Button({
       )}
       disabled={isDisabled}
       onClick={onClick}
+      whileHover={shouldAnimate ? buttonHover : undefined}
+      whileTap={shouldAnimate ? buttonPress : undefined}
     >
       {isLoading ? (
         <span className={styles.spinner}>
@@ -78,11 +90,25 @@ export function Button({
         </span>
       ) : (
         <>
-          {leftIcon ? <span className={styles.icon}>{leftIcon}</span> : null}
+          {leftIcon ? (
+            <motion.span
+              className={styles.icon}
+              whileHover={shouldAnimate ? iconNudge : undefined}
+            >
+              {leftIcon}
+            </motion.span>
+          ) : null}
           <span className={styles.text}>{children}</span>
-          {rightIcon ? <span className={styles.icon}>{rightIcon}</span> : null}
+          {rightIcon ? (
+            <motion.span
+              className={styles.icon}
+              whileHover={shouldAnimate ? iconNudge : undefined}
+            >
+              {rightIcon}
+            </motion.span>
+          ) : null}
         </>
       )}
-    </button>
+    </motion.button>
   );
 }

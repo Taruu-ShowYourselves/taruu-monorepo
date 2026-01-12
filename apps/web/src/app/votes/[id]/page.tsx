@@ -253,7 +253,10 @@ export default function VoteDetailPage() {
               {isActive && !hasVoted && (
                 <div className={styles.voteAction}>
                   <p className={styles.voteInfo}>
-                    עלות הצבעה: <strong>₪1</strong> • נרשם בבלוקצ׳יין
+                    עלות הצבעה: <strong>₪3</strong> • נרשם בבלוקצ׳יין
+                  </p>
+                  <p className={styles.participationExplanation}>
+                    דמי ההשתתפות מחזקים פעולה קהילתית ושקיפות—לא &quot;תשלום עבור דעה&quot;.
                   </p>
                   <Button
                     onClick={handleVote}

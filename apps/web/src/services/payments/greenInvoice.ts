@@ -2,7 +2,7 @@
  * Green Invoice Payment Service
  *
  * Handles payment processing for:
- * - Vote participation (₪1)
+ * - Vote participation (₪3)
  * - Vote creation (₪50)
  * - Receipt generation
  */
@@ -104,7 +104,7 @@ class GreenInvoiceService {
   }
 
   /**
-   * Create a payment intent for vote participation (₪1)
+   * Create a payment intent for vote participation (₪3)
    */
   async createVotePayment(params: {
     oderId: string;

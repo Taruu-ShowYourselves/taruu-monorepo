@@ -354,12 +354,15 @@ export default function VoteDetailScreen() {
       {/* Vote Button */}
       {isActive && !hasVoted && (
         <Animated.View entering={FadeInUp.duration(400)} className="px-5 pb-6 pt-2 bg-white border-t border-neutral-100">
-          <View className="flex-row-reverse items-center mb-3">
+          <View className="flex-row-reverse items-center mb-2">
             <Ionicons name="information-circle" size={16} color="#9CA3AF" />
             <Text className="text-sm text-neutral-500 font-assistant mr-2">
               עלות הצבעה: {formatCurrency(VOTE_COST)} • נרשם בבלוקצ'יין
             </Text>
           </View>
+          <Text className="text-xs text-neutral-400 font-assistant text-center mb-3">
+            דמי ההשתתפות מחזקים פעולה קהילתית ושקיפות—לא "תשלום עבור דעה".
+          </Text>
           <Pressable
             className={`py-4 rounded-xl items-center ${
               selectedOption && !submitting

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Heading, Text } from '@/components/ui/Typography';
 import { AnimatedFadeInUp, AnimatedLetters } from '@/components/animations';
+import { NewsletterForm } from '@/components/forms/NewsletterForm';
 import styles from './CTA.module.css';
 
 export function CTA() {
@@ -48,6 +49,17 @@ export function CTA() {
               ההצבעה הבאה מחכה לכם.
             </Text>
           </AnimatedFadeInUp>
+
+          {/* Newsletter Signup Form */}
+          <motion.div
+            className={styles.newsletterWrapper}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
+            <NewsletterForm source="homepage_cta" />
+          </motion.div>
 
           <motion.div
             className={styles.buttons}

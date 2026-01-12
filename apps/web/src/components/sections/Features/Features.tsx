@@ -1,13 +1,21 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { Heading, Text } from '@/components/ui/Typography';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/Card';
-import { AnimatedFadeInUp, AnimatedWords } from '@/components/animations';
-import { staggerContainer, fadeInUp } from '@/lib/animations';
+import { Text } from '@/components/ui/Typography';
 import styles from './Features.module.css';
 
 const features = [
+  {
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M8 12h8M12 8v8" />
+      </svg>
+    ),
+    title: 'נושאים מקומיים אמיתיים',
+    description: 'מה שמעסיק את הרחוב, לא רק מה שעל סדר היום.',
+  },
   {
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -15,116 +23,156 @@ const features = [
         <path d="M9 12l2 2 4-4" />
       </svg>
     ),
-    title: 'אימות רב-שכבתי',
-    description:
-      'שילוב ייחודי של אימות Clerk, חתימה חברתית, GPS ותשלום של ₪1 מבטיח שכל הצבעה אמיתית ומאומתת.',
-  },
-  {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <rect x="3" y="3" width="18" height="18" rx="2" />
-        <path d="M3 9h18" />
-        <path d="M9 21V9" />
-      </svg>
-    ),
-    title: 'בלוקצ׳יין Qubik',
-    description:
-      'כל הצבעה נרשמת באופן בלתי הפיך על בלוקצ׳יין Qubik, מבטיחה שקיפות מלאה ומניעת זיוף.',
+    title: 'תושבים מאומתים',
+    description: 'רק מי שנמצא בתוך הרשות משתתף בנושאים שלה.',
   },
   {
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <circle cx="12" cy="12" r="10" />
         <path d="M12 6v6l4 2" />
+        <path d="M2 12h4M18 12h4" />
       </svg>
     ),
-    title: 'הצבעות בזמן אמת',
-    description:
-      'עקבו אחרי התוצאות בזמן אמת, קבלו התראות על הצבעות חדשות, וראו את השפעת הקול שלכם.',
+    title: 'תוצאות שקופות',
+    description: 'רואים את התמונה בזמן אמת, בלי "חדרים סגורים".',
   },
   {
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-        <circle cx="12" cy="10" r="3" />
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        <path d="M8 9h8M8 13h4" />
       </svg>
     ),
-    title: 'אימות מיקום GPS',
-    description:
-      'ודאו שאתם מצביעים רק על נושאים הרלוונטיים לרשות המקומית שלכם באמצעות אימות מיקום מדויק.',
+    title: 'דיון קהילתי קצר וברור',
+    description: 'פחות רעש, יותר בהירות.',
   },
   {
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-        <line x1="7" y1="7" x2="7.01" y2="7" />
+        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
       </svg>
     ),
-    title: 'טוקני Sync',
-    description:
-      'כל תרומה של ₪1 מזכה אתכם בטוקני Sync, שערכם צפוי לעלות ככל שהפלטפורמה גדלה.',
-  },
-  {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      </svg>
-    ),
-    title: 'חתימה חברתית',
-    description:
-      'אלגוריתם ייחודי המאמת את זהותכם באמצעות חיבור חשבונות הרשתות החברתיות שלכם.',
+    title: 'קרן קהילה לפעולה',
+    description: 'דמי השתתפות שנשמרים לטובת צעדים כשצריך.',
   },
 ];
 
-export function Features() {
-  return (
-    <section className={styles.features}>
-      <div className={styles.container}>
-        {/* Section Header */}
-        <div className={styles.header}>
-          <AnimatedFadeInUp>
-            <Text size="lg" color="accent" weight="semibold" align="center">
-              היתרונות שלנו
-            </Text>
-          </AnimatedFadeInUp>
-          <AnimatedFadeInUp delay={0.1}>
-            <Heading level={2} align="center">
-              <AnimatedWords text="למה לבחור בסינק?" delay={0.2} />
-            </Heading>
-          </AnimatedFadeInUp>
-          <AnimatedFadeInUp delay={0.2}>
-            <Text size="xl" color="secondary" align="center" className={styles.description}>
-              פלטפורמה מתקדמת המשלבת טכנולוגיה חדשנית עם ערכים דמוקרטיים,
-              מאפשרת לכל אזרח להשמיע את קולו בצורה מאובטחת ושקופה.
-            </Text>
-          </AnimatedFadeInUp>
-        </div>
+// Duplicate for seamless loop
+const duplicatedFeatures = [...features, ...features];
 
-        {/* Features Grid */}
-        <motion.div
-          className={styles.grid}
-          variants={staggerContainer}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-100px' }}
+export function Features() {
+  const marqueeRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [scrollPosition, setScrollPosition] = useState(0);
+
+  // Check if mobile
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Handle keyboard navigation
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent, index: number) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        setIsPaused((prev) => !prev);
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        const nextIndex = index > 0 ? index - 1 : duplicatedFeatures.length - 1;
+        const cards = marqueeRef.current?.querySelectorAll('[data-card]');
+        (cards?.[nextIndex] as HTMLElement)?.focus();
+      }
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const nextIndex = index < duplicatedFeatures.length - 1 ? index + 1 : 0;
+        const cards = marqueeRef.current?.querySelectorAll('[data-card]');
+        (cards?.[nextIndex] as HTMLElement)?.focus();
+      }
+    },
+    []
+  );
+
+  // Touch handlers for mobile swipe
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.touches[0].clientX);
+    setIsPaused(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStart === null || !trackRef.current) return;
+    const diff = touchStart - e.touches[0].clientX;
+    const newPos = scrollPosition + diff;
+    trackRef.current.style.transform = `translateX(${-newPos}px)`;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStart === null || !trackRef.current) return;
+    const diff = touchStart - e.changedTouches[0].clientX;
+    setScrollPosition((prev) => prev + diff);
+    setTouchStart(null);
+    // Resume auto-scroll after a delay on mobile
+    setTimeout(() => setIsPaused(false), 3000);
+  };
+
+  return (
+    <section className={styles.features} aria-label="יתרונות הפלטפורמה">
+      <div
+        ref={marqueeRef}
+        className={styles.marquee}
+        onMouseEnter={() => !isMobile && setIsPaused(true)}
+        onMouseLeave={() => !isMobile && setIsPaused(false)}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div
+          ref={trackRef}
+          className={styles.track}
+          style={{
+            animationPlayState: isPaused ? 'paused' : 'running',
+          }}
+          aria-live="off"
         >
-          {features.map((feature, index) => (
-            <motion.div key={feature.title} variants={fadeInUp}>
-              <Card variant="default" padding="lg" interactive className={styles.card}>
-                <CardContent>
+          {duplicatedFeatures.map((feature, index) => (
+            <Card
+              key={`${feature.title}-${index}`}
+              variant="elevated"
+              padding="lg"
+              className={styles.card}
+            >
+              <CardContent>
+                <div
+                  data-card
+                  tabIndex={0}
+                  role="article"
+                  aria-label={feature.title}
+                  className={styles.cardInner}
+                  onFocus={() => setIsPaused(true)}
+                  onBlur={() => setIsPaused(false)}
+                  onKeyDown={(e) => handleKeyDown(e, index)}
+                >
                   <div className={styles.iconWrapper}>{feature.icon}</div>
                   <h3 className={styles.cardTitle}>{feature.title}</h3>
                   <Text size="base" color="secondary">
                     {feature.description}
                   </Text>
-                </CardContent>
-              </Card>
-            </motion.div>
+                </div>
+              </CardContent>
+            </Card>
           ))}
-        </motion.div>
+        </div>
+      </div>
+      {/* Visually hidden instructions for screen readers */}
+      <div className={styles.srOnly}>
+        השתמשו במקשי החיצים כדי לנווט בין הכרטיסים. לחצו Enter או רווח כדי להשהות את הגלילה.
       </div>
     </section>
   );

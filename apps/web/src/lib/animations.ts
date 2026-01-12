@@ -437,3 +437,191 @@ export const viewportAlways = {
   once: false,
   margin: '-50px',
 };
+
+// ============================================
+// MICRO-ANIMATIONS
+// ============================================
+
+/**
+ * Icon nudge - subtle rotation on hover
+ * Use with whileHover for interactive elements
+ */
+export const iconNudge = {
+  rotate: [0, -10, 10, -5, 5, 0],
+  transition: {
+    duration: 0.5,
+    ease: 'easeInOut',
+  },
+};
+
+/**
+ * Icon scale - subtle scale up on hover
+ */
+export const iconScale = {
+  scale: 1.15,
+  transition: {
+    type: 'spring',
+    stiffness: 400,
+    damping: 15,
+  },
+};
+
+/**
+ * Icon bounce - playful bounce effect
+ */
+export const iconBounce = {
+  y: [0, -4, 0],
+  transition: {
+    duration: 0.3,
+    ease: 'easeOut',
+  },
+};
+
+/**
+ * Button press - tactile feedback
+ */
+export const buttonPress = {
+  scale: 0.97,
+  transition: {
+    type: 'spring',
+    stiffness: 500,
+    damping: 30,
+  },
+};
+
+/**
+ * Button hover - subtle lift effect
+ */
+export const buttonHover = {
+  y: -2,
+  transition: {
+    type: 'spring',
+    stiffness: 400,
+    damping: 20,
+  },
+};
+
+/**
+ * Progress fill animation variants
+ */
+export const progressFill: Variants = {
+  hidden: {
+    scaleX: 0,
+    originX: 1, // RTL - start from right
+  },
+  visible: (progress: number) => ({
+    scaleX: progress,
+    transition: {
+      duration: 0.8,
+      ease: [0.25, 0.1, 0.25, 1],
+    },
+  }),
+};
+
+/**
+ * Progress pulse - subtle glow effect
+ */
+export const progressPulse = {
+  opacity: [1, 0.7, 1],
+  transition: {
+    duration: 1.5,
+    repeat: Infinity,
+    ease: 'easeInOut',
+  },
+};
+
+/**
+ * Micro fade - ultra-fast subtle fade
+ */
+export const microFade: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      duration: 0.15,
+    },
+  },
+};
+
+/**
+ * Card hover - elevation change on hover
+ */
+export const cardHover = {
+  y: -4,
+  boxShadow: '0 12px 24px -8px rgba(0, 0, 0, 0.15)',
+  transition: {
+    type: 'spring',
+    stiffness: 300,
+    damping: 20,
+  },
+};
+
+/**
+ * Icon container hover - combined scale and background
+ */
+export const iconContainerHover = {
+  scale: 1.1,
+  transition: {
+    type: 'spring',
+    stiffness: 400,
+    damping: 20,
+  },
+};
+
+/**
+ * Shimmer effect for loading states
+ */
+export const shimmer = {
+  x: ['0%', '100%'],
+  transition: {
+    duration: 1.5,
+    repeat: Infinity,
+    ease: 'linear',
+  },
+};
+
+/**
+ * Checkmark draw animation
+ */
+export const checkmarkDraw: Variants = {
+  hidden: {
+    pathLength: 0,
+    opacity: 0,
+  },
+  visible: {
+    pathLength: 1,
+    opacity: 1,
+    transition: {
+      pathLength: {
+        duration: 0.4,
+        ease: 'easeOut',
+      },
+      opacity: {
+        duration: 0.2,
+      },
+    },
+  },
+};
+
+/**
+ * Number tick animation for counters
+ */
+export const numberTick: Variants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: 'spring',
+      stiffness: 500,
+      damping: 30,
+    },
+  },
+  exit: {
+    y: -20,
+    opacity: 0,
+    transition: {
+      duration: 0.15,
+    },
+  },
+};

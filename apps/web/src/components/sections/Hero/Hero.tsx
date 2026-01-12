@@ -9,18 +9,25 @@ import {
   AnimatedWords,
   AnimatedFadeInUp,
 } from '@/components/animations';
+import { useReducedMotion } from '@/hooks';
+import { HeroParallax } from './HeroParallax';
 import styles from './Hero.module.css';
 
 export function Hero() {
+  const reducedMotion = useReducedMotion();
+
   return (
     <section className={styles.hero}>
+      {/* Parallax Background Layers */}
+      <HeroParallax />
+
       <div className={styles.container}>
         {/* Background Typography */}
         <motion.div
           className={styles.backgroundText}
-          initial={{ opacity: 0 }}
+          initial={{ opacity: reducedMotion ? 0.03 : 0 }}
           animate={{ opacity: 0.03 }}
-          transition={{ duration: 1, delay: 0.5 }}
+          transition={{ duration: reducedMotion ? 0 : 1, delay: reducedMotion ? 0 : 0.5 }}
         >
           דמוקרטיה
         </motion.div>
@@ -34,13 +41,11 @@ export function Hero() {
 
           {/* Main Heading */}
           <h1 className={styles.heading}>
-            <AnimatedLetters text="הקול שלך." delay={0.2} />
+            <AnimatedLetters text="הקול המקומי," delay={0.2} />
             <br />
             <span className={styles.headingAccent}>
-              <AnimatedLetters text="הקהילה שלך." delay={0.5} />
+              <AnimatedLetters text="בצורה שאפשר למדוד." delay={0.5} />
             </span>
-            <br />
-            <AnimatedLetters text="העתיד שלנו." delay={0.8} />
           </h1>
 
           {/* Subtitle */}
@@ -52,11 +57,21 @@ export function Hero() {
           >
             <Text size="xl" color="secondary" align="center">
               <AnimatedWords
-                text="סינק מאפשרת לתושבים להצביע על החלטות מקומיות, לעקוב אחרי התקדמות, ולהשפיע על העתיד של הקהילה שלהם - הכל באמצעות טכנולוגיית בלוקצ׳יין שקופה ומאובטחת."
+                text="תֵּרָאוּ עוזרת לקהילות ליצור רוב אזרחי מקומי ושקוף—שמציג תמונת מצב לצד הנרטיב הרשמי, ומסייע לרשויות להתיישר עם הדאגות והדעות של התושבים."
                 delay={1.4}
               />
             </Text>
           </motion.div>
+
+          {/* Why Now Line */}
+          <motion.p
+            className={styles.whyNow}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 1.6 }}
+          >
+            היום קל למדוד דעת קהל—השאלה היא אם עושים את זה הוגן ומקומי.
+          </motion.p>
 
           {/* CTA Buttons */}
           <motion.div
@@ -77,46 +92,39 @@ export function Hero() {
             </Link>
           </motion.div>
 
-          {/* Trust Indicators */}
+          {/* Trust Badges */}
           <motion.div
-            className={styles.trust}
+            className={styles.trustBadges}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 2.2 }}
           >
-            <div className={styles.trustItem}>
-              <span className={styles.trustNumber}>100%</span>
-              <span className={styles.trustLabel}>שקיפות</span>
+            <div className={styles.trustBadge}>
+              <span className={styles.badgeIcon}>✦</span>
+              <span>שקיפות תוצאות</span>
             </div>
-            <div className={styles.trustDivider} />
-            <div className={styles.trustItem}>
-              <span className={styles.trustNumber}>₪1</span>
-              <span className={styles.trustLabel}>להצבעה</span>
+            <div className={styles.trustBadge}>
+              <span className={styles.badgeIcon}>✦</span>
+              <span>₪3 דמי השתתפות להצבעה</span>
             </div>
-            <div className={styles.trustDivider} />
-            <div className={styles.trustItem}>
-              <span className={styles.trustNumber}>GPS</span>
-              <span className={styles.trustLabel}>מאומת</span>
+            <div className={styles.trustBadge}>
+              <span className={styles.badgeIcon}>✦</span>
+              <span>אימות תושב לפי מיקום</span>
             </div>
+          </motion.div>
+
+          {/* Beta Disclaimer */}
+          <motion.div
+            className={styles.betaDisclaimer}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 2.4 }}
+          >
+            <Text size="xs" color="muted" align="center">
+              פיילוט בהרצה. התכונות והנהלים עשויים להשתנות עם הקהילה והרשות.
+            </Text>
           </motion.div>
         </div>
-
-        {/* Scroll Indicator */}
-        <motion.div
-          className={styles.scrollIndicator}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 2.5 }}
-        >
-          <motion.div
-            className={styles.scrollMouse}
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          >
-            <div className={styles.scrollWheel} />
-          </motion.div>
-          <span className={styles.scrollText}>גללו למטה</span>
-        </motion.div>
       </div>
     </section>
   );
