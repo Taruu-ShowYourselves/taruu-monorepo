@@ -129,7 +129,7 @@ Technical debt items that don't affect pilot functionality. **Address after Janu
 | P3-3 | **Branding inconsistency** | Multiple files | Various | Uses "Sync" and "Taru" inconsistently (see note below) | Standardize branding - needs team decision | [ ] |
 | ~~P3-4~~ | ~~Console.log in production~~ | - | - | - | - | [x] FIXED |
 | P3-5 | **Unsafe `as any` assertions** | Mobile + Web | 3 remaining | Type safety gap (3 of 9 fixed, 3 kept for React 19/Framer Motion compatibility) | See note below | [~] PARTIAL |
-| P3-6 | **Duplicate location verification methods** | `packages/api-client/src/` | votes.ts, users.ts | Ambiguous API | Consolidate to single method | [ ] |
+| ~~P3-6~~ | ~~Duplicate location verification methods~~ | - | - | - | - | [x] NOT AN ISSUE |
 | ~~P3-7~~ | ~~/api/payments/[id]/verify endpoint~~ | - | - | - | - | [x] CREATED |
 | ~~P3-8~~ | ~~/api/user/verify-location endpoint~~ | - | - | - | - | [x] CREATED |
 | P3-9 | **No rate limiting on votes/participate endpoint** | `apps/web/src/app/api/votes/[id]/participate/route.ts` | N/A | Could be abused to DOS payment system | Add rate limiting (3 requests/minute per user) | [ ] |
@@ -138,7 +138,7 @@ Technical debt items that don't affect pilot functionality. **Address after Janu
 | ~~P3-12~~ | ~~PAYMENT_AMOUNTS vs VOTE_COST unit inconsistency~~ | - | - | - | - | [x] FIXED |
 | ~~P3-13~~ | ~~DEAD CODE - newsletter verify route and email template~~ | - | - | - | - | [x] DELETED |
 
-**P3 Total: 4 items** (8 resolved total, 3 new this session)
+**P3 Total: 3 items** (9 resolved total, 4 new this session)
 
 **P3-3 Branding Inconsistency Note:**
 - Web app uses "Taro" (Hebrew name shown as "תַּרְאוּ" and "Taru" in tech docs) throughout
@@ -147,6 +147,12 @@ Technical debt items that don't affect pilot functionality. **Address after Janu
 - Package namespace uses "@sync/*" throughout
 - Email uses taro.co.il domain
 - **This needs team decision on which brand name to standardize on**
+
+**P3-6 Location Verification Methods Note:**
+- `usersApi.verifyLocation()` at users.ts:137-143 - User profile verification during onboarding
+- `votesApi.verifyLocation()` at votes.ts:127-141 - Vote-specific verification before casting
+- These are NOT duplicates - they serve different purposes and call different backend endpoints
+- Both are actively used in different screens (settings/verification.tsx and vote/[id].tsx)
 
 **P3-5 `as any` Assertions Note:**
 - FIXED: `apps/web/src/middleware.ts` - replaced `as any` with proper type guard `isValidLocale()`
@@ -158,7 +164,7 @@ Technical debt items that don't affect pilot functionality. **Address after Janu
 
 ### P4 - CLEANUP (Technical Debt - Converge to Supabase Migration) ✅ COMPLETE
 
-**STATUS: ALL ROUTES MIGRATED** - The convergeService is no longer used by any active API routes. The `newsletter/verify` route that was importing it has been deleted (Beehiiv handles verification internally).
+**STATUS: ALL ROUTES MIGRATED & CLEANUP COMPLETE** - The convergeService is no longer used by any active API routes. The `newsletter/verify` route that was importing it has been deleted (Beehiiv handles verification internally). **convergeService file deleted on Jan 15, 2025 (421 lines removed).**
 
 **Files to update (replace Converge with Supabase queries):**
 
@@ -282,10 +288,10 @@ The following mobile type errors were fixed during the type alignment session:
 | **P1 High** | 0 | Required for pilot - ALL RESOLVED |
 | **P2 Medium** | 1 | Has workarounds - 1 requires infrastructure change (11 resolved total) |
 | **P2-WEB** | 0 | All 7 web type errors resolved |
-| **P3 Low** | 4 | Post-pilot cleanup (8 resolved total, 3 new this session) |
-| **P4 Cleanup** | 0 | **COMPLETE** - All routes migrated to Supabase, convergeService can be deleted |
-| **Resolved** | 67 | Already fixed (3 new this session: P3-4, P3-11, P3-5 partial) |
-| **Total Active** | 6 | P0 + P2 + P3 remaining (P4 complete) |
+| **P3 Low** | 3 | Post-pilot cleanup (10 resolved total) |
+| **P4 Cleanup** | 0 | **COMPLETE** - All routes migrated to Supabase, convergeService DELETED |
+| **Resolved** | 68 | Already fixed (P3-6 clarified as NOT AN ISSUE, convergeService deleted) |
+| **Total Active** | 5 | P0 + P2 + P3 remaining (P4 complete) |
 
 **Stack Simplification (January 2025):**
 - Database: Supabase (PostgreSQL with RLS) - ONLY database
@@ -335,7 +341,7 @@ The following mobile type errors were fixed during the type alignment session:
 
 ## Completed Components
 
-### Services (14/15 Production-Ready)
+### Services (13/13 Production-Ready - All Dead Code Removed)
 - [x] Google OAuth - `apps/web/src/services/auth/google.ts` (222 lines)
 - [x] Facebook OAuth - `apps/web/src/services/auth/facebook.ts` (168 lines)
 - [x] Instagram OAuth - `apps/web/src/services/auth/instagram.ts` (189 lines)
@@ -348,10 +354,10 @@ The following mobile type errors were fixed during the type alignment session:
 - [x] Email (Resend) - `apps/web/src/services/email/index.ts` (538 lines) - 6 templates
 - [x] Supabase Client - `apps/web/src/lib/supabase/` (5 files) - PRIMARY DATABASE
 - [x] Logger Utility - `apps/web/src/lib/logger.ts` (~150 lines) - structured logging for production
-- [ ] DEAD CODE: Converge - `apps/web/src/services/converge/index.ts` (422 lines) - **TO DELETE, replaced by Supabase**
-- [ ] DEAD CODE: Grow Analytics - `apps/web/src/services/payments/grow.ts` (232 lines) - never imported
+- [x] DELETED: Converge - `apps/web/src/services/converge/index.ts` (421 lines removed Jan 15, 2025)
+- [x] DELETED: Grow Analytics - `apps/web/src/services/payments/grow.ts` (232 lines removed - P3-1)
 
-**Total Service Code: 4,278 lines (production-ready)**
+**Total Service Code: ~3,700 lines (production-ready, no dead code)**
 
 ### API Routes (29 Files, 27 Complete)
 - [x] Auth: /api/auth/did, callback, session (GET, POST, DELETE), session/refresh
