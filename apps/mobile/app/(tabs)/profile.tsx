@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -7,6 +7,7 @@ import { useAuthStore, useUser, useSyncTokenBalance, useIdentityScore } from '@/
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { getIdentityLevelLabel } from '@sync/shared';
+import { usersApi } from '@sync/api-client';
 
 const APP_URL = process.env.EXPO_PUBLIC_APP_URL || 'https://sync.co.il';
 
@@ -54,6 +55,26 @@ export default function ProfileScreen() {
   const syncTokenBalance = useSyncTokenBalance();
   const identityScore = useIdentityScore();
   const [loading, setLoading] = useState(false);
+  const [voteStats, setVoteStats] = useState({ votesParticipated: 0, votesCreated: 0 });
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  // Fetch vote stats when component mounts
+  const fetchVoteStats = useCallback(async () => {
+    try {
+      setStatsLoading(true);
+      const stats = await usersApi.getVoteStats();
+      setVoteStats(stats);
+    } catch (err) {
+      console.error('Error fetching vote stats:', err);
+      // Keep the default values on error
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchVoteStats();
+  }, [fetchVoteStats]);
 
   const handleSignOut = () => {
     Alert.alert(
@@ -144,7 +165,7 @@ export default function ProfileScreen() {
             <StatCard
               icon="checkmark-circle"
               label="הצבעות"
-              value="0"
+              value={statsLoading ? '...' : voteStats.votesParticipated.toString()}
             />
             <StatCard
               icon="star"
@@ -154,7 +175,7 @@ export default function ProfileScreen() {
             <StatCard
               icon="create"
               label="יצרתם"
-              value="0"
+              value={statsLoading ? '...' : voteStats.votesCreated.toString()}
             />
           </Animated.View>
         </View>

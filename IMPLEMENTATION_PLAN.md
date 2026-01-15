@@ -2,8 +2,8 @@
 
 **Target:** Late January 2025 Pilot Launch (Kiryat Tivon)
 **First Vote Date:** January 23, 2025
-**Last Audit:** January 15, 2025 (Opus 4.5 comprehensive codebase audit v15 - API endpoints session)
-**Document Version:** 36.0
+**Last Audit:** January 15, 2025 (Opus 4.5 comprehensive codebase audit v16 - P1-6, P1-7, P1-8 resolved)
+**Document Version:** 37.0
 
 ---
 
@@ -65,13 +65,13 @@ These issues don't crash immediately but cause significant problems. **Must fix 
 
 | # | Issue | File | Line | Impact | Fix Required | Status |
 |---|-------|------|------|--------|--------------|--------|
-| P1-6 | **Verification status returns mock data** | `apps/web/src/app/api/verification/status/route.ts` | 37-65 | Inaccurate verification progress | Implement actual schedule fetch (TODO comment exists) | [!] VERIFIED |
-| P1-7 | **Profile stats hardcoded to "0"** | `apps/mobile/app/(tabs)/profile.tsx` | 144, 154 | Users see fake stats | Connect to API for real vote counts | [!] VERIFIED |
-| P1-8 | **Hero download button disabled** | `apps/web/src/components/sections/Hero/Hero.tsx` | 84 | Main website CTA blocked | Remove `disabled` prop or add app store links | [!] VERIFIED |
+| ~~P1-6~~ | ~~Verification status returns mock data~~ | - | - | - | - | [x] FIXED |
+| ~~P1-7~~ | ~~Profile stats hardcoded to "0"~~ | - | - | - | - | [x] FIXED |
+| ~~P1-8~~ | ~~Hero download button disabled~~ | - | - | - | - | [x] FIXED |
 | ~~P1-11~~ | ~~OAuth state parameter not cryptographically verified~~ | - | - | - | - | [x] FIXED |
 | ~~P1-12~~ | ~~Payment webhook missing replay attack prevention~~ | - | - | - | - | [x] FIXED |
 
-**P1 Total: 3 blockers** (8 resolved this session)
+**P1 Total: 0 blockers** (11 resolved this session)
 
 ---
 
@@ -210,8 +210,11 @@ These issues have been verified as fixed:
 | R35 | social-connections page useSearchParams Suspense boundary | FIXED by wrapping in SuspenseWrapper component | [x] Jan 15 |
 | R36 | P1-11: OAuth state parameter CSRF vulnerability | FIXED - Implemented JWT-signed state with HS256, 10-min expiry, platform verification, session user ID matching. New utility: `apps/web/src/lib/oauth-state.ts`. Updated: Facebook/Instagram connect and callback routes | [x] Jan 15 |
 | R37 | P1-12: Payment webhook replay attack vulnerability | FIXED - Added timestamp validation (5 min max staleness), event ID tracking with payload hash, idempotent processing with status tracking. New migration: `supabase/migrations/20250115000002_webhook_events.sql`. New DB functions: getWebhookEventByEventId, createWebhookEvent, updateWebhookEventStatus, isWebhookStale | [x] Jan 15 |
+| R38 | P1-6: Verification status returns mock data | FIXED - Replaced convergeService with Supabase queries. Now uses getActiveVerificationRun() and getVerificationSchedule() to fetch actual schedule data. Calculates real missed/completed/pending counts from database. File: `apps/web/src/app/api/verification/status/route.ts` | [x] Jan 15 |
+| R39 | P1-7: Profile stats hardcoded to "0" | FIXED - Created new endpoint `/api/user/stats/route.ts` returning votesParticipated and votesCreated counts. New db functions: countUserVoteParticipations(), countVotesCreatedByUser(), getUserVoteStats(). Updated mobile `apps/mobile/app/(tabs)/profile.tsx` to fetch stats from API. Added getVoteStats() method to usersApi in api-client. | [x] Jan 15 |
+| R40 | P1-8: Hero download button disabled | FIXED - Removed `disabled` prop from download button in `apps/web/src/components/sections/Hero/Hero.tsx`. Wrapped button with Link component to /{locale}/download page. | [x] Jan 15 |
 
-**Total Resolved: 35 items** (9 new this session)
+**Total Resolved: 38 items** (12 new this session)
 
 ### Mobile Type Errors Fixed This Session
 
@@ -243,13 +246,13 @@ The following mobile type errors were fixed during the type alignment session:
 | Priority | Count | Description |
 |----------|-------|-------------|
 | **P0 Critical** | 1 | Breaks core flows - fix before testing |
-| **P1 High** | 3 | Required for pilot - fix by Jan 23 |
+| **P1 High** | 0 | Required for pilot - ALL RESOLVED |
 | **P2 Medium** | 16 | Has workarounds - can defer |
 | **P2-WEB** | 0 | All 7 web type errors resolved |
 | **P3 Low** | 12 | Post-pilot cleanup |
 | **P4 Cleanup** | 9 | Converge to Supabase migration (files to update) |
-| **Resolved** | 35 | Already fixed (9 new this session) |
-| **Total Active** | 41 | Reduced from 43 (2 security items resolved) |
+| **Resolved** | 38 | Already fixed (12 new this session) |
+| **Total Active** | 38 | Reduced from 41 (3 P1 items resolved) |
 
 **Stack Simplification (January 2025):**
 - Database: Supabase (PostgreSQL with RLS) - ONLY database
@@ -288,16 +291,12 @@ The following mobile type errors were fixed during the type alignment session:
 - [x] P1-9: /api/votes/[id]/verify-location - CREATED at `apps/web/src/app/api/votes/[id]/verify-location/route.ts`
 - [x] P1-10: /api/user/votes - CREATED at `apps/web/src/app/api/user/votes/route.ts`
 
-**Day 2: Bug Fix (P1-6)**
-1. Implement actual verification schedule fetch (replace TODO at line 37)
-
-**RESOLVED - Security Items:**
+**RESOLVED - All P1 Items:**
+- [x] **P1-6:** Verification status now fetches actual data from database (replaced convergeService)
+- [x] **P1-7:** Profile stats now connected to new /api/user/stats endpoint
+- [x] **P1-8:** Hero download button enabled and linked to download page
 - [x] **P1-11:** OAuth state parameter now cryptographically verified with JWT signing
 - [x] **P1-12:** Payment webhook now has replay attack prevention with timestamp validation
-
-**Day 3: UI Fixes (P1-7, P1-8)**
-1. Connect profile stats to API (lines 144, 154)
-2. Enable Hero download button with app store links (line 84)
 
 ---
 
@@ -512,7 +511,33 @@ The API client calls WRONG paths - backend exists but at different URLs:
 ---
 
 *Last Updated: January 15, 2025*
-*Document Version: 36.0*
+*Document Version: 37.0*
+
+**Version 37.0 Changes (January 15, 2025 - P1 Completion Session):**
+- **P1-6 RESOLVED: Verification status endpoint now fetches actual data from database**
+  - File: `apps/web/src/app/api/verification/status/route.ts`
+  - Changes:
+    - Replaced convergeService with Supabase queries
+    - Now uses getActiveVerificationRun() and getVerificationSchedule() to fetch actual schedule data
+    - Calculates real missed/completed/pending counts from database
+    - Removed TODO comment at line 37
+- **P1-7 RESOLVED: Profile stats now connected to API**
+  - New endpoint: `/api/user/stats/route.ts` - returns votesParticipated and votesCreated counts
+  - New database functions added:
+    - countUserVoteParticipations() - Count user's vote participations
+    - countVotesCreatedByUser() - Count votes created by user
+    - getUserVoteStats() - Get combined stats
+  - Updated mobile: `apps/mobile/app/(tabs)/profile.tsx` - now fetches stats from API instead of hardcoded "0"
+  - Updated api-client: Added getVoteStats() method to usersApi
+- **P1-8 RESOLVED: Hero download button now enabled and links to download page**
+  - File: `apps/web/src/components/sections/Hero/Hero.tsx`
+  - Changes:
+    - Removed `disabled` prop from download button
+    - Wrapped button with Link component to /{locale}/download page
+- **Stats Updated:**
+  - P1 High: 3 -> 0 (ALL P1 ITEMS RESOLVED)
+  - Total Resolved: 35 -> 38 (3 new this session: R38, R39, R40)
+  - Total Active: 41 -> 38
 
 **Version 36.0 Changes (Security Fixes Session):**
 - **P1-11 RESOLVED: OAuth State Cryptographic Verification**

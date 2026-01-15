@@ -816,3 +816,75 @@ export function isWebhookStale(
   const age = Math.abs(now - timestamp);
   return age > maxAgeSeconds;
 }
+
+// ============================================
+// USER STATISTICS OPERATIONS
+// ============================================
+
+/**
+ * Count the number of votes a user has participated in.
+ */
+export async function countUserVoteParticipations(userId: string): Promise<number> {
+  const { count, error } = await supabaseAdmin
+    .from('user_votes')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('Failed to count user vote participations:', error);
+    return 0;
+  }
+  return count || 0;
+}
+
+/**
+ * Count the number of votes created by a user.
+ */
+export async function countVotesCreatedByUser(userId: string): Promise<number> {
+  const { count, error } = await supabaseAdmin
+    .from('votes')
+    .select('*', { count: 'exact', head: true })
+    .eq('creator_id', userId);
+
+  if (error) {
+    console.error('Failed to count votes created by user:', error);
+    return 0;
+  }
+  return count || 0;
+}
+
+/**
+ * Get votes created by a user.
+ */
+export async function getVotesCreatedByUser(userId: string): Promise<Vote[]> {
+  const { data, error } = await supabaseAdmin
+    .from('votes')
+    .select('*')
+    .eq('creator_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Failed to get votes created by user:', error);
+    return [];
+  }
+  return data || [];
+}
+
+/**
+ * Get user voting statistics summary.
+ * Returns counts for votes participated in and votes created.
+ */
+export async function getUserVoteStats(userId: string): Promise<{
+  votesParticipated: number;
+  votesCreated: number;
+}> {
+  const [votesParticipated, votesCreated] = await Promise.all([
+    countUserVoteParticipations(userId),
+    countVotesCreatedByUser(userId),
+  ]);
+
+  return {
+    votesParticipated,
+    votesCreated,
+  };
+}

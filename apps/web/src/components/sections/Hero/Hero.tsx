@@ -81,9 +81,11 @@ export function Hero({ locale = 'he' }: HeroProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1.6 }}
           >
-            <Button size="xl" disabled>
-              {t.downloadBtn}
-            </Button>
+            <Link href={`/${locale}/download`}>
+              <Button size="xl">
+                {t.downloadBtn}
+              </Button>
+            </Link>
             <Link href={`/${locale}/votes`}>
               <Button variant="outline" size="xl">
                 {t.viewVotesBtn}

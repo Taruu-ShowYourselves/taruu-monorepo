@@ -141,4 +141,12 @@ export const usersApi = {
     const client = getApiClient();
     return client.post('/api/user/verify-location', params);
   },
+
+  /**
+   * Get user's vote statistics (votes participated, votes created)
+   */
+  async getVoteStats(): Promise<{ votesParticipated: number; votesCreated: number }> {
+    const client = getApiClient();
+    return client.get('/api/user/stats');
+  },
 };
