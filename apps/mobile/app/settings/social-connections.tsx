@@ -77,7 +77,7 @@ export default function SocialConnectionsScreen() {
       } else {
         Alert.alert('שגיאה', result.error || 'לא ניתן לחבר את פייסבוק');
       }
-    } catch (_error) {
+    } catch {
       Alert.alert('שגיאה', 'לא ניתן לחבר את פייסבוק');
     } finally {
       setConnecting(null);
@@ -95,7 +95,7 @@ export default function SocialConnectionsScreen() {
       } else {
         Alert.alert('שגיאה', result.error || 'לא ניתן לחבר את אינסטגרם');
       }
-    } catch (_error) {
+    } catch {
       Alert.alert('שגיאה', 'לא ניתן לחבר את אינסטגרם');
     } finally {
       setConnecting(null);
@@ -123,7 +123,7 @@ export default function SocialConnectionsScreen() {
               } else {
                 Alert.alert('שגיאה', result.error || 'לא ניתן לנתק');
               }
-            } catch (_error) {
+            } catch {
               Alert.alert('שגיאה', 'לא ניתן לנתק');
             } finally {
               setDisconnecting(null);

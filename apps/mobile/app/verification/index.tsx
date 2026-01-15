@@ -116,7 +116,7 @@ export default function VerificationDashboard() {
         const error = await response.json();
         Alert.alert('שגיאה', error.error || 'לא ניתן להתחיל את תהליך האימות');
       }
-    } catch (_error) {
+    } catch {
       Alert.alert('שגיאה', 'לא ניתן להתחיל את תהליך האימות');
     } finally {
       setStarting(false);

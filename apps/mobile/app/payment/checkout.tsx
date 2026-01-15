@@ -81,7 +81,7 @@ export default function CheckoutScreen() {
         expiresAt: data.payment.expiresAt,
       });
       setLoading(false);
-    } catch (_err) {
+    } catch {
       setError('שגיאה ביצירת תשלום');
       setLoading(false);
     }
@@ -117,7 +117,7 @@ export default function CheckoutScreen() {
         // Check payment status
         await checkPaymentStatus();
       }
-    } catch (_err) {
+    } catch {
       setProcessing(false);
       Alert.alert('שגיאה', 'התשלום נכשל. אנא נסו שוב.');
     }
@@ -160,7 +160,7 @@ export default function CheckoutScreen() {
           });
         }
       }
-    } catch (_err) {
+    } catch {
       setProcessing(false);
     }
   };

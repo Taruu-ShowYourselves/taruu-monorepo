@@ -16,7 +16,6 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   rightIcon?: React.ReactNode;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const Input: any = forwardRef<HTMLInputElement, InputProps>(
   (
     {

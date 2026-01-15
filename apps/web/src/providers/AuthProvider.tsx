@@ -237,7 +237,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     refreshSession,
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const Provider = AuthContext.Provider as any;
   return <Provider value={value}>{children}</Provider>;
 }

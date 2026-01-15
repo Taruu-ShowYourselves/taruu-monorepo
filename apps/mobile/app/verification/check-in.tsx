@@ -130,7 +130,7 @@ export default function CheckInScreen() {
       });
       setLocation(loc);
       await verifyCheckIn(loc);
-    } catch (_error) {
+    } catch {
       setPhase('error');
       setErrorMessage('לא ניתן לקבל את המיקום. נסו שוב.');
     }
