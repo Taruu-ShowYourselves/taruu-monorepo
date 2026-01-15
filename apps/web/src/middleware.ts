@@ -2,12 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Inline i18n config to avoid path resolution issues in Edge runtime
 const locales = ['he', 'en'] as const;
-const defaultLocale = 'he';
+type Locale = (typeof locales)[number];
+const defaultLocale: Locale = 'he';
+
+function isValidLocale(value: string): value is Locale {
+  return (locales as readonly string[]).includes(value);
+}
 
 function getLocale(request: NextRequest): string {
   // Check for locale in cookie
   const cookieLocale = request.cookies.get('NEXT_LOCALE')?.value;
-  if (cookieLocale && locales.includes(cookieLocale as any)) {
+  if (cookieLocale && isValidLocale(cookieLocale)) {
     return cookieLocale;
   }
 
@@ -17,7 +22,7 @@ function getLocale(request: NextRequest): string {
     const preferredLocale = acceptLanguage
       .split(',')
       .map((lang) => lang.split(';')[0].trim().substring(0, 2))
-      .find((lang) => locales.includes(lang as any));
+      .find(isValidLocale);
 
     if (preferredLocale) {
       return preferredLocale;

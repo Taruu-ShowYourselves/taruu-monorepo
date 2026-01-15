@@ -6,6 +6,7 @@ import {
   updatePushTokenLastUsed,
 } from '@/lib/supabase/db';
 import { sendCheckInReminder } from '@/services/notifications/expo';
+import { cronLogger as log } from '@/lib/logger';
 
 // Cron secret for authentication
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
             reminder_sent: true,
           });
           results.usersWithoutTokens++;
-          console.log(`User ${user.id} has no push tokens, skipping notification`);
+          log.info('User has no push tokens, skipping notification', { userId: user.id });
           continue;
         }
 
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
           if (result.success) {
             results.notificationsSent++;
             usedTokens.push(token);
-            console.log(`Notification sent to user ${user.id}, schedule ${schedule.id}`);
+            log.info('Notification sent', { userId: user.id, scheduleId: schedule.id });
           } else {
             results.notificationsFailed++;
             results.errors.push(
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Cron job error:', error);
+    log.error('Cron job error', { error });
     return NextResponse.json(
       { error: 'Internal server error', message },
       { status: 500 }

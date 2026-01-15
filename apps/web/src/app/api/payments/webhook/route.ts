@@ -18,6 +18,7 @@ import {
   updateWebhookEventStatus,
   isWebhookStale,
 } from '@/lib/supabase/db';
+import { webhookLogger as log } from '@/lib/logger';
 
 // Maximum webhook age: 5 minutes (300 seconds)
 const MAX_WEBHOOK_AGE_SECONDS = 5 * 60;
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     // Verify webhook signature (proves authenticity)
     if (!greenInvoiceService.verifyWebhookSignature(payload, signature)) {
-      console.error('Webhook signature verification failed');
+      log.error('Webhook signature verification failed');
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
         : null;
 
     if (webhookTimestamp && isWebhookStale(webhookTimestamp, MAX_WEBHOOK_AGE_SECONDS)) {
-      console.error('Webhook rejected: timestamp too old', {
+      log.error('Webhook rejected: timestamp too old', {
         timestamp: webhookTimestamp,
         age: Math.floor(Date.now() / 1000) - webhookTimestamp,
         maxAge: MAX_WEBHOOK_AGE_SECONDS,
@@ -84,12 +85,12 @@ export async function POST(request: NextRequest) {
     const existingEvent = await getWebhookEventByEventId(generatedEventId);
     if (existingEvent) {
       if (existingEvent.status === 'processed') {
-        console.log('Webhook already processed (replay detected):', generatedEventId);
+        log.info('Webhook already processed (replay detected)', { eventId: generatedEventId });
         return NextResponse.json({ received: true, idempotent: true, replay: true });
       }
       // If previous processing failed, allow retry
       if (existingEvent.status === 'failed') {
-        console.log('Retrying previously failed webhook:', generatedEventId);
+        log.info('Retrying previously failed webhook', { eventId: generatedEventId });
       }
     } else {
       // 4. Record new webhook event before processing
@@ -113,13 +114,13 @@ export async function POST(request: NextRequest) {
         const payment = await getPaymentById(ourPaymentId);
 
         if (!payment) {
-          console.error('Payment not found:', ourPaymentId);
+          log.error('Payment not found', { paymentId: ourPaymentId });
           return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
         }
 
         // Idempotency check - if already completed, return success
         if (payment.status === 'completed') {
-          console.log('Payment already processed (idempotent):', payment.id);
+          log.info('Payment already processed (idempotent)', { paymentId: payment.id });
           return NextResponse.json({ received: true, idempotent: true });
         }
 
@@ -129,7 +130,7 @@ export async function POST(request: NextRequest) {
         // Get user
         const user = await getUserById(payment.user_id);
         if (!user) {
-          console.error('User not found for payment:', payment.user_id);
+          log.error('User not found for payment', { paymentId: payment.id, userId: payment.user_id });
           break;
         }
 
@@ -154,13 +155,13 @@ export async function POST(request: NextRequest) {
               amount: tokensToMint,
               reason: payment.type,
             });
-            console.log(`Minted ${tokensToMint} SYNC tokens for user ${user.id}`);
+            log.info('Minted SYNC tokens', { tokensToMint, userId: user.id });
           } catch (mintError) {
-            console.error('Error minting tokens:', mintError);
+            log.error('Error minting tokens', { error: mintError, userId: user.id, tokensToMint });
             // Don't fail - tokens can be minted manually later
           }
         } else if (tokensToMint > 0 && !user.qubik_wallet_address) {
-          console.warn(`User ${user.id} has no wallet address - cannot mint ${tokensToMint} tokens`);
+          log.warn('User has no wallet address - cannot mint tokens', { userId: user.id, tokensToMint });
         }
 
         // Send receipt email
@@ -175,7 +176,7 @@ export async function POST(request: NextRequest) {
             tokensEarned: tokensToMint,
           });
         } catch (emailError) {
-          console.error('Error sending receipt email:', emailError);
+          log.error('Error sending receipt email', { error: emailError, userId: user.id });
         }
 
         // If vote participation, record the vote
@@ -192,9 +193,9 @@ export async function POST(request: NextRequest) {
             // Increment vote option count
             await incrementVoteOption(payment.option_id);
 
-            console.log(`Vote recorded for vote ${payment.vote_id}, option ${payment.option_id}`);
+            log.info('Vote recorded', { voteId: payment.vote_id, optionId: payment.option_id, userId: user.id });
           } catch (voteError) {
-            console.error('Error recording vote:', voteError);
+            log.error('Error recording vote', { error: voteError, voteId: payment.vote_id, optionId: payment.option_id });
           }
         }
 
@@ -209,7 +210,7 @@ export async function POST(request: NextRequest) {
           await updatePaymentStatus(payment.id, 'failed', event.paymentId);
         }
 
-        console.error('Payment failed:', event.paymentId);
+        log.error('Payment failed', { paymentId: event.paymentId });
         break;
       }
 
@@ -221,12 +222,12 @@ export async function POST(request: NextRequest) {
           await updatePaymentStatus(payment.id, 'refunded', event.paymentId);
         }
 
-        console.log('Refund processed:', event.paymentId);
+        log.info('Refund processed', { paymentId: event.paymentId });
         break;
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        log.info('Unhandled event type', { eventType: event.type });
     }
 
     // Mark webhook event as successfully processed
@@ -236,7 +237,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Webhook error:', error);
+    log.error('Webhook error', { error });
 
     // Mark webhook event as failed for potential retry
     if (eventId) {

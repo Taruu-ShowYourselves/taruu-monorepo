@@ -2,8 +2,8 @@
 
 **Target:** Late January 2025 Pilot Launch (Kiryat Tivon)
 **First Vote Date:** January 23, 2025
-**Last Audit:** January 15, 2025 (Opus 4.5 comprehensive codebase audit v19 - P3 cleanup session)
-**Document Version:** 43.0
+**Last Audit:** January 15, 2025 (Opus 4.5 comprehensive codebase audit v20 - Structured logging session)
+**Document Version:** 44.0
 
 ---
 
@@ -15,7 +15,7 @@ This document tracks the implementation status for the Taru civic consensus plat
 - Shared Package: 5 type files, 5 contract files, 2 constant files (55+ Hebrew error messages), 4 utility files (47+ exported types/interfaces, 35+ utility functions, ~170+ total exports)
 - API Client: 3 modules (votes.ts 8 methods, users.ts 10 methods, payments.ts 5 methods) - 21 methods total, 21 have working backends (100%), 0 missing backend implementations
 - Web API: 31 route files (29 complete, 2 partial) - Added /api/payments/[id]/verify and /api/user/verify-location
-- Services: 14 production-ready services (4,128 lines of code) - grow.ts deleted, newsletter email templates cleaned up
+- Services: 15 production-ready services (4,278 lines of code) - grow.ts deleted, newsletter email templates cleaned up, logger utility added
 - Mobile: 28 screens across 6 sections (27 complete, 1 with issues: profile stats)
 - Web Pages: 14 pages (10 complete, 4 partial) - dashboard now connected to API
 - Database: 11 tables (users, social_proofs, verification_runs, verification_schedule, verification_attempts, payments, entitlements, votes, vote_options, user_votes, push_tokens), 32+ indexes, 7 triggers, 12+ functions, RLS policies on all tables
@@ -126,19 +126,33 @@ Technical debt items that don't affect pilot functionality. **Address after Janu
 |---|-------|------|------|--------|--------------|--------|
 | P3-1 | **DEAD CODE - grow.ts** | `apps/web/src/services/payments/grow.ts` | entire file | 232 lines unused, not imported anywhere | Delete file entirely | [x] FIXED |
 | ~~P3-2~~ | ~~Missing VerificationRunStatus type export~~ | - | - | - | - | [x] NOT AN ISSUE |
-| P3-3 | **Branding inconsistency** | Multiple files | Various | Uses "Sync" and "Taru" | Standardize on "Taru" | [ ] |
-| P3-4 | **Console.log in production** | `apps/web/src/app/api/payments/webhook/route.ts` | 29, 47, 53, 63, 88, 90, 107, 124, 126, 141, 153, 158, 163 | Log noise (13 statements in webhook alone) | Replace with structured logging | [ ] |
-| P3-5 | **Unsafe `as any` assertions** | Mobile + Web | 10 locations | Type safety gap | Add proper typing | [ ] |
+| P3-3 | **Branding inconsistency** | Multiple files | Various | Uses "Sync" and "Taru" inconsistently (see note below) | Standardize branding - needs team decision | [ ] |
+| ~~P3-4~~ | ~~Console.log in production~~ | - | - | - | - | [x] FIXED |
+| P3-5 | **Unsafe `as any` assertions** | Mobile + Web | 3 remaining | Type safety gap (3 of 9 fixed, 3 kept for React 19/Framer Motion compatibility) | See note below | [~] PARTIAL |
 | P3-6 | **Duplicate location verification methods** | `packages/api-client/src/` | votes.ts, users.ts | Ambiguous API | Consolidate to single method | [ ] |
 | ~~P3-7~~ | ~~/api/payments/[id]/verify endpoint~~ | - | - | - | - | [x] CREATED |
 | ~~P3-8~~ | ~~/api/user/verify-location endpoint~~ | - | - | - | - | [x] CREATED |
 | P3-9 | **No rate limiting on votes/participate endpoint** | `apps/web/src/app/api/votes/[id]/participate/route.ts` | N/A | Could be abused to DOS payment system | Add rate limiting (3 requests/minute per user) | [ ] |
 | P3-10 | **No rate limiting on verification/check-in endpoint** | `apps/web/src/app/api/verification/check-in/route.ts` | N/A | Could be abused during verification | Add rate limiting (10 requests/minute per user) | [ ] |
-| P3-11 | **Cron job console.log statements** | `apps/web/src/app/api/cron/verification-notifications/route.ts` | 58, 78 | Noise in logs | Replace with structured logging | [ ] |
+| ~~P3-11~~ | ~~Cron job console.log statements~~ | - | - | - | - | [x] FIXED |
 | ~~P3-12~~ | ~~PAYMENT_AMOUNTS vs VOTE_COST unit inconsistency~~ | - | - | - | - | [x] FIXED |
 | ~~P3-13~~ | ~~DEAD CODE - newsletter verify route and email template~~ | - | - | - | - | [x] DELETED |
 
-**P3 Total: 7 items** (5 resolved this session)
+**P3 Total: 4 items** (8 resolved total, 3 new this session)
+
+**P3-3 Branding Inconsistency Note:**
+- Web app uses "Taro" (Hebrew name shown as "תַּרְאוּ" and "Taru" in tech docs) throughout
+- Mobile app uses "סינק" (Sync) branding in `app.json` and share functions
+- Documentation (CLAUDE.md) refers to "Sync" (סינק)
+- Package namespace uses "@sync/*" throughout
+- Email uses taro.co.il domain
+- **This needs team decision on which brand name to standardize on**
+
+**P3-5 `as any` Assertions Note:**
+- FIXED: `apps/web/src/middleware.ts` - replaced `as any` with proper type guard `isValidLocale()`
+- FIXED: `apps/mobile/app/(auth)/connect-social.tsx` - replaced `as any` with properly typed `IdentityScore`
+- FIXED: `apps/mobile/app/(tabs)/profile.tsx` - replaced `as any` with `IoniconsName` type
+- KEPT (with comment): `apps/web/src/components/animations/AnimatedText.tsx` (3 locations) - React 19 + Framer Motion type incompatibility requires `as any` workaround
 
 ---
 
@@ -233,7 +247,7 @@ These issues have been verified as fixed:
 | R59 | P3-13: Dead newsletter verification code | DELETED - Removed entire file `apps/web/src/app/api/newsletter/verify/route.ts` (was using convergeService). Removed `sendNewsletterVerificationEmail()` and `sendNewsletterWelcomeEmail()` methods from email service. Newsletter now uses Beehiiv which handles verification internally. | [x] Jan 15 |
 | R60 | P3-2: VerificationRunStatus type export | NOT AN ISSUE - VerificationRunStatus type IS properly defined and exported from `packages/shared/src/contracts/verification.ts`. The contracts are intentionally kept separate from types to avoid naming conflicts. Consumers who need Zod schemas should import from `@sync/shared/contracts`. | [x] Jan 15 |
 
-**Total Resolved: 64 items** (5 new this session)
+**Total Resolved: 67 items** (3 new this session: P3-4 logger, P3-11 cron logging, P3-5 partial)
 
 ### Mobile Type Errors Fixed This Session
 
@@ -268,10 +282,10 @@ The following mobile type errors were fixed during the type alignment session:
 | **P1 High** | 0 | Required for pilot - ALL RESOLVED |
 | **P2 Medium** | 1 | Has workarounds - 1 requires infrastructure change (11 resolved total) |
 | **P2-WEB** | 0 | All 7 web type errors resolved |
-| **P3 Low** | 7 | Post-pilot cleanup (5 resolved this session) |
+| **P3 Low** | 4 | Post-pilot cleanup (8 resolved total, 3 new this session) |
 | **P4 Cleanup** | 0 | **COMPLETE** - All routes migrated to Supabase, convergeService can be deleted |
-| **Resolved** | 64 | Already fixed (5 new this session) |
-| **Total Active** | 9 | P0 + P2 + P3 remaining (P4 complete) |
+| **Resolved** | 67 | Already fixed (3 new this session: P3-4, P3-11, P3-5 partial) |
+| **Total Active** | 6 | P0 + P2 + P3 remaining (P4 complete) |
 
 **Stack Simplification (January 2025):**
 - Database: Supabase (PostgreSQL with RLS) - ONLY database
@@ -321,7 +335,7 @@ The following mobile type errors were fixed during the type alignment session:
 
 ## Completed Components
 
-### Services (13/14 Production-Ready)
+### Services (14/15 Production-Ready)
 - [x] Google OAuth - `apps/web/src/services/auth/google.ts` (222 lines)
 - [x] Facebook OAuth - `apps/web/src/services/auth/facebook.ts` (168 lines)
 - [x] Instagram OAuth - `apps/web/src/services/auth/instagram.ts` (189 lines)
@@ -333,10 +347,11 @@ The following mobile type errors were fixed during the type alignment session:
 - [x] Municipality Bounds - `apps/web/src/services/verification/municipality.ts` (436 lines) - 24 municipalities
 - [x] Email (Resend) - `apps/web/src/services/email/index.ts` (538 lines) - 6 templates
 - [x] Supabase Client - `apps/web/src/lib/supabase/` (5 files) - PRIMARY DATABASE
+- [x] Logger Utility - `apps/web/src/lib/logger.ts` (~150 lines) - structured logging for production
 - [ ] DEAD CODE: Converge - `apps/web/src/services/converge/index.ts` (422 lines) - **TO DELETE, replaced by Supabase**
 - [ ] DEAD CODE: Grow Analytics - `apps/web/src/services/payments/grow.ts` (232 lines) - never imported
 
-**Total Service Code: 4,128 lines (production-ready)**
+**Total Service Code: 4,278 lines (production-ready)**
 
 ### API Routes (29 Files, 27 Complete)
 - [x] Auth: /api/auth/did, callback, session (GET, POST, DELETE), session/refresh
@@ -515,22 +530,50 @@ The API client calls WRONG paths - backend exists but at different URLs:
 
 ## Code Quality Issues Found
 
-### Console.log in Production (Should Review)
-- `apps/web/src/app/api/cron/verification-notifications/route.ts` lines 58, 78
-- `apps/web/src/app/api/newsletter/route.ts` lines 43, 53, 79
-- `apps/web/src/app/api/payments/webhook/route.ts` lines 29, 47, 53, 63, 88, 90, 107, 124, 126, 141, 153, 158, 163 (13 statements)
+### Console.log in Production (Resolved)
+- ~~`apps/web/src/app/api/cron/verification-notifications/route.ts` lines 58, 78~~ - **RESOLVED (P3-11)** - replaced with structured logging via `cronLogger`
+- `apps/web/src/app/api/newsletter/route.ts` lines 43, 53, 79 - Still pending
+- ~~`apps/web/src/app/api/payments/webhook/route.ts` lines 29, 47, 53, 63, 88, 90, 107, 124, 126, 141, 153, 158, 163 (17 statements)~~ - **RESOLVED (P3-4)** - replaced with structured logging via `webhookLogger`
 
-### Type Assertions with `as any` (10 locations)
-- `apps/mobile/app/(auth)/connect-social.tsx` lines 36, 64
-- `apps/mobile/app/(tabs)/profile.tsx` lines 13, 37
-- `apps/web/src/components/animations/AnimatedText.tsx` lines 177, 304, 341
-- `apps/web/src/components/ui/Typography/Heading.tsx` line 50
-- `apps/web/src/middleware.ts` lines 10, 20
+### Type Assertions with `as any` (3 remaining, 6 fixed)
+- ~~`apps/mobile/app/(auth)/connect-social.tsx` lines 36, 64~~ - **FIXED** - replaced with properly typed `IdentityScore`
+- ~~`apps/mobile/app/(tabs)/profile.tsx` lines 13, 37~~ - **FIXED** - replaced with `IoniconsName` type
+- `apps/web/src/components/animations/AnimatedText.tsx` lines 177, 304, 341 - **KEPT** - React 19 + Framer Motion type incompatibility workaround (documented)
+- ~~`apps/web/src/components/ui/Typography/Heading.tsx` line 50~~ - Previously fixed
+- ~~`apps/web/src/middleware.ts` lines 10, 20~~ - **FIXED** - replaced with proper type guard `isValidLocale()`
 
 ---
 
 *Last Updated: January 15, 2025*
-*Document Version: 43.0*
+*Document Version: 44.0*
+
+**Version 44.0 Changes (January 15, 2025 - Structured Logging Session):**
+- **P3-4 RESOLVED: Replaced console.log in payment webhook with structured logging**
+  - Created new logger utility at `apps/web/src/lib/logger.ts` (~150 lines)
+  - Replaced 17 console statements with structured logging in `apps/web/src/app/api/payments/webhook/route.ts`
+  - Logger provides: log levels (debug/info/warn/error), structured context (key-value pairs), environment-aware output (JSON in production, pretty in dev), child loggers for components
+- **P3-11 RESOLVED: Replaced console.log in cron job with structured logging**
+  - Replaced 3 console statements with structured logging in `apps/web/src/app/api/cron/verification-notifications/route.ts`
+  - Uses `cronLogger` child logger
+- **P3-5 PARTIALLY RESOLVED: Fixed unsafe `as any` assertions**
+  - FIXED: `apps/web/src/middleware.ts` - replaced `as any` with proper type guard `isValidLocale()`
+  - FIXED: `apps/mobile/app/(auth)/connect-social.tsx` - replaced `as any` with properly typed `IdentityScore`
+  - FIXED: `apps/mobile/app/(tabs)/profile.tsx` - replaced `as any` with `IoniconsName` type
+  - KEPT (with comment): `apps/web/src/components/animations/AnimatedText.tsx` (3 locations) - React 19 + Framer Motion type incompatibility requires `as any` workaround
+- **P3-3 Finding - Branding Inconsistency discovered:**
+  - Web app uses "Taro" (Hebrew name shown as "תַּרְאוּ" and "Taru" in tech docs) branding throughout
+  - Mobile app uses "סינק" (Sync) branding in `app.json` and share functions
+  - Documentation (CLAUDE.md) refers to "Sync" (סינק)
+  - Package namespace uses "@sync/*" throughout
+  - Email uses taro.co.il domain
+  - **This needs team decision on which brand name to standardize on**
+- **New Utility Added:**
+  - Logger Utility - `apps/web/src/lib/logger.ts` (~150 lines) - structured logging for production
+- **Stats Updated:**
+  - P3 Low: 7 -> 4 (3 items resolved this session)
+  - Total Resolved: 64 -> 67 (3 new this session: P3-4, P3-11, P3-5 partial)
+  - Services: 14 -> 15 production-ready (logger utility added)
+  - Total Service Code: 4,128 -> 4,278 lines
 
 **Version 43.0 Changes (January 15, 2025 - P3 Cleanup Session):**
 - **P3-7 RESOLVED (R56): Created /api/payments/[id]/verify endpoint**

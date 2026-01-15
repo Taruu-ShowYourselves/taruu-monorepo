@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, ComponentProps } from 'react';
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -11,10 +11,12 @@ import { usersApi } from '@sync/api-client';
 
 const APP_URL = process.env.EXPO_PUBLIC_APP_URL || 'https://sync.co.il';
 
-function StatCard({ icon, label, value }: { icon: string; label: string; value: string }) {
+type IoniconsName = ComponentProps<typeof Ionicons>['name'];
+
+function StatCard({ icon, label, value }: { icon: IoniconsName; label: string; value: string }) {
   return (
     <View className="bg-white rounded-xl p-4 flex-1 border border-neutral-100">
-      <Ionicons name={icon as any} size={24} color="#2563EB" />
+      <Ionicons name={icon} size={24} color="#2563EB" />
       <Text className="text-2xl font-heebo font-bold text-neutral-900 mt-2">{value}</Text>
       <Text className="text-sm text-neutral-500 font-assistant">{label}</Text>
     </View>
@@ -27,7 +29,7 @@ function MenuItem({
   onPress,
   danger,
 }: {
-  icon: string;
+  icon: IoniconsName;
   label: string;
   onPress: () => void;
   danger?: boolean;
@@ -38,7 +40,7 @@ function MenuItem({
       onPress={onPress}
     >
       <View className={`w-10 h-10 rounded-full items-center justify-center ${danger ? 'bg-red-100' : 'bg-primary-100'}`}>
-        <Ionicons name={icon as any} size={20} color={danger ? '#EF4444' : '#2563EB'} />
+        <Ionicons name={icon} size={20} color={danger ? '#EF4444' : '#2563EB'} />
       </View>
       <Text className={`flex-1 text-base font-heebo mr-3 ${danger ? 'text-red-600' : 'text-neutral-700'}`}>
         {label}

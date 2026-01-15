@@ -174,6 +174,7 @@ export function AnimatedLineReveal({
           delay,
         }}
       >
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any -- React 19 + Framer Motion type incompatibility */}
         {children as any}
       </motion.div>
     </div>
@@ -301,6 +302,7 @@ export function AnimatedScaleReveal({
         ease: [0.25, 0.1, 0.25, 1],
       }}
     >
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any -- React 19 + Framer Motion type incompatibility */}
       {children as any}
     </motion.div>
   );
@@ -338,6 +340,7 @@ export function AnimatedFadeInUp({
         ease: [0.25, 0.1, 0.25, 1],
       }}
     >
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any -- React 19 + Framer Motion type incompatibility */}
       {children as any}
     </motion.div>
   );

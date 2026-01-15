@@ -6,7 +6,7 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore, useUser } from '@/stores/authStore';
 import { connectFacebook, connectInstagram } from '@/lib/auth';
-import { getIdentityLevelLabel } from '@sync/shared';
+import { getIdentityLevelLabel, type IdentityScore } from '@sync/shared';
 
 export default function ConnectSocialScreen() {
   const router = useRouter();
@@ -24,16 +24,17 @@ export default function ConnectSocialScreen() {
       if (result.success) {
         setConnectedPlatforms([...connectedPlatforms, 'facebook']);
         // Update user identity score
-        const newScore = {
-          total: (user.identityScore?.total || 40) + 30,
-          level: ((user.identityScore?.total || 40) + 30) >= 100 ? 'trusted' : 'verified',
+        const newTotal = (user.identityScore?.total || 40) + 30;
+        const newScore: IdentityScore = {
+          total: newTotal,
+          level: newTotal >= 100 ? 'trusted' : 'verified',
           breakdown: {
             google: user.identityScore?.breakdown?.google || 40,
             facebook: 30,
             instagram: user.identityScore?.breakdown?.instagram || 0,
           },
         };
-        updateUser({ identityScore: newScore as any });
+        updateUser({ identityScore: newScore });
       } else {
         Alert.alert('שגיאה', result.error || 'לא ניתן לחבר את פייסבוק');
       }
@@ -52,16 +53,17 @@ export default function ConnectSocialScreen() {
       if (result.success) {
         setConnectedPlatforms([...connectedPlatforms, 'instagram']);
         // Update user identity score
-        const newScore = {
-          total: (user.identityScore?.total || 40) + 30,
-          level: ((user.identityScore?.total || 40) + 30) >= 100 ? 'trusted' : 'verified',
+        const newTotal = (user.identityScore?.total || 40) + 30;
+        const newScore: IdentityScore = {
+          total: newTotal,
+          level: newTotal >= 100 ? 'trusted' : 'verified',
           breakdown: {
             google: user.identityScore?.breakdown?.google || 40,
             facebook: user.identityScore?.breakdown?.facebook || 0,
             instagram: 30,
           },
         };
-        updateUser({ identityScore: newScore as any });
+        updateUser({ identityScore: newScore });
       } else {
         Alert.alert('שגיאה', result.error || 'לא ניתן לחבר את אינסטגרם');
       }
