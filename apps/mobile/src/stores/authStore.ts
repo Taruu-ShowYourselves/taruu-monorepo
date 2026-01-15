@@ -6,7 +6,6 @@ import {
   signInWithGoogle,
   signOut as authSignOut,
   validateSession,
-  tokenStorage,
   getAuthToken,
 } from '@/lib/auth';
 
@@ -45,7 +44,7 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       // Initial state
       user: null,
       isAuthenticated: false,
@@ -129,7 +128,7 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
           return false;
-        } catch (error) {
+        } catch (_error) {
           set({
             user: null,
             isAuthenticated: false,

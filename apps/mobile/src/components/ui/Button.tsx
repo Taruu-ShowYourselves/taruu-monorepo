@@ -3,8 +3,6 @@ import {
   Pressable,
   Text,
   ActivityIndicator,
-  ViewStyle,
-  TextStyle,
   PressableProps,
 } from 'react-native';
 

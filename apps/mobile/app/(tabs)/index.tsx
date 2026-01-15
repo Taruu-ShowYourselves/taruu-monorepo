@@ -6,7 +6,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { votesApi } from '@sync/api-client';
 import { Vote } from '@sync/shared';
-import { formatCurrency, getTimeRemaining } from '@sync/shared';
+import { getTimeRemaining } from '@sync/shared';
 
 function VoteCard({ vote, onPress }: { vote: Vote; onPress: () => void }) {
   const timeRemaining = getTimeRemaining(vote.endDate);
@@ -141,7 +141,7 @@ export default function HomeScreen() {
           }
         >
           <Animated.View entering={FadeInDown.duration(400).delay(200)}>
-            {votes.map((vote, index) => (
+            {votes.map((vote) => (
               <VoteCard
                 key={vote.id}
                 vote={vote}

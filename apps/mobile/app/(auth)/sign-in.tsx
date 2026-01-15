@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { View, Text, Pressable, ActivityIndicator } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';

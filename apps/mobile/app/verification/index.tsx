@@ -59,8 +59,8 @@ export default function VerificationDashboard() {
         const result = await response.json();
         setData(result);
       }
-    } catch (error) {
-      console.error('Error fetching verification status:', error);
+    } catch (_error) {
+      console.error('Error fetching verification status:', _error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -116,7 +116,7 @@ export default function VerificationDashboard() {
         const error = await response.json();
         Alert.alert('שגיאה', error.error || 'לא ניתן להתחיל את תהליך האימות');
       }
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('שגיאה', 'לא ניתן להתחיל את תהליך האימות');
     } finally {
       setStarting(false);
@@ -138,8 +138,6 @@ export default function VerificationDashboard() {
 
   const status = data?.verificationStatus || verificationStatus;
   const progress = data?.progress;
-  const isCheckInAvailable =
-    status?.phase === 'in_progress' && data?.nextCheckIn;
 
   // Format next check-in time
   const nextCheckInDate = data?.nextCheckIn

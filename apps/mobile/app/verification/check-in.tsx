@@ -4,8 +4,6 @@ import {
   Text,
   Pressable,
   ActivityIndicator,
-  Alert,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -65,8 +63,8 @@ export default function CheckInScreen() {
 
         setLocation(loc);
         await verifyCheckIn(loc);
-      } catch (error) {
-        console.error('Location error:', error);
+      } catch (_error) {
+        console.error('Location error:', _error);
         setPhase('error');
         setErrorMessage('לא ניתן לקבל את המיקום. נסו שוב.');
       }
@@ -107,8 +105,8 @@ export default function CheckInScreen() {
         setPhase('error');
         setErrorMessage(result.error || 'האימות נכשל');
       }
-    } catch (error) {
-      console.error('Check-in error:', error);
+    } catch (_error) {
+      console.error('Check-in error:', _error);
       setPhase('error');
       setErrorMessage('שגיאה בביצוע הצ\'ק-אין. נסו שוב.');
     }
@@ -132,7 +130,7 @@ export default function CheckInScreen() {
       });
       setLocation(loc);
       await verifyCheckIn(loc);
-    } catch (error) {
+    } catch (_error) {
       setPhase('error');
       setErrorMessage('לא ניתן לקבל את המיקום. נסו שוב.');
     }

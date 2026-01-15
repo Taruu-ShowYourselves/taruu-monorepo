@@ -87,6 +87,18 @@ export default function VoteDetailPage() {
     fetchVote();
   }, [fetchVote]);
 
+  // Handle payment success redirect - must be before early returns
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('payment') === 'success') {
+      setHasVoted(true);
+      // Clean up URL
+      router.replace(`/votes/${params.id}`);
+      // Refresh vote data
+      fetchVote();
+    }
+  }, [params.id, router, fetchVote]);
+
   if (loading) {
     return (
       <div className={styles.loadingContainer}>
@@ -160,18 +172,6 @@ export default function VoteDetailPage() {
       setSubmitting(false);
     }
   };
-
-  // Handle payment success redirect
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    if (searchParams.get('payment') === 'success') {
-      setHasVoted(true);
-      // Clean up URL
-      router.replace(`/votes/${params.id}`);
-      // Refresh vote data
-      fetchVote();
-    }
-  }, [params.id, router, fetchVote]);
 
   return (
     <>

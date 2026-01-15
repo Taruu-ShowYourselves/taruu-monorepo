@@ -81,7 +81,7 @@ export default function TabsLayout() {
         name="create"
         options={{
           title: 'יצירה',
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: () => (
             <View className="bg-primary-600 rounded-full p-3 -mt-4">
               <Ionicons name="add" size={24} color="white" />
             </View>

@@ -54,7 +54,7 @@ export default function OnboardingScreen() {
             contentContainerStyle={{ paddingBottom: 24 }}
           >
             <View className="gap-2">
-              {MUNICIPALITIES.map((municipality, index) => (
+              {MUNICIPALITIES.map((municipality) => (
                 <Pressable
                   key={municipality}
                   className={`p-4 rounded-xl border-2 ${

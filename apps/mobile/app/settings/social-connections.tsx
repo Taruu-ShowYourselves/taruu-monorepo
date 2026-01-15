@@ -49,8 +49,8 @@ export default function SocialConnectionsScreen() {
           updateUser({ identityScore: result.identityScore as IdentityScore });
         }
       }
-    } catch (error) {
-      console.error('Error fetching social proofs:', error);
+    } catch (_error) {
+      console.error('Error fetching social proofs:', _error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -77,7 +77,7 @@ export default function SocialConnectionsScreen() {
       } else {
         Alert.alert('שגיאה', result.error || 'לא ניתן לחבר את פייסבוק');
       }
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('שגיאה', 'לא ניתן לחבר את פייסבוק');
     } finally {
       setConnecting(null);
@@ -95,7 +95,7 @@ export default function SocialConnectionsScreen() {
       } else {
         Alert.alert('שגיאה', result.error || 'לא ניתן לחבר את אינסטגרם');
       }
-    } catch (error) {
+    } catch (_error) {
       Alert.alert('שגיאה', 'לא ניתן לחבר את אינסטגרם');
     } finally {
       setConnecting(null);
@@ -123,7 +123,7 @@ export default function SocialConnectionsScreen() {
               } else {
                 Alert.alert('שגיאה', result.error || 'לא ניתן לנתק');
               }
-            } catch (error) {
+            } catch (_error) {
               Alert.alert('שגיאה', 'לא ניתן לנתק');
             } finally {
               setDisconnecting(null);

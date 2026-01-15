@@ -143,7 +143,7 @@ export default function VoteDetailScreen() {
 
       setLocationVerified(true);
       return true;
-    } catch (err) {
+    } catch (_err) {
       Alert.alert('שגיאה', 'לא ניתן לאמת את המיקום שלכם');
       return false;
     } finally {

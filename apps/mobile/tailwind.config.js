@@ -1,4 +1,4 @@
-const { colors, spacing, borderRadius } = require('@sync/design-tokens');
+const { colors } = require('@sync/design-tokens');
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
