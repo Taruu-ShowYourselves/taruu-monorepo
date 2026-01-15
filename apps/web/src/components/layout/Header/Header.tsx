@@ -109,12 +109,16 @@ export function Header({ locale = 'he' }: HeaderProps) {
             <>
               {!isAuthenticated ? (
                 <>
-                  <Button variant="ghost" size="sm" disabled title={t.comingSoon}>
-                    {t.login}
-                  </Button>
-                  <Button variant="primary" size="sm" disabled title={t.comingSoon}>
-                    {t.signup}
-                  </Button>
+                  <Link href={`/${locale}/sign-in`}>
+                    <Button variant="ghost" size="sm">
+                      {t.login}
+                    </Button>
+                  </Link>
+                  <Link href={`/${locale}/sign-up`}>
+                    <Button variant="primary" size="sm">
+                      {t.signup}
+                    </Button>
+                  </Link>
                 </>
               ) : (
                 <>
@@ -222,7 +226,20 @@ export function Header({ locale = 'he' }: HeaderProps) {
                     {t.support}
                   </Button>
                 </a>
-                {isAuthenticated && (
+                {!isAuthenticated ? (
+                  <>
+                    <Link href={`/${locale}/sign-in`} onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="outline" isFullWidth>
+                        {t.login}
+                      </Button>
+                    </Link>
+                    <Link href={`/${locale}/sign-up`} onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="primary" isFullWidth>
+                        {t.signup}
+                      </Button>
+                    </Link>
+                  </>
+                ) : (
                   <>
                     <Link href={`/${locale}/dashboard`} onClick={() => setIsMobileMenuOpen(false)}>
                       <Button variant="outline" isFullWidth>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -8,17 +9,36 @@ import { Button } from '@/components/ui/Button';
 import { staggerContainer, fadeInUp } from '@/lib/animations';
 import styles from './VotesList.module.css';
 
-// Mock data for demonstration
-const mockVotes = [
+// Vote types matching API response
+interface VoteOption {
+  id: string;
+  label: string;
+  description?: string;
+  voteCount: number;
+}
+
+interface Vote {
+  id: string;
+  title: string;
+  description: string;
+  municipality: string;
+  status: 'pending' | 'active' | 'completed' | 'cancelled' | 'ended';
+  participantCount: number;
+  endDate: string;
+  options: VoteOption[];
+}
+
+// Fallback mock data for development/error states
+const mockVotes: Vote[] = [
   {
     id: '1',
     title: 'שדרוג גינת השכונה ברחוב הרצל',
     description:
       'הצבעה על תוכנית לשדרוג הגינה המרכזית כולל התקנת משחקי ילדים חדשים, ספסלים ותאורה.',
     municipality: 'תל אביב-יפו',
-    status: 'active' as const,
+    status: 'active',
     participantCount: 1247,
-    endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     options: [
       { id: '1', label: 'בעד', voteCount: 892 },
       { id: '2', label: 'נגד', voteCount: 355 },
@@ -30,9 +50,9 @@ const mockVotes = [
     description:
       'האם לאשר את בניית מרכז קהילתי חדש באזור הצפוני של העיר?',
     municipality: 'ראשון לציון',
-    status: 'active' as const,
+    status: 'active',
     participantCount: 3521,
-    endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
     options: [
       { id: '1', label: 'בעד', voteCount: 2105 },
       { id: '2', label: 'נגד', voteCount: 1416 },
@@ -44,9 +64,9 @@ const mockVotes = [
     description:
       'הצעה להגדלת תדירות איסוף האשפה משלוש פעמים בשבוע לחמש.',
     municipality: 'חיפה',
-    status: 'completed' as const,
+    status: 'completed',
     participantCount: 8934,
-    endDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
     options: [
       { id: '1', label: 'בעד', voteCount: 6721 },
       { id: '2', label: 'נגד', voteCount: 2213 },
@@ -58,9 +78,9 @@ const mockVotes = [
     description:
       'תוכנית להוספת 15 ק"מ של נתיבי אופניים מוגנים ברחבי העיר.',
     municipality: 'ירושלים',
-    status: 'active' as const,
+    status: 'active',
     participantCount: 2156,
-    endDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000),
+    endDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(),
     options: [
       { id: '1', label: 'בעד', voteCount: 1823 },
       { id: '2', label: 'נגד', voteCount: 333 },
@@ -73,17 +93,21 @@ function getStatusLabel(status: string): string {
     case 'active':
       return 'פעילה';
     case 'completed':
+    case 'ended':
       return 'הסתיימה';
     case 'pending':
       return 'ממתינה';
+    case 'cancelled':
+      return 'בוטלה';
     default:
       return status;
   }
 }
 
-function getTimeRemaining(endDate: Date): string {
+function getTimeRemaining(endDate: string | Date): string {
   const now = new Date();
-  const diff = endDate.getTime() - now.getTime();
+  const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
+  const diff = end.getTime() - now.getTime();
 
   if (diff < 0) return 'הסתיימה';
 
@@ -95,10 +119,80 @@ function getTimeRemaining(endDate: Date): string {
   return 'פחות משעה';
 }
 
+function isVoteEnded(status: string): boolean {
+  return status === 'completed' || status === 'ended' || status === 'cancelled';
+}
+
 export function VotesList() {
+  const [votes, setVotes] = useState<Vote[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isUsingMockData, setIsUsingMockData] = useState(false);
+
+  useEffect(() => {
+    async function fetchVotes() {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const response = await fetch('/api/votes');
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch votes');
+        }
+
+        const data = await response.json();
+
+        if (data.votes && data.votes.length > 0) {
+          setVotes(data.votes);
+          setIsUsingMockData(false);
+        } else {
+          // Use mock data if no votes in database yet
+          setVotes(mockVotes);
+          setIsUsingMockData(true);
+        }
+      } catch (err) {
+        console.error('Error fetching votes:', err);
+        // Fall back to mock data on error
+        setVotes(mockVotes);
+        setIsUsingMockData(true);
+        setError('לא ניתן לטעון את ההצבעות. מציג נתוני הדגמה.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchVotes();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <section className={styles.votesList}>
+        <div className={styles.container}>
+          <div className={styles.loadingContainer}>
+            <div className={styles.spinner} />
+            <Text size="lg" color="secondary">טוען הצבעות...</Text>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className={styles.votesList}>
       <div className={styles.container}>
+        {error && (
+          <div className={styles.errorBanner}>
+            <Text size="sm" color="secondary">{error}</Text>
+          </div>
+        )}
+
+        {isUsingMockData && !error && (
+          <div className={styles.demoBanner}>
+            <Text size="sm" color="secondary">מציג נתוני הדגמה - הצבעות אמיתיות יופיעו בקרוב</Text>
+          </div>
+        )}
+
         <motion.div
           className={styles.grid}
           variants={staggerContainer}
@@ -106,14 +200,14 @@ export function VotesList() {
           whileInView="visible"
           viewport={{ once: true, margin: '-50px' }}
         >
-          {mockVotes.map((vote) => {
+          {votes.map((vote) => {
             const totalVotes = vote.options.reduce((sum, opt) => sum + opt.voteCount, 0);
             const leadingOption = vote.options.reduce((a, b) =>
               a.voteCount > b.voteCount ? a : b
             );
-            const leadingPercentage = Math.round(
-              (leadingOption.voteCount / totalVotes) * 100
-            );
+            const leadingPercentage = totalVotes > 0
+              ? Math.round((leadingOption.voteCount / totalVotes) * 100)
+              : 0;
 
             return (
               <motion.div key={vote.id} variants={fadeInUp}>
@@ -163,7 +257,7 @@ export function VotesList() {
                           <path d="M12 6v6l4 2" />
                         </svg>
                         <span>
-                          {vote.status === 'completed'
+                          {isVoteEnded(vote.status)
                             ? 'הסתיימה'
                             : getTimeRemaining(vote.endDate)}
                         </span>
@@ -171,7 +265,7 @@ export function VotesList() {
 
                       <Link href={`/votes/${vote.id}`}>
                         <Button variant="ghost" size="sm">
-                          {vote.status === 'active' ? 'הצביעו' : 'צפו בתוצאות'}
+                          {!isVoteEnded(vote.status) ? 'הצביעו' : 'צפו בתוצאות'}
                         </Button>
                       </Link>
                     </div>

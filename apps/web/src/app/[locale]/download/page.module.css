@@ -1,0 +1,187 @@
+.main {
+  min-height: 100vh;
+  background-color: var(--color-background);
+}
+
+/* Hero Section */
+.hero {
+  padding: var(--space-24) var(--space-6);
+  text-align: center;
+  background: linear-gradient(180deg, var(--color-primary-50) 0%, var(--color-background) 100%);
+}
+
+.heroContent {
+  max-width: var(--container-3xl);
+  margin: 0 auto;
+}
+
+.subtitle {
+  margin-block-start: var(--space-4);
+  max-width: var(--container-2xl);
+  margin-inline: auto;
+}
+
+/* Container */
+.container {
+  max-width: var(--container-5xl);
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+/* Store Buttons */
+.stores {
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
+}
+
+.storeButtons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-block-start: var(--space-8);
+  align-items: center;
+}
+
+@media (min-width: 640px) {
+  .storeButtons {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+
+.storeButton {
+  width: 100%;
+  max-width: 280px;
+}
+
+.storeBadge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  background-color: var(--color-neutral-100);
+  border-radius: var(--radius-lg);
+  border: var(--border-width-thin) solid var(--color-border);
+  cursor: default;
+  opacity: 0.7;
+}
+
+.storeIcon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.storeInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: right;
+}
+
+.storeLabel {
+  font-family: var(--font-secondary);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.storeName {
+  font-family: var(--font-primary);
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* Features Section */
+.features {
+  padding: var(--space-16) var(--space-6);
+  background-color: var(--color-neutral-50);
+}
+
+.featuresTitle {
+  margin-block-end: var(--space-12);
+}
+
+.featureGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+
+@media (min-width: 640px) {
+  .featureGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .featureGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.featureCard {
+  background-color: var(--color-background);
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.featureIcon {
+  font-size: 2.5rem;
+  display: block;
+  margin-block-end: var(--space-4);
+}
+
+/* Pilot CTA Section */
+.pilot {
+  padding: var(--space-16) var(--space-6);
+}
+
+.pilotCard {
+  background: linear-gradient(135deg, var(--color-secondary-600) 0%, var(--color-secondary-700) 100%);
+  padding: var(--space-12);
+  border-radius: var(--radius-xl);
+  text-align: center;
+  color: white;
+}
+
+.pilotCard h2 {
+  color: white;
+}
+
+.pilotDescription {
+  margin-block: var(--space-4);
+  max-width: var(--container-2xl);
+  margin-inline: auto;
+  color: var(--color-secondary-100);
+}
+
+/* Requirements Section */
+.requirements {
+  padding: var(--space-12) var(--space-6);
+  padding-block-end: var(--space-16);
+  background-color: var(--color-neutral-50);
+}
+
+.requirementsList {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-8);
+  margin-block-start: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.requirement {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.osIcon {
+  width: 24px;
+  height: 24px;
+  color: var(--color-text-muted);
+}
