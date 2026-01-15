@@ -11,6 +11,10 @@ import {
   updateUser,
 } from '@/lib/supabase/db';
 import { supabaseAdmin } from '@/lib/supabase/server';
+import {
+  voteParticipationLimiter,
+  createRateLimitResponse,
+} from '@/lib/rate-limit';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -26,6 +30,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limiting: 3 requests per minute per user
+    const rateLimitResult = voteParticipationLimiter.check(session.userId);
+    if (rateLimitResult.limited) {
+      return createRateLimitResponse(
+        rateLimitResult,
+        'יותר מדי בקשות להשתתפות בהצבעה. נסו שוב בעוד דקה.'
+      );
     }
 
     const { id: voteId } = await params;

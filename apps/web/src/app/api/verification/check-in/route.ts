@@ -10,6 +10,10 @@ import {
   updateUser,
 } from '@/lib/supabase/db';
 import { verifyCheckIn } from '@/services/verification/municipality';
+import {
+  verificationCheckInLimiter,
+  createRateLimitResponse,
+} from '@/lib/rate-limit';
 
 interface CheckInRequest {
   latitude: number;
@@ -28,6 +32,15 @@ export async function POST(request: NextRequest) {
 
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limiting: 10 requests per minute per user
+    const rateLimitResult = verificationCheckInLimiter.check(session.userId);
+    if (rateLimitResult.limited) {
+      return createRateLimitResponse(
+        rateLimitResult,
+        'יותר מדי בקשות לצ\'ק-אין. נסו שוב בעוד דקה.'
+      );
     }
 
     const body: CheckInRequest = await request.json();

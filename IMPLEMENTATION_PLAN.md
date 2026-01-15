@@ -2,8 +2,8 @@
 
 **Target:** Late January 2025 Pilot Launch (Kiryat Tivon)
 **First Vote Date:** January 23, 2025
-**Last Audit:** January 15, 2025 (Opus 4.5 comprehensive codebase audit v20 - Structured logging session)
-**Document Version:** 44.0
+**Last Audit:** January 15, 2025 (Opus 4.5 comprehensive codebase audit v21 - Rate limiting session)
+**Document Version:** 45.0
 
 ---
 
@@ -15,7 +15,7 @@ This document tracks the implementation status for the Taru civic consensus plat
 - Shared Package: 5 type files, 5 contract files, 2 constant files (55+ Hebrew error messages), 4 utility files (47+ exported types/interfaces, 35+ utility functions, ~170+ total exports)
 - API Client: 3 modules (votes.ts 8 methods, users.ts 10 methods, payments.ts 5 methods) - 21 methods total, 21 have working backends (100%), 0 missing backend implementations
 - Web API: 31 route files (29 complete, 2 partial) - Added /api/payments/[id]/verify and /api/user/verify-location
-- Services: 15 production-ready services (4,278 lines of code) - grow.ts deleted, newsletter email templates cleaned up, logger utility added
+- Services: 16 production-ready services (4,328 lines of code) - rate-limit utility added
 - Mobile: 28 screens across 6 sections (27 complete, 1 with issues: profile stats)
 - Web Pages: 14 pages (10 complete, 4 partial) - dashboard now connected to API
 - Database: 11 tables (users, social_proofs, verification_runs, verification_schedule, verification_attempts, payments, entitlements, votes, vote_options, user_votes, push_tokens), 32+ indexes, 7 triggers, 12+ functions, RLS policies on all tables
@@ -132,13 +132,13 @@ Technical debt items that don't affect pilot functionality. **Address after Janu
 | ~~P3-6~~ | ~~Duplicate location verification methods~~ | - | - | - | - | [x] NOT AN ISSUE |
 | ~~P3-7~~ | ~~/api/payments/[id]/verify endpoint~~ | - | - | - | - | [x] CREATED |
 | ~~P3-8~~ | ~~/api/user/verify-location endpoint~~ | - | - | - | - | [x] CREATED |
-| P3-9 | **No rate limiting on votes/participate endpoint** | `apps/web/src/app/api/votes/[id]/participate/route.ts` | N/A | Could be abused to DOS payment system | Add rate limiting (3 requests/minute per user) | [ ] |
-| P3-10 | **No rate limiting on verification/check-in endpoint** | `apps/web/src/app/api/verification/check-in/route.ts` | N/A | Could be abused during verification | Add rate limiting (10 requests/minute per user) | [ ] |
+| ~~P3-9~~ | ~~**No rate limiting on votes/participate endpoint**~~ | - | - | - | - | [x] FIXED |
+| ~~P3-10~~ | ~~**No rate limiting on verification/check-in endpoint**~~ | - | - | - | - | [x] FIXED |
 | ~~P3-11~~ | ~~Cron job console.log statements~~ | - | - | - | - | [x] FIXED |
 | ~~P3-12~~ | ~~PAYMENT_AMOUNTS vs VOTE_COST unit inconsistency~~ | - | - | - | - | [x] FIXED |
 | ~~P3-13~~ | ~~DEAD CODE - newsletter verify route and email template~~ | - | - | - | - | [x] DELETED |
 
-**P3 Total: 3 items** (9 resolved total, 4 new this session)
+**P3 Total: 1 item** (11 resolved total, 2 new this session)
 
 **P3-3 Branding Inconsistency Note:**
 - Web app uses "Taro" (Hebrew name shown as "תַּרְאוּ" and "Taru" in tech docs) throughout
@@ -252,8 +252,10 @@ These issues have been verified as fixed:
 | R58 | P3-12: Payment unit inconsistency | FIXED - Removed unused `PAYMENT_AMOUNTS` and `TOKEN_RATIO` constants from `packages/shared/src/types/payment.ts` (they were dead code). The active payment amounts are in `constants/index.ts` as `VOTE_COST` and `CREATE_VOTE_COST` in ILS. | [x] Jan 15 |
 | R59 | P3-13: Dead newsletter verification code | DELETED - Removed entire file `apps/web/src/app/api/newsletter/verify/route.ts` (was using convergeService). Removed `sendNewsletterVerificationEmail()` and `sendNewsletterWelcomeEmail()` methods from email service. Newsletter now uses Beehiiv which handles verification internally. | [x] Jan 15 |
 | R60 | P3-2: VerificationRunStatus type export | NOT AN ISSUE - VerificationRunStatus type IS properly defined and exported from `packages/shared/src/contracts/verification.ts`. The contracts are intentionally kept separate from types to avoid naming conflicts. Consumers who need Zod schemas should import from `@sync/shared/contracts`. | [x] Jan 15 |
+| R61 | P3-9: Rate limiting on votes/participate | FIXED - Added rate limiting utility at `apps/web/src/lib/rate-limit.ts`. Applied to votes/participate endpoint with 3 req/min per user limit. | [x] Jan 15 |
+| R62 | P3-10: Rate limiting on verification/check-in | FIXED - Applied rate limiting to verification/check-in endpoint with 10 req/min per user limit. Uses same rate limiting utility. | [x] Jan 15 |
 
-**Total Resolved: 67 items** (3 new this session: P3-4 logger, P3-11 cron logging, P3-5 partial)
+**Total Resolved: 70 items** (2 new this session: P3-9 and P3-10 rate limiting)
 
 ### Mobile Type Errors Fixed This Session
 
@@ -288,10 +290,10 @@ The following mobile type errors were fixed during the type alignment session:
 | **P1 High** | 0 | Required for pilot - ALL RESOLVED |
 | **P2 Medium** | 1 | Has workarounds - 1 requires infrastructure change (11 resolved total) |
 | **P2-WEB** | 0 | All 7 web type errors resolved |
-| **P3 Low** | 3 | Post-pilot cleanup (10 resolved total) |
+| **P3 Low** | 1 | Post-pilot cleanup (11 resolved total) |
 | **P4 Cleanup** | 0 | **COMPLETE** - All routes migrated to Supabase, convergeService DELETED |
-| **Resolved** | 68 | Already fixed (P3-6 clarified as NOT AN ISSUE, convergeService deleted) |
-| **Total Active** | 5 | P0 + P2 + P3 remaining (P4 complete) |
+| **Resolved** | 70 | Already fixed (P3-9 and P3-10 rate limiting added this session) |
+| **Total Active** | 3 | P0 + P2 + P3 remaining (P4 complete) |
 
 **Stack Simplification (January 2025):**
 - Database: Supabase (PostgreSQL with RLS) - ONLY database
@@ -341,7 +343,7 @@ The following mobile type errors were fixed during the type alignment session:
 
 ## Completed Components
 
-### Services (13/13 Production-Ready - All Dead Code Removed)
+### Services (14/14 Production-Ready - All Dead Code Removed)
 - [x] Google OAuth - `apps/web/src/services/auth/google.ts` (222 lines)
 - [x] Facebook OAuth - `apps/web/src/services/auth/facebook.ts` (168 lines)
 - [x] Instagram OAuth - `apps/web/src/services/auth/instagram.ts` (189 lines)
@@ -354,10 +356,11 @@ The following mobile type errors were fixed during the type alignment session:
 - [x] Email (Resend) - `apps/web/src/services/email/index.ts` (538 lines) - 6 templates
 - [x] Supabase Client - `apps/web/src/lib/supabase/` (5 files) - PRIMARY DATABASE
 - [x] Logger Utility - `apps/web/src/lib/logger.ts` (~150 lines) - structured logging for production
+- [x] Rate Limit Utility - `apps/web/src/lib/rate-limit.ts` (~50 lines) - in-memory rate limiting for API endpoints
 - [x] DELETED: Converge - `apps/web/src/services/converge/index.ts` (421 lines removed Jan 15, 2025)
 - [x] DELETED: Grow Analytics - `apps/web/src/services/payments/grow.ts` (232 lines removed - P3-1)
 
-**Total Service Code: ~3,700 lines (production-ready, no dead code)**
+**Total Service Code: ~3,750 lines (production-ready, no dead code)**
 
 ### API Routes (29 Files, 27 Complete)
 - [x] Auth: /api/auth/did, callback, session (GET, POST, DELETE), session/refresh
@@ -551,7 +554,27 @@ The API client calls WRONG paths - backend exists but at different URLs:
 ---
 
 *Last Updated: January 15, 2025*
-*Document Version: 44.0*
+*Document Version: 45.0*
+
+**Version 45.0 Changes (January 15, 2025 - Rate Limiting Session):**
+- **P3-9 RESOLVED (R61): Added rate limiting to votes/participate endpoint**
+  - Created shared rate limiting utility at `apps/web/src/lib/rate-limit.ts`
+  - Applied to votes/participate endpoint with 3 requests/minute per user limit
+  - Rate limiter uses sliding window algorithm with user ID as identifier
+- **P3-10 RESOLVED (R62): Added rate limiting to verification/check-in endpoint**
+  - Applied rate limiting to verification/check-in endpoint with 10 requests/minute per user limit
+  - Uses same rate limiting utility as votes/participate
+- **Note on In-Memory Rate Limiting:**
+  - Current implementation uses in-memory storage
+  - For production deployment, should be replaced with Redis/Upstash for persistence across instances
+  - See P2-14 for infrastructure recommendation
+- **New Utility Added:**
+  - Rate Limit Utility - `apps/web/src/lib/rate-limit.ts` (~50 lines) - in-memory rate limiting for API endpoints
+- **Stats Updated:**
+  - P3 Low: 3 -> 1 (2 items resolved this session)
+  - Total Resolved: 68 -> 70 (2 new this session: R61, R62)
+  - Services: 15 -> 16 production-ready (rate-limit utility added)
+  - Total Active: 5 -> 3
 
 **Version 44.0 Changes (January 15, 2025 - Structured Logging Session):**
 - **P3-4 RESOLVED: Replaced console.log in payment webhook with structured logging**
