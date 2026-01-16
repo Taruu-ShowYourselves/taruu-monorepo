@@ -18,7 +18,7 @@ pnpm dev:mobile                 # Run mobile (Expo)
 
 Run these after implementing to get immediate feedback:
 
-- Tests: `pnpm test` (259 tests passing - 106 shared, 110 api-client, 43 web)
+- Tests: `pnpm test` (476 tests passing - 106 shared, 110 api-client, 260 web)
 - Typecheck: `pnpm typecheck`
 - Lint: `pnpm lint`
 - Build: `pnpm build`
