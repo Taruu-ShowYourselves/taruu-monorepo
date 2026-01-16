@@ -7,3 +7,5 @@ export { paymentsApi } from './payments';
 export { authApi } from './auth';
 export { verificationApi } from './verification';
 export { bagsApi } from './bags';
+export { notificationsApi } from './notifications';
+export { newsletterApi } from './newsletter';

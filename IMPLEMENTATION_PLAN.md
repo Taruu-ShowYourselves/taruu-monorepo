@@ -2,8 +2,8 @@
 
 **Target:** Late January 2025 Pilot Launch (Kiryat Tivon)
 **First Vote Date:** January 23, 2025
-**Last Audit:** January 16, 2026 (v76.3 - Bags.fm integration COMPLETE)
-**Document Version:** 76.3
+**Last Audit:** January 16, 2026 (v76.4 - API Client completeness)
+**Document Version:** 76.4
 
 ---
 
@@ -288,8 +288,8 @@ These issues affect user experience but have workarounds or affect secondary flo
 | # | Issue | File | Line | Impact | Fix Required | Status |
 |---|-------|------|------|--------|--------------|--------|
 | P2-14 | **In-memory rate limiting not production-ready** | `apps/web/src/app/api/newsletter/subscribe/route.ts` | 5-6 | Rate limits reset on server restart | Requires Redis/Upstash infrastructure | [~] INFRA |
-| P2-15 | **API Client missing notifications module** | `packages/api-client/src/` | - | Push token registration not exposed in typed client | Add `notifications.ts` with registerPushToken method | [ ] |
-| P2-16 | **API Client missing newsletter module** | `packages/api-client/src/` | - | Newsletter subscription not in typed client | Add `newsletter.ts` with subscribe method | [ ] |
+| P2-15 | **API Client missing notifications module** | `packages/api-client/src/` | - | Push token registration not exposed in typed client | Add `notifications.ts` with registerPushToken method | [x] **RESOLVED v76.4** - Created `packages/api-client/src/notifications.ts` with 4 methods: registerPushToken, getPushTokens, deletePushToken, deactivatePushToken |
+| P2-16 | **API Client missing newsletter module** | `packages/api-client/src/` | - | Newsletter subscription not in typed client | Add `newsletter.ts` with subscribe method | [x] **RESOLVED v76.4** - Created `packages/api-client/src/newsletter.ts` with 1 method: subscribe |
 
 **P2-15 Details - notifications.ts should contain:**
 ```typescript
@@ -298,7 +298,7 @@ notificationsApi.getPushTokens()                        -> GET /api/user/push-to
 notificationsApi.deactivatePushToken(token)             -> DELETE /api/user/push-token
 ```
 
-**P2 Total: 3 items**
+**P2 Total: 1 item**
 
 ---
 
@@ -508,12 +508,12 @@ Technical debt items that don't affect pilot functionality. **Address after Janu
 |----------|-------|-------------|
 | **P0 Critical** | 0 | All blockers resolved (P0-7 through P0-12) |
 | **P1 High** | 7 | Required for pilot (P1-12 through P1-18, includes 1 new v72 finding) |
-| **P2 Medium** | 3 | Has workarounds - requires infrastructure change |
+| **P2 Medium** | 1 | Has workarounds - requires infrastructure change |
 | **P0-BAGS** | 22 (18 done) | **Bags.fm Payment Integration - backend 100% complete v76.3, 4 UI components remaining (post-pilot)** |
 | **P2-NFT** | 6 | Post-resolution NFTs - NOT STARTED |
 | **P3 Low** | 11 | Post-pilot cleanup |
-| **Resolved** | 74 | Already fixed (includes P0-7 through P0-12) |
-| **Total Active** | 37 | All remaining items (reduced from 52 after Bags.fm completion)
+| **Resolved** | 76 | Already fixed (includes P0-7 through P0-12, P2-15, P2-16) |
+| **Total Active** | 35 | All remaining items (reduced from 37 after API Client completeness)
 
 **Stack Simplification (January 2025):**
 - Database: Supabase (PostgreSQL with RLS) - ONLY database
@@ -731,8 +731,8 @@ Focus on end-to-end testing of core flows:
 - [x] Payments API: `payments.ts` (5 methods)
 - [ ] Auth API: Missing (P1-14)
 - [ ] Verification API: Missing (P1-13)
-- [ ] Notifications API: Missing (P2-15)
-- [ ] Newsletter API: Missing (P2-16)
+- [x] Notifications API: `notifications.ts` (4 methods)
+- [x] Newsletter API: `newsletter.ts` (1 method)
 
 ### Test Coverage
 - [x] Shared Utils: 106 tests (formatters, retry, DID, identity score)
@@ -790,7 +790,18 @@ Focus on end-to-end testing of core flows:
 ---
 
 *Last Updated: January 16, 2026*
-*Document Version: 76.3*
+*Document Version: 76.4*
+
+**Audit v76.4 Changes (Opus 4.5 - API Client Completeness):**
+- **P2-15 RESOLVED**: Created `packages/api-client/src/notifications.ts` with 4 methods:
+  - `registerPushToken(token, deviceType, deviceName?)` - Register Expo push token
+  - `getPushTokens()` - Get all registered push tokens
+  - `deletePushToken(token)` - Permanently delete a token
+  - `deactivatePushToken(token)` - Deactivate without deleting
+- **P2-16 RESOLVED**: Created `packages/api-client/src/newsletter.ts` with 1 method:
+  - `subscribe(email)` - Subscribe to newsletter via Beehiiv
+- **API Client Coverage:** 31/33 methods implemented (was 26/33), missing only 2 infrastructure-dependent methods
+- **P2 Status:** 1 item remaining (rate limiting infrastructure - requires Redis/Upstash)
 
 **Audit v76.3 Changes (Opus 4.5 - Bags.fm Integration Complete):**
 - **P0-11 RESOLVED**: Bags.fm integration is now 100% complete for backend (UI components post-pilot)
