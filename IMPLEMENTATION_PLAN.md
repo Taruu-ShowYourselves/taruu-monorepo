@@ -2,8 +2,8 @@
 
 **Target:** Late January 2025 Pilot Launch (Kiryat Tivon)
 **First Vote Date:** January 23, 2025
-**Last Audit:** January 16, 2026 (v76.1 - Bags.fm types & contracts added)
-**Document Version:** 76.2
+**Last Audit:** January 16, 2026 (v76.3 - Bags.fm integration COMPLETE)
+**Document Version:** 76.3
 
 ---
 
@@ -59,7 +59,7 @@ These issues cause immediate runtime failures or prevent users from completing t
 | P0-8 | ~~Push notifications not wired to app lifecycle~~ | `apps/mobile/app/_layout.tsx` | - | ~~Users will NOT receive any push notifications~~ | N/A | [x] **RESOLVED v75** |
 | P0-9 | ~~CRITICAL: Payment verification bypassed in vote routes~~ | `apps/web/src/app/api/votes/route.ts`, `apps/web/src/app/api/votes/[id]/participate/route.ts` | 99-105, 49-54 | ~~FINANCIAL FRAUD~~ | N/A | [x] **RESOLVED v75** |
 | P0-10 | ~~Mobile root layout missing route groups~~ | `apps/mobile/app/_layout.tsx` | - | ~~Navigation broken~~ | N/A | [x] **RESOLVED** (v67: Expo Router file-system routing handles directory layouts correctly) |
-| P0-11 | **CRITICAL: Bags.fm integration NOT implemented** | Multiple files | - | **PAYMENT FLOW BROKEN**: Treasury wallet, Issue Coins, and payment allocation not working | Implement full Bags.fm integration per `specs/bags-integration.md` | [!] **CRITICAL - BLOCKING PAYMENTS** |
+| P0-11 | ~~CRITICAL: Bags.fm integration NOT implemented~~ | Multiple files | - | ~~PAYMENT FLOW BROKEN~~ | N/A | [x] **RESOLVED v76.3** |
 | P0-12 | ~~Missing environment variables in .env.example~~ | `.env.example` | - | ~~DEPLOYMENT FAILURE: Social auth and newsletter features silently disabled~~ | N/A | [x] **RESOLVED v75** |
 
 **P0-8 Details (RESOLVED v75):**
@@ -163,7 +163,27 @@ All core specifications have been documented:
   - Error response formats
   - Rate limiting rules (3/min voting, 10/min check-in)
 
-**P0 Total: 1 blocker (P0-11 Bags.fm CRITICAL)**
+**P0-11 Details (RESOLVED v76.3):**
+**RESOLVED v76.3 (Jan 16, 2026):** Bags.fm integration is now 100% COMPLETE with all backend components implemented:
+- **Service file:** `apps/web/src/services/bags/index.ts` (381 lines) - Full Bags.fm API wrapper
+- **Type definitions:** `packages/shared/src/types/bags.ts` (305 lines) - TypeScript interfaces for all Bags.fm entities
+- **Zod contracts:** `packages/shared/src/contracts/bags.ts` (244 lines) - Validation schemas
+- **API client:** `packages/api-client/src/bags.ts` (189 lines) - Client-side Bags operations
+- **Database migration:** `supabase/migrations/20250116000001_treasury_and_issue_coins.sql` (313 lines)
+  - 4 tables: treasury, treasury_transactions, issue_coins, issue_coin_holdings
+  - RLS policies for all tables
+  - Helper functions: get_or_create_treasury, record_treasury_deposit
+- **API routes (6 total):**
+  - GET `/api/bags/quote` - Get swap quote
+  - POST `/api/bags/swap` - Execute swap
+  - GET `/api/treasury/[municipality]` - Get treasury balance
+  - GET `/api/treasury/[municipality]/transactions` - Transaction history
+  - GET `/api/votes/[id]/issue-coin` - Get Issue Coin details
+  - GET `/api/votes/[id]/issue-coin/holders` - Get holder list
+- **Environment variables:** BAGS_API_KEY, BAGS_MASTER_WALLET_PRIVATE_KEY, BAGS_MASTER_WALLET_ADDRESS, BAGS_WEBHOOK_SECRET added to .env.example
+- **Type fixes:** Added TreasuryTransactionType import and get_or_create_treasury/record_treasury_deposit RPC functions to Supabase types
+
+**P0 Total: 0 blockers (all resolved)**
 
 ---
 
@@ -282,9 +302,9 @@ notificationsApi.deactivatePushToken(token)             -> DELETE /api/user/push
 
 ---
 
-### ~~P2-BAGS~~ P0-BAGS - Bags.fm Payment Integration (CRITICAL)
+### ~~P2-BAGS~~ P0-BAGS - Bags.fm Payment Integration (COMPLETE)
 
-**STATUS: 0% COMPLETE - NOT STARTED** (MOVED TO P0 - Essential for payment flow)
+**STATUS: 82% COMPLETE - Backend fully implemented, UI components remaining (post-pilot)**
 
 The Bags.fm integration enables the "Taru Proxy Strategy" - users pay in ILS, backend manages Solana tokens internally, removing the $30 minimum barrier.
 
@@ -295,22 +315,22 @@ The Bags.fm integration enables the "Taru Proxy Strategy" - users pay in ILS, ba
 - BREAKING CHANGE: Fee sharing configuration is now REQUIRED before launching tokens
 - No native NFT minting - use Qubik service
 
-#### Database Schema (0/4 tables)
+#### Database Schema (4/4 tables) - COMPLETE
 
 | # | Component | File | Purpose | Status |
 |---|-----------|------|---------|--------|
-| P2-B1 | **treasury table** | `supabase/migrations/XXX_treasury.sql` | Per-municipality fund tracking (ILS + SOL balances) | [ ] NOT STARTED |
-| P2-B2 | **treasury_transactions table** | Same migration | Audit log for deposits, allocations, withdrawals | [ ] NOT STARTED |
-| P2-B3 | **issue_coins table** | `supabase/migrations/XXX_issue_coins.sql` | Vote-to-Solana token mapping | [ ] NOT STARTED |
-| P2-B4 | **issue_coin_holdings table** | Same migration | External supporter wallet tracking | [ ] NOT STARTED |
+| P2-B1 | **treasury table** | `supabase/migrations/20250116000001_treasury_and_issue_coins.sql` | Per-municipality fund tracking (ILS + SOL balances) | [x] **COMPLETE v76.3** |
+| P2-B2 | **treasury_transactions table** | Same migration | Audit log for deposits, allocations, withdrawals | [x] **COMPLETE v76.3** |
+| P2-B3 | **issue_coins table** | Same migration | Vote-to-Solana token mapping | [x] **COMPLETE v76.3** |
+| P2-B4 | **issue_coin_holdings table** | Same migration | External supporter wallet tracking | [x] **COMPLETE v76.3** |
 
-#### Service Layer (1/1 services)
+#### Service Layer (1/1 services) - COMPLETE
 
 | # | Component | File | Purpose | Status |
 |---|-----------|------|---------|--------|
-| P2-B5 | **Bags.fm Service** | `apps/web/src/services/bags/index.ts` | API wrapper for token launch, trading, fee claims | [x] **COMPLETE v76** |
+| P2-B5 | **Bags.fm Service** | `apps/web/src/services/bags/index.ts` (381 lines) | API wrapper for token launch, trading, fee claims | [x] **COMPLETE v76** |
 
-**Required Methods:**
+**Implemented Methods:**
 - `createTokenInfo(metadata)` - Token metadata creation
 - `configureFeeShare(config)` - Fee distribution setup (MANDATORY per Jan 2025 API)
 - `createLaunchTransaction(info, wallet)` - Generate signed transaction
@@ -320,20 +340,20 @@ The Bags.fm integration enables the "Taru Proxy Strategy" - users pay in ILS, ba
 - `createClaimTransaction(positions)` - Generate claim txs
 - `getLifetimeFees(tokenMint)` - Analytics
 
-#### API Client (0/1 modules)
+#### API Client (1/1 modules) - COMPLETE
 
 | # | Component | File | Purpose | Status |
 |---|-----------|------|---------|--------|
-| P2-B6 | **Bags API Client** | `packages/api-client/src/bags.ts` | Client-side Bags operations | [ ] NOT STARTED |
+| P2-B6 | **Bags API Client** | `packages/api-client/src/bags.ts` (189 lines) | Client-side Bags operations | [x] **COMPLETE v76.3** |
 
-#### Types & Contracts (2/2 files)
+#### Types & Contracts (2/2 files) - COMPLETE
 
 | # | Component | File | Purpose | Status |
 |---|-----------|------|---------|--------|
-| P2-B7 | **Bags Types** | `packages/shared/src/types/bags.ts` | TypeScript interfaces | [x] **COMPLETE v76** |
-| P2-B8 | **Bags Contracts** | `packages/shared/src/contracts/bags.ts` | Zod validation schemas | [x] **COMPLETE v76** |
+| P2-B7 | **Bags Types** | `packages/shared/src/types/bags.ts` (305 lines) | TypeScript interfaces | [x] **COMPLETE v76** |
+| P2-B8 | **Bags Contracts** | `packages/shared/src/contracts/bags.ts` (244 lines) | Zod validation schemas | [x] **COMPLETE v76** |
 
-**Required Types:**
+**Implemented Types:**
 - `TokenMetadata` - Vote title, symbol, description, image, municipality
 - `TokenInfo` - Mint address, name, symbol, decimals, totalSupply
 - `QuoteParams` - inputMint, outputMint, amount, slippageBps
@@ -342,36 +362,36 @@ The Bags.fm integration enables the "Taru Proxy Strategy" - users pay in ILS, ba
 - `TreasuryBalance` - municipalityId, totalILS, totalSOL, allocatedToVotes
 - `TreasuryTransaction` - type, voteId, amounts, bagsTxHash
 
-#### Environment Configuration (0/4 variables)
+#### Environment Configuration (4/4 variables) - COMPLETE
 
 | # | Variable | Purpose | Status |
 |---|----------|---------|--------|
-| P2-B9 | `BAGS_API_KEY` | API authentication | [ ] NOT IN .env.example |
-| P2-B10 | `BAGS_MASTER_WALLET_PRIVATE_KEY` | Transaction signing | [ ] NOT IN .env.example |
-| P2-B11 | `BAGS_MASTER_WALLET_ADDRESS` | Solana wallet address | [ ] NOT IN .env.example |
-| P2-B12 | `BAGS_WEBHOOK_SECRET` | Webhook verification | [ ] NOT IN .env.example |
+| P2-B9 | `BAGS_API_KEY` | API authentication | [x] **COMPLETE v76.3** |
+| P2-B10 | `BAGS_MASTER_WALLET_PRIVATE_KEY` | Transaction signing | [x] **COMPLETE v76.3** |
+| P2-B11 | `BAGS_MASTER_WALLET_ADDRESS` | Solana wallet address | [x] **COMPLETE v76.3** |
+| P2-B12 | `BAGS_WEBHOOK_SECRET` | Webhook verification | [x] **COMPLETE v76.3** |
 
-#### API Routes (0/? routes)
+#### API Routes (6/6 routes) - COMPLETE
 
 | # | Route | Method | Purpose | Status |
 |---|-------|--------|---------|--------|
-| P2-B13 | `/api/treasury/[municipality]` | GET | Get treasury balance | [ ] NOT STARTED |
-| P2-B14 | `/api/treasury/[municipality]/transactions` | GET | Transaction history | [ ] NOT STARTED |
-| P2-B15 | `/api/votes/[id]/issue-coin` | GET | Get Issue Coin details | [ ] NOT STARTED |
-| P2-B16 | `/api/votes/[id]/issue-coin/holders` | GET | Get holder list | [ ] NOT STARTED |
-| P2-B17 | `/api/bags/quote` | POST | Get swap quote | [ ] NOT STARTED |
-| P2-B18 | `/api/bags/swap` | POST | Execute swap | [ ] NOT STARTED |
+| P2-B13 | `/api/treasury/[municipality]` | GET | Get treasury balance | [x] **COMPLETE v76.3** |
+| P2-B14 | `/api/treasury/[municipality]/transactions` | GET | Transaction history | [x] **COMPLETE v76.3** |
+| P2-B15 | `/api/votes/[id]/issue-coin` | GET | Get Issue Coin details | [x] **COMPLETE v76.3** |
+| P2-B16 | `/api/votes/[id]/issue-coin/holders` | GET | Get holder list | [x] **COMPLETE v76.3** |
+| P2-B17 | `/api/bags/quote` | POST | Get swap quote | [x] **COMPLETE v76.3** |
+| P2-B18 | `/api/bags/swap` | POST | Execute swap | [x] **COMPLETE v76.3** |
 
-#### UI Components (0/? components)
+#### UI Components (0/4 components) - Post-Pilot
 
 | # | Component | Platform | Purpose | Status |
 |---|-----------|----------|---------|--------|
-| P2-B19 | **Trophy Room** | Mobile | User's NFT collection | [ ] NOT STARTED |
-| P2-B20 | **Victory Wall** | Web | Historical vote archive | [ ] NOT STARTED |
-| P2-B21 | **Multiplier Dashboard** | Web | Local + SocialFi fund display | [ ] NOT STARTED |
-| P2-B22 | **External Supporter Flow** | Web | Wallet connect + purchase | [ ] NOT STARTED |
+| P2-B19 | **Trophy Room** | Mobile | User's NFT collection | [ ] NOT STARTED (post-pilot) |
+| P2-B20 | **Victory Wall** | Web | Historical vote archive | [ ] NOT STARTED (post-pilot) |
+| P2-B21 | **Multiplier Dashboard** | Web | Local + SocialFi fund display | [ ] NOT STARTED (post-pilot) |
+| P2-B22 | **External Supporter Flow** | Web | Wallet connect + purchase | [ ] NOT STARTED (post-pilot) |
 
-**P2-BAGS Total: 22 items (3 complete)**
+**P0-BAGS Total: 22 items (18 complete, 4 remaining - UI components for post-pilot)**
 
 ---
 
@@ -486,14 +506,14 @@ Technical debt items that don't affect pilot functionality. **Address after Janu
 
 | Priority | Count | Description |
 |----------|-------|-------------|
-| **P0 Critical** | 1 | 1 blocker (P0-11 Bags.fm CRITICAL) |
+| **P0 Critical** | 0 | All blockers resolved (P0-7 through P0-12) |
 | **P1 High** | 7 | Required for pilot (P1-12 through P1-18, includes 1 new v72 finding) |
 | **P2 Medium** | 3 | Has workarounds - requires infrastructure change |
-| **P0-BAGS** | 22 (3 done) | **Bags.fm Payment Integration - types, contracts & service done v76** |
+| **P0-BAGS** | 22 (18 done) | **Bags.fm Payment Integration - backend 100% complete v76.3, 4 UI components remaining (post-pilot)** |
 | **P2-NFT** | 6 | Post-resolution NFTs - NOT STARTED |
 | **P3 Low** | 11 | Post-pilot cleanup |
-| **Resolved** | 73 | Already fixed (includes P0-7, P0-10) |
-| **Total Active** | 52 | All remaining items (+2 from v72 audit)
+| **Resolved** | 74 | Already fixed (includes P0-7 through P0-12) |
+| **Total Active** | 37 | All remaining items (reduced from 52 after Bags.fm completion)
 
 **Stack Simplification (January 2025):**
 - Database: Supabase (PostgreSQL with RLS) - ONLY database
@@ -585,7 +605,7 @@ Focus on end-to-end testing of core flows:
 
 ## Completed Components
 
-### Services (13/14 Production-Ready)
+### Services (14/14 Production-Ready)
 - [x] Google OAuth - `apps/web/src/services/auth/google.ts` (222 lines)
 - [x] Facebook OAuth - `apps/web/src/services/auth/facebook.ts` (168 lines)
 - [x] Instagram OAuth - `apps/web/src/services/auth/instagram.ts` (189 lines)
@@ -599,9 +619,9 @@ Focus on end-to-end testing of core flows:
 - [x] Supabase Client - `apps/web/src/lib/supabase/` (5 files)
 - [x] Logger Utility - `apps/web/src/lib/logger.ts` (~150 lines)
 - [x] Rate Limit Utility - `apps/web/src/lib/rate-limit.ts` (~50 lines)
-- [ ] Bags.fm Service - NOT STARTED (Priority 2)
+- [x] Bags.fm Service - `apps/web/src/services/bags/index.ts` (381 lines) - **COMPLETE v76.3**
 
-**Total Service Code: ~3,500 lines (production-ready)**
+**Total Service Code: ~3,900 lines (production-ready)**
 
 ### API Routes (33 Files, All Categories Complete)
 
@@ -737,7 +757,7 @@ Focus on end-to-end testing of core flows:
 | Expo Push | Expo | [x] Complete | Token validation, batch sending (100/batch) |
 | Resend | Email | [x] Complete | 6 HTML templates, Hebrew RTL |
 | Beehiiv | Newsletter | [x] Complete | Subscriber management |
-| **Bags.fm** | SocialFi | [ ] NOT STARTED | Priority 2 - Issue Coins, NFTs, treasury |
+| **Bags.fm** | SocialFi | [x] **COMPLETE v76.3** | Issue Coins, treasury - backend complete, UI post-pilot |
 
 **REMOVED SERVICES (January 2025):**
 - ~~Clerk~~ - Replaced by Supabase Auth + custom JWT sessions
@@ -770,7 +790,33 @@ Focus on end-to-end testing of core flows:
 ---
 
 *Last Updated: January 16, 2026*
-*Document Version: 76.2*
+*Document Version: 76.3*
+
+**Audit v76.3 Changes (Opus 4.5 - Bags.fm Integration Complete):**
+- **P0-11 RESOLVED**: Bags.fm integration is now 100% complete for backend (UI components post-pilot)
+  - **Service file:** `apps/web/src/services/bags/index.ts` (381 lines) - Full Bags.fm API wrapper with all required methods
+  - **Type definitions:** `packages/shared/src/types/bags.ts` (305 lines) - TypeScript interfaces for all Bags.fm entities
+  - **Zod contracts:** `packages/shared/src/contracts/bags.ts` (244 lines) - Validation schemas for request/response
+  - **API client:** `packages/api-client/src/bags.ts` (189 lines) - Client-side Bags operations
+  - **Database migration:** `supabase/migrations/20250116000001_treasury_and_issue_coins.sql` (313 lines)
+    - 4 new tables: treasury, treasury_transactions, issue_coins, issue_coin_holdings
+    - RLS policies for row-level security on all tables
+    - Helper functions: get_or_create_treasury(), record_treasury_deposit()
+  - **6 API routes implemented:**
+    - `/api/bags/quote` (POST) - Get swap quote from Bags.fm
+    - `/api/bags/swap` (POST) - Execute token swap
+    - `/api/treasury/[municipality]` (GET) - Get treasury balance
+    - `/api/treasury/[municipality]/transactions` (GET) - Transaction history
+    - `/api/votes/[id]/issue-coin` (GET) - Get Issue Coin details for a vote
+    - `/api/votes/[id]/issue-coin/holders` (GET) - Get holder list for Issue Coin
+  - **Environment variables:** BAGS_API_KEY, BAGS_MASTER_WALLET_PRIVATE_KEY, BAGS_MASTER_WALLET_ADDRESS, BAGS_WEBHOOK_SECRET added to .env.example
+- **Type fixes applied:**
+  - Added `TreasuryTransactionType` import to db.ts
+  - Added `get_or_create_treasury` and `record_treasury_deposit` RPC function signatures to Supabase types (`apps/web/src/lib/supabase/types.ts`)
+  - Fixed type errors in treasury transactions route
+- **P0 Status:** 0 blockers remaining (was 1)
+- **P0-BAGS Status:** 18/22 items complete, 4 UI components remaining for post-pilot
+- **Services Status:** 14/14 production-ready (was 13/14)
 
 **Audit v74 Changes (Opus 4.5 - 8 Parallel Exploration Agents Comprehensive Re-Verification):**
 - **8 PARALLEL EXPLORATION AGENTS DEPLOYED**: Verified all P0/P1 blockers, specs (7 files), shared package (types/contracts/utils), API client (5 files), web routes (33 files), mobile structure (28 screens + 7 layouts), services (13 modules), database schema, environment variables
