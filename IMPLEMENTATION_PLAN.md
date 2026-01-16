@@ -56,18 +56,20 @@ These issues cause immediate runtime failures or prevent users from completing t
 | # | Issue | File | Line | Impact | Fix Required | Status |
 |---|-------|------|------|--------|--------------|--------|
 | P0-7 | ~~EAS project ID is placeholder~~ | `apps/mobile/app.json` | 71 | ~~Push token registration fails~~ | N/A | [x] **RESOLVED** (ID: d36014d1-969a-445f-9f92-109ab2f0f201) |
-| P0-8 | **Push notifications not wired to app lifecycle** | `apps/mobile/app/_layout.tsx` | - | Users will NOT receive any push notifications | Add `registerForPushNotificationsAsync()` and `useNotificationListeners()` call in root layout | [!] VERIFIED |
+| P0-8 | ~~Push notifications not wired to app lifecycle~~ | `apps/mobile/app/_layout.tsx` | - | ~~Users will NOT receive any push notifications~~ | N/A | [x] **RESOLVED v75** |
 | P0-9 | ~~CRITICAL: Payment verification bypassed in vote routes~~ | `apps/web/src/app/api/votes/route.ts`, `apps/web/src/app/api/votes/[id]/participate/route.ts` | 99-105, 49-54 | ~~FINANCIAL FRAUD~~ | N/A | [x] **RESOLVED v75** |
 | P0-10 | ~~Mobile root layout missing route groups~~ | `apps/mobile/app/_layout.tsx` | - | ~~Navigation broken~~ | N/A | [x] **RESOLVED** (v67: Expo Router file-system routing handles directory layouts correctly) |
 | P0-11 | **CRITICAL: Bags.fm integration NOT implemented** | Multiple files | - | **PAYMENT FLOW BROKEN**: Treasury wallet, Issue Coins, and payment allocation not working | Implement full Bags.fm integration per `specs/bags-integration.md` | [!] **CRITICAL - BLOCKING PAYMENTS** |
 | P0-12 | **Missing environment variables in .env.example** | `.env.example` | - | **DEPLOYMENT FAILURE**: Social auth and newsletter features silently disabled | Add 9 missing env vars: FACEBOOK_APP_ID/SECRET, INSTAGRAM_APP_ID/SECRET, EXPO_PUBLIC_FACEBOOK/INSTAGRAM_APP_ID, BEEHIIV_API_KEY/PUBLICATION_ID, CRON_SECRET | [!] **NEW v72** |
 
-**P0-8 Details (VERIFIED - ORPHANED LIBRARY):**
+**P0-8 Details (RESOLVED v75):**
+**RESOLVED v75 (Jan 16, 2026):** Push notifications now wired in `apps/mobile/app/_layout.tsx`. Added imports for `registerForPushNotificationsAsync` and `useNotificationListeners`. Registration happens after authentication check, and notification taps navigate to verification or vote screens based on notification data.
+
 - Library fully implemented: `apps/mobile/src/lib/notifications.ts` (360 lines, 12 exported functions + 1 hook)
 - Backend complete: `/api/user/push-token` endpoint working, cron job configured, database table exists
 - EAS Project ID configured: d36014d1-969a-445f-9f92-109ab2f0f201
-- **VERIFIED MISSING:** Root `apps/mobile/app/_layout.tsx` (47 lines) has NO notification imports or calls
-- **CRITICAL:** The notification library is COMPLETELY ORPHANED - not imported ANYWHERE in the mobile app
+- ~~**VERIFIED MISSING:** Root `apps/mobile/app/_layout.tsx` (47 lines) has NO notification imports or calls~~
+- ~~**CRITICAL:** The notification library is COMPLETELY ORPHANED - not imported ANYWHERE in the mobile app~~
 - Imports in root layout: `useEffect`, `Stack`, `initializeApiClient`, `useAuthStore`, `getAuthToken` - NO notification functions
 - **Fix:** Add ~10 lines to root layout to import and call registration + set up listeners
 
@@ -437,6 +439,7 @@ Technical debt items that don't affect pilot functionality. **Address after Janu
 **Total Resolved: 72 items** - See git history for details
 
 **Recent Resolutions (v50-v75):**
+- **P0-8:** Push notifications wired to mobile app lifecycle - RESOLVED (v75)
 - **P0-9:** Payment verification security fix - RESOLVED (v75)
 - **P0-7:** EAS project ID configured (d36014d1-969a-445f-9f92-109ab2f0f201) - VERIFIED RESOLVED
 - Lint warnings cleaned up in mobile and web apps
@@ -468,7 +471,7 @@ Technical debt items that don't affect pilot functionality. **Address after Janu
 
 | Priority | Count | Description |
 |----------|-------|-------------|
-| **P0 Critical** | 3 | Breaks core flows - fix before testing (P0-8 push notifications, **P0-11 Bags.fm CRITICAL**, P0-12 missing env vars) |
+| **P0 Critical** | 2 | 2 blockers (P0-11 Bags.fm CRITICAL, P0-12 missing env vars) |
 | **P1 High** | 7 | Required for pilot (P1-12 through P1-18, includes 1 new v72 finding) |
 | **P2 Medium** | 3 | Has workarounds - requires infrastructure change |
 | **P0-BAGS** | 22 | **Bags.fm Payment Integration - MOVED TO P0 CRITICAL** |
