@@ -6,3 +6,4 @@ export { usersApi } from './users';
 export { paymentsApi } from './payments';
 export { authApi } from './auth';
 export { verificationApi } from './verification';
+export { bagsApi } from './bags';

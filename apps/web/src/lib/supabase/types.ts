@@ -480,6 +480,207 @@ export interface Database {
         };
         Relationships: [];
       };
+      treasury: {
+        Row: {
+          id: string;
+          municipality_id: string;
+          wallet_address: string | null;
+          wallet_public_key: string | null;
+          balance_ils: number;
+          balance_sol: string;
+          total_collected_ils: number;
+          total_withdrawn_ils: number;
+          total_fees_claimed_sol: string;
+          active_votes_count: number;
+          last_sync_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          municipality_id: string;
+          wallet_address?: string | null;
+          wallet_public_key?: string | null;
+          balance_ils?: number;
+          balance_sol?: string;
+          total_collected_ils?: number;
+          total_withdrawn_ils?: number;
+          total_fees_claimed_sol?: string;
+          active_votes_count?: number;
+          last_sync_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          municipality_id?: string;
+          wallet_address?: string | null;
+          wallet_public_key?: string | null;
+          balance_ils?: number;
+          balance_sol?: string;
+          total_collected_ils?: number;
+          total_withdrawn_ils?: number;
+          total_fees_claimed_sol?: string;
+          active_votes_count?: number;
+          last_sync_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      treasury_transactions: {
+        Row: {
+          id: string;
+          treasury_id: string;
+          type: 'deposit' | 'allocation' | 'withdrawal' | 'fee_claim' | 'token_purchase' | 'nft_mint';
+          vote_id: string | null;
+          user_id: string | null;
+          payment_id: string | null;
+          amount_ils: number | null;
+          amount_sol: string | null;
+          description: string;
+          bags_tx_hash: string | null;
+          status: 'pending' | 'confirmed' | 'failed';
+          metadata: Record<string, unknown> | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          treasury_id: string;
+          type: 'deposit' | 'allocation' | 'withdrawal' | 'fee_claim' | 'token_purchase' | 'nft_mint';
+          vote_id?: string | null;
+          user_id?: string | null;
+          payment_id?: string | null;
+          amount_ils?: number | null;
+          amount_sol?: string | null;
+          description: string;
+          bags_tx_hash?: string | null;
+          status?: 'pending' | 'confirmed' | 'failed';
+          metadata?: Record<string, unknown> | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          treasury_id?: string;
+          type?: 'deposit' | 'allocation' | 'withdrawal' | 'fee_claim' | 'token_purchase' | 'nft_mint';
+          vote_id?: string | null;
+          user_id?: string | null;
+          payment_id?: string | null;
+          amount_ils?: number | null;
+          amount_sol?: string | null;
+          description?: string;
+          bags_tx_hash?: string | null;
+          status?: 'pending' | 'confirmed' | 'failed';
+          metadata?: Record<string, unknown> | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      issue_coins: {
+        Row: {
+          id: string;
+          vote_id: string;
+          token_mint: string;
+          token_name: string;
+          token_symbol: string;
+          token_decimals: number;
+          total_supply: string | null;
+          total_purchased: string;
+          total_value_ils: number;
+          trading_enabled: boolean;
+          is_frozen: boolean;
+          frozen_at: string | null;
+          launch_tx_hash: string | null;
+          fee_share_configured: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          vote_id: string;
+          token_mint: string;
+          token_name: string;
+          token_symbol: string;
+          token_decimals?: number;
+          total_supply?: string | null;
+          total_purchased?: string;
+          total_value_ils?: number;
+          trading_enabled?: boolean;
+          is_frozen?: boolean;
+          frozen_at?: string | null;
+          launch_tx_hash?: string | null;
+          fee_share_configured?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          vote_id?: string;
+          token_mint?: string;
+          token_name?: string;
+          token_symbol?: string;
+          token_decimals?: number;
+          total_supply?: string | null;
+          total_purchased?: string;
+          total_value_ils?: number;
+          trading_enabled?: boolean;
+          is_frozen?: boolean;
+          frozen_at?: string | null;
+          launch_tx_hash?: string | null;
+          fee_share_configured?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      issue_coin_holdings: {
+        Row: {
+          id: string;
+          issue_coin_id: string;
+          user_id: string | null;
+          wallet_address: string | null;
+          token_amount: string;
+          invested_ils: number;
+          is_local_resident: boolean;
+          nft_minted: boolean;
+          nft_mint_address: string | null;
+          first_purchase_at: string | null;
+          last_purchase_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          issue_coin_id: string;
+          user_id?: string | null;
+          wallet_address?: string | null;
+          token_amount?: string;
+          invested_ils?: number;
+          is_local_resident?: boolean;
+          nft_minted?: boolean;
+          nft_mint_address?: string | null;
+          first_purchase_at?: string | null;
+          last_purchase_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          issue_coin_id?: string;
+          user_id?: string | null;
+          wallet_address?: string | null;
+          token_amount?: string;
+          invested_ils?: number;
+          is_local_resident?: boolean;
+          nft_minted?: boolean;
+          nft_mint_address?: string | null;
+          first_purchase_at?: string | null;
+          last_purchase_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -495,6 +696,23 @@ export interface Database {
           option_id: string;
         };
         Returns: void;
+      };
+      get_or_create_treasury: {
+        Args: {
+          p_municipality_id: string;
+        };
+        Returns: string;
+      };
+      record_treasury_deposit: {
+        Args: {
+          p_treasury_id: string;
+          p_payment_id: string;
+          p_user_id: string;
+          p_vote_id: string | null;
+          p_amount_ils: number;
+          p_description: string;
+        };
+        Returns: string;
       };
     };
     Enums: {

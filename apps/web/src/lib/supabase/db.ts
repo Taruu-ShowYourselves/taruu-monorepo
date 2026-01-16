@@ -4,6 +4,7 @@
  */
 
 import { supabaseAdmin } from './server';
+import type { TreasuryTransactionType } from '@sync/shared';
 import type {
   User,
   SocialProof,
@@ -1007,4 +1008,302 @@ export async function getUserVoteStats(userId: string): Promise<{
     votesParticipated,
     votesCreated,
   };
+}
+
+// === Treasury Functions ===
+
+/**
+ * Get treasury by municipality ID
+ */
+export async function getTreasuryByMunicipality(municipalityId: string) {
+  const { data, error } = await supabaseAdmin
+    .from('treasury')
+    .select('*')
+    .eq('municipality_id', municipalityId)
+    .single();
+
+  if (error && error.code !== 'PGRST116') {
+    console.error('Failed to get treasury:', error);
+    throw error;
+  }
+  return data;
+}
+
+/**
+ * Get treasury transactions with pagination
+ */
+export async function getTreasuryTransactions(
+  treasuryId: string,
+  options: { limit?: number; offset?: number; type?: TreasuryTransactionType } = {}
+) {
+  const { limit = 50, offset = 0, type } = options;
+
+  let query = supabaseAdmin
+    .from('treasury_transactions')
+    .select('*')
+    .eq('treasury_id', treasuryId)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (type) {
+    query = query.eq('type', type);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Failed to get treasury transactions:', error);
+    throw error;
+  }
+  return data || [];
+}
+
+/**
+ * Create or get treasury for a municipality (calls the SQL function)
+ */
+export async function getOrCreateTreasury(municipalityId: string): Promise<string> {
+  const { data, error } = await supabaseAdmin.rpc('get_or_create_treasury', {
+    p_municipality_id: municipalityId,
+  });
+
+  if (error) {
+    console.error('Failed to get or create treasury:', error);
+    throw error;
+  }
+  return data;
+}
+
+// === Issue Coin Functions ===
+
+/**
+ * Get Issue Coin by vote ID
+ */
+export async function getIssueCoinByVoteId(voteId: string) {
+  const { data, error } = await supabaseAdmin
+    .from('issue_coins')
+    .select('*')
+    .eq('vote_id', voteId)
+    .single();
+
+  if (error && error.code !== 'PGRST116') {
+    console.error('Failed to get issue coin:', error);
+    throw error;
+  }
+  return data;
+}
+
+/**
+ * Get Issue Coin by token mint address
+ */
+export async function getIssueCoinByMint(tokenMint: string) {
+  const { data, error } = await supabaseAdmin
+    .from('issue_coins')
+    .select('*')
+    .eq('token_mint', tokenMint)
+    .single();
+
+  if (error && error.code !== 'PGRST116') {
+    console.error('Failed to get issue coin by mint:', error);
+    throw error;
+  }
+  return data;
+}
+
+/**
+ * Create an Issue Coin for a vote
+ */
+export async function createIssueCoin(data: {
+  voteId: string;
+  tokenMint: string;
+  tokenName: string;
+  tokenSymbol: string;
+  tokenDecimals?: number;
+  totalSupply?: string;
+  launchTxHash?: string;
+}) {
+  const { data: issueCoin, error } = await supabaseAdmin
+    .from('issue_coins')
+    .insert({
+      vote_id: data.voteId,
+      token_mint: data.tokenMint,
+      token_name: data.tokenName,
+      token_symbol: data.tokenSymbol,
+      token_decimals: data.tokenDecimals || 9,
+      total_supply: data.totalSupply,
+      launch_tx_hash: data.launchTxHash,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Failed to create issue coin:', error);
+    throw error;
+  }
+  return issueCoin;
+}
+
+/**
+ * Update Issue Coin
+ */
+export async function updateIssueCoin(
+  issueCoinId: string,
+  updates: {
+    tradingEnabled?: boolean;
+    isFrozen?: boolean;
+    feeShareConfigured?: boolean;
+    totalPurchased?: string;
+    totalValueIls?: number;
+  }
+) {
+  const updateData: Record<string, unknown> = {};
+  if (updates.tradingEnabled !== undefined) updateData.trading_enabled = updates.tradingEnabled;
+  if (updates.isFrozen !== undefined) {
+    updateData.is_frozen = updates.isFrozen;
+    if (updates.isFrozen) updateData.frozen_at = new Date().toISOString();
+  }
+  if (updates.feeShareConfigured !== undefined) updateData.fee_share_configured = updates.feeShareConfigured;
+  if (updates.totalPurchased !== undefined) updateData.total_purchased = updates.totalPurchased;
+  if (updates.totalValueIls !== undefined) updateData.total_value_ils = updates.totalValueIls;
+
+  const { data, error } = await supabaseAdmin
+    .from('issue_coins')
+    .update(updateData)
+    .eq('id', issueCoinId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Failed to update issue coin:', error);
+    throw error;
+  }
+  return data;
+}
+
+/**
+ * Get Issue Coin holders
+ */
+export async function getIssueCoinHolders(
+  issueCoinId: string,
+  options: { limit?: number; offset?: number; residentsOnly?: boolean } = {}
+) {
+  const { limit = 100, offset = 0, residentsOnly = false } = options;
+
+  let query = supabaseAdmin
+    .from('issue_coin_holdings')
+    .select('*, users(first_name, last_name, avatar_url)')
+    .eq('issue_coin_id', issueCoinId)
+    .order('token_amount', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (residentsOnly) {
+    query = query.eq('is_local_resident', true);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Failed to get issue coin holders:', error);
+    throw error;
+  }
+  return data || [];
+}
+
+/**
+ * Get or create Issue Coin holding
+ */
+export async function upsertIssueCoinHolding(data: {
+  issueCoinId: string;
+  userId?: string;
+  walletAddress?: string;
+  tokenAmount: string;
+  investedIls: number;
+  isLocalResident?: boolean;
+}) {
+  const now = new Date().toISOString();
+  const existingQuery = supabaseAdmin
+    .from('issue_coin_holdings')
+    .select('*')
+    .eq('issue_coin_id', data.issueCoinId);
+
+  if (data.userId) {
+    existingQuery.eq('user_id', data.userId);
+  } else if (data.walletAddress) {
+    existingQuery.eq('wallet_address', data.walletAddress);
+  }
+
+  const { data: existing } = await existingQuery.single();
+
+  if (existing) {
+    // Update existing holding
+    const newAmount = (BigInt(existing.token_amount) + BigInt(data.tokenAmount)).toString();
+    const { data: updated, error } = await supabaseAdmin
+      .from('issue_coin_holdings')
+      .update({
+        token_amount: newAmount,
+        invested_ils: existing.invested_ils + data.investedIls,
+        last_purchase_at: now,
+      })
+      .eq('id', existing.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return updated;
+  }
+
+  // Create new holding
+  const { data: created, error } = await supabaseAdmin
+    .from('issue_coin_holdings')
+    .insert({
+      issue_coin_id: data.issueCoinId,
+      user_id: data.userId,
+      wallet_address: data.walletAddress,
+      token_amount: data.tokenAmount,
+      invested_ils: data.investedIls,
+      is_local_resident: data.isLocalResident || false,
+      first_purchase_at: now,
+      last_purchase_at: now,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Failed to upsert issue coin holding:', error);
+    throw error;
+  }
+  return created;
+}
+
+/**
+ * Get user's holding for a specific Issue Coin
+ */
+export async function getUserIssueCoinHolding(issueCoinId: string, userId: string) {
+  const { data, error } = await supabaseAdmin
+    .from('issue_coin_holdings')
+    .select('*')
+    .eq('issue_coin_id', issueCoinId)
+    .eq('user_id', userId)
+    .single();
+
+  if (error && error.code !== 'PGRST116') {
+    console.error('Failed to get user issue coin holding:', error);
+    throw error;
+  }
+  return data;
+}
+
+/**
+ * Count Issue Coin holders
+ */
+export async function countIssueCoinHolders(issueCoinId: string): Promise<number> {
+  const { count, error } = await supabaseAdmin
+    .from('issue_coin_holdings')
+    .select('*', { count: 'exact', head: true })
+    .eq('issue_coin_id', issueCoinId);
+
+  if (error) {
+    console.error('Failed to count issue coin holders:', error);
+    return 0;
+  }
+  return count || 0;
 }
