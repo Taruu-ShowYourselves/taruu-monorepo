@@ -1,9 +1,14 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { QRCodeSVG } from 'qrcode.react';
 import { Heading, Text } from '@/components/ui/Typography';
 import { AnimatedLetters, AnimatedFadeInUp } from '@/components/animations';
 import styles from './DownloadHero.module.css';
+
+// Store URLs
+const APP_STORE_URL = 'https://apps.apple.com/app/taro';
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=il.co.taro';
 
 export function DownloadHero() {
   return (
@@ -35,7 +40,7 @@ export function DownloadHero() {
             transition={{ delay: 0.7 }}
           >
             <a
-              href="https://apps.apple.com/app/taro"
+              href={APP_STORE_URL}
               target="_blank"
               rel="noopener noreferrer"
               className={styles.storeButton}
@@ -50,7 +55,7 @@ export function DownloadHero() {
             </a>
 
             <a
-              href="https://play.google.com/store/apps/details?id=il.co.taro"
+              href={PLAY_STORE_URL}
               target="_blank"
               rel="noopener noreferrer"
               className={styles.storeButton}
@@ -77,11 +82,25 @@ export function DownloadHero() {
             </Text>
             <div className={styles.qrCodes}>
               <div className={styles.qrCode}>
-                <div className={styles.qrPlaceholder}>QR</div>
+                <QRCodeSVG
+                  value={APP_STORE_URL}
+                  size={96}
+                  level="M"
+                  includeMargin={false}
+                  bgColor="transparent"
+                  fgColor="currentColor"
+                />
                 <span>iOS</span>
               </div>
               <div className={styles.qrCode}>
-                <div className={styles.qrPlaceholder}>QR</div>
+                <QRCodeSVG
+                  value={PLAY_STORE_URL}
+                  size={96}
+                  level="M"
+                  includeMargin={false}
+                  bgColor="transparent"
+                  fgColor="currentColor"
+                />
                 <span>Android</span>
               </div>
             </div>

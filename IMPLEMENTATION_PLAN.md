@@ -2,14 +2,14 @@
 
 **Target:** Late January 2025 Pilot Launch (Kiryat Tivon)
 **First Vote Date:** January 23, 2025
-**Last Audit:** January 18, 2026 (v88 - P3-11 Profile Photo Sync)
-**Document Version:** 88.0
+**Last Audit:** January 18, 2026 (v89 - P3-7 QR Code Generation)
+**Document Version:** 89.0
 
 ---
 
 ## Executive Summary
 
-### Current Status: ~94% Complete
+### Current Status: ~95% Complete
 
 All P0 critical blockers resolved. Backend infrastructure production-ready. **Bags.fm integration 100% COMPLETE** (22/22 items). Post-pilot P3 features remain. **P1-19 Instagram OAuth VERIFIED WORKING** (false positive corrected). **P1-17 Identity Score RESOLVED** - GPS scoring now implemented with correct weights.
 
@@ -23,7 +23,7 @@ All P0 critical blockers resolved. Backend infrastructure production-ready. **Ba
 | **Bags.fm Backend** | 18/18 (100%) | Service, types, DB, API routes all complete |
 | **Bags.fm UI** | 4/4 (100%) | **COMPLETE v86**: Trophy Room, Victory Wall, Multiplier Dashboard, External Supporter |
 | **NFT System** | 6/6 (100%) | **COMPLETE v84**: DB, types, contracts, service, API routes |
-| **P3 Low Priority** | 5/11 (45%) | Tests partial, placeholders pending, branding COMPLETE v87 |
+| **P3 Low Priority** | 6/11 (55%) | Tests partial, placeholders pending, QR COMPLETE v89 |
 | **Test Coverage** | 503 tests | shared: 117, api-client: 125, web: 261, mobile: 0 |
 
 ### Remaining Work by Priority
@@ -292,7 +292,7 @@ Technical debt items that don't affect pilot functionality. **Address after Janu
 | P3-3 | **Branding inconsistency** | Multiple files | Various | ~~Uses "Sync" and "Taruu" inconsistently~~ | **DECISION MADE v77:** Rebrand to "Taruu" everywhere (~32 files) | [x] **COMPLETE v87** |
 | P3-5 | **Weak error typing** | Mobile + Web | 10 locations | Uses `catch (err: any)` instead of proper error types | Convert to `catch (err: unknown)` with type guards | [x] **COMPLETE v76.6** |
 | P3-6 | **Phone verification stub** | `apps/mobile/app/settings/verification.tsx` | 40 | ~~Returns false with "Coming Soon" message~~ | **DECISION MADE v77:** Implement Twilio SMS verification | [x] **COMPLETE v85** |
-| P3-7 | **QR code placeholders** | `apps/web/src/app/[locale]/download/` | 80,84 | Shows "QR" text instead of actual codes | Generate App Store/Play Store QR codes | [ ] |
+| P3-7 | **QR code placeholders** | `apps/web/src/app/[locale]/download/` | 80,84 | Shows "QR" text instead of actual codes | Generate App Store/Play Store QR codes | [x] **COMPLETE v89** |
 | P3-9 | **Google verification placeholder** | `apps/web/src/app/[locale]/layout.tsx` | 121 | SEO verification not configured | Replace with actual Google Search Console code | [ ] |
 | P3-10 | **WhatsApp link placeholder** | `apps/web/src/app/[locale]/layout.tsx` | 150 | Schema.org references placeholder | Update with actual WhatsApp group link | [ ] |
 | P3-11 | **Profile photo from Google** | `apps/mobile/app/settings/profile.tsx` | 87 | "Change photo" button does nothing | **DECISION MADE v77:** Sync profile photo from Google OAuth account | [x] **COMPLETE v88** |
@@ -300,7 +300,7 @@ Technical debt items that don't affect pilot functionality. **Address after Janu
 | P3-13 | **No tests for mobile app** | `apps/mobile/` | - | 28 screens with 0% test coverage | **DECISION MADE v77:** Full test coverage required | [ ] **READY TO IMPLEMENT** |
 | P3-14 | **No tests for API client** | `packages/api-client/` | - | 44 methods with test coverage | Add API client tests | [x] **COMPLETE v76.7** |
 
-**P3 Total: 5 items remaining (5 completed)**
+**P3 Total: 4 items remaining (6 completed)**
 
 ---
 
@@ -335,9 +335,9 @@ Technical debt items that don't affect pilot functionality. **Address after Janu
 | **P2 Medium** | 0 | All resolved including P2-14 Upstash Redis rate limiting |
 | **P0-BAGS** | 22 (22 done) | **100% COMPLETE v86** - Backend and UI all complete |
 | **P2-NFT** | 6 (6 done) | **100% COMPLETE v84** - DB, types, contracts, service, API routes |
-| **P3 Low** | 5 | QR (P3-7), placeholders (P3-9/P3-10), Tests (P3-12/P3-13) |
+| **P3 Low** | 4 | placeholders (P3-9/P3-10), Tests (P3-12/P3-13) |
 | **Resolved** | 89 | All P0, all P1, P2-14/P2-15/P2-16, P2-NFT (6 items), P2-B19/B20/B21/B22 (4 items), P3-3, P3-5, P3-6, P3-14 |
-| **Total Active** | 5 | 0 P1 + 0 P2 + 0 BAGS-UI + 0 NFT + 5 P3 items |
+| **Total Active** | 4 | 0 P1 + 0 P2 + 0 BAGS-UI + 0 NFT + 4 P3 items |
 
 ---
 
@@ -512,7 +512,15 @@ Technical debt items that don't affect pilot functionality. **Address after Janu
 ---
 
 *Last Updated: January 18, 2026*
-*Document Version: 88.0*
+*Document Version: 89.0*
+
+**Audit v89.0 Changes (P3-7 QR Code Generation - Jan 18, 2026):**
+- P3-7 RESOLVED: QR Code generation for App Store/Play Store download page
+- Installed qrcode.react library for SVG QR code generation
+- Updated DownloadHero.tsx to use QRCodeSVG components
+- QR codes link to App Store (https://apps.apple.com/app/taro) and Google Play Store
+- All tests passing: 503 tests (unchanged)
+- Total active items reduced from 5 to 4
 
 **Audit v88.0 Changes (P3-11 Profile Photo Sync - Jan 18, 2026):**
 - P3-11 RESOLVED: Profile photo display implemented in mobile app
