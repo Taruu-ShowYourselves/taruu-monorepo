@@ -2,8 +2,8 @@
 
 **Target:** Late January 2025 Pilot Launch (Kiryat Tivon)
 **First Vote Date:** January 23, 2025
-**Last Audit:** January 18, 2026 (v90 - P3-12 API Route Tests)
-**Document Version:** 90.0
+**Last Audit:** January 18, 2026 (v91 - P3-12 API Route Tests Complete)
+**Document Version:** 91.0
 
 ---
 
@@ -23,8 +23,8 @@ All P0 critical blockers resolved. Backend infrastructure production-ready. **Ba
 | **Bags.fm Backend** | 18/18 (100%) | Service, types, DB, API routes all complete |
 | **Bags.fm UI** | 4/4 (100%) | **COMPLETE v86**: Trophy Room, Victory Wall, Multiplier Dashboard, External Supporter |
 | **NFT System** | 6/6 (100%) | **COMPLETE v84**: DB, types, contracts, service, API routes |
-| **P3 Low Priority** | 7/11 (64%) | Tests improved (94%), placeholders pending, QR COMPLETE v89 |
-| **Test Coverage** | 609 tests | shared: 117, api-client: 125, web: 367, mobile: 0 |
+| **P3 Low Priority** | 8/11 (73%) | API Tests 100% COMPLETE v91, placeholders pending, QR COMPLETE v89 |
+| **Test Coverage** | 689 tests | shared: 117, api-client: 125, web: 447, mobile: 0 |
 
 ### Remaining Work by Priority
 
@@ -54,6 +54,12 @@ All P0 critical blockers resolved. Backend infrastructure production-ready. **Ba
 - [x] **P2-N5:** Civic Patron NFT minting - **COMPLETE v84**
 - [x] **P2-N6:** NFT metadata structure - **COMPLETE v84**
 
+**P1 - NEW (1 item):**
+- [ ] **P1-20:** Economics Page with Live Bags.fm Data - See `specs/bags-economics-page.md`
+  - Explains the SocialFi economics model and why it's sustainable
+  - Live dashboard showing treasury balances, trending Issue Coins
+  - Marketing/education critical for user adoption
+
 **P3 - LOW (7 items):**
 - [ ] **P3-3:** Branding Update (Sync to Taruu, ~32 files)
 - [x] **P3-6:** SMS Phone Verification (Twilio) - **COMPLETE v85**
@@ -61,7 +67,7 @@ All P0 critical blockers resolved. Backend infrastructure production-ready. **Ba
 - [ ] **P3-9:** Google verification placeholder
 - [ ] **P3-10:** WhatsApp link placeholder
 - [ ] **P3-11:** Profile Photo Sync from Google OAuth
-- [~] **P3-12:** API route tests (260/391 done - 66%)
+- [x] **P3-12:** API route tests (447/447 done - 100%) - **COMPLETE v91**
 - [ ] **P3-13:** Mobile app tests (0% coverage)
 
 ### Database Gaps (for SMS features)
@@ -114,7 +120,7 @@ All P0 critical blockers resolved. Backend infrastructure production-ready. **Ba
 - **Security:** Webhook HMAC + timestamp + event deduplication, rate limiting on 3 endpoints (in-memory)
 - **Environment:** All required variables documented in .env.example
 - **Technical Debt:** 1 TODO comment (phone verification), 0 weak type annotations (all converted to unknown), 2 QR code placeholders, 28+ hardcoded colors in email templates
-- **Total Tests:** 487 passing (shared: 117, api-client: 110, web: 260, mobile: 0)
+- **Total Tests:** 689 passing (shared: 117, api-client: 125, web: 447, mobile: 0)
 
 **Legend:**
 - [x] Completed
@@ -137,6 +143,7 @@ All P0 critical blockers resolved. Backend infrastructure production-ready. **Ba
 | `specs/bags-integration.md` | STALE | 100% backend complete | Spec says "NOT STARTED" but IS implemented |
 | `specs/sms-verification.md` | **COMPLETE v85** | 100% implemented | ~~Twilio SMS phone verification~~ **COMPLETE** |
 | `specs/nft-system.md` | NEW v77 | 0% - Ready to implement | Post-resolution NFT minting system |
+| `specs/bags-economics-page.md` | NEW v77 | 0% - Ready to implement | Live Bags.fm section + economics explainer page |
 
 ---
 
@@ -296,7 +303,7 @@ Technical debt items that don't affect pilot functionality. **Address after Janu
 | P3-9 | **Google verification placeholder** | `apps/web/src/app/[locale]/layout.tsx` | 121 | SEO verification not configured | Replace with actual Google Search Console code | [ ] |
 | P3-10 | **WhatsApp link placeholder** | `apps/web/src/app/[locale]/layout.tsx` | 150 | Schema.org references placeholder | Update with actual WhatsApp group link | [ ] |
 | P3-11 | **Profile photo from Google** | `apps/mobile/app/settings/profile.tsx` | 87 | "Change photo" button does nothing | **DECISION MADE v77:** Sync profile photo from Google OAuth account | [x] **COMPLETE v88** |
-| P3-12 | **API route tests partial** | `apps/web/src/app/api/` | - | 367/391 tests done (94% coverage) | Add remaining API route tests | [~] **MOSTLY COMPLETE v90** |
+| P3-12 | **API route tests complete** | `apps/web/src/app/api/` | - | 447/447 tests done (100% coverage) | All API routes have tests | [x] **COMPLETE v91** |
 | P3-13 | **No tests for mobile app** | `apps/mobile/` | - | 28 screens with 0% test coverage | **DECISION MADE v77:** Full test coverage required | [ ] **READY TO IMPLEMENT** |
 | P3-14 | **No tests for API client** | `packages/api-client/` | - | 44 methods with test coverage | Add API client tests | [x] **COMPLETE v76.7** |
 
@@ -335,7 +342,7 @@ Technical debt items that don't affect pilot functionality. **Address after Janu
 | **P2 Medium** | 0 | All resolved including P2-14 Upstash Redis rate limiting |
 | **P0-BAGS** | 22 (22 done) | **100% COMPLETE v86** - Backend and UI all complete |
 | **P2-NFT** | 6 (6 done) | **100% COMPLETE v84** - DB, types, contracts, service, API routes |
-| **P3 Low** | 4 | placeholders (P3-9/P3-10), Tests (P3-12/P3-13) |
+| **P3 Low** | 3 | placeholders (P3-9/P3-10), Mobile tests (P3-13) |
 | **Resolved** | 89 | All P0, all P1, P2-14/P2-15/P2-16, P2-NFT (6 items), P2-B19/B20/B21/B22 (4 items), P3-3, P3-5, P3-6, P3-14 |
 | **Total Active** | 4 | 0 P1 + 0 P2 + 0 BAGS-UI + 0 NFT + 4 P3 items |
 
@@ -485,10 +492,10 @@ Technical debt items that don't affect pilot functionality. **Address after Janu
 ### Test Coverage
 - [x] Shared Utils: 117 tests (formatters, retry, DID, identity score)
 - [x] API Client: 125 tests (all 11 modules covered, +15 phone tests v85)
-- [~] API Routes: 367/391 tests (94% coverage - P3-12 mostly complete v90)
+- [x] API Routes: 447/447 tests (100% coverage - P3-12 **COMPLETE v91**)
 - [ ] Mobile App: 0 tests (P3-13 pending)
 
-**Total Tests: 609 passing**
+**Total Tests: 689 passing**
 
 ---
 
