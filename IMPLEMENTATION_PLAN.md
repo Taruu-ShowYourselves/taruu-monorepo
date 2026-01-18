@@ -2,8 +2,8 @@
 
 **Target:** Late January 2025 Pilot Launch (Kiryat Tivon)
 **First Vote Date:** January 23, 2025
-**Last Audit:** January 18, 2026 (v94 - TypeScript Type Error Fixes)
-**Document Version:** 94.0
+**Last Audit:** January 18, 2026 (v95 - Test File Type Annotations)
+**Document Version:** 95.0
 
 ---
 
@@ -305,8 +305,8 @@ Technical debt items that don't affect pilot functionality. **Address after Janu
 | P3-5 | **Weak error typing** | Mobile + Web | 10 locations | Uses `catch (err: any)` instead of proper error types | Convert to `catch (err: unknown)` with type guards | [x] **COMPLETE v76.6** |
 | P3-6 | **Phone verification stub** | `apps/mobile/app/settings/verification.tsx` | 40 | ~~Returns false with "Coming Soon" message~~ | **DECISION MADE v77:** Implement Twilio SMS verification | [x] **COMPLETE v85** |
 | P3-7 | **QR code placeholders** | `apps/web/src/app/[locale]/download/` | 80,84 | Shows "QR" text instead of actual codes | Generate App Store/Play Store QR codes | [x] **COMPLETE v89** |
-| P3-9 | **Google verification placeholder** | `apps/web/src/app/[locale]/layout.tsx` | 121 | SEO verification not configured | Replace with actual Google Search Console code | [ ] |
-| P3-10 | **WhatsApp link placeholder** | `apps/web/src/app/[locale]/layout.tsx` | 150 | Schema.org references placeholder | Update with actual WhatsApp group link | [ ] |
+| P3-9 | **Google verification placeholder** | `apps/web/src/app/[locale]/layout.tsx` | 121 | SEO verification not configured | Replace with actual Google Search Console code (requires project owner) | [ ] |
+| P3-10 | **WhatsApp link placeholder** | `apps/web/src/app/[locale]/layout.tsx` | 150 | Schema.org references placeholder | Update with actual WhatsApp group link (requires project owner) | [ ] |
 | P3-11 | **Profile photo from Google** | `apps/mobile/app/settings/profile.tsx` | 87 | "Change photo" button does nothing | **DECISION MADE v77:** Sync profile photo from Google OAuth account | [x] **COMPLETE v88** |
 | P3-12 | **API route tests complete** | `apps/web/src/app/api/` | - | 447/447 tests done (100% coverage) | All API routes have tests | [x] **COMPLETE v91** |
 | P3-13 | **Mobile app tests** | `apps/mobile/` | - | 118 tests added (full coverage) | Jest with babel-jest configured | [x] **COMPLETE v93** |
@@ -525,7 +525,14 @@ Technical debt items that don't affect pilot functionality. **Address after Janu
 ---
 
 *Last Updated: January 18, 2026*
-*Document Version: 94.0*
+*Document Version: 95.0*
+
+**Audit v95.0 Changes (Test File Type Annotations - Jan 18, 2026):**
+- Fixed TypeScript type errors in test files:
+  - `apps/web/src/__tests__/api/user-nfts.test.ts`: Added explicit `any` types for mockEq and mockFrom
+  - `apps/web/src/__tests__/api/vote-resolution.test.ts`: Added explicit `any` return type for mockFrom
+- All tests passing: 822 tests (shared: 117, api-client: 125, web: 462, mobile: 118)
+- Typecheck passes cleanly across all packages
 
 **Audit v94.0 Changes (TypeScript Type Error Fixes - Jan 18, 2026):**
 - Fixed TypeScript type errors in mobile test files (P3-13 follow-up)
