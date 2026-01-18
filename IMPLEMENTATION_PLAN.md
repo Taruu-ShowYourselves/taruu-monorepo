@@ -2,8 +2,8 @@
 
 **Target:** Late January 2025 Pilot Launch (Kiryat Tivon)
 **First Vote Date:** January 23, 2025
-**Last Audit:** January 18, 2026 (v89 - P3-7 QR Code Generation)
-**Document Version:** 89.0
+**Last Audit:** January 18, 2026 (v90 - P3-12 API Route Tests)
+**Document Version:** 90.0
 
 ---
 
@@ -23,8 +23,8 @@ All P0 critical blockers resolved. Backend infrastructure production-ready. **Ba
 | **Bags.fm Backend** | 18/18 (100%) | Service, types, DB, API routes all complete |
 | **Bags.fm UI** | 4/4 (100%) | **COMPLETE v86**: Trophy Room, Victory Wall, Multiplier Dashboard, External Supporter |
 | **NFT System** | 6/6 (100%) | **COMPLETE v84**: DB, types, contracts, service, API routes |
-| **P3 Low Priority** | 6/11 (55%) | Tests partial, placeholders pending, QR COMPLETE v89 |
-| **Test Coverage** | 503 tests | shared: 117, api-client: 125, web: 261, mobile: 0 |
+| **P3 Low Priority** | 7/11 (64%) | Tests improved (94%), placeholders pending, QR COMPLETE v89 |
+| **Test Coverage** | 609 tests | shared: 117, api-client: 125, web: 367, mobile: 0 |
 
 ### Remaining Work by Priority
 
@@ -296,11 +296,11 @@ Technical debt items that don't affect pilot functionality. **Address after Janu
 | P3-9 | **Google verification placeholder** | `apps/web/src/app/[locale]/layout.tsx` | 121 | SEO verification not configured | Replace with actual Google Search Console code | [ ] |
 | P3-10 | **WhatsApp link placeholder** | `apps/web/src/app/[locale]/layout.tsx` | 150 | Schema.org references placeholder | Update with actual WhatsApp group link | [ ] |
 | P3-11 | **Profile photo from Google** | `apps/mobile/app/settings/profile.tsx` | 87 | "Change photo" button does nothing | **DECISION MADE v77:** Sync profile photo from Google OAuth account | [x] **COMPLETE v88** |
-| P3-12 | **API route tests partial** | `apps/web/src/app/api/` | - | 260/391 tests done (66% coverage) | Add remaining API route tests | [~] |
+| P3-12 | **API route tests partial** | `apps/web/src/app/api/` | - | 367/391 tests done (94% coverage) | Add remaining API route tests | [~] **MOSTLY COMPLETE v90** |
 | P3-13 | **No tests for mobile app** | `apps/mobile/` | - | 28 screens with 0% test coverage | **DECISION MADE v77:** Full test coverage required | [ ] **READY TO IMPLEMENT** |
 | P3-14 | **No tests for API client** | `packages/api-client/` | - | 44 methods with test coverage | Add API client tests | [x] **COMPLETE v76.7** |
 
-**P3 Total: 4 items remaining (6 completed)**
+**P3 Total: 3 items remaining (7 completed + 1 mostly complete)**
 
 ---
 
@@ -485,10 +485,10 @@ Technical debt items that don't affect pilot functionality. **Address after Janu
 ### Test Coverage
 - [x] Shared Utils: 117 tests (formatters, retry, DID, identity score)
 - [x] API Client: 125 tests (all 11 modules covered, +15 phone tests v85)
-- [~] API Routes: 261/391 tests (67% coverage - P3-12 partial)
+- [~] API Routes: 367/391 tests (94% coverage - P3-12 mostly complete v90)
 - [ ] Mobile App: 0 tests (P3-13 pending)
 
-**Total Tests: 503 passing**
+**Total Tests: 609 passing**
 
 ---
 
