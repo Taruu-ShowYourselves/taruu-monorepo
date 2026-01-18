@@ -76,6 +76,34 @@ export default [
       'no-unused-vars': 'off',
     },
   },
+  // CommonJS config files
+  {
+    files: ['**/*.cjs'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+        jest: 'readonly',
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        test: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+        process: 'readonly',
+        console: 'readonly',
+        __dirname: 'readonly',
+      },
+    },
+    rules: {
+      'no-undef': 'off',
+    },
+  },
   {
     ignores: [
       'node_modules/**',
