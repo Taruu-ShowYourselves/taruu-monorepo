@@ -241,3 +241,42 @@ export const BagsApiErrorSchema = z.object({
 });
 
 export type BagsApiError = z.infer<typeof BagsApiErrorSchema>;
+
+// === Economics Page Schemas ===
+
+export const TrendingCoinSchema = z.object({
+  voteId: z.string().uuid(),
+  voteTitle: z.string().min(1),
+  municipality: z.string(),
+  priceChange24h: z.number(), // Can be negative
+  volume24h: z.number().nonnegative(),
+  totalRaised: z.number().nonnegative(),
+  tokenMint: z.string().optional(),
+  imageUrl: z.string().url().optional().nullable(),
+  createdAt: z.string().datetime().optional(),
+});
+
+export const NetworkStatsSchema = z.object({
+  totalRaised: z.number().nonnegative(),
+  activeVotes: z.number().int().nonnegative(),
+  totalVoters: z.number().int().nonnegative(),
+  municipalities: z.number().int().nonnegative(),
+  weeklyGrowth: z.number(), // Can be negative
+  updatedAt: z.string().datetime().optional(),
+});
+
+// GET /api/bags/trending
+export const GetTrendingCoinsResponseSchema = z.object({
+  coins: z.array(TrendingCoinSchema),
+  updatedAt: z.string().datetime().optional(),
+});
+
+// GET /api/stats/network
+export const GetNetworkStatsResponseSchema = z.object({
+  stats: NetworkStatsSchema,
+});
+
+export type TrendingCoin = z.infer<typeof TrendingCoinSchema>;
+export type NetworkStats = z.infer<typeof NetworkStatsSchema>;
+export type GetTrendingCoinsResponse = z.infer<typeof GetTrendingCoinsResponseSchema>;
+export type GetNetworkStatsResponse = z.infer<typeof GetNetworkStatsResponseSchema>;

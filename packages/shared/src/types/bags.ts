@@ -302,3 +302,62 @@ export interface ClaimTransactionResponse {
   /** Positions being claimed */
   positions: string[];
 }
+
+// === Economics Page Types ===
+
+/**
+ * Trending Issue Coin for economics dashboard
+ */
+export interface TrendingCoin {
+  /** Vote ID */
+  voteId: string;
+  /** Vote title */
+  voteTitle: string;
+  /** Municipality ID */
+  municipality: string;
+  /** Price change in last 24h (decimal: 0.23 = 23%) */
+  priceChange24h: number;
+  /** Trading volume in last 24h */
+  volume24h: number;
+  /** Total ILS raised */
+  totalRaised: number;
+  /** Solana mint address */
+  tokenMint?: string;
+  /** Vote thumbnail URL */
+  imageUrl?: string;
+  /** Creation timestamp */
+  createdAt?: Date;
+}
+
+/**
+ * Network-wide statistics
+ */
+export interface NetworkStats {
+  /** Total ILS raised across all votes */
+  totalRaised: number;
+  /** Count of active votes */
+  activeVotes: number;
+  /** Unique voters count */
+  totalVoters: number;
+  /** Count of municipalities with activity */
+  municipalities: number;
+  /** Weekly growth rate (decimal: 0.18 = 18%) */
+  weeklyGrowth: number;
+  /** Last update timestamp */
+  updatedAt?: Date;
+}
+
+/**
+ * GET /api/bags/trending response
+ */
+export interface GetTrendingCoinsResponse {
+  coins: TrendingCoin[];
+  updatedAt?: Date;
+}
+
+/**
+ * GET /api/stats/network response
+ */
+export interface GetNetworkStatsResponse {
+  stats: NetworkStats;
+}
