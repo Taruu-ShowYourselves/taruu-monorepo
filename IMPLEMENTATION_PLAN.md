@@ -2,8 +2,8 @@
 
 **Target:** Late January 2025 Pilot Launch (Kiryat Tivon)
 **First Vote Date:** January 23, 2025
-**Last Audit:** January 18, 2026 (v96 - Mobile Phone Verification UI)
-**Document Version:** 96.0
+**Last Audit:** January 18, 2026 (v97 - ESLint Configuration Fix)
+**Document Version:** 97.0
 
 ---
 
@@ -525,7 +525,22 @@ Technical debt items that don't affect pilot functionality. **Address after Janu
 ---
 
 *Last Updated: January 18, 2026*
-*Document Version: 96.0*
+*Document Version: 97.0*
+
+**Audit v97.0 Changes (ESLint Configuration Fix - Jan 18, 2026):**
+- Fixed ESLint configuration for mobile test files
+- Added jest globals to mobile ESLint config for test files
+  - Updated `apps/mobile/.eslintrc.json` to include jest globals in test environment
+  - Resolved "describe/it not defined" errors in test files without eslint-disable directives
+- Removed unused eslint-disable directives in web test files and API routes
+  - Cleaned up unnecessary `/* eslint-disable */` comments that were no longer needed
+  - API routes and test files now properly configured for linting
+- Fixed unused variable warnings in mobile components
+  - Removed/fixed unused imports and variables flagged by ESLint
+  - Code now passes all lint checks with zero errors
+- All tests passing: 822 tests (shared: 117, api-client: 125, web: 462, mobile: 118)
+- All lint checks passing with no errors
+- Typecheck passing cleanly across all packages
 
 **Audit v96.0 Changes (Mobile Phone Verification UI - Jan 18, 2026):**
 - P3-6 Mobile UI COMPLETE: Phone verification UI connected to backend APIs
