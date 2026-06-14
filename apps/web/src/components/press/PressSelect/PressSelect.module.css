@@ -1,0 +1,82 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.label {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--np-ink);
+}
+
+.wrap {
+  position: relative;
+  width: 100%;
+}
+
+.control {
+  width: 100%;
+  font-family: var(--np-font-mono);
+  font-size: var(--text-base);
+  line-height: 1.4;
+  color: var(--np-ink);
+  background: var(--np-paper-box);
+  border: var(--np-rule) solid var(--np-ink);
+  border-radius: 0;
+  /* extra inline-end room for the caret (RTL-aware via logical padding) */
+  padding: var(--space-3) var(--space-4);
+  padding-inline-end: var(--space-12);
+  min-height: 3rem;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color var(--np-dur-snap) var(--np-ease);
+}
+
+.caret {
+  position: absolute;
+  inset-inline-end: var(--space-4);
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--np-font-mono);
+  color: var(--np-ink);
+  pointer-events: none;
+}
+
+.control:focus-visible {
+  outline: none;
+  border-color: var(--np-red);
+  box-shadow: inset 0 0 0 1px var(--np-red);
+}
+
+.invalid .control {
+  border-color: var(--np-red);
+}
+
+.error,
+.hint {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  margin: 0;
+}
+
+.error {
+  color: var(--np-red-ink);
+  font-weight: 600;
+}
+
+.hint {
+  color: var(--np-ink-faint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .control {
+    transition: none;
+  }
+}

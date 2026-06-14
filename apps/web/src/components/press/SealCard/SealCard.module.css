@@ -1,0 +1,113 @@
+.seal {
+  width: 100%;
+  border: var(--np-rule) solid var(--np-ink);
+  border-radius: 0;
+  padding: var(--space-6);
+  background-color: var(--np-ink);
+  color: var(--np-paper);
+  /* halftone field over the ink block */
+  background-image: radial-gradient(
+    circle,
+    rgba(244, 241, 232, 0.14) 1px,
+    transparent 1.6px
+  );
+  background-size: 6px 6px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.25rem;
+  height: 2.25rem;
+  font-size: var(--text-lg);
+  font-weight: 800;
+  border: var(--np-rule) solid var(--np-paper);
+}
+
+.title {
+  font-family: var(--np-font-display);
+  font-weight: 900;
+  font-size: var(--text-xl);
+  letter-spacing: -0.02em;
+}
+
+.sealed .glyph {
+  background: var(--np-red);
+  border-color: var(--np-paper);
+  color: var(--np-paper);
+}
+
+.pending {
+  background-color: var(--np-ink-soft);
+}
+.pending .glyph {
+  color: var(--np-paper);
+}
+
+.hashLabel {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--np-red);
+  margin: 0 0 var(--space-1);
+}
+
+.hash {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--np-paper);
+  margin: 0;
+  /* long hash must wrap inside the box on mobile */
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  direction: ltr;
+  text-align: start;
+}
+
+.meta {
+  margin: var(--space-4) 0 0;
+  padding-top: var(--space-3);
+  border-top: var(--np-rule-hair) solid rgba(244, 241, 232, 0.24);
+}
+
+.metaRow {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  padding: var(--space-1) 0;
+}
+
+.metaRow dt {
+  color: rgba(244, 241, 232, 0.7);
+}
+.metaRow dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.link {
+  display: inline-block;
+  margin-top: var(--space-4);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--np-paper);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link:hover {
+  color: var(--np-red);
+}
