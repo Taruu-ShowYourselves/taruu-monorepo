@@ -5,7 +5,7 @@ import { AboutHero } from './components/AboutHero';
 import { Mission } from './components/Mission';
 import { Technology } from './components/Technology';
 import { Team } from './components/Team';
-import { CTA } from '@/components/sections/CTA';
+import { AboutCTA } from './components/AboutCTA';
 import type { Locale } from '@/lib/i18n';
 
 export const metadata: Metadata = {
@@ -29,7 +29,7 @@ export default async function AboutPage({ params }: AboutPageProps) {
         <Mission />
         <Technology />
         <Team />
-        <CTA locale={locale} />
+        <AboutCTA locale={locale} />
       </main>
       <Footer locale={locale} />
     </>

@@ -1,112 +1,98 @@
 .cta {
-  position: relative;
-  overflow: hidden;
-  padding-block: clamp(var(--space-24), 14vw, var(--space-40));
-  background:
-    radial-gradient(120% 90% at 50% 0%, var(--color-primary-50) 0%, transparent 55%),
-    radial-gradient(100% 80% at 10% 100%, var(--color-accent-50) 0%, transparent 55%),
-    var(--lc-canvas-tint);
+  background: var(--np-ink);
+  color: var(--np-paper);
+  border-block-start: var(--np-rule-heavy) solid var(--np-ink);
+  padding-inline: clamp(var(--space-5), 3vw, var(--space-12));
+  padding-block: clamp(var(--space-10), 5vw, var(--space-24));
 }
 
-.mesh {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: var(--z-behind);
-  background:
-    radial-gradient(34rem 34rem at 22% 20%, rgba(37, 99, 235, 0.12), transparent 60%),
-    radial-gradient(30rem 30rem at 80% 30%, rgba(139, 92, 246, 0.1), transparent 60%),
-    radial-gradient(28rem 28rem at 55% 100%, rgba(16, 185, 129, 0.08), transparent 60%);
-}
-
-.container {
-  position: relative;
-  z-index: var(--z-default);
-  width: 100%;
-  max-width: var(--container-5xl);
+.inner {
+  max-width: var(--np-container);
   margin-inline: auto;
-  padding-inline: clamp(var(--space-4), 5vw, var(--space-8));
 }
 
 .content {
-  display: flex;
-  flex-direction: column;
+  max-width: 40rem;
+}
+
+.kicker {
+  display: inline-flex;
   align-items: center;
-  text-align: center;
-  gap: var(--space-5);
+  gap: var(--space-2);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--np-red);
+}
+.kickerTick {
+  inline-size: 0.7em;
+  block-size: 0.7em;
+  background: var(--np-red);
 }
 
-.title {
-  font-family: var(--font-primary);
-  font-weight: var(--font-weight-black);
-  line-height: var(--leading-tight);
-  letter-spacing: var(--tracking-tight);
-  color: var(--lc-ink);
-  font-size: clamp(var(--text-3xl), 4vw + 0.5rem, var(--text-6xl));
+.headline {
+  font-family: var(--np-font-display);
+  font-weight: 900;
+  font-size: clamp(var(--text-4xl), 5.5vw, var(--text-8xl));
+  line-height: 0.88;
+  letter-spacing: -0.04em;
+  color: var(--np-paper);
+  margin-block: var(--space-3) var(--space-4);
   max-width: 18ch;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+}
+.red {
+  color: var(--np-red);
 }
 
-.subtitle {
-  max-width: 40ch;
-  line-height: var(--leading-relaxed);
+.standfirst {
+  font-family: var(--np-font-body);
+  font-size: clamp(var(--text-base), 0.5vw + 0.9rem, var(--text-xl));
+  line-height: 1.45;
+  color: rgba(244, 241, 232, 0.82);
+  margin: 0;
+  max-width: 42ch;
 }
 
 .actions {
-  margin-block-start: var(--space-2);
+  margin-block-start: clamp(var(--space-6), 2.5vw, var(--space-8));
 }
 
-.primaryLink {
-  display: inline-block;
-  text-decoration: none;
-}
-
-/* ---------- Trust stats ---------- */
+/* ---------- Trust ledger ---------- */
 .stats {
   display: flex;
   flex-wrap: wrap;
-  align-items: stretch;
-  justify-content: center;
-  gap: var(--space-2) var(--space-4);
-  margin-block-start: var(--space-6);
-  padding: var(--space-5) clamp(var(--space-5), 4vw, var(--space-8));
-  background: var(--lc-glass-fill);
-  backdrop-filter: blur(var(--lc-glass-blur)) saturate(140%);
-  -webkit-backdrop-filter: blur(var(--lc-glass-blur)) saturate(140%);
-  border: 1px solid var(--lc-glass-edge);
-  border-radius: var(--lc-radius-glass);
-  box-shadow: var(--lc-e2);
+  gap: 0;
+  margin-block-start: clamp(var(--space-7), 3vw, var(--space-10));
+  border-block-start: var(--np-rule) solid var(--np-paper);
 }
-
 .statItem {
   display: flex;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-.statBlock {
-  display: flex;
   flex-direction: column;
-  align-items: center;
   gap: var(--space-1);
+  padding: var(--space-4) clamp(var(--space-4), 3vw, var(--space-7));
+  padding-inline-start: 0;
 }
-
+.statItem + .statItem {
+  padding-inline-start: clamp(var(--space-4), 3vw, var(--space-7));
+  border-inline-start: var(--np-rule-hair) solid rgba(244, 241, 232, 0.3);
+}
 .statValue {
-  font-family: var(--font-primary);
-  font-size: clamp(var(--text-xl), 2vw, var(--text-2xl));
-  font-weight: var(--font-weight-black);
-  letter-spacing: var(--tracking-tight);
-  color: var(--color-primary-700);
+  font-family: var(--np-font-display);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(var(--text-2xl), 3vw, var(--text-4xl));
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  color: var(--np-red);
 }
-
 .statLabel {
-  font-family: var(--font-secondary);
+  font-family: var(--np-font-mono);
   font-size: var(--text-xs);
-  color: var(--lc-ink-faint);
-  white-space: nowrap;
-}
-
-.statDivider {
-  inline-size: 1px;
-  align-self: stretch;
-  background: var(--lc-glass-edge);
+  letter-spacing: 0.06em;
+  color: rgba(244, 241, 232, 0.7);
+  margin: 0;
 }

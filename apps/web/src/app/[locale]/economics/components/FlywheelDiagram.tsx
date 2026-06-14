@@ -1,16 +1,10 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { GradientText } from '@/components/ui/GradientText';
-import { Eyebrow } from '@/components/ui/Eyebrow';
-import { Heading, Text } from '@/components/ui/Typography';
-import { AnimatedFadeInUp } from '@/components/animations';
 import { useReducedMotion } from '@/hooks';
 import styles from './FlywheelDiagram.module.css';
 
-const EASE = [0.22, 1, 0.36, 1] as const;
-
-type Accent = 'blue' | 'green' | 'purple';
+const EASE = [0.2, 0, 0, 1] as const;
 
 type IconName = 'resident' | 'coin' | 'globe' | 'trade' | 'split' | 'award';
 
@@ -18,67 +12,84 @@ interface FlywheelStep {
   id: string;
   title: string;
   description: string;
-  accent: Accent;
   icon: IconName;
 }
 
+/** Hard-edged ink ledger glyphs — crisp strokes, no rounding. */
 function StepIcon({ name }: { name: IconName }) {
+  const common = {
+    viewBox: '0 0 32 32',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 2,
+    'aria-hidden': true,
+    focusable: false,
+    shapeRendering: 'crispEdges' as const,
+    className: styles.glyph,
+  };
   switch (name) {
     case 'resident':
       return (
-        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0" strokeWidth="1.8" />
+        <svg {...common}>
+          <rect x="11" y="5" width="10" height="10" />
+          <path d="M5 27 V21 H27 V27" />
         </svg>
       );
     case 'coin':
       return (
-        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <circle cx="12" cy="12" r="8" strokeWidth="1.8" />
-          <path d="M12 8v8M9.5 9.5h4a1.8 1.8 0 0 1 0 3.6h-4m0 0h4.5" strokeWidth="1.6" />
+        <svg {...common}>
+          <rect x="5" y="6" width="22" height="20" />
+          <path d="M5 12 H27" />
+          <rect x="19" y="17" width="4" height="4" fill="currentColor" stroke="none" />
         </svg>
       );
     case 'globe':
       return (
-        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <circle cx="12" cy="12" r="8" strokeWidth="1.8" />
-          <path d="M4 12h16M12 4c2.5 2.4 2.5 13.6 0 16M12 4c-2.5 2.4-2.5 13.6 0 16" strokeWidth="1.5" />
+        <svg {...common}>
+          <rect x="5" y="5" width="22" height="22" />
+          <path d="M5 16 H27 M16 5 V27" />
         </svg>
       );
     case 'trade':
       return (
-        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <path d="M4 17l5-5 4 3 7-8M20 7v4m0-4h-4" strokeWidth="1.8" />
+        <svg {...common}>
+          <path d="M5 22 L13 14 L19 18 L27 8" />
+          <path d="M27 8 H21 M27 8 V14" />
         </svg>
       );
     case 'split':
       return (
-        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <path d="M12 4v6m0 0L7 16m5-6 5 6M5 18h4m6 0h4" strokeWidth="1.8" />
+        <svg {...common}>
+          <path d="M16 5 V14" />
+          <path d="M16 14 L8 24 M16 14 L24 24" />
+          <rect x="5" y="24" width="6" height="3" fill="currentColor" stroke="none" />
+          <rect x="21" y="24" width="6" height="3" fill="currentColor" stroke="none" />
         </svg>
       );
     case 'award':
+    default:
       return (
-        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <circle cx="12" cy="9" r="5" strokeWidth="1.8" />
-          <path d="M9 13.5 7.5 21l4.5-2.5L16.5 21 15 13.5" strokeWidth="1.8" />
+        <svg {...common}>
+          <rect x="9" y="5" width="14" height="14" />
+          <path d="M11 19 L9 27 L16 23 L23 27 L21 19" />
         </svg>
       );
   }
 }
 
 const flywheelSteps: FlywheelStep[] = [
-  { id: 'local', title: 'תושב מקומי', description: 'משלם ₪3 ומצביע', accent: 'blue', icon: 'resident' },
-  { id: 'coin', title: 'Issue Coin נוצר', description: 'ההצבעה נרשמת בבלוקצ\'יין', accent: 'green', icon: 'coin' },
-  { id: 'external', title: 'תומך חיצוני', description: 'מזהה נושא שחשוב לו', accent: 'purple', icon: 'globe' },
-  { id: 'trade', title: 'קונה Issue Coins', description: 'תמיכה שמייצרת עמלות', accent: 'green', icon: 'trade' },
-  { id: 'fees', title: 'עמלות מחולקות', description: '70% לקרן הרשות, 30% לפלטפורמה', accent: 'blue', icon: 'split' },
-  { id: 'result', title: 'תוצאה נקבעת', description: 'תעודה דיגיטלית לכל משתתף', accent: 'purple', icon: 'award' },
+  { id: 'local', title: 'תושב מקומי', description: 'משלם ₪3 ומצביע', icon: 'resident' },
+  { id: 'coin', title: 'Issue Coin נוצר', description: 'ההצבעה נרשמת בבלוקצ\'יין', icon: 'coin' },
+  { id: 'external', title: 'תומך חיצוני', description: 'מזהה נושא שחשוב לו', icon: 'globe' },
+  { id: 'trade', title: 'קונה Issue Coins', description: 'תמיכה שמייצרת עמלות', icon: 'trade' },
+  { id: 'fees', title: 'עמלות מחולקות', description: '70% לקרן הרשות, 30% לפלטפורמה', icon: 'split' },
+  { id: 'result', title: 'תוצאה נקבעת', description: 'תעודה דיגיטלית לכל משתתף', icon: 'award' },
 ];
 
 const revenueStreams = [
   { stream: 'יצירת הצבעה', source: '₪50 להצבעה חדשה', allocation: 'תפעול הפלטפורמה' },
-  { stream: 'השתתפות בהצבעה', source: '₪3 לכל הצבעה', allocation: '70% לקרן, 30% לפלטפורמה' },
-  { stream: 'עמלות מסחר', source: '1% על כל עסקה', allocation: '70% לקרן, 30% לפלטפורמה' },
+  { stream: 'השתתפות בהצבעה', source: '₪3 לכל הצבעה', allocation: '70% לקרן · 30% לפלטפורמה' },
+  { stream: 'עמלות מסחר', source: '1% על כל עסקה', allocation: '70% לקרן · 30% לפלטפורמה' },
   { stream: 'רכישות חיצוניות', source: 'תמיכה → Issue Coins', allocation: '100% לקופת הקרן' },
 ];
 
@@ -94,130 +105,89 @@ export function FlywheelDiagram() {
 
   return (
     <section className={styles.flywheel} aria-labelledby="flywheel-title">
-      <span className={styles.aura} aria-hidden />
-
-      <div className={styles.container}>
-        <header className={styles.header}>
-          <AnimatedFadeInUp>
-            <Eyebrow>גלגל התנופה</Eyebrow>
-          </AnimatedFadeInUp>
-          <Heading level={2} id="flywheel-title" className={styles.title}>
-            כל הצבעה מפעילה{' '}
-            <GradientText variant="brand" animated>
-              מחזור כלכלי
-            </GradientText>{' '}
-            שמכפיל השפעה
-          </Heading>
+      <div className={styles.inner}>
+        <header className={styles.head}>
+          <span className={styles.kicker}>
+            <span aria-hidden className={styles.kickerTick} />
+            גלגל התנופה · THE LEDGER LOOP
+          </span>
+          <h2 id="flywheel-title" className={styles.headline}>
+            כל הצבעה מפעילה מחזור כלכלי <span className={styles.red}>שמכפיל השפעה.</span>
+          </h2>
         </header>
 
-        {/* Flywheel ring */}
-        <div className={styles.ringWrap}>
-          <span className={styles.ringGlow} aria-hidden />
-          <ol className={styles.steps}>
-            {flywheelSteps.map((step, index) => (
-              <motion.li
-                key={step.id}
-                className={`${styles.step} ${styles[step.accent]}`}
-                initial={reduced ? false : { opacity: 0, y: 18 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-60px' }}
-                transition={{ duration: 0.45, ease: EASE, delay: 0.08 * index }}
-              >
+        {/* Numbered cyclical ledger — boxed nodes connected by red arrows */}
+        <ol className={styles.steps}>
+          {flywheelSteps.map((step, index) => (
+            <motion.li
+              key={step.id}
+              className={styles.step}
+              initial={reduced ? false : { opacity: 0, clipPath: 'inset(0 0 100% 0)' }}
+              whileInView={{ opacity: 1, clipPath: 'inset(0 0 0 0)' }}
+              viewport={{ once: true, margin: '-50px' }}
+              transition={{ duration: reduced ? 0 : 0.36, ease: EASE, delay: reduced ? 0 : 0.06 * index }}
+            >
+              <div className={styles.stepTop}>
                 <span className={styles.stepNumber} aria-hidden>
-                  {index + 1}
+                  {String(index + 1).padStart(2, '0')}
                 </span>
-                <span className={styles.stepIcon} aria-hidden>
+                <span className={styles.stepGlyph} aria-hidden>
                   <StepIcon name={step.icon} />
                 </span>
-                <h3 className={styles.stepTitle}>{step.title}</h3>
-                <p className={styles.stepDescription}>{step.description}</p>
-              </motion.li>
-            ))}
-          </ol>
+              </div>
+              <h3 className={styles.stepTitle}>{step.title}</h3>
+              <p className={styles.stepDescription}>{step.description}</p>
+              {/* Red connector to the next node; last loops back to the top. */}
+              <span
+                className={`${styles.connector} ${index === flywheelSteps.length - 1 ? styles.connectorLoop : ''}`}
+                aria-hidden
+              >
+                {index === flywheelSteps.length - 1 ? '↺' : '←'}
+              </span>
+            </motion.li>
+          ))}
+        </ol>
+
+        {/* Result highlight — ink block callout */}
+        <div className={styles.result}>
+          <span className={styles.resultLabel}>התוצאה</span>
+          <p className={styles.resultValue}>
+            הצבעה של <span className={styles.resultNum}>₪3</span> יכולה לרכז מאחורי הנושא
+            משאבים אמיתיים — לא רק קול.
+          </p>
         </div>
 
-        {/* Result highlight */}
-        <AnimatedFadeInUp delay={0.1} className={styles.resultHighlight}>
-          <span className={styles.resultLabel}>התוצאה</span>
-          <span className={styles.resultValue}>
-            הצבעה של{' '}
-            <span className={styles.resultShekel} aria-hidden>
-              ₪
-            </span>
-            3 יכולה לרכז מאחורי הנושא משאבים אמיתיים — לא רק קול.
-          </span>
-        </AnimatedFadeInUp>
-
-        {/* Revenue streams */}
-        <AnimatedFadeInUp delay={0.05} className={styles.revenueSection}>
+        {/* Revenue streams — boxed ledger table */}
+        <div className={styles.revenue}>
           <h3 className={styles.sectionTitle}>זרמי הכנסה</h3>
-          <div className={styles.revenueTable} role="table" aria-label="זרמי הכנסה">
-            <div className={`${styles.tableRow} ${styles.tableHead}`} role="row">
+          <div className={styles.table} role="table" aria-label="זרמי הכנסה">
+            <div className={`${styles.row} ${styles.rowHead}`} role="row">
               <span role="columnheader">זרם</span>
               <span role="columnheader">מקור</span>
               <span role="columnheader">הקצאה</span>
             </div>
-            {revenueStreams.map((item, index) => (
-              <motion.div
-                key={item.stream}
-                className={styles.tableRow}
-                role="row"
-                initial={reduced ? false : { opacity: 0, y: 8 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-40px' }}
-                transition={{ duration: 0.32, ease: EASE, delay: 0.06 * index }}
-              >
-                <span className={styles.rowStream} role="cell">
-                  {item.stream}
-                </span>
-                <span className={styles.rowSource} role="cell">
-                  {item.source}
-                </span>
-                <span className={styles.rowAllocation} role="cell">
-                  {item.allocation}
-                </span>
-              </motion.div>
+            {revenueStreams.map((item) => (
+              <div key={item.stream} className={styles.row} role="row">
+                <span className={styles.cellStream} role="cell">{item.stream}</span>
+                <span className={styles.cellSource} role="cell">{item.source}</span>
+                <span className={styles.cellAlloc} role="cell">{item.allocation}</span>
+              </div>
             ))}
           </div>
-        </AnimatedFadeInUp>
+        </div>
 
-        {/* Sustainability note */}
-        <AnimatedFadeInUp delay={0.05} className={styles.note}>
-          <div className={styles.noteHead}>
-            <span className={styles.noteIcon} aria-hidden>
-              <svg viewBox="0 0 24 24" width="20" height="20">
-                <path
-                  d="M12 21c-4-2-7-5-7-9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 4-3 7-7 9"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-            <Text as="span" size="lg" weight="bold" className={styles.noteTitle}>
-              ללא תלות במשקיעים חיצוניים
-            </Text>
-          </div>
+        {/* Sustainability note — red block pull-quote + checklist */}
+        <div className={styles.note}>
+          <span className={styles.noteHead}>ללא תלות במשקיעים חיצוניים</span>
           <ul className={styles.noteList}>
             {sustainabilityPoints.map((point) => (
               <li key={point} className={styles.noteItem}>
-                <svg className={styles.check} viewBox="0 0 24 24" width="18" height="18" aria-hidden>
-                  <path
-                    d="M20 6 9 17l-5-5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+                <span className={styles.check} aria-hidden>✓</span>
                 {point}
               </li>
             ))}
           </ul>
-        </AnimatedFadeInUp>
+        </div>
       </div>
     </section>
   );

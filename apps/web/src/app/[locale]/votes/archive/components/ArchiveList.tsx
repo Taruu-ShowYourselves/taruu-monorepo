@@ -1,40 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { Heading, Text } from '@/components/ui/Typography';
-import { Button } from '@/components/ui/Button';
-import { GlassCard } from '@/components/ui/GlassCard';
-import { staggerContainer, fadeInUp } from '@/lib/animations';
+import { Segmented, PressSelect, TallyBar } from '@/components/press';
 import { formatCurrency, formatDate } from '@sync/shared';
 import styles from './ArchiveList.module.css';
-
-function VerifiedVotersIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-      <circle cx="12" cy="8" r="4" />
-      <path d="M5 20a7 7 0 0 1 14 0M15.5 8.2l1 1 2-2.2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function PatronsIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-      <path d="M12 3l2.5 5 5.5.8-4 3.9.95 5.5L12 16.5 7.05 18.2 8 12.7 4 8.8 9.5 8 12 3z" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function MintedIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-      <circle cx="12" cy="15" r="5" />
-      <path d="M9 10L6 3M15 10l3-7M11 15h2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
 interface ResolvedVote {
   id: string;
@@ -59,6 +29,14 @@ interface ResolvedVote {
     externalContributions: number;
   };
 }
+
+type ResultFilter = 'all' | 'approved' | 'rejected';
+
+const RESULT_FILTERS: { value: ResultFilter; label: string }[] = [
+  { value: 'all', label: 'הכל' },
+  { value: 'approved', label: 'אושר' },
+  { value: 'rejected', label: 'נדחה' },
+];
 
 // Mock data for development
 const MOCK_RESOLVED_VOTES: ResolvedVote[] = [
@@ -133,120 +111,83 @@ const MOCK_RESOLVED_VOTES: ResolvedVote[] = [
   },
 ];
 
+/** Settled-record press card — final tally, winner marked, dateline mono, muted. */
 function VoteArchiveCard({ vote }: { vote: ResolvedVote }) {
   const isApproved = vote.result.winningOption === 'בעד';
+  const yes = vote.result.yesPercentage;
 
   return (
-    <motion.div variants={fadeInUp} className={styles.cardWrap}>
-      <GlassCard variant="interactive" glow={isApproved ? 'green' : 'blue'} className={styles.card}>
-      {/* Header */}
-      <div className={styles.cardHeader}>
-        <span className={styles.municipality}>{vote.municipality}</span>
+    <article className={styles.card}>
+      <header className={styles.cardHeader}>
+        <span className={styles.cardKicker}>רשומה סגורה</span>
         <span className={`${styles.resultBadge} ${isApproved ? styles.approved : styles.rejected}`}>
+          <span aria-hidden>{isApproved ? '✓' : '✕'}</span>
           {isApproved ? 'אושר' : 'נדחה'}
         </span>
-      </div>
+      </header>
 
-      {/* Title */}
-      <Heading level={3} className={styles.cardTitle}>
-        {vote.title}
-      </Heading>
+      <span className={styles.municipality}>{vote.municipality}</span>
+      <h3 className={styles.cardTitle}>{vote.title}</h3>
+      <p className={styles.cardDescription}>{vote.description}</p>
 
-      {/* Description */}
-      <Text size="sm" color="secondary" className={styles.cardDescription}>
-        {vote.description}
-      </Text>
-
-      {/* Result Stats */}
-      <div className={styles.resultStats}>
-        <div className={styles.progressBar}>
-          <div
-            className={styles.progressFill}
-            style={{ width: `${vote.result.yesPercentage}%` }}
-          />
+      {/* Final tally — muted, no live pulse */}
+      <div className={styles.tally}>
+        <div className={styles.tallyTop}>
+          <span className={styles.tallyLabel}>בעד</span>
+          <span className={styles.tallyPct}>{yes}%</span>
         </div>
-        <div className={styles.voteBreakdown}>
-          <span>בעד: {vote.result.yesPercentage}%</span>
-          <span>נגד: {100 - vote.result.yesPercentage}%</span>
+        <TallyBar pct={yes} selected={isApproved} />
+        <div className={styles.tallyBreakdown}>
+          <span>נגד · {100 - yes}%</span>
+          <span>{vote.result.totalVoters.toLocaleString('he-IL')} קולות מאומתים</span>
         </div>
       </div>
 
-      {/* NFT Stats */}
-      <div className={styles.nftStats}>
-        <div className={styles.nftStat}>
-          <span className={`${styles.nftIcon} ${styles.nftIconGreen}`} aria-hidden>
-            <VerifiedVotersIcon />
-          </span>
-          <div>
-            <div className={styles.nftValue}>{vote.nftStats.verifiedVoters}</div>
-            <Text size="xs" color="muted">מצביעים מאומתים</Text>
-          </div>
+      {/* Record stats grid */}
+      <dl className={styles.statGrid}>
+        <div className={styles.statCell}>
+          <dt className={styles.statKey}>מצביעים מאומתים</dt>
+          <dd className={styles.statVal}>{vote.nftStats.verifiedVoters.toLocaleString('he-IL')}</dd>
         </div>
-        <div className={styles.nftStat}>
-          <span className={`${styles.nftIcon} ${styles.nftIconPurple}`} aria-hidden>
-            <PatronsIcon />
-          </span>
-          <div>
-            <div className={styles.nftValue}>{vote.nftStats.civicPatrons}</div>
-            <Text size="xs" color="muted">תומכים חיצוניים</Text>
-          </div>
+        <div className={styles.statCell}>
+          <dt className={styles.statKey}>תומכים חיצוניים</dt>
+          <dd className={styles.statVal}>{vote.nftStats.civicPatrons.toLocaleString('he-IL')}</dd>
         </div>
-        <div className={styles.nftStat}>
-          <span className={`${styles.nftIcon} ${styles.nftIconBlue}`} aria-hidden>
-            <MintedIcon />
-          </span>
-          <div>
-            <div className={styles.nftValue}>{vote.nftStats.totalMinted}</div>
-            <Text size="xs" color="muted">NFTs</Text>
-          </div>
+        <div className={styles.statCell}>
+          <dt className={styles.statKey}>NFTs שהונפקו</dt>
+          <dd className={styles.statVal}>{vote.nftStats.totalMinted.toLocaleString('he-IL')}</dd>
         </div>
-      </div>
+      </dl>
 
-      {/* Funds Raised */}
-      <div className={styles.fundsSection}>
-        <div className={styles.fundsHeader}>
-          <Text size="sm" weight="semibold">כספים שנאספו</Text>
-          <Text size="lg" weight="bold" className={styles.totalFunds}>
-            {formatCurrency(vote.fundsRaised.totalILS)}
-          </Text>
+      {/* Funds — ink block */}
+      <div className={styles.funds}>
+        <div className={styles.fundsHead}>
+          <span className={styles.fundsKey}>כספים שנאספו</span>
+          <span className={styles.fundsTotal}>{formatCurrency(vote.fundsRaised.totalILS)}</span>
         </div>
         <div className={styles.fundsBreakdown}>
-          <div className={styles.fundSource}>
-            <span className={styles.fundDot} style={{ backgroundColor: 'var(--color-primary)' }} />
-            <Text size="xs" color="secondary">
-              מקומי: {formatCurrency(vote.fundsRaised.localContributions)}
-            </Text>
-          </div>
-          <div className={styles.fundSource}>
-            <span className={styles.fundDot} style={{ backgroundColor: 'var(--color-secondary)' }} />
-            <Text size="xs" color="secondary">
-              חיצוני: {formatCurrency(vote.fundsRaised.externalContributions)}
-            </Text>
-          </div>
+          <span>מקומי · {formatCurrency(vote.fundsRaised.localContributions)}</span>
+          <span className={styles.fundsSep} aria-hidden>■</span>
+          <span>חיצוני · {formatCurrency(vote.fundsRaised.externalContributions)}</span>
         </div>
       </div>
 
-      {/* Footer */}
-      <div className={styles.cardFooter}>
-        <Text size="xs" color="muted">
-          הסתיים ב-{formatDate(new Date(vote.resolvedAt))}
-        </Text>
-        <Link href={`/votes/${vote.id}`}>
-          <Button variant="outline" size="sm">
-            צפייה בפרטים
-          </Button>
+      <footer className={styles.cardFooter}>
+        <span className={styles.dateline}>
+          הסתיים · {formatDate(new Date(vote.resolvedAt))}
+        </span>
+        <Link href={`/votes/${vote.id}`} className={styles.cardLink}>
+          צפו ברשומה ←
         </Link>
-      </div>
-      </GlassCard>
-    </motion.div>
+      </footer>
+    </article>
   );
 }
 
 export function ArchiveList() {
   const [votes, setVotes] = useState<ResolvedVote[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'approved' | 'rejected'>('all');
+  const [filter, setFilter] = useState<ResultFilter>('all');
   const [municipalityFilter, setMunicipalityFilter] = useState<string>('all');
 
   useEffect(() => {
@@ -277,6 +218,10 @@ export function ArchiveList() {
 
   // Get unique municipalities for filter
   const municipalities = ['all', ...new Set(votes.map((v) => v.municipality))];
+  const municipalityOptions = municipalities.map((m) => ({
+    value: m,
+    label: m === 'all' ? 'כל הרשויות' : m,
+  }));
 
   // Apply filters
   const filteredVotes = votes.filter((vote) => {
@@ -320,75 +265,49 @@ export function ArchiveList() {
         {/* Filters */}
         <div className={styles.filters}>
           <div className={styles.filterGroup}>
-            <Text size="sm" weight="medium" className={styles.filterLabel}>
-              סינון לפי תוצאה:
-            </Text>
-            <div className={styles.filterPills}>
-              {[
-                { key: 'all', label: 'הכל' },
-                { key: 'approved', label: 'אושר' },
-                { key: 'rejected', label: 'נדחה' },
-              ].map((option) => (
-                <button
-                  key={option.key}
-                  className={`${styles.filterPill} ${filter === option.key ? styles.active : ''}`}
-                  onClick={() => setFilter(option.key as typeof filter)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
+            <span className={styles.filterLabel}>תוצאה</span>
+            <Segmented
+              segments={RESULT_FILTERS}
+              value={filter}
+              onChange={setFilter}
+              variant="ink"
+              aria-label="סינון לפי תוצאה"
+              className={styles.resultSegmented}
+            />
           </div>
 
           <div className={styles.filterGroup}>
-            <Text size="sm" weight="medium" className={styles.filterLabel}>
-              רשות:
-            </Text>
-            <select
-              className={styles.select}
+            <PressSelect
+              label="רשות"
+              options={municipalityOptions}
               value={municipalityFilter}
               onChange={(e) => setMunicipalityFilter(e.target.value)}
-            >
-              {municipalities.map((m) => (
-                <option key={m} value={m}>
-                  {m === 'all' ? 'כל הרשויות' : m}
-                </option>
-              ))}
-            </select>
+              className={styles.municipalitySelect}
+            />
           </div>
         </div>
 
         {/* Results Count */}
-        <Text size="sm" color="secondary" className={styles.resultsCount}>
-          מציג {filteredVotes.length} הצבעות שהסתיימו
-        </Text>
+        <p className={styles.resultsCount}>
+          מציג {filteredVotes.length} רשומות סגורות
+        </p>
 
         {/* Votes Grid */}
         {filteredVotes.length === 0 ? (
           <div className={styles.emptyState}>
-            <span className={styles.emptyIcon} aria-hidden>
-              <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <circle cx="11" cy="11" r="7" />
-                <path d="M21 21l-4.3-4.3" strokeLinecap="round" />
-              </svg>
+            <span className={styles.emptyKicker}>
+              <span aria-hidden className={styles.emptyTick} />
+              אין רשומות
             </span>
-            <Heading level={3}>לא נמצאו הצבעות</Heading>
-            <Text color="secondary">
-              נסו לשנות את הסינון או לחפש ברשות אחרת
-            </Text>
+            <h3 className={styles.emptyTitle}>לא נמצאו הצבעות.</h3>
+            <p className={styles.emptyText}>נסו לשנות את הסינון או לחפש ברשות אחרת.</p>
           </div>
         ) : (
-          <motion.div
-            className={styles.grid}
-            variants={staggerContainer}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-50px' }}
-          >
+          <div className={styles.grid}>
             {filteredVotes.map((vote) => (
               <VoteArchiveCard key={vote.id} vote={vote} />
             ))}
-          </motion.div>
+          </div>
         )}
       </div>
     </section>

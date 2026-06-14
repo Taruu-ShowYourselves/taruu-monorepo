@@ -1,239 +1,192 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { GradientText } from '@/components/ui/GradientText';
-import { GlassCard } from '@/components/ui/GlassCard';
-import { RippleButton } from '@/components/ui/RippleButton';
-import { Eyebrow } from '@/components/ui/Eyebrow';
-import { Text, Heading } from '@/components/ui/Typography';
-import { AnimatedFadeInUp, AnimatedWords } from '@/components/animations';
+import { NewsButton } from '@/components/press';
+import { Receipt } from '@/components/press';
 import { useReducedMotion } from '@/hooks';
 import styles from './PricingContent.module.css';
 
-const EASE = [0.22, 1, 0.36, 1] as const;
 const WHATSAPP_URL = 'https://chat.whatsapp.com/FITvea9IVsn2Ljie1yCrAc';
 
-/** Shekel mark — clean inline glyph, no emoji. */
-function Shekel({ className }: { className?: string }) {
-  return (
-    <span className={className} aria-hidden>
-      ₪
-    </span>
-  );
-}
-
-/** Small reusable check glyph for the "no fine print" strip. */
-function Check() {
-  return (
-    <svg className={styles.trustCheck} viewBox="0 0 24 24" width="18" height="18" aria-hidden>
-      <path
-        d="M5 12.5l4.5 4.5L19 7"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
+/** Mono trust line items — the "no fine print" rate-card footer. */
 const TRUST_ITEMS = ['אין מנוי', 'אין דמי חבר', 'אין אותיות קטנות'] as const;
 
+/** Spec-sheet line items under each rate block. ✓ = included. */
+const PARTICIPATION_SPEC = [
+  'עמלה חד-פעמית להצבעה מאומתת בנושא מקומי',
+  'זהות ו-GPS · חתום בבלוקצ׳יין',
+  'התמונה המלאה פתוחה לכולם',
+] as const;
+
+const CREATE_SPEC = [
+  'פרסום הצבעה חדשה ברשות שלכם',
+  'כולל אפשרויות בחירה ולוח זמנים לסיום',
+  'מונע ספאם · שומר על איכות הנושאים',
+] as const;
+
 /**
- * Pricing — "Luminous Civic" restyle. Two premium glass price cards:
- * (1) ₪3 vote participation with the ₪2 (community fund, green) / ₪1
- * (operations, blue) split rendered as a proportional bar; (2) ₪50 to create
- * a new vote, framed as spam prevention + quality funding. Closes with a
- * jargon-free trust strip and a WhatsApp CTA.
+ * Pricing — Brutalist Tech-Press "rate card / spec sheet". Two hard-edged
+ * boxed rate blocks (₪3 participation, ₪50 create-vote) with BIG mono prices
+ * and ink-ruled line items. The ₪3 split (₪2 community fund / ₪1 operations)
+ * is shown as a press Receipt. A mono trust strip kills fine-print anxiety;
+ * one red primary "join the pilot" NewsButton closes.
  *
- * Hebrew-only, RTL logical props, transform/opacity choreography only. Isolated
- * client leaf; every reveal + the split bar pause under reduced motion.
+ * Hebrew-only, RTL logical props, mobile-first single column → two-up rate
+ * cards with a vertical ink column rule ≥768px. The one revealed figure (the
+ * price stamp-in) pauses under reduced motion.
  */
 export function PricingContent() {
   const reduced = useReducedMotion();
 
+  const stamp = reduced
+    ? {}
+    : {
+        initial: { clipPath: 'inset(0 100% 0 0)' },
+        whileInView: { clipPath: 'inset(0 0 0 0)' },
+        viewport: { once: true, margin: '-80px' },
+        transition: { duration: 0.35, ease: [0.2, 0, 0, 1] as const },
+      };
+
   return (
-    <main className={styles.page} dir="rtl">
-      <span className={styles.auraBlue} aria-hidden />
-      <span className={styles.auraPurple} aria-hidden />
-
-      <div className={styles.container}>
-        {/* ---------- Header ---------- */}
+    <main className={`np-page ${styles.page}`} dir="rtl">
+      <div className={`np-container ${styles.container}`}>
+        {/* ---------- Masthead block: kicker · headline · standfirst ---------- */}
         <header className={styles.head}>
-          <AnimatedFadeInUp>
-            <Eyebrow>תמחור</Eyebrow>
-          </AnimatedFadeInUp>
+          <span className={styles.kicker}>
+            <span aria-hidden className={styles.kickerTick} />
+            תמחור · RATE CARD
+          </span>
 
-          <Heading level={1} className={styles.title}>
-            <AnimatedWords text="פשוט, שקוף," />
-            <span className={styles.titleAccent}>
-              <GradientText variant="brand" animated>
-                בלי הפתעות.
-              </GradientText>
-            </span>
-          </Heading>
+          <h2 className={styles.title}>
+            פשוט, שקוף, <span className={styles.red}>בלי הפתעות.</span>
+          </h2>
 
-          <AnimatedFadeInUp delay={0.1}>
-            <Text as="p" size="lg" color="secondary" className={styles.lead}>
-              <Shekel className={styles.inlineShekel} />3 להשתתפות בהצבעה (
-              <Shekel className={styles.inlineShekel} />2 לקרן הקהילתית,{' '}
-              <Shekel className={styles.inlineShekel} />1 לתפעול).{' '}
-              <Shekel className={styles.inlineShekel} />50 ליצירת הצבעה חדשה. אין מנוי, אין דמי
-              חבר, אין אותיות קטנות.
-            </Text>
-          </AnimatedFadeInUp>
+          <p className={styles.standfirst}>
+            ₪3 להשתתפות בהצבעה (₪2 לקרן הקהילתית, ₪1 לתפעול). ₪50 ליצירת הצבעה
+            חדשה. אין מנוי, אין דמי חבר, אין אותיות קטנות.
+          </p>
         </header>
 
-        {/* ---------- Two price cards ---------- */}
+        <div className={`np-rule-heavy ${styles.headRule}`} aria-hidden />
+
+        {/* ---------- Two rate blocks ---------- */}
         <div className={styles.cards}>
-          {/* Card 1 — ₪3 participation */}
-          <AnimatedFadeInUp delay={0.12} className={styles.cardWrap}>
-            <GlassCard variant="spotlight" glow="green" className={styles.priceCard}>
-              <div className={styles.cardHead}>
-                <span className={styles.eyebrowTag}>השתתפות בהצבעה</span>
-                <span className={`${styles.price} ${styles.priceGreen}`}>
-                  <Shekel className={styles.priceShekel} />3
+          {/* RATE 01 — ₪3 participation */}
+          <section className={styles.card}>
+            <header className={styles.cardHead}>
+              <span className={styles.rateNo}>01</span>
+              <span className={styles.rateTag}>השתתפות בהצבעה</span>
+            </header>
+
+            <div className={styles.priceRow}>
+              <motion.span className={styles.price} {...stamp}>
+                <span className={styles.priceShekel} aria-hidden>
+                  ₪
                 </span>
-              </div>
+                3
+              </motion.span>
+              <span className={styles.priceUnit}>/ הצבעה</span>
+            </div>
 
-              <Text as="p" size="base" color="secondary" className={styles.cardBody}>
-                עמלה חד-פעמית להצבעה מאומתת בנושא מקומי. כל שקל הולך למקום ברור:
-              </Text>
-
-              {/* Proportional split bar: 2/3 fund (green) + 1/3 ops (blue) */}
-              <div
-                className={styles.bar}
-                role="img"
-                aria-label="מתוך שלושה שקלים: שני שקלים לקרן הקהילתית, שקל אחד לתפעול"
-              >
-                <motion.div
-                  className={styles.barFund}
-                  initial={reduced ? false : { transform: 'scaleX(0)' }}
-                  whileInView={{ transform: 'scaleX(1)' }}
-                  viewport={{ once: true, margin: '-80px' }}
-                  transition={{ duration: 0.7, ease: EASE, delay: 0.1 }}
-                >
-                  <span className={styles.barLabel}>
-                    <Shekel className={styles.barShekel} />2
+            <ul className={styles.specList}>
+              {PARTICIPATION_SPEC.map((item) => (
+                <li key={item} className={styles.specItem}>
+                  <span className={styles.specMark} aria-hidden>
+                    ✓
                   </span>
-                </motion.div>
-                <motion.div
-                  className={styles.barOps}
-                  initial={reduced ? false : { transform: 'scaleX(0)' }}
-                  whileInView={{ transform: 'scaleX(1)' }}
-                  viewport={{ once: true, margin: '-80px' }}
-                  transition={{ duration: 0.55, ease: EASE, delay: 0.45 }}
-                >
-                  <span className={styles.barLabel}>
-                    <Shekel className={styles.barShekel} />1
-                  </span>
-                </motion.div>
-              </div>
-
-              <ul className={styles.splitList}>
-                <li className={styles.splitItem}>
-                  <span className={`${styles.splitDot} ${styles.dotGreen}`} aria-hidden />
-                  <span className={styles.splitAmount}>
-                    <Shekel className={styles.splitShekel} />2
-                  </span>
-                  <span className={styles.splitText}>לקרן הקהילתית</span>
-                </li>
-                <li className={styles.splitItem}>
-                  <span className={`${styles.splitDot} ${styles.dotBlue}`} aria-hidden />
-                  <span className={styles.splitAmount}>
-                    <Shekel className={styles.splitShekel} />1
-                  </span>
-                  <span className={styles.splitText}>לתפעול ופיתוח</span>
-                </li>
-              </ul>
-            </GlassCard>
-          </AnimatedFadeInUp>
-
-          {/* Card 2 — ₪50 create a vote */}
-          <AnimatedFadeInUp delay={0.22} className={styles.cardWrap}>
-            <GlassCard variant="spotlight" glow="purple" className={styles.priceCard}>
-              <div className={styles.cardHead}>
-                <span className={styles.eyebrowTag}>יצירת הצבעה חדשה</span>
-                <span className={`${styles.price} ${styles.pricePurple}`}>
-                  <Shekel className={styles.priceShekel} />50
-                </span>
-              </div>
-
-              <Text as="p" size="base" color="secondary" className={styles.cardBody}>
-                עמלה חד-פעמית לפרסום הצבעה חדשה ברשות שלכם — כולל אפשרויות הבחירה ולוח הזמנים
-                לסיום.
-              </Text>
-
-              <ul className={styles.reasonList}>
-                <li className={styles.reasonItem}>
-                  <span className={styles.reasonIcon} aria-hidden>
-                    <svg viewBox="0 0 24 24" width="18" height="18">
-                      <path
-                        d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.2l1-5.8L3.5 9.2l5.9-.9z"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.7"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </span>
-                  <span className={styles.reasonText}>מונע ספאם והצבעות שלא נועדו ברצינות.</span>
-                </li>
-                <li className={styles.reasonItem}>
-                  <span className={styles.reasonIcon} aria-hidden>
-                    <svg viewBox="0 0 24 24" width="18" height="18">
-                      <path
-                        d="M4 13a8 8 0 0 1 16 0M9 13a3 3 0 0 1 6 0M12 13v6M9 19h6"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.7"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </span>
-                  <span className={styles.reasonText}>
-                    שומר על איכות: כל הצבעה היא נושא אמיתי שמישהו עומד מאחוריו.
-                  </span>
-                </li>
-              </ul>
-            </GlassCard>
-          </AnimatedFadeInUp>
-        </div>
-
-        {/* ---------- Trust strip ---------- */}
-        <AnimatedFadeInUp delay={0.18} className={styles.trustWrap}>
-          <div className={styles.trustStrip}>
-            <span className={styles.trustHead}>אין אותיות קטנות</span>
-            <ul className={styles.trustList}>
-              {TRUST_ITEMS.map((item) => (
-                <li key={item} className={styles.trustItem}>
-                  <Check />
                   {item}
                 </li>
               ))}
             </ul>
-          </div>
-        </AnimatedFadeInUp>
+
+            {/* ₪3 split shown as a press receipt: ₪2 fund / ₪1 ops */}
+            <Receipt
+              className={styles.receipt}
+              kicker="פירוט · ₪3"
+              rows={[
+                { label: 'קרן הקהילתית', value: '₪2' },
+                { label: 'תפעול ופיתוח', value: '₪1' },
+                { label: 'סה״כ להצבעה', value: '₪3', strong: true },
+              ]}
+              footer="מאומת · חתום בבלוקצ׳יין · בלי עמלות נסתרות"
+            />
+          </section>
+
+          {/* RATE 02 — ₪50 create a vote */}
+          <section className={styles.card}>
+            <header className={styles.cardHead}>
+              <span className={styles.rateNo}>02</span>
+              <span className={styles.rateTag}>יצירת הצבעה חדשה</span>
+            </header>
+
+            <div className={styles.priceRow}>
+              <motion.span className={styles.price} {...stamp}>
+                <span className={styles.priceShekel} aria-hidden>
+                  ₪
+                </span>
+                50
+              </motion.span>
+              <span className={styles.priceUnit}>/ הצבעה</span>
+            </div>
+
+            <ul className={styles.specList}>
+              {CREATE_SPEC.map((item) => (
+                <li key={item} className={styles.specItem}>
+                  <span className={styles.specMark} aria-hidden>
+                    ✓
+                  </span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+
+            <div className={styles.note}>
+              <span className={styles.noteMark} aria-hidden>
+                ●
+              </span>
+              עמלה חד-פעמית. כל הצבעה היא נושא אמיתי שמישהו עומד מאחוריו —
+              בלי ספאם, בלי רעש.
+            </div>
+          </section>
+        </div>
+
+        {/* ---------- Trust strip (mono, no fine print) ---------- */}
+        <div className={styles.trustStrip}>
+          <span className={styles.trustHead}>אין אותיות קטנות</span>
+          <ul className={styles.trustList}>
+            {TRUST_ITEMS.map((item, i) => (
+              <li key={item} className={styles.trustItem}>
+                {i > 0 && (
+                  <span className={styles.trustSep} aria-hidden>
+                    ·
+                  </span>
+                )}
+                <span className={styles.trustMark} aria-hidden>
+                  ✓
+                </span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
 
         {/* ---------- CTA ---------- */}
-        <AnimatedFadeInUp delay={0.24} className={styles.ctaWrap}>
-          <Heading level={2} className={styles.ctaTitle}>
-            רוצים לשמוע עוד?
-          </Heading>
-          <Text as="p" size="base" color="secondary" className={styles.ctaBody}>
-            הצטרפו לקהילה ב-WhatsApp — בלי התחייבות, בלי תשלום.
-          </Text>
-          <a
+        <div className={styles.ctaWrap}>
+          <h3 className={styles.ctaTitle}>רוצים לשמוע עוד?</h3>
+          <p className={styles.ctaBody}>
+            הצטרפו לפיילוט — בלי התחייבות, בלי תשלום מראש.
+          </p>
+          <NewsButton
             href={WHATSAPP_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className={styles.ctaLink}
+            variant="red"
+            size="lg"
+            trailing={<span aria-hidden>←</span>}
           >
-            <RippleButton size="lg">הצטרפו לקהילה ב-WhatsApp</RippleButton>
-          </a>
-        </AnimatedFadeInUp>
+            הצטרפו לפיילוט
+          </NewsButton>
+        </div>
       </div>
     </main>
   );

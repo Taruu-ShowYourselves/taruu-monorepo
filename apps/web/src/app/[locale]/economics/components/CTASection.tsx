@@ -1,11 +1,6 @@
 'use client';
 
-import { GradientText } from '@/components/ui/GradientText';
-import { Eyebrow } from '@/components/ui/Eyebrow';
-import { Heading, Text } from '@/components/ui/Typography';
-import { RippleButton } from '@/components/ui/RippleButton';
-import { MagneticButton } from '@/components/ui/MagneticButton';
-import { AnimatedFadeInUp } from '@/components/animations';
+import { NewsButton } from '@/components/press';
 import type { Locale } from '@/lib/i18n';
 import styles from './CTASection.module.css';
 
@@ -22,54 +17,46 @@ const trustStats = [
 ];
 
 export function CTASection(_props: CTASectionProps) {
+  void _props;
+
   return (
     <section className={styles.cta} aria-labelledby="cta-title">
-      <span className={styles.mesh} aria-hidden />
-
-      <div className={styles.container}>
+      <div className={styles.inner}>
         <div className={styles.content}>
-          <AnimatedFadeInUp>
-            <Eyebrow>פיילוט חי בקריית טבעון</Eyebrow>
-          </AnimatedFadeInUp>
+          <span className={styles.kicker}>
+            <span aria-hidden className={styles.kickerTick} />
+            פיילוט חי · קריית טבעון
+          </span>
 
-          <Heading level={2} id="cta-title" className={styles.title}>
-            מוכנים להפוך{' '}
-            <GradientText variant="brand" animated>
-              3 שקלים
-            </GradientText>{' '}
-            לכוח קהילתי?
-          </Heading>
+          <h2 id="cta-title" className={styles.headline}>
+            מוכנים להפוך 3 שקלים <span className={styles.red}>לכוח קהילתי?</span>
+          </h2>
 
-          <AnimatedFadeInUp delay={0.1}>
-            <Text as="p" size="lg" color="secondary" className={styles.subtitle}>
-              הצטרפו לקהילת התושבים שבונה את הקרן הראשונה. הצטרפות חינם, בלי התחייבות.
-            </Text>
-          </AnimatedFadeInUp>
+          <p className={styles.standfirst}>
+            הצטרפו לקהילת התושבים שבונה את הקרן הראשונה. הצטרפות חינם, בלי התחייבות.
+          </p>
 
-          <AnimatedFadeInUp delay={0.2} className={styles.actions}>
-            <MagneticButton>
-              <a
-                href={WHATSAPP_LINK}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={styles.primaryLink}
-              >
-                <RippleButton size="xl">הצטרפו לפיילוט בוואטסאפ</RippleButton>
-              </a>
-            </MagneticButton>
-          </AnimatedFadeInUp>
+          <div className={styles.actions}>
+            <NewsButton
+              href={WHATSAPP_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              variant="red"
+              size="lg"
+              trailing={<span aria-hidden>←</span>}
+            >
+              הצטרפו לפיילוט
+            </NewsButton>
+          </div>
 
-          <AnimatedFadeInUp delay={0.3} className={styles.stats}>
-            {trustStats.map((stat, index) => (
+          <dl className={styles.stats}>
+            {trustStats.map((stat) => (
               <div key={stat.label} className={styles.statItem}>
-                {index > 0 && <span className={styles.statDivider} aria-hidden />}
-                <span className={styles.statBlock}>
-                  <span className={styles.statValue}>{stat.value}</span>
-                  <span className={styles.statLabel}>{stat.label}</span>
-                </span>
+                <dt className={styles.statValue}>{stat.value}</dt>
+                <dd className={styles.statLabel}>{stat.label}</dd>
               </div>
             ))}
-          </AnimatedFadeInUp>
+          </dl>
         </div>
       </div>
     </section>

@@ -1,10 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { Eyebrow } from '@/components/ui/Eyebrow';
-import { GradientText } from '@/components/ui/GradientText';
-import { AnimatedFadeInUp, AnimatedWords } from '@/components/animations';
-import { useReducedMotion } from '@/hooks';
+import { Segmented } from '@/components/press';
 import type { VoteFilter } from './types';
 import styles from './VotesHero.module.css';
 
@@ -21,65 +17,41 @@ interface VotesHeroProps {
 }
 
 export function VotesHero({ activeFilter, onFilterChange }: VotesHeroProps) {
-  const reducedMotion = useReducedMotion();
-
   return (
     <section className={styles.hero}>
-      <div className={styles.mesh} aria-hidden />
-
       <div className={styles.container}>
-        <AnimatedFadeInUp>
-          <Eyebrow live className={styles.eyebrow}>
-            הצבעות פומביות — קריית טבעון
-          </Eyebrow>
-        </AnimatedFadeInUp>
+        <span className={styles.kicker}>
+          <span aria-hidden className={styles.kickerTick} />
+          הצבעות פומביות · קריית טבעון
+        </span>
 
         <h1 className={styles.heading}>
-          <span className={styles.headingTop}>
-            <AnimatedWords text="מה על הפרק" delay={0.1} />
-          </span>
-          <span className={styles.accentLine}>
-            <motion.span
-              initial={{ opacity: reducedMotion ? 1 : 0, y: reducedMotion ? 0 : 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: reducedMotion ? 0 : 0.45, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <GradientText animated>בקהילה שלכם.</GradientText>
-            </motion.span>
-          </span>
+          מה על הפרק בקהילה <span className={styles.red}>שלכם.</span>
         </h1>
 
-        <AnimatedFadeInUp delay={0.3}>
-          <p className={styles.description}>
-            כל הנושאים הפעילים במקום אחד — תוצאות בזמן אמת, גלויות לכולם.
-          </p>
-        </AnimatedFadeInUp>
+        <p className={styles.deck}>
+          כל הנושאים הפעילים במקום אחד — תוצאות בזמן אמת, גלויות לכולם.
+        </p>
 
-        {/* Filter Pills */}
-        <motion.div
-          className={styles.filters}
-          role="tablist"
-          aria-label="סינון הצבעות"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        >
-          {filters.map((filter) => {
-            const isActive = activeFilter === filter.value;
-            return (
-              <button
-                key={filter.value}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                className={`${styles.filterPill} ${isActive ? styles.active : ''}`}
-                onClick={() => onFilterChange(filter.value)}
-              >
-                {filter.label}
-              </button>
-            );
-          })}
-        </motion.div>
+        <div className={styles.byline}>
+          <span>מדור ההצבעות</span>
+          <span className={styles.sep} aria-hidden>■</span>
+          <span>חתום בבלוקצ׳יין</span>
+          <span className={styles.sep} aria-hidden>■</span>
+          <span>תוצאות בזמן אמת</span>
+        </div>
+
+        <div className={styles.filterRow}>
+          <span className={styles.filterLabel}>סינון</span>
+          <Segmented
+            segments={filters}
+            value={activeFilter}
+            onChange={onFilterChange}
+            variant="ink"
+            aria-label="סינון הצבעות"
+            className={styles.filters}
+          />
+        </div>
       </div>
     </section>
   );

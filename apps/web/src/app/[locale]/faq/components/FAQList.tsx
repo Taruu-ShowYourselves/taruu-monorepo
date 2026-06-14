@@ -2,9 +2,7 @@
 
 import { useState, useId, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heading, Text } from '@/components/ui/Typography';
-import { RippleButton } from '@/components/ui/RippleButton';
-import { AnimatedFadeInUp } from '@/components/animations';
+import { NewsButton, PressInput, Segmented } from '@/components/press';
 import { useReducedMotion } from '@/hooks';
 import {
   faqData,
@@ -17,23 +15,22 @@ import styles from './FAQList.module.css';
 
 const WHATSAPP_LINK = 'https://chat.whatsapp.com/FITvea9IVsn2Ljie1yCrAc';
 
-/** Per-category accent — one accent owns each chapter (design system §1). */
-const categoryAccent: Record<FAQCategory, string> = {
-  general: styles.accentBlue,
-  voting: styles.accentBlue,
-  payments: styles.accentGreen,
-  security: styles.accentPurple,
-  legal: styles.accentAmber,
-  account: styles.accentBlue,
-};
+type FilterValue = 'all' | FAQCategory;
 
-function FAQAccordionItem({
+const SEGMENTS: { value: FilterValue; label: string }[] = [
+  { value: 'all', label: 'הכול' },
+  ...faqCategoryOrder.map((c) => ({ value: c, label: faqCategories[c] })),
+];
+
+function FAQRow({
   item,
+  num,
   isOpen,
   onToggle,
   reduced,
 }: {
   item: FAQItem;
+  num: string;
   isOpen: boolean;
   onToggle: () => void;
   reduced: boolean;
@@ -42,28 +39,17 @@ function FAQAccordionItem({
   const buttonId = useId();
 
   return (
-    <div className={`${styles.faqItem} ${isOpen ? styles.open : ''}`}>
+    <div className={`${styles.row} ${isOpen ? styles.open : ''}`}>
       <button
         id={buttonId}
-        className={styles.faqQuestion}
+        className={styles.question}
         onClick={onToggle}
         aria-expanded={isOpen}
         aria-controls={panelId}
       >
-        <span>{item.question}</span>
-        <span className={styles.faqIcon} aria-hidden>
-          <svg viewBox="0 0 24 24" width="18" height="18">
-            <path d="M5 12h14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-            <path
-              className={styles.faqIconV}
-              d="M12 5v14"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-            />
-          </svg>
-        </span>
+        <span className={styles.num} aria-hidden>{num}</span>
+        <span className={styles.qText}>{item.question}</span>
+        <span className={styles.toggle} aria-hidden>{isOpen ? '×' : '+'}</span>
       </button>
       <AnimatePresence initial={false}>
         {isOpen && (
@@ -71,13 +57,13 @@ function FAQAccordionItem({
             id={panelId}
             role="region"
             aria-labelledby={buttonId}
-            className={styles.faqAnswer}
+            className={styles.answerWrap}
             initial={reduced ? { opacity: 0 } : { height: 0, opacity: 0 }}
             animate={reduced ? { opacity: 1 } : { height: 'auto', opacity: 1 }}
             exit={reduced ? { opacity: 0 } : { height: 0, opacity: 0 }}
-            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
           >
-            <p>{item.answer}</p>
+            <p className={styles.answer}>{item.answer}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -88,64 +74,95 @@ function FAQAccordionItem({
 export function FAQList() {
   const reduced = useReducedMotion();
   const [openId, setOpenId] = useState<string | null>(faqData[0]?.id ?? null);
+  const [filter, setFilter] = useState<FilterValue>('all');
+  const [query, setQuery] = useState('');
 
-  const grouped = useMemo(
-    () =>
-      faqCategoryOrder
-        .map((category) => ({
-          category,
-          items: faqData.filter((item) => item.category === category),
-        }))
-        .filter((group) => group.items.length > 0),
-    []
-  );
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return faqData.filter((item) => {
+      const matchesCategory = filter === 'all' || item.category === filter;
+      const matchesQuery =
+        q === '' ||
+        item.question.toLowerCase().includes(q) ||
+        item.answer.toLowerCase().includes(q);
+      return matchesCategory && matchesQuery;
+    });
+  }, [filter, query]);
 
   return (
-    <section className={styles.faqSection} aria-labelledby="faq-list-title">
+    <section className={styles.section} aria-labelledby="faq-list-title">
       <div className={styles.container}>
         <h2 id="faq-list-title" className={styles.srOnly}>
           רשימת שאלות נפוצות
         </h2>
 
-        {grouped.map((group, groupIndex) => (
-          <div key={group.category} className={styles.group}>
-            <AnimatedFadeInUp delay={0.04 * groupIndex}>
-              <span className={`${styles.chip} ${categoryAccent[group.category]}`}>
-                {faqCategories[group.category]}
-              </span>
-            </AnimatedFadeInUp>
-
-            <div className={styles.accordionList}>
-              {group.items.map((item, index) => (
-                <AnimatedFadeInUp key={item.id} delay={0.04 * index}>
-                  <FAQAccordionItem
-                    item={item}
-                    isOpen={openId === item.id}
-                    onToggle={() => setOpenId(openId === item.id ? null : item.id)}
-                    reduced={reduced}
-                  />
-                </AnimatedFadeInUp>
-              ))}
-            </div>
+        {/* Control bar: search + category filter */}
+        <div className={styles.controls}>
+          <PressInput
+            label="חיפוש"
+            type="search"
+            inputMode="search"
+            placeholder="חפשו נושא, מילה או שאלה…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className={styles.search}
+          />
+          <div className={styles.filterWrap}>
+            <span className={styles.filterLabel}>סינון לפי נושא</span>
+            <Segmented
+              segments={SEGMENTS}
+              value={filter}
+              onChange={setFilter}
+              variant="red"
+              aria-label="סינון שאלות לפי נושא"
+            />
           </div>
-        ))}
+        </div>
 
-        <AnimatedFadeInUp delay={0.1} className={styles.cta}>
-          <Heading level={2} className={styles.ctaTitle}>
-            לא מצאתם תשובה?
-          </Heading>
-          <Text as="p" size="lg" color="secondary" className={styles.ctaText}>
-            דברו איתנו ישירות בקבוצת הוואטסאפ — נשמח לעזור.
-          </Text>
-          <a
+        {filtered.length > 0 ? (
+          <ol className={styles.list}>
+            {filtered.map((item, i) => (
+              <li key={item.id}>
+                <FAQRow
+                  item={item}
+                  num={String(i + 1).padStart(2, '0')}
+                  isOpen={openId === item.id}
+                  onToggle={() => setOpenId(openId === item.id ? null : item.id)}
+                  reduced={reduced}
+                />
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <div className={styles.empty}>
+            <span className={styles.emptyGlyph} aria-hidden>✕</span>
+            <p className={styles.emptyText}>
+              לא מצאנו נושא כזה. נסו ניסוח אחר, או הציעו אותו כהצבעה חדשה.
+            </p>
+          </div>
+        )}
+
+        {/* WhatsApp escalation — human help */}
+        <div className={styles.escalate}>
+          <span className={styles.escalateKicker}>
+            <span aria-hidden className={styles.escalateTick} />
+            עדיין תקועים?
+          </span>
+          <h3 className={styles.escalateTitle}>
+            לא מצאתם? כתבו לנו בוואטסאפ,{' '}
+            <span className={styles.red}>אנחנו אנשים אמיתיים.</span>
+          </h3>
+          <NewsButton
             href={WHATSAPP_LINK}
             target="_blank"
             rel="noopener noreferrer"
-            className={styles.ctaLink}
+            variant="red"
+            size="lg"
+            trailing={<span aria-hidden>←</span>}
           >
-            <RippleButton size="lg">דברו איתנו בוואטסאפ</RippleButton>
-          </a>
-        </AnimatedFadeInUp>
+            דברו איתנו בוואטסאפ
+          </NewsButton>
+        </div>
       </div>
     </section>
   );

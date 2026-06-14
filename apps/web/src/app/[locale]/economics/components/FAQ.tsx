@@ -2,9 +2,6 @@
 
 import { useState, useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eyebrow } from '@/components/ui/Eyebrow';
-import { Heading, Text } from '@/components/ui/Typography';
-import { AnimatedFadeInUp } from '@/components/animations';
 import { useReducedMotion } from '@/hooks';
 import styles from './FAQ.module.css';
 
@@ -52,12 +49,14 @@ const faqs = [
 ];
 
 function FAQItem({
+  index,
   question,
   answer,
   isOpen,
   onClick,
   reduced,
 }: {
+  index: number;
   question: string;
   answer: string;
   isOpen: boolean;
@@ -76,19 +75,12 @@ function FAQItem({
         aria-expanded={isOpen}
         aria-controls={panelId}
       >
-        <span>{question}</span>
+        <span className={styles.faqNum} aria-hidden>
+          {String(index + 1).padStart(2, '0')}
+        </span>
+        <span className={styles.faqText}>{question}</span>
         <span className={styles.faqIcon} aria-hidden>
-          <svg viewBox="0 0 24 24" width="18" height="18">
-            <path d="M5 12h14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-            <path
-              className={styles.faqIconV}
-              d="M12 5v14"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-            />
-          </svg>
+          {isOpen ? '✕' : '+'}
         </span>
       </button>
       <AnimatePresence initial={false}>
@@ -101,7 +93,7 @@ function FAQItem({
             initial={reduced ? { opacity: 0 } : { height: 0, opacity: 0 }}
             animate={reduced ? { opacity: 1 } : { height: 'auto', opacity: 1 }}
             exit={reduced ? { opacity: 0 } : { height: 0, opacity: 0 }}
-            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: reduced ? 0 : 0.2, ease: [0.2, 0, 0, 1] }}
           >
             <p>{answer}</p>
           </motion.div>
@@ -117,25 +109,25 @@ export function FAQ() {
 
   return (
     <section className={styles.faq} aria-labelledby="faq-title">
-      <div className={styles.container}>
-        <header className={styles.header}>
-          <AnimatedFadeInUp>
-            <Eyebrow>שאלות נפוצות</Eyebrow>
-          </AnimatedFadeInUp>
-          <Heading level={2} id="faq-title" className={styles.title}>
-            כל מה שרציתם לשאול על הכלכלה האזרחית
-          </Heading>
-          <AnimatedFadeInUp delay={0.1}>
-            <Text as="p" size="lg" color="secondary" className={styles.subtitle}>
-              בלי ז&apos;רגון, בלי אותיות קטנות — התשובות הישירות.
-            </Text>
-          </AnimatedFadeInUp>
+      <div className={styles.inner}>
+        <header className={styles.head}>
+          <span className={styles.kicker}>
+            <span aria-hidden className={styles.kickerTick} />
+            שאלות נפוצות · FAQ
+          </span>
+          <h2 id="faq-title" className={styles.headline}>
+            כל מה שרציתם לשאול על <span className={styles.red}>הכלכלה האזרחית.</span>
+          </h2>
+          <p className={styles.standfirst}>
+            בלי ז&apos;רגון, בלי אותיות קטנות — התשובות הישירות.
+          </p>
         </header>
 
-        <AnimatedFadeInUp delay={0.1} className={styles.faqList}>
+        <div className={styles.faqList}>
           {faqs.map((faq, index) => (
             <FAQItem
               key={faq.question}
+              index={index}
               question={faq.question}
               answer={faq.answer}
               isOpen={openIndex === index}
@@ -143,7 +135,7 @@ export function FAQ() {
               reduced={reduced}
             />
           ))}
-        </AnimatedFadeInUp>
+        </div>
       </div>
     </section>
   );

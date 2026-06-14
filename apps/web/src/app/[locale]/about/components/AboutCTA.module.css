@@ -1,8 +1,8 @@
-.hero {
+.cta {
   background: var(--np-paper);
   color: var(--np-ink);
   padding-inline: clamp(var(--space-5), 3vw, var(--space-12));
-  padding-block: clamp(var(--space-8), 4vw, var(--space-16));
+  padding-block: clamp(var(--space-12), 6vw, var(--space-24));
 }
 
 .inner {
@@ -10,7 +10,6 @@
   margin-inline: auto;
 }
 
-/* Dateline */
 .dateline {
   display: flex;
   align-items: baseline;
@@ -45,18 +44,12 @@
   color: var(--np-ink-faint);
 }
 
-.ruleHeavy {
+.rule {
   border: 0;
   border-block-start: var(--np-rule-heavy) solid var(--np-ink);
   margin-block: var(--space-3) clamp(var(--space-5), 2vw, var(--space-8));
 }
-.rule {
-  border: 0;
-  border-block-start: var(--np-rule) solid var(--np-ink);
-  margin-block: clamp(var(--space-5), 2vw, var(--space-8));
-}
 
-/* Masthead statement headline */
 .headline {
   font-family: var(--np-font-display);
   font-weight: 900;
@@ -65,27 +58,35 @@
   letter-spacing: -0.04em;
   color: var(--np-ink);
   margin: 0;
+  max-width: 18ch;
   overflow-wrap: break-word;
 }
 .red {
   color: var(--np-red);
 }
 
-/* Drop-capped lead (np-dropcap supplies ::first-letter) */
-.lead {
+.sub {
   font-family: var(--np-font-body);
-  font-size: clamp(var(--text-lg), 0.6vw + 1rem, var(--text-2xl));
-  line-height: 1.5;
+  font-size: clamp(var(--text-base), 0.5vw + 0.9rem, var(--text-xl));
+  line-height: 1.45;
   color: var(--np-ink-soft);
-  max-width: 52rem;
-  margin: 0;
+  margin: clamp(var(--space-4), 2vw, var(--space-6)) 0 0;
+  max-width: 52ch;
 }
 
-@media (min-width: 768px) {
-  .lead {
-    column-count: 2;
-    column-gap: clamp(var(--space-8), 4vw, var(--space-16));
-    column-rule: var(--np-rule-hair) solid var(--np-paper-edge);
-    max-width: none;
-  }
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: clamp(var(--space-4), 2vw, var(--space-8));
+  margin-block-start: clamp(var(--space-6), 3vw, var(--space-10));
+}
+
+.microcopy {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  color: var(--np-ink-faint);
+  max-width: 40ch;
 }

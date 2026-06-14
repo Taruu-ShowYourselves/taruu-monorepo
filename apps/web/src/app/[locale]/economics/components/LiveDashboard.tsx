@@ -3,13 +3,11 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Eyebrow } from '@/components/ui/Eyebrow';
-import { Heading, Text } from '@/components/ui/Typography';
-import { AnimatedFadeInUp } from '@/components/animations';
+import { Receipt } from '@/components/press';
 import { useReducedMotion } from '@/hooks';
 import styles from './LiveDashboard.module.css';
 
-const EASE = [0.22, 1, 0.36, 1] as const;
+const EASE = [0.2, 0, 0, 1] as const;
 
 interface NetworkStats {
   totalRaised: number;
@@ -95,20 +93,33 @@ export function LiveDashboard() {
 
   return (
     <section className={styles.dashboard} aria-labelledby="dashboard-title">
-      <div className={styles.container}>
-        <header className={styles.header}>
-          <AnimatedFadeInUp>
-            <Eyebrow live>הדשבורד החי</Eyebrow>
-          </AnimatedFadeInUp>
-          <Heading level={2} id="dashboard-title" className={styles.title}>
-            כל שקל בקרן — גלוי בזמן אמת
-          </Heading>
-          <AnimatedFadeInUp delay={0.1}>
-            <Text as="p" size="lg" color="secondary" className={styles.subtitle}>
-              נתונים חיים מכל הרשויות המקומיות ברשת. שקיפות מלאה, בלי חדרים סגורים.
-            </Text>
-          </AnimatedFadeInUp>
+      <div className={styles.inner}>
+        <header className={styles.head}>
+          <span className={styles.kicker}>
+            <span aria-hidden className={styles.kickerLive} />
+            הדשבורד החי · LIVE
+          </span>
+          <h2 id="dashboard-title" className={styles.headline}>
+            כל שקל בקרן — <span className={styles.red}>גלוי בזמן אמת.</span>
+          </h2>
+          <p className={styles.standfirst}>
+            נתונים חיים מכל הרשויות המקומיות ברשת. שקיפות מלאה, בלי חדרים סגורים.
+          </p>
         </header>
+
+        {/* The ₪3 split — Receipt-style ledger, always visible */}
+        <div className={styles.splitWrap}>
+          <Receipt
+            kicker="פירוק ה-₪3 · SPLIT"
+            title="לאן הולך כל שקל"
+            rows={[
+              { label: 'לקרן הקהילתית', value: '₪2' },
+              { label: 'לתפעול הפלטפורמה', value: '₪1' },
+              { label: 'סה״כ דמי השתתפות', value: '₪3', strong: true },
+            ]}
+            footer="₪2 לקרן הקהילתית · ₪1 לתפעול. הכל מתועד."
+          />
+        </div>
 
         {loading ? (
           <div className={styles.skeletonGrid} aria-hidden>
@@ -118,45 +129,19 @@ export function LiveDashboard() {
           </div>
         ) : error ? (
           <div className={styles.notice} role="status">
-            <span className={styles.noticeIcon} aria-hidden>
-              <svg viewBox="0 0 24 24" width="22" height="22">
-                <path
-                  d="M12 8v5m0 3h.01M12 3 2 20h20L12 3Z"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-            <Text as="p" size="base" weight="medium" className={styles.noticeText}>
-              {error}
-            </Text>
+            <span className={styles.noticeGlyph} aria-hidden>✕</span>
+            <p className={styles.noticeText}>{error}</p>
           </div>
         ) : !hasActivity ? (
-          <AnimatedFadeInUp className={styles.notice}>
-            <span className={`${styles.noticeIcon} ${styles.noticeIconLive}`} aria-hidden>
-              <svg viewBox="0 0 24 24" width="22" height="22">
-                <path
-                  d="M3 13h4l2 5 4-12 2 5h6"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
+          <div className={styles.notice} role="status">
+            <span className={`${styles.noticeGlyph} ${styles.noticeGlyphLive}`} aria-hidden>●</span>
             <div className={styles.noticeBody}>
-              <Text as="p" size="lg" weight="bold" className={styles.noticeTitle}>
-                הדשבורד החי ייפתח עם ההצבעה הראשונה
-              </Text>
-              <Text as="p" size="base" color="secondary" className={styles.noticeText}>
+              <p className={styles.noticeTitle}>הדשבורד החי ייפתח עם ההצבעה הראשונה.</p>
+              <p className={styles.noticeText}>
                 ברגע שהקרן הקהילתית הראשונה תיפתח — כל גיוס, כל עסקה וכל מגמה יופיעו כאן בזמן אמת.
-              </Text>
+              </p>
             </div>
-          </AnimatedFadeInUp>
+          </div>
         ) : (
           <>
             <div className={styles.statsGrid}>
@@ -164,10 +149,10 @@ export function LiveDashboard() {
                 <motion.div
                   key={card.label}
                   className={styles.statCard}
-                  initial={reduced ? false : { opacity: 0, y: 14 }}
-                  whileInView={{ opacity: 1, y: 0 }}
+                  initial={reduced ? false : { opacity: 0, clipPath: 'inset(0 0 100% 0)' }}
+                  whileInView={{ opacity: 1, clipPath: 'inset(0 0 0 0)' }}
                   viewport={{ once: true, margin: '-40px' }}
-                  transition={{ duration: 0.4, ease: EASE, delay: 0.06 * index }}
+                  transition={{ duration: reduced ? 0 : 0.32, ease: EASE, delay: reduced ? 0 : 0.06 * index }}
                 >
                   <span className={styles.statValue}>{card.value}</span>
                   <span className={styles.statLabel}>{card.label}</span>
@@ -176,18 +161,21 @@ export function LiveDashboard() {
             </div>
 
             {coins.length > 0 && (
-              <AnimatedFadeInUp delay={0.1} className={styles.trendingSection}>
+              <div className={styles.trending}>
                 <h3 className={styles.sectionTitle}>Issue Coins מובילים</h3>
                 <div className={styles.coinsList}>
                   {coins.map((coin, index) => (
                     <motion.div
                       key={coin.voteId}
-                      className={styles.coinCard}
+                      className={styles.coinRow}
                       initial={reduced ? false : { opacity: 0, y: 10 }}
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true, margin: '-30px' }}
-                      transition={{ duration: 0.32, ease: EASE, delay: 0.06 * index }}
+                      transition={{ duration: reduced ? 0 : 0.28, ease: EASE, delay: reduced ? 0 : 0.06 * index }}
                     >
+                      <span className={styles.coinNum} aria-hidden>
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
                       <div className={styles.coinIcon}>
                         {coin.imageUrl ? (
                           <Image
@@ -198,16 +186,7 @@ export function LiveDashboard() {
                             unoptimized
                           />
                         ) : (
-                          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden>
-                            <path
-                              d="M4 21h16M6 21V9l6-4 6 4v12M10 21v-5h4v5"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.7"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
+                          <span aria-hidden>□</span>
                         )}
                       </div>
                       <div className={styles.coinInfo}>
@@ -222,14 +201,12 @@ export function LiveDashboard() {
                         >
                           {formatPercent(coin.priceChange24h)}
                         </span>
-                        <span className={styles.coinRaised}>
-                          {formatCurrency(coin.totalRaised)}
-                        </span>
+                        <span className={styles.coinRaised}>{formatCurrency(coin.totalRaised)}</span>
                       </div>
                     </motion.div>
                   ))}
                 </div>
-              </AnimatedFadeInUp>
+              </div>
             )}
           </>
         )}

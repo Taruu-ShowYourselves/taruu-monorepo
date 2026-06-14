@@ -1,23 +1,17 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { MagneticButton } from '@/components/ui/MagneticButton';
-import { RippleButton } from '@/components/ui/RippleButton';
-import { GlassCard } from '@/components/ui/GlassCard';
-import { Eyebrow } from '@/components/ui/Eyebrow';
-import { AnimatedFadeInUp } from '@/components/animations';
+import { NewsButton } from '@/components/press';
 import type { Locale } from '@/lib/i18n';
 import styles from './SupportFlow.module.css';
 
 const WHATSAPP_LINK = 'https://chat.whatsapp.com/FITvea9IVsn2Ljie1yCrAc';
 
-const EASE_BRAND = [0.22, 1, 0.36, 1] as const;
+const EASE_BRAND = [0.2, 0, 0, 1] as const;
 
 interface SupportFlowProps {
   locale?: Locale;
 }
-
-type GlowTone = 'blue' | 'green' | 'purple' | 'amber';
 
 function WhatsAppIcon() {
   return (
@@ -75,18 +69,9 @@ function CoinIcon() {
 function LockIcon() {
   return (
     <svg viewBox="0 0 24 24" className={styles.topicIcon} aria-hidden focusable="false">
-      <rect x="5" y="10.5" width="14" height="9.5" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <rect x="5" y="10.5" width="14" height="9.5" rx="0" fill="none" stroke="currentColor" strokeWidth="1.8" />
       <path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
       <circle cx="12" cy="15" r="1.4" fill="currentColor" />
-    </svg>
-  );
-}
-
-function ArrowIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className={styles.arrow} aria-hidden focusable="false">
-      {/* points to inline-start (RTL forward) */}
-      <path d="M14 6l-6 6 6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -94,7 +79,6 @@ function ArrowIcon() {
 interface Topic {
   label: string;
   blurb: string;
-  tone: GlowTone;
   icon: () => React.ReactElement;
 }
 
@@ -102,25 +86,21 @@ const TOPICS: Topic[] = [
   {
     label: 'הצבעה',
     blurb: 'איך מצביעים, מתי, וכמה זה עולה.',
-    tone: 'blue',
     icon: VoteIcon,
   },
   {
     label: 'אימות',
     blurb: 'איך מוודאים שכל קול הוא תושב אמיתי.',
-    tone: 'green',
     icon: ShieldIcon,
   },
   {
     label: 'כסף',
     blurb: 'לאן הולך התשלום ומה מקבלים בתמורה.',
-    tone: 'amber',
     icon: CoinIcon,
   },
   {
     label: 'פרטיות',
     blurb: 'מה אנחנו יודעים עליכם — ומה לא.',
-    tone: 'purple',
     icon: LockIcon,
   },
 ];
@@ -133,101 +113,96 @@ export function SupportFlow({ locale = 'he' }: SupportFlowProps) {
       <div className={styles.container}>
         {/* Primary paths: WhatsApp + FAQ */}
         <div className={styles.paths}>
-          <motion.div
-            className={styles.pathCol}
+          <motion.article
+            className={styles.path}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.6, delay: 0.05, ease: EASE_BRAND }}
+            transition={{ duration: 0.45, delay: 0.05, ease: EASE_BRAND }}
           >
-            <GlassCard variant="interactive" glow="green" className={styles.pathCard}>
-              <div className={styles.pathBody}>
-                <span className={styles.pathIcon} data-tone="green">
-                  <WhatsAppIcon />
-                </span>
-                <h2 className={styles.pathTitle}>דברו איתנו בוואטסאפ</h2>
-                <p className={styles.pathText}>
-                  אין רובוטים ואין תורים. כתבו לנו בקבוצת הפיילוט — אנשים אמיתיים
-                  עונים, בדרך כלל מהר.
-                </p>
-                <div className={styles.pathCta}>
-                  <MagneticButton>
-                    <a
-                      href={WHATSAPP_LINK}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.ctaPrimary}
-                    >
-                      <RippleButton size="lg">
-                        <span className={styles.ctaInner}>
-                          <WhatsAppIcon />
-                          פתחו שיחה בוואטסאפ
-                        </span>
-                      </RippleButton>
-                    </a>
-                  </MagneticButton>
-                </div>
-              </div>
-            </GlassCard>
-          </motion.div>
+            <span className={styles.pathKicker}>
+              <span aria-hidden className={styles.pathTick} />
+              קו חי · אנשים אמיתיים
+            </span>
+            <span className={styles.pathIcon}>
+              <WhatsAppIcon />
+            </span>
+            <h2 className={styles.pathTitle}>דברו איתנו בוואטסאפ</h2>
+            <p className={styles.pathText}>
+              אין רובוטים ואין תורים. כתבו לנו בקבוצת הפיילוט — אנשים אמיתיים
+              עונים, בדרך כלל מהר.
+            </p>
+            <NewsButton
+              href={WHATSAPP_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              variant="red"
+              size="lg"
+              className={styles.pathCta}
+              trailing={<span aria-hidden>←</span>}
+            >
+              פתחו שיחה בוואטסאפ
+            </NewsButton>
+          </motion.article>
 
           <motion.div
-            className={styles.pathCol}
+            className={styles.path}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.6, delay: 0.15, ease: EASE_BRAND }}
+            transition={{ duration: 0.45, delay: 0.15, ease: EASE_BRAND }}
           >
-            <a href={faqHref} className={styles.cardLink}>
-              <GlassCard variant="interactive" glow="blue" className={styles.pathCard}>
-                <div className={styles.pathBody}>
-                  <span className={styles.pathIcon} data-tone="blue">
-                    <QuestionIcon />
-                  </span>
-                  <h2 className={styles.pathTitle}>שאלות נפוצות</h2>
-                  <p className={styles.pathText}>
-                    התשובות הברורות לשאלות שכולם שואלים — הצבעה, אימות, כסף
-                    ופרטיות, בלי ז&apos;רגון.
-                  </p>
-                  <span className={styles.pathLink}>
-                    למאגר השאלות הנפוצות
-                    <ArrowIcon />
-                  </span>
-                </div>
-              </GlassCard>
+            <a href={faqHref} className={styles.pathLinkCard}>
+              <span className={styles.pathKicker}>
+                <span aria-hidden className={styles.pathTick} />
+                ארכיון · שאלות ותשובות
+              </span>
+              <span className={styles.pathIcon}>
+                <QuestionIcon />
+              </span>
+              <h2 className={styles.pathTitle}>שאלות נפוצות</h2>
+              <p className={styles.pathText}>
+                התשובות הברורות לשאלות שכולם שואלים — הצבעה, אימות, כסף ופרטיות,
+                בלי ז&apos;רגון.
+              </p>
+              <span className={styles.pathMore}>
+                למאגר השאלות הנפוצות
+                <span aria-hidden> ←</span>
+              </span>
             </a>
           </motion.div>
         </div>
 
         {/* Quick topics */}
-        <AnimatedFadeInUp delay={0.1}>
-          <Eyebrow>קיצורי דרך לפי נושא</Eyebrow>
-        </AnimatedFadeInUp>
+        <div className={styles.topicsHead}>
+          <span className={styles.topicsKicker}>
+            <span aria-hidden className={styles.pathTick} />
+            קיצורי דרך לפי נושא
+          </span>
+        </div>
 
         <div className={styles.topics}>
           {TOPICS.map((topic, i) => {
             const Icon = topic.icon;
             return (
-              <motion.div
+              <motion.a
                 key={topic.label}
-                className={styles.topicCol}
-                initial={{ opacity: 0, y: 18 }}
+                href={faqHref}
+                className={styles.topic}
+                initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-60px' }}
-                transition={{ duration: 0.5, delay: 0.05 + i * 0.08, ease: EASE_BRAND }}
+                transition={{ duration: 0.4, delay: 0.05 + i * 0.06, ease: EASE_BRAND }}
               >
-                <a href={faqHref} className={styles.cardLink}>
-                  <GlassCard variant="interactive" glow={topic.tone} className={styles.topicCard}>
-                    <div className={styles.topicBody}>
-                      <span className={styles.topicIconWrap} data-tone={topic.tone}>
-                        <Icon />
-                      </span>
-                      <span className={styles.topicLabel}>{topic.label}</span>
-                      <span className={styles.topicBlurb}>{topic.blurb}</span>
-                    </div>
-                  </GlassCard>
-                </a>
-              </motion.div>
+                <span className={styles.topicNum} aria-hidden>
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <span className={styles.topicIconWrap}>
+                  <Icon />
+                </span>
+                <span className={styles.topicLabel}>{topic.label}</span>
+                <span className={styles.topicBlurb}>{topic.blurb}</span>
+              </motion.a>
             );
           })}
         </div>

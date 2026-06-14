@@ -1,13 +1,10 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Eyebrow } from '@/components/ui/Eyebrow';
-import { Heading, Text } from '@/components/ui/Typography';
-import { AnimatedFadeInUp } from '@/components/animations';
 import { useReducedMotion } from '@/hooks';
 import styles from './HowItWorks.module.css';
 
-const EASE = [0.22, 1, 0.36, 1] as const;
+const EASE = [0.2, 0, 0, 1] as const;
 
 type IconName =
   | 'shield'
@@ -27,75 +24,87 @@ interface Step {
   icon: IconName;
 }
 
+/** Hard-edged ink glyphs — crisp strokes, no rounding. */
 function Glyph({ name }: { name: IconName }) {
-  const props = {
+  const common = {
     viewBox: '0 0 24 24',
-    width: 24,
-    height: 24,
+    width: 22,
+    height: 22,
     fill: 'none',
     stroke: 'currentColor',
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
+    strokeWidth: 2,
     'aria-hidden': true,
+    focusable: false,
+    shapeRendering: 'crispEdges' as const,
   };
   switch (name) {
     case 'shield':
       return (
-        <svg {...props}>
-          <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3Zm-2.5 9 2 2 4-4" strokeWidth="1.7" />
+        <svg {...common}>
+          <path d="M12 3 5 6v5c0 4.5 3 8 7 9 4-1 7-4.5 7-9V6l-7-3Z" />
+          <path d="M9 12l2 2 4-4" />
         </svg>
       );
     case 'eye':
       return (
-        <svg {...props}>
-          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" strokeWidth="1.7" />
-          <circle cx="12" cy="12" r="2.6" strokeWidth="1.7" />
+        <svg {...common}>
+          <path d="M3 12 7 7h10l4 5-4 5H7l-4-5Z" />
+          <rect x="10" y="10" width="4" height="4" fill="currentColor" stroke="none" />
         </svg>
       );
     case 'vote':
       return (
-        <svg {...props}>
-          <path d="M5 11l7-7 4 4-7 7H5v-4Zm9-3 2 2M4 21h16" strokeWidth="1.7" />
+        <svg {...common}>
+          <rect x="4" y="13" width="16" height="7" />
+          <path d="M8 13V6h8v7" />
+          <path d="M10 16h4" />
         </svg>
       );
     case 'badge':
       return (
-        <svg {...props}>
-          <circle cx="12" cy="9" r="5" strokeWidth="1.7" />
-          <path d="M9 13.5 7.5 21 12 18.5 16.5 21 15 13.5" strokeWidth="1.7" />
+        <svg {...common}>
+          <rect x="7" y="4" width="10" height="10" />
+          <path d="M9 14l-2 6 5-3 5 3-2-6" />
         </svg>
       );
     case 'chart':
       return (
-        <svg {...props}>
-          <path d="M4 19V5m0 14h16M8 16v-4m4 4V8m4 8v-6" strokeWidth="1.7" />
+        <svg {...common}>
+          <path d="M4 4v16h16" />
+          <rect x="7" y="12" width="3" height="5" fill="currentColor" stroke="none" />
+          <rect x="12" y="9" width="3" height="8" fill="currentColor" stroke="none" />
+          <rect x="17" y="6" width="3" height="11" fill="currentColor" stroke="none" />
         </svg>
       );
     case 'wallet':
       return (
-        <svg {...props}>
-          <rect x="3" y="6" width="18" height="13" rx="2.5" strokeWidth="1.7" />
-          <path d="M3 9h18M16 13h2" strokeWidth="1.7" />
+        <svg {...common}>
+          <rect x="3" y="6" width="18" height="13" />
+          <path d="M3 10h18" />
+          <rect x="15" y="13" width="3" height="2" fill="currentColor" stroke="none" />
         </svg>
       );
     case 'globe':
       return (
-        <svg {...props}>
-          <circle cx="12" cy="12" r="8" strokeWidth="1.7" />
-          <path d="M4 12h16M12 4c2.5 2.4 2.5 13.6 0 16M12 4c-2.5 2.4-2.5 13.6 0 16" strokeWidth="1.4" />
+        <svg {...common}>
+          <rect x="4" y="4" width="16" height="16" />
+          <path d="M4 12h16M12 4v16" />
         </svg>
       );
     case 'coin':
       return (
-        <svg {...props}>
-          <circle cx="12" cy="12" r="8" strokeWidth="1.7" />
-          <path d="M12 8v8M9.5 9.5h4a1.8 1.8 0 0 1 0 3.6h-4m0 0h4.5" strokeWidth="1.5" />
+        <svg {...common}>
+          <rect x="4" y="6" width="16" height="14" />
+          <path d="M4 11h16" />
+          <rect x="14" y="14" width="3" height="3" fill="currentColor" stroke="none" />
         </svg>
       );
     case 'trend':
+    default:
       return (
-        <svg {...props}>
-          <path d="M4 17l5-5 4 3 7-8M20 7v4m0-4h-4" strokeWidth="1.7" />
+        <svg {...common}>
+          <path d="M4 17l5-5 4 3 7-8" />
+          <path d="M20 7v4M20 7h-4" />
         </svg>
       );
   }
@@ -118,7 +127,6 @@ const supporterSteps: Step[] = [
 ];
 
 function Track({
-  accent,
   icon,
   title,
   badge,
@@ -126,7 +134,6 @@ function Track({
   delay,
   reduced,
 }: {
-  accent: 'blue' | 'purple';
   icon: IconName;
   title: string;
   badge: string;
@@ -136,11 +143,11 @@ function Track({
 }) {
   return (
     <motion.article
-      className={`${styles.track} ${styles[accent]}`}
-      initial={reduced ? false : { opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
+      className={styles.track}
+      initial={reduced ? false : { opacity: 0, clipPath: 'inset(0 0 100% 0)' }}
+      whileInView={{ opacity: 1, clipPath: 'inset(0 0 0 0)' }}
       viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.5, ease: EASE, delay }}
+      transition={{ duration: reduced ? 0 : 0.4, ease: EASE, delay: reduced ? 0 : delay }}
     >
       <div className={styles.trackHeader}>
         <span className={styles.trackIcon} aria-hidden>
@@ -153,13 +160,13 @@ function Track({
       <ol className={styles.stepsList}>
         {steps.map((step) => (
           <li key={step.number} className={styles.stepItem}>
-            <span className={styles.stepIcon} aria-hidden>
-              <Glyph name={step.icon} />
+            <span className={styles.stepNumber} aria-hidden>
+              {step.number.padStart(2, '0')}
             </span>
             <div className={styles.stepContent}>
               <h4 className={styles.stepTitle}>
-                <span className={styles.stepNumber} aria-hidden>
-                  {step.number}
+                <span className={styles.stepIcon} aria-hidden>
+                  <Glyph name={step.icon} />
                 </span>
                 {step.title}
               </h4>
@@ -177,24 +184,22 @@ export function HowItWorks() {
 
   return (
     <section className={styles.howItWorks} aria-labelledby="how-title">
-      <div className={styles.container}>
-        <header className={styles.header}>
-          <AnimatedFadeInUp>
-            <Eyebrow>שני מסלולים</Eyebrow>
-          </AnimatedFadeInUp>
-          <Heading level={2} id="how-title" className={styles.title}>
-            איך משתתפים — כתושב או כתומך
-          </Heading>
-          <AnimatedFadeInUp delay={0.1}>
-            <Text as="p" size="lg" color="secondary" className={styles.subtitle}>
-              תושב מקומי שמצביע בנושאים של העיר שלו, או תומך חיצוני שמזרים משאבים לנושא שחשוב לו.
-            </Text>
-          </AnimatedFadeInUp>
+      <div className={styles.inner}>
+        <header className={styles.head}>
+          <span className={styles.kicker}>
+            <span aria-hidden className={styles.kickerTick} />
+            שני מסלולים · TWO TRACKS
+          </span>
+          <h2 id="how-title" className={styles.headline}>
+            איך משתתפים — כתושב או <span className={styles.red}>כתומך.</span>
+          </h2>
+          <p className={styles.standfirst}>
+            תושב מקומי שמצביע בנושאים של העיר שלו, או תומך חיצוני שמזרים משאבים לנושא שחשוב לו.
+          </p>
         </header>
 
-        <div className={styles.tracksContainer}>
+        <div className={styles.tracks}>
           <Track
-            accent="blue"
             icon="shield"
             title="לתושבים"
             badge="מצביעים מאומתים"
@@ -203,7 +208,6 @@ export function HowItWorks() {
             reduced={reduced}
           />
           <Track
-            accent="purple"
             icon="globe"
             title="לתומכים"
             badge="תמיכה מכל העולם"
@@ -213,24 +217,16 @@ export function HowItWorks() {
           />
         </div>
 
-        <AnimatedFadeInUp delay={0.1} className={styles.feeNote}>
-          <span className={styles.feeNoteIcon} aria-hidden>
-            <svg viewBox="0 0 24 24" width="22" height="22">
-              <path
-                d="M12 3v18M7 7h7a3 3 0 0 1 0 6H7m0 0h8"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </span>
-          <div className={styles.feeNoteContent}>
-            <strong>70% מכל עמלות המסחר זורמים לקרן הקהילתית של הרשות</strong>
-            <span className={styles.feeNoteSub}>30% מממנים את התחזוקה והפיתוח של הפלטפורמה</span>
+        {/* Fee split — ink block callout */}
+        <div className={styles.feeNote}>
+          <span className={styles.feeNum}>70%</span>
+          <div className={styles.feeBody}>
+            <p className={styles.feeTitle}>
+              מכל עמלות המסחר זורמים לקרן הקהילתית של הרשות
+            </p>
+            <span className={styles.feeSub}>30% מממנים את התחזוקה והפיתוח של הפלטפורמה</span>
           </div>
-        </AnimatedFadeInUp>
+        </div>
       </div>
     </section>
   );

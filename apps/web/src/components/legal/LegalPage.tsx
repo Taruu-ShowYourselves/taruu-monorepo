@@ -24,15 +24,16 @@ interface LegalPageProps {
 
 /**
  * Shared layout for static legal / informational pages
- * (terms, privacy, refund, pricing). RTL-aware via the locale.
- * Server shell — the luminous, interactive body lives in {@link LegalContent}.
+ * (terms, privacy, refund, pricing) — the fine-print imprint pages of the
+ * newspaper. Brutalist tech-press: newsprint cream, ink rules, mono datelines,
+ * serif reading column. RTL-aware via the locale. Server shell — the
+ * interactive editorial body lives in {@link LegalContent}.
  */
 export function LegalPage({ locale, title, intro, updated, sections }: LegalPageProps) {
   return (
     <>
       <Header locale={locale} />
-      <main className={styles.main}>
-        <div className={styles.aura} aria-hidden />
+      <main className={`np-page ${styles.main}`}>
         <div className={styles.container}>
           <LegalContent title={title} intro={intro} updated={updated} sections={sections} />
         </div>

@@ -1,26 +1,15 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { GradientText } from '@/components/ui/GradientText';
-import { Eyebrow } from '@/components/ui/Eyebrow';
-import { Text, Heading } from '@/components/ui/Typography';
-import { AnimatedFadeInUp, AnimatedWords } from '@/components/animations';
+import { NewsButton } from '@/components/press';
 import { useReducedMotion } from '@/hooks';
 import styles from './TreasuryHero.module.css';
 
-const EASE = [0.22, 1, 0.36, 1] as const;
-
-/** Shekel mark — clean inline glyph, no emoji. */
-function Shekel({ className }: { className?: string }) {
-  return (
-    <span className={className} aria-hidden>
-      ₪
-    </span>
-  );
-}
+const EASE = [0.2, 0, 0, 1] as const;
+const WHATSAPP_LINK = 'https://chat.whatsapp.com/FITvea9IVsn2Ljie1yCrAc';
 
 interface Rule {
-  accent: 'blue' | 'green' | 'purple';
+  no: string;
   title: string;
   text: string;
   icon: React.ReactNode;
@@ -28,7 +17,7 @@ interface Rule {
 
 const RULES: Rule[] = [
   {
-    accent: 'green',
+    no: '01',
     title: 'שקיפות מלאה',
     text: 'כל הכנסה וכל הוצאה מתועדות בזמן אמת — פתוחות לבדיקה של כל תושב, בלי חדרים סגורים.',
     icon: (
@@ -45,7 +34,7 @@ const RULES: Rule[] = [
     ),
   },
   {
-    accent: 'blue',
+    no: '02',
     title: 'אישור הקהילה',
     text: 'הוצאות מעל סף מסוים אינן יוצאות לדרך ללא הצבעת אישור של הקהילה. הרוב מחליט גם על ההוצאה.',
     icon: (
@@ -68,7 +57,7 @@ const RULES: Rule[] = [
     ),
   },
   {
-    accent: 'purple',
+    no: '03',
     title: 'ביקורת עצמאית',
     text: 'הקרן עוברת ביקורת חשבונאית עצמאית מדי שנה — גורם חיצוני שמאמת שכל שקל במקומו.',
     icon: (
@@ -97,59 +86,62 @@ export function TreasuryHero() {
 
   return (
     <section className={styles.hero} aria-labelledby="treasury-hero-title">
-      <span className={styles.auraGreen} aria-hidden />
-      <span className={styles.auraBlue} aria-hidden />
-
       <div className={styles.container}>
         <header className={styles.head}>
-          <AnimatedFadeInUp>
-            <Eyebrow>שקיפות הקרן</Eyebrow>
-          </AnimatedFadeInUp>
+          <span className={styles.kicker}>
+            <span aria-hidden className={styles.kickerTick} />
+            שקיפות הקרן · עמוד כלכלה
+          </span>
 
-          <Heading level={1} id="treasury-hero-title" className={styles.heading}>
-            <AnimatedWords text="כל שקל בקרן —" />
-            <span className={styles.headingAccent}>
-              <GradientText variant="green" animated>
-                גלוי לעין.
-              </GradientText>
-            </span>
-          </Heading>
+          <h2 id="treasury-hero-title" className={styles.headline}>
+            כל שקל בקרן — <span className={styles.red}>גלוי לעין.</span>
+          </h2>
 
-          <AnimatedFadeInUp delay={0.1}>
-            <Text as="p" size="lg" color="secondary" className={styles.description}>
-              הקרן הקהילתית פתוחה לבדיקה: כל הכנסה וכל הוצאה מתועדות בזמן אמת. הוצאות
-              מעל סף מסוים דורשות אישור הקהילה, והקרן עוברת ביקורת חשבונאית עצמאית.
-            </Text>
-          </AnimatedFadeInUp>
+          <p className={styles.standfirst}>
+            הקרן הקהילתית פתוחה לבדיקה: כל הכנסה וכל הוצאה מתועדות בזמן אמת. הוצאות
+            מעל סף מסוים דורשות אישור הקהילה, והקרן עוברת ביקורת חשבונאית עצמאית.
+          </p>
+
+          <div className={styles.actions}>
+            <NewsButton
+              href={WHATSAPP_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              variant="red"
+              size="lg"
+              trailing={<span aria-hidden>←</span>}
+            >
+              הצטרפו לפיילוט
+            </NewsButton>
+            <span className={styles.dateline}>קריית טבעון · גיליון כלכלה</span>
+          </div>
         </header>
 
+        <span className={styles.rulesHead}>הקרן עומדת על שלושה עקרונות</span>
         <ul className={styles.rules}>
           {RULES.map((rule, i) => (
             <motion.li
               key={rule.title}
-              className={`${styles.rule} ${styles[`rule_${rule.accent}`]}`}
-              initial={reduced ? false : { opacity: 0, y: 18 }}
+              className={styles.rule}
+              initial={reduced ? false : { opacity: 0, y: 14 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.5, ease: EASE, delay: 0.1 + i * 0.1 }}
+              transition={{ duration: 0.4, ease: EASE, delay: 0.06 * i }}
             >
-              <span className={`${styles.ruleIcon} ${styles[`icon_${rule.accent}`]}`}>
-                {rule.icon}
-              </span>
-              <h2 className={styles.ruleTitle}>{rule.title}</h2>
+              <span className={styles.ruleNo}>{rule.no}</span>
+              <span className={styles.ruleIcon}>{rule.icon}</span>
+              <h3 className={styles.ruleTitle}>{rule.title}</h3>
               <p className={styles.ruleText}>{rule.text}</p>
             </motion.li>
           ))}
         </ul>
 
-        <AnimatedFadeInUp delay={0.2} className={styles.trust}>
-          <span className={styles.trustIcon} aria-hidden>
-            <Shekel />
+        <p className={styles.trust}>
+          <span className={styles.trustMark} aria-hidden>
+            ₪
           </span>
-          <Text as="p" size="base" weight="medium" className={styles.trustText}>
-            הכסף שלכם נשאר בקהילה — ואתם רואים בדיוק לאן הוא הולך.
-          </Text>
-        </AnimatedFadeInUp>
+          הכסף שלכם נשאר בקהילה — ואתם רואים בדיוק לאן הוא הולך.
+        </p>
       </div>
     </section>
   );
