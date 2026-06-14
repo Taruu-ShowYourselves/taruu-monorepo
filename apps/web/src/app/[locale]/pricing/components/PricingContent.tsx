@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { NewsButton } from '@/components/press';
 import { Receipt } from '@/components/press';
 import { useReducedMotion } from '@/hooks';
+import { VOTE_COST, CREATE_VOTE_COST } from '@sync/shared';
 import styles from './PricingContent.module.css';
 
 const WHATSAPP_URL = 'https://chat.whatsapp.com/FITvea9IVsn2Ljie1yCrAc';
@@ -62,8 +63,9 @@ export function PricingContent() {
           </h2>
 
           <p className={styles.standfirst}>
-            ₪3 להשתתפות בהצבעה (₪2 לקרן הקהילתית, ₪1 לתפעול). ₪50 ליצירת הצבעה
-            חדשה. אין מנוי, אין דמי חבר, אין אותיות קטנות.
+            ₪{VOTE_COST} להשתתפות בהצבעה (₪2 לקרן הקהילתית, ₪1 לתפעול). ₪
+            {CREATE_VOTE_COST} ליצירת הצבעה חדשה. אין מנוי, אין דמי חבר, אין
+            אותיות קטנות.
           </p>
         </header>
 
@@ -83,7 +85,7 @@ export function PricingContent() {
                 <span className={styles.priceShekel} aria-hidden>
                   ₪
                 </span>
-                3
+                {VOTE_COST}
               </motion.span>
               <span className={styles.priceUnit}>/ הצבעה</span>
             </div>
@@ -124,7 +126,7 @@ export function PricingContent() {
                 <span className={styles.priceShekel} aria-hidden>
                   ₪
                 </span>
-                50
+                {CREATE_VOTE_COST}
               </motion.span>
               <span className={styles.priceUnit}>/ הצבעה</span>
             </div>

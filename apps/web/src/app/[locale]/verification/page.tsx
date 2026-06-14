@@ -3,139 +3,48 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
-import { motion } from 'framer-motion';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { GlassCard, GradientText, RippleButton, Eyebrow } from '@/components/ui';
-import { useReducedMotion } from '@/hooks';
+import { NewsButton, Stepper, SealCard } from '@/components/press';
 import styles from './page.module.css';
-
-const EASE = [0.22, 1, 0.36, 1] as const;
-
-/* ----------------------------- inline SVG icons ---------------------------- */
-
-function ShieldCheckIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden>
-      <path
-        d="M12 3l7 3v5c0 4.4-3 7.7-7 9-4-1.3-7-4.6-7-9V6l7-3Z M9 12l2 2 4-4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function NoTrackIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden>
-      <path
-        d="M12 21s7-5.4 7-11a7 7 0 0 0-11.6-5.2 M5.4 7.6A7 7 0 0 0 5 10c0 5.6 7 11 7 11 M4 4l16 16"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden>
-      <path
-        d="M5 12.5l4 4 10-10"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function CrossIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden>
-      <path
-        d="M7 7l10 10M17 7L7 17"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function LocationIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden>
-      <path
-        d="M12 21s7-5.4 7-11a7 7 0 1 0-14 0c0 5.6 7 11 7 11Z M12 10.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function ProgressIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden>
-      <path
-        d="M20 12a8 8 0 1 1-2.34-5.66 M20 4v4h-4"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function PhoneIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden>
-      <path
-        d="M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z M11 18h2"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 /* ------------------------------ reassurance data --------------------------- */
 
-const DO_ITEMS = [
-  'בודקים מיקום פעם אחת, בדיוק ברגע ההצבעה',
-  'מוודאים שאתם נמצאים בתחום הרשות',
-  'מאשרים שכל קול בשכונה הוא של תושב אמיתי',
+const LEDGER_ITEMS = [
+  { mark: '✕', tone: 'red' as const, text: 'לא שומרים מיקום' },
+  { mark: '✕', tone: 'red' as const, text: 'לא משתפים מיקום עם אף גורם' },
+  { mark: '✕', tone: 'red' as const, text: 'לא עוקבים אחריכם בין הצבעה להצבעה' },
+  { mark: '✓', tone: 'ink' as const, text: 'בדיקה חד-פעמית ברגע ההצבעה בלבד' },
+  { mark: '✓', tone: 'ink' as const, text: 'מוודאים רק שאתם בתחום הרשות' },
+  { mark: '✓', tone: 'ink' as const, text: 'כל קול בשכונה הוא של תושב אמיתי' },
 ];
 
-const DONT_ITEMS = [
-  'לא שומרים את המסלולים שלכם',
-  'לא משתפים את המיקום עם אף גורם',
-  'לא עוקבים אחריכם בין הצבעה להצבעה',
+/* Press flow steps — maps to the existing verification phases. */
+const STEPS = [
+  { label: 'זהות' },
+  { label: 'נוכחות' },
+  { label: 'אישור' },
 ];
+
+/** Map the existing phase model onto the 3-step press flow index. */
+function phaseToStep(phase: string): number {
+  switch (phase) {
+    case 'not_started':
+      return 0;
+    case 'in_progress':
+      return 1;
+    case 'completed':
+      return 2;
+    case 'failed':
+      return 1;
+    default:
+      return 0;
+  }
+}
 
 export default function VerificationPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useAuth();
-  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -143,35 +52,29 @@ export default function VerificationPage() {
     }
   }, [isLoading, isAuthenticated, router]);
 
-  const fadeIn = (delay = 0) => ({
-    initial: { opacity: reducedMotion ? 1 : 0, y: reducedMotion ? 0 : 16 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.5, delay: reducedMotion ? 0 : delay, ease: EASE },
-  });
-
   if (isLoading) {
     return (
-      <>
+      <div className="np-page">
         <Header />
         <main className={styles.main}>
-          <div className={styles.mesh} aria-hidden />
           <div className={styles.container} aria-busy="true" aria-label="טוען">
             <div className={styles.skeletonContainer}>
               <div className={styles.skeletonHeader}>
+                <div className={`${styles.skelLine} ${styles.skelKicker}`} />
                 <div className={`${styles.skelLine} ${styles.skelTitle}`} />
                 <div className={`${styles.skelLine} ${styles.skelLead}`} />
                 <div className={`${styles.skelLine} ${styles.skelLeadShort}`} />
               </div>
+              <div className={styles.skelStepper} />
               <div className={styles.skeletonGrid}>
-                <div className={styles.skelCard} />
-                <div className={styles.skelCard} />
+                <div className={styles.skelPanel} />
+                <div className={styles.skelLedger} />
               </div>
-              <div className={styles.skelPanel} />
             </div>
           </div>
         </main>
         <Footer />
-      </>
+      </div>
     );
   }
 
@@ -179,134 +82,114 @@ export default function VerificationPage() {
   const phase = verificationStatus?.phase || 'not_started';
   const checkInsCompleted = verificationStatus?.checkInsCompleted || 0;
   const checkInsTotal = verificationStatus?.checkInsTotal || 0;
+  const currentStep = phaseToStep(phase);
+
+  const daysRemaining = verificationStatus?.startedAt
+    ? Math.max(
+        0,
+        21 -
+          Math.floor(
+            (Date.now() - new Date(verificationStatus.startedAt).getTime()) /
+              (1000 * 60 * 60 * 24)
+          )
+      )
+    : 21;
+
+  const progressPct = checkInsTotal > 0 ? (checkInsCompleted / checkInsTotal) * 100 : 0;
 
   return (
-    <>
+    <div className="np-page">
       <Header />
       <main className={styles.main}>
-        <div className={styles.mesh} aria-hidden />
         <div className={styles.container}>
-          <motion.header className={styles.header} {...fadeIn()}>
-            <Eyebrow>אימות תושב</Eyebrow>
+          {/* Dateline + masthead-ear meta */}
+          <div className={styles.dateline}>
+            <span className={styles.datelineTick} aria-hidden />
+            <span>אימות תושב · VERIFICATION</span>
+            <span className={styles.datelineSep} aria-hidden>■</span>
+            <span>פרוצדורה חד-פעמית</span>
+          </div>
+
+          <div className="np-rule-heavy" aria-hidden />
+
+          {/* Lead: reassurance-first headline + standfirst */}
+          <header className={styles.lead}>
+            <span className={styles.kicker}>
+              <span aria-hidden className={styles.kickerTick} />
+              שקיפות · פרטיות · אמון
+            </span>
             <h1 className={styles.heading}>
               מאמתים שאתם מכאן —{' '}
-              <span className={styles.headingAccent}>
-                <GradientText variant="green">לא עוקבים אחריכם.</GradientText>
-              </span>
+              <span className={styles.headingAccent}>לא עוקבים אחריכם.</span>
             </h1>
-            <p className={styles.lead}>
+            <p className={styles.lead_p}>
               בדיקת מיקום חד-פעמית ברגע ההצבעה מוודאת שאתם תושבי הרשות. לא שומרים
               מסלולים, לא משתפים מיקום, לא עוקבים. זה מה שמבטיח שכל קול בשכונה הוא
               של תושב אמיתי.
             </p>
-          </motion.header>
+          </header>
 
-          {/* Reassurance: what we check / what we don't do */}
-          <motion.div className={styles.reassureGrid} {...fadeIn(0.1)}>
-            <GlassCard
-              variant="static"
-              glow="green"
-              className={`${styles.reassureCard} ${styles.cardDo}`}
-            >
-              <div className={styles.reassureInner}>
-                <div className={styles.reassureHead}>
-                  <span className={`${styles.reassureBadge} ${styles.badgeDo}`}>
-                    <ShieldCheckIcon />
-                  </span>
-                  <h2 className={styles.reassureTitle}>מה אנחנו בודקים</h2>
-                </div>
-                <ul className={styles.reassureList}>
-                  {DO_ITEMS.map((item) => (
-                    <li key={item} className={styles.reassureItem}>
-                      <span className={`${styles.itemIcon} ${styles.itemIconDo}`}>
-                        <CheckIcon />
-                      </span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </GlassCard>
+          {/* The press procedure: stepper */}
+          <Stepper steps={STEPS} current={currentStep} className={styles.stepper} />
 
-            <GlassCard variant="static" className={styles.reassureCard}>
-              <div className={styles.reassureInner}>
-                <div className={styles.reassureHead}>
-                  <span className={`${styles.reassureBadge} ${styles.badgeDont}`}>
-                    <NoTrackIcon />
-                  </span>
-                  <h2 className={styles.reassureTitle}>מה אנחנו לא עושים</h2>
-                </div>
-                <ul className={styles.reassureList}>
-                  {DONT_ITEMS.map((item) => (
-                    <li key={item} className={styles.reassureItem}>
-                      <span className={`${styles.itemIcon} ${styles.itemIconDont}`}>
-                        <CrossIcon />
-                      </span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </GlassCard>
-          </motion.div>
-
-          {/* Phase-driven state panel */}
-          {phase === 'not_started' && (
-            <motion.div className={styles.panel} {...fadeIn(0.2)}>
-              <GlassCard variant="static" glow="blue">
-                <div className={styles.panelInner}>
-                  <div className={styles.panelHead}>
-                    <span className={`${styles.statusIcon} ${styles.iconBlue}`}>
-                      <LocationIcon />
-                    </span>
-                    <h2 className={styles.panelTitle}>התחילו את תהליך האימות</h2>
-                  </div>
+          {/* Two-column spread: state panel + reassurance ledger sidebar */}
+          <div className={styles.spread}>
+            <section className={styles.panelCol}>
+              {phase === 'not_started' && (
+                <article className={styles.panel}>
+                  <header className={styles.panelHead}>
+                    <span className={styles.panelTag}>שלב 1 · זהות</span>
+                    <h2 className={styles.panelTitle}>פתחו את פרוצדורת האימות</h2>
+                  </header>
                   <p className={styles.panelText}>
                     תהליך האימות נמשך 21 יום ודורש 5-7 צ׳ק-אינים במיקום שלכם.
                     תקבלו התראות בזמנים אקראיים לביצוע צ׳ק-אין.
                   </p>
 
-                  <div className={styles.steps}>
+                  <ol className={styles.steps}>
                     {[
-                      { n: 1, title: 'התחילו את התהליך', note: 'לחצו על הכפתור למטה להתחלה' },
+                      { n: 1, title: 'פתחו את התהליך', note: 'לחצו על הכפתור למטה להתחלה' },
                       { n: 2, title: 'קבלו התראות', note: 'תקבלו 5-7 התראות בזמנים אקראיים' },
                       { n: 3, title: 'בצעו צ׳ק-אין', note: 'אשרו את המיקום שלכם באפליקציה' },
                       { n: 4, title: 'השלימו את האימות', note: 'לאחר 21 יום תוכלו להצביע' },
                     ].map((step) => (
-                      <div key={step.n} className={styles.step}>
-                        <span className={styles.stepNumber}>{step.n}</span>
+                      <li key={step.n} className={styles.step}>
+                        <span className={styles.stepNumber}>{String(step.n).padStart(2, '0')}</span>
                         <span className={styles.stepBody}>
                           <span className={styles.stepTitle}>{step.title}</span>
                           <span className={styles.stepNote}>{step.note}</span>
                         </span>
-                      </div>
+                      </li>
                     ))}
-                  </div>
+                  </ol>
 
-                  <div className={styles.actions}>
-                    <RippleButton size="lg" onClick={() => alert('Coming soon - use mobile app')}>
-                      התחל אימות
-                    </RippleButton>
-                    <span className={styles.mobileNote}>
-                      <PhoneIcon />
-                      לחוויה הטובה ביותר, השתמשו באפליקציה במכשיר הנייד
+                  <div className={styles.gpsBox}>
+                    <NewsButton
+                      variant="red"
+                      size="lg"
+                      onClick={() => alert('Coming soon - use mobile app')}
+                      trailing={<span aria-hidden>←</span>}
+                    >
+                      אמתו נוכחות
+                    </NewsButton>
+                    <span className={styles.gpsNote}>
+                      בדיקה חד-פעמית. לא שומרים מיקום.
                     </span>
                   </div>
-                </div>
-              </GlassCard>
-            </motion.div>
-          )}
 
-          {phase === 'in_progress' && (
-            <motion.div className={styles.panel} {...fadeIn(0.2)}>
-              <GlassCard variant="static" glow="green">
-                <div className={styles.panelInner}>
-                  <div className={styles.panelHead}>
-                    <span className={`${styles.statusIcon} ${styles.iconGreen}`}>
-                      <ProgressIcon />
-                    </span>
+                  <p className={styles.mobileNote}>
+                    <span aria-hidden className={styles.mobileGlyph}>▍</span>
+                    לחוויה הטובה ביותר, השתמשו באפליקציה במכשיר הנייד
+                  </p>
+                </article>
+              )}
+
+              {phase === 'in_progress' && (
+                <article className={styles.panel}>
+                  <header className={styles.panelHead}>
+                    <span className={styles.panelTag}>שלב 2 · נוכחות</span>
                     <h2 className={styles.panelTitle}>האימות בתהליך</h2>
-                  </div>
+                  </header>
 
                   <div className={styles.progress}>
                     <div className={styles.progressHeader}>
@@ -324,9 +207,7 @@ export default function VerificationPage() {
                     >
                       <div
                         className={styles.progressFill}
-                        style={{
-                          width: `${checkInsTotal > 0 ? (checkInsCompleted / checkInsTotal) * 100 : 0}%`,
-                        }}
+                        style={{ inlineSize: `${progressPct}%` }}
                       />
                     </div>
                   </div>
@@ -334,18 +215,7 @@ export default function VerificationPage() {
                   <div className={styles.statusInfo}>
                     <div className={styles.statusItem}>
                       <span className={styles.statusLabel}>ימים שנותרו</span>
-                      <span className={styles.statusValue}>
-                        {verificationStatus?.startedAt
-                          ? Math.max(
-                              0,
-                              21 -
-                                Math.floor(
-                                  (Date.now() - new Date(verificationStatus.startedAt).getTime()) /
-                                    (1000 * 60 * 60 * 24)
-                                )
-                            )
-                          : 21}
-                      </span>
+                      <span className={styles.statusValue}>{daysRemaining}</span>
                     </div>
                     <div className={styles.statusItem}>
                       <span className={styles.statusLabel}>צ׳ק-אינים נותרו</span>
@@ -355,66 +225,105 @@ export default function VerificationPage() {
                     </div>
                   </div>
 
-                  <span className={styles.mobileNote}>
-                    <PhoneIcon />
+                  <p className={styles.mobileNote}>
+                    <span aria-hidden className={styles.mobileGlyph}>▍</span>
                     המתינו להתראה הבאה באפליקציה לביצוע צ׳ק-אין
-                  </span>
-                </div>
-              </GlassCard>
-            </motion.div>
-          )}
+                  </p>
+                </article>
+              )}
 
-          {phase === 'completed' && (
-            <motion.div className={styles.panel} {...fadeIn(0.2)}>
-              <GlassCard variant="static" glow="green" className={styles.cardDo}>
-                <div className={styles.panelInner}>
-                  <div className={styles.panelHead}>
-                    <span className={`${styles.statusIcon} ${styles.iconGreen}`}>
-                      <ShieldCheckIcon />
-                    </span>
-                    <h2 className={styles.panelTitle}>האימות הושלם בהצלחה!</h2>
-                  </div>
+              {phase === 'completed' && (
+                <article className={styles.panel}>
+                  <header className={styles.panelHead}>
+                    <span className={styles.panelTag}>שלב 3 · אישור</span>
+                    <h2 className={styles.panelTitle}>האימות הושלם בהצלחה</h2>
+                  </header>
+
+                  <SealCard
+                    hash="מאומת · תושב/ת קריית טבעון"
+                    status="sealed"
+                    meta={[
+                      { label: 'סטטוס', value: 'מאומת' },
+                      { label: 'רשות', value: 'קריית טבעון' },
+                      { label: 'צ׳ק-אינים', value: `${checkInsCompleted}/${checkInsTotal || checkInsCompleted}` },
+                    ]}
+                    className={styles.seal}
+                  />
+
                   <p className={styles.panelText}>
                     כל הכבוד! סיימתם את תהליך אימות התושבות ועכשיו תוכלו להצביע
                     על נושאים מקומיים בקהילה שלכם.
                   </p>
-                  <div className={styles.actions}>
-                    <RippleButton size="lg" onClick={() => router.push('/votes')}>
-                      צפו בהצבעות פעילות
-                    </RippleButton>
-                  </div>
-                </div>
-              </GlassCard>
-            </motion.div>
-          )}
 
-          {phase === 'failed' && (
-            <motion.div className={styles.panel} {...fadeIn(0.2)}>
-              <GlassCard variant="static">
-                <div className={styles.panelInner}>
-                  <div className={styles.panelHead}>
-                    <span className={`${styles.statusIcon} ${styles.iconRed}`}>
-                      <CrossIcon />
+                  <div className={styles.gpsBox}>
+                    <NewsButton
+                      variant="ink"
+                      size="lg"
+                      onClick={() => router.push('/votes')}
+                      trailing={<span aria-hidden>←</span>}
+                    >
+                      צפו בהצבעות פעילות
+                    </NewsButton>
+                  </div>
+                </article>
+              )}
+
+              {phase === 'failed' && (
+                <article className={styles.panel}>
+                  <header className={styles.panelHead}>
+                    <span className={`${styles.panelTag} ${styles.panelTagFail}`}>
+                      ✕ לא הושלם
                     </span>
                     <h2 className={styles.panelTitle}>האימות נכשל</h2>
-                  </div>
+                  </header>
                   <p className={styles.panelText}>
-                    לצערנו, תהליך האימות לא הושלם בהצלחה. זה יכול לקרות אם
-                    פספסתם יותר מדי צ׳ק-אינים או אם המיקום שלכם לא היה ברשות
-                    הנבחרת.
+                    משהו השתבש אצלנו, לא אצלכם. זה יכול לקרות אם פספסתם יותר מדי
+                    צ׳ק-אינים או אם המיקום שלכם לא היה ברשות הנבחרת. נסו שוב בעוד
+                    רגע.
                   </p>
-                  <div className={styles.actions}>
-                    <RippleButton size="lg" onClick={() => alert('Coming soon')}>
-                      התחל מחדש
-                    </RippleButton>
+                  <div className={styles.gpsBox}>
+                    <NewsButton
+                      variant="red"
+                      size="lg"
+                      onClick={() => alert('Coming soon')}
+                      trailing={<span aria-hidden>←</span>}
+                    >
+                      התחילו מחדש
+                    </NewsButton>
                   </div>
-                </div>
-              </GlassCard>
-            </motion.div>
-          )}
+                </article>
+              )}
+            </section>
+
+            {/* Reassurance ledger — "מה אנחנו לא עושים" */}
+            <aside className={styles.ledgerCol}>
+              <div className={styles.ledger}>
+                <h2 className={styles.ledgerTitle}>מה אנחנו לא עושים</h2>
+                <ul className={styles.ledgerList}>
+                  {LEDGER_ITEMS.map((item) => (
+                    <li
+                      key={item.text}
+                      className={`${styles.ledgerItem} ${
+                        item.tone === 'red' ? styles.ledgerItemRed : styles.ledgerItemInk
+                      }`}
+                    >
+                      <span className={styles.ledgerMark} aria-hidden>
+                        {item.mark}
+                      </span>
+                      <span className={styles.ledgerText}>{item.text}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className={styles.ledgerFoot}>
+                  <span aria-hidden className={styles.mobileGlyph}>▍</span>
+                  פרטיות לפי תכן · חתום בבלוקצ׳יין
+                </p>
+              </div>
+            </aside>
+          </div>
         </div>
       </main>
       <Footer />
-    </>
+    </div>
   );
 }

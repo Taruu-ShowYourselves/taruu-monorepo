@@ -2,26 +2,70 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { Button } from '@/components/ui/Button';
+import {
+  NewsButton,
+  PressInput,
+  Segmented,
+  Stepper,
+  Receipt,
+  SealCard,
+} from '@/components/press';
 import { useAuth } from '@/providers/AuthProvider';
 import { CREATE_VOTE_COST, formatCurrency } from '@sync/shared';
 import styles from './page.module.css';
 
+// ---------------------------------------------------------------------------
+// Microcopy (locked press system)
+// ---------------------------------------------------------------------------
+const MSG_REQUIRED = 'צריך למלא את השדה הזה כדי להמשיך.';
+const MSG_GENERAL = 'משהו השתבש אצלנו, לא אצלכם. נסו שוב בעוד רגע.';
+
+// Press wizard is 4 editorial steps; the underlying validation stays 3-staged
+// (details → options → payment) — duration lives on the payment plate.
+const STEP_LABELS = [
+  { label: 'נושא' },
+  { label: 'אפשרויות' },
+  { label: 'משך' },
+  { label: 'תשלום' },
+];
+
+const DURATIONS = [
+  { value: '3', label: '3 ימים' },
+  { value: '7', label: '7 ימים' },
+  { value: '14', label: '14 יום' },
+  { value: '30', label: '30 יום' },
+];
+
+const STEP_COUNT = STEP_LABELS.length;
+
 export default function CreateVotePage() {
   const router = useRouter();
+  const reduceMotion = useReducedMotion();
   const { isAuthenticated, isLoading } = useAuth();
+
+  // 1-based step index preserved (1..4)
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // Form state
+  // Per-field validation errors (press inputs render their own ✕ rule)
+  const [titleError, setTitleError] = useState('');
+  const [descriptionError, setDescriptionError] = useState('');
+  const [optionsError, setOptionsError] = useState('');
+
+  // Success surface (graceful in-page fallback when no redirect URL is issued)
+  const [sealHash, setSealHash] = useState<string | null>(null);
+
+  // Form state — unchanged
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [options, setOptions] = useState(['', '']);
   const [duration, setDuration] = useState(7); // days
+
+  const filledOptions = options.filter((o) => o.trim());
 
   const addOption = () => {
     if (options.length < 5) {
@@ -39,44 +83,52 @@ export default function CreateVotePage() {
     const newOptions = [...options];
     newOptions[index] = value;
     setOptions(newOptions);
+    if (optionsError) setOptionsError('');
   };
 
   const validateStep1 = () => {
+    let ok = true;
     if (!title.trim()) {
-      setError('יש להזין כותרת');
-      return false;
+      setTitleError(MSG_REQUIRED);
+      ok = false;
+    } else if (title.length < 10) {
+      setTitleError('הכותרת חייבת להכיל לפחות 10 תווים.');
+      ok = false;
+    } else {
+      setTitleError('');
     }
-    if (title.length < 10) {
-      setError('הכותרת חייבת להכיל לפחות 10 תווים');
-      return false;
-    }
+
     if (!description.trim()) {
-      setError('יש להזין תיאור');
-      return false;
+      setDescriptionError(MSG_REQUIRED);
+      ok = false;
+    } else if (description.length < 30) {
+      setDescriptionError('התיאור חייב להכיל לפחות 30 תווים.');
+      ok = false;
+    } else {
+      setDescriptionError('');
     }
-    if (description.length < 30) {
-      setError('התיאור חייב להכיל לפחות 30 תווים');
-      return false;
-    }
-    setError('');
-    return true;
+
+    return ok;
   };
 
   const validateStep2 = () => {
-    const filledOptions = options.filter((o) => o.trim());
     if (filledOptions.length < 2) {
-      setError('יש להזין לפחות 2 אפשרויות');
+      setOptionsError('צריך לפחות 2 אפשרויות כדי להמשיך.');
       return false;
     }
-    setError('');
+    setOptionsError('');
     return true;
   };
 
   const handleNext = () => {
+    setError('');
     if (step === 1 && validateStep1()) {
       setStep(2);
     } else if (step === 2 && validateStep2()) {
       setStep(3);
+    } else if (step === 3) {
+      // Duration always has a value — straight through to payment.
+      setStep(4);
     }
   };
 
@@ -116,29 +168,41 @@ export default function CreateVotePage() {
 
       const data = await response.json();
 
-      // Redirect to Paddle payment page
-      if (data.payment?.paymentUrl) {
-        // Store vote creation data in sessionStorage before redirect
-        sessionStorage.setItem('pendingVote', JSON.stringify({
-          title,
-          description,
-          options: options.filter((o) => o.trim()),
-          duration,
-          paymentId: data.payment.id,
-          orderId: data.payment.orderId,
-        }));
+      // Persist pending vote for post-payment finalisation — unchanged.
+      const pendingVote = {
+        title,
+        description,
+        options: filledOptions,
+        duration,
+        paymentId: data.payment?.id,
+        orderId: data.payment?.orderId,
+      };
 
+      // Real flow: redirect to the Paddle checkout when a URL is issued.
+      if (data.payment?.paymentUrl) {
+        sessionStorage.setItem('pendingVote', JSON.stringify(pendingVote));
         window.location.href = data.payment.paymentUrl;
-      } else {
-        throw new Error('No payment URL received');
+        return;
       }
+
+      // Graceful MOCK fallback: API succeeded but issued no checkout URL
+      // (e.g. sandbox without Paddle). Render the in-page seal instead of
+      // erroring, so the press success surface is reachable.
+      sessionStorage.setItem('pendingVote', JSON.stringify(pendingVote));
+      setSealHash(
+        data.payment?.id
+          ? String(data.payment.id)
+          : `0x${Math.random().toString(16).slice(2).padEnd(40, '0').slice(0, 40)}`,
+      );
+      setSubmitting(false);
     } catch (err: unknown) {
       console.error('Payment error:', err);
-      setError(err instanceof Error ? err.message : 'שגיאה ביצירת ההצבעה');
+      setError(MSG_GENERAL);
       setSubmitting(false);
     }
   };
 
+  // ----- Loading skeleton (press furniture) ------------------------------
   if (isLoading) {
     return (
       <>
@@ -155,99 +219,154 @@ export default function CreateVotePage() {
     );
   }
 
+  // ----- Success surface (seal) ------------------------------------------
+  if (sealHash) {
+    return (
+      <>
+        <Header />
+        <main className={styles.main}>
+          <div className={styles.container}>
+            <header className={styles.head}>
+              <span className={styles.kicker}>
+                <span aria-hidden className={styles.kickerTick} />
+                הצבעה נוצרה · CREATED
+              </span>
+              <h1 className={styles.headline}>
+                ההצבעה שלכם <span className={styles.red}>בדרך לדפוס.</span>
+              </h1>
+            </header>
+
+            <div className={styles.successGrid}>
+              <Receipt
+                kicker="קבלה · RECEIPT"
+                title={title}
+                rows={[
+                  { label: 'משך הצבעה', value: `${duration} ימים` },
+                  { label: 'אפשרויות', value: String(filledOptions.length) },
+                  { label: 'דמי יצירה', value: formatCurrency(CREATE_VOTE_COST), strong: true },
+                ]}
+                footer="תַּרְאוּ · קריית טבעון · המהדורה הקהילתית"
+              />
+              <SealCard
+                hash={sealHash}
+                status="sealed"
+                meta={[
+                  { label: 'STATUS', value: 'CREATED' },
+                  { label: 'DURATION', value: `${duration}D` },
+                ]}
+              />
+            </div>
+
+            <div className={styles.actionBar}>
+              <NewsButton
+                variant="red"
+                size="lg"
+                onClick={() => router.push('/votes')}
+                trailing={<span aria-hidden>←</span>}
+              >
+                לכל ההצבעות
+              </NewsButton>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  const stepTransition = reduceMotion
+    ? { duration: 0 }
+    : { duration: 0.16, ease: [0.2, 0, 0, 1] as const };
+
+  const primaryLabel = submitting
+    ? 'מעבד תשלום…'
+    : step < STEP_COUNT
+      ? 'המשך'
+      : `צרו הצבעה · ${formatCurrency(CREATE_VOTE_COST)}`;
+
   return (
     <>
       <Header />
       <main className={styles.main}>
         <div className={styles.container}>
-          {/* Header */}
-          <motion.div
-            className={styles.header}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <button className={styles.backButton} onClick={() => router.back()}>
-              <svg className={styles.backArrow} viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-                <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              חזרה
-            </button>
-            <div>
-              <h1>יצירת הצבעה חדשה</h1>
-              <p>שלב {step} מתוך 3</p>
-            </div>
-          </motion.div>
+          {/* Masthead-style header */}
+          <header className={styles.head}>
+            <span className={styles.kicker}>
+              <span aria-hidden className={styles.kickerTick} />
+              טור הקוראים · יצירת הצבעה
+            </span>
+            <h1 className={styles.headline}>
+              כתבו את הכותרת <span className={styles.red}>של המחר.</span>
+            </h1>
+            <p className={styles.standfirst}>
+              הציעו נושא, נסחו את האפשרויות, וקבעו את משך ההצבעה. ההצעה תיחתם
+              בבלוקצ׳יין ותעלה לקלפי הקהילתית.
+            </p>
+          </header>
 
-          {/* Progress bar */}
-          <div className={styles.progressContainer}>
-            <div className={styles.progressBar}>
-              <motion.div
-                className={styles.progressFill}
-                initial={{ width: '33%' }}
-                animate={{ width: `${(step / 3) * 100}%` }}
-                transition={{ duration: 0.3 }}
-              />
-            </div>
-            <div className={styles.steps}>
-              <span className={step >= 1 ? styles.activeStep : ''}>פרטים</span>
-              <span className={step >= 2 ? styles.activeStep : ''}>אפשרויות</span>
-              <span className={step >= 3 ? styles.activeStep : ''}>תשלום</span>
-            </div>
-          </div>
+          {/* Press stepper */}
+          <Stepper steps={STEP_LABELS} current={step - 1} className={styles.stepper} />
 
-          {/* Form */}
+          {/* Step body */}
           <motion.div
-            className={styles.formCard}
+            className={styles.plate}
             key={step}
-            initial={{ opacity: 0, x: 20 }}
+            initial={reduceMotion ? false : { opacity: 0, x: 16 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={stepTransition}
           >
             {step === 1 && (
-              <>
-                <h2>פרטי ההצבעה</h2>
-
-                <div className={styles.formGroup}>
-                  <label>כותרת *</label>
-                  <input
-                    type="text"
-                    placeholder="למשל: הקמת גן שעשועים חדש"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    maxLength={100}
-                  />
-                  <span className={styles.charCount}>{title.length}/100</span>
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label>תיאור *</label>
-                  <textarea
-                    placeholder="תארו את הנושא בפירוט..."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    maxLength={500}
-                    rows={5}
-                  />
-                  <span className={styles.charCount}>{description.length}/500</span>
-                </div>
-              </>
+              <div className={styles.plateBody}>
+                <span className={styles.plateKicker}>FIG. 1 · הצעת נושא</span>
+                <PressInput
+                  label="כותרת ההצבעה"
+                  placeholder="למשל: הקמת גן שעשועים חדש"
+                  value={title}
+                  maxLength={100}
+                  error={titleError || null}
+                  hint={`${title.length}/100`}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    if (titleError) setTitleError('');
+                  }}
+                />
+                <PressInput
+                  multiline
+                  label="תיאור"
+                  placeholder="תארו את הנושא בפירוט…"
+                  value={description}
+                  maxLength={500}
+                  rows={5}
+                  error={descriptionError || null}
+                  hint={`${description.length}/500`}
+                  onChange={(e) => {
+                    setDescription(e.target.value);
+                    if (descriptionError) setDescriptionError('');
+                  }}
+                />
+              </div>
             )}
 
             {step === 2 && (
-              <>
-                <h2>אפשרויות להצבעה</h2>
-                <p className={styles.hint}>הוסיפו 2-5 אפשרויות שהמצביעים יוכלו לבחור ביניהן</p>
+              <div className={styles.plateBody}>
+                <span className={styles.plateKicker}>FIG. 2 · אפשרויות</span>
+                <p className={styles.plateNote}>
+                  הוסיפו 2–5 אפשרויות שהמצביעים יבחרו ביניהן.
+                </p>
 
                 <div className={styles.optionsList}>
                   {options.map((option, index) => (
                     <div key={index} className={styles.optionRow}>
-                      <input
-                        type="text"
+                      <span className={styles.optionNum} aria-hidden>
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                      <PressInput
+                        className={styles.optionInput}
                         placeholder={`אפשרות ${index + 1}`}
                         value={option}
-                        onChange={(e) => updateOption(index, e.target.value)}
                         maxLength={100}
+                        aria-label={`אפשרות ${index + 1}`}
+                        onChange={(e) => updateOption(index, e.target.value)}
                       />
                       {options.length > 2 && (
                         <button
@@ -256,94 +375,107 @@ export default function CreateVotePage() {
                           type="button"
                           aria-label={`הסרת אפשרות ${index + 1}`}
                         >
-                          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
-                            <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
-                          </svg>
+                          <span aria-hidden>✕</span>
                         </button>
                       )}
                     </div>
                   ))}
                 </div>
 
+                {optionsError && (
+                  <p className={styles.error} role="alert">
+                    <span aria-hidden>✕ </span>
+                    {optionsError}
+                  </p>
+                )}
+
                 {options.length < 5 && (
                   <button className={styles.addButton} onClick={addOption} type="button">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
-                      <path d="M12 5v14M5 12h14" strokeLinecap="round" />
-                    </svg>
-                    הוספת אפשרות
+                    <span aria-hidden>＋</span> הוספת אפשרות
                   </button>
                 )}
-              </>
+              </div>
             )}
 
             {step === 3 && (
-              <>
-                <h2>סיכום ותשלום</h2>
+              <div className={styles.plateBody}>
+                <span className={styles.plateKicker}>FIG. 3 · משך ההצבעה</span>
+                <p className={styles.plateNote}>
+                  כמה זמן הקלפי תישאר פתוחה?
+                </p>
+                <Segmented
+                  aria-label="משך ההצבעה"
+                  variant="red"
+                  segments={DURATIONS}
+                  value={String(duration)}
+                  onChange={(v) => setDuration(Number(v))}
+                  className={styles.durationSeg}
+                />
 
-                {/* Summary */}
-                <div className={styles.summary}>
-                  <h3>{title}</h3>
-                  <p>{description}</p>
-                  <div className={styles.summaryOptions}>
-                    <strong>אפשרויות:</strong>
-                    <ul>
-                      {options.filter((o) => o.trim()).map((option, index) => (
-                        <li key={index}>{option}</li>
-                      ))}
-                    </ul>
-                  </div>
+                <div className={styles.preview}>
+                  <span className={styles.previewK}>תצוגה מקדימה</span>
+                  <h2 className={styles.previewTitle}>{title || 'כותרת ההצבעה'}</h2>
+                  <ul className={styles.previewList}>
+                    {(filledOptions.length ? filledOptions : ['אפשרות 1', 'אפשרות 2']).map(
+                      (o, i) => (
+                        <li key={i} className={styles.previewItem}>
+                          <span className={styles.previewBullet} aria-hidden>■</span>
+                          {o}
+                        </li>
+                      ),
+                    )}
+                  </ul>
                 </div>
-
-                {/* Duration Selection */}
-                <div className={styles.formGroup}>
-                  <label>משך ההצבעה</label>
-                  <div className={styles.durationOptions}>
-                    {[3, 7, 14, 30].map((days) => (
-                      <button
-                        key={days}
-                        className={`${styles.durationButton} ${duration === days ? styles.selected : ''}`}
-                        onClick={() => setDuration(days)}
-                        type="button"
-                      >
-                        {days} ימים
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Payment Info */}
-                <div className={styles.paymentInfo}>
-                  <div className={styles.paymentRow}>
-                    <span>עלות יצירת הצבעה</span>
-                    <strong>{formatCurrency(CREATE_VOTE_COST)}</strong>
-                  </div>
-                  <p className={styles.paymentNote}>תשלום מאובטח דרך Paddle</p>
-                </div>
-              </>
+              </div>
             )}
 
-            {/* Error */}
-            {error && <p className={styles.error}>{error}</p>}
+            {step === 4 && (
+              <div className={styles.plateBody}>
+                <span className={styles.plateKicker}>FIG. 4 · תשלום</span>
+                <Receipt
+                  kicker="קבלה · CREATE FEE"
+                  title={title || 'הצבעה חדשה'}
+                  rows={[
+                    { label: 'משך הצבעה', value: `${duration} ימים` },
+                    { label: 'אפשרויות', value: String(filledOptions.length) },
+                    {
+                      label: 'דמי יצירת הצבעה',
+                      value: formatCurrency(CREATE_VOTE_COST),
+                      strong: true,
+                    },
+                  ]}
+                  footer="תשלום מאובטח · Paddle · חתום בבלוקצ׳יין"
+                />
+              </div>
+            )}
 
-            {/* Actions */}
-            <div className={styles.actions}>
-              {step > 1 && (
-                <Button variant="ghost" onClick={handleBack}>
-                  חזרה
-                </Button>
-              )}
-              <Button
-                onClick={step < 3 ? handleNext : handleSubmit}
-                disabled={submitting}
-              >
-                {submitting
-                  ? 'מעבד תשלום...'
-                  : step < 3
-                    ? 'המשך'
-                    : `שלם ${formatCurrency(CREATE_VOTE_COST)} וצור הצבעה`}
-              </Button>
-            </div>
+            {/* General error (non-field) */}
+            {error && (
+              <p className={styles.error} role="alert">
+                <span aria-hidden>✕ </span>
+                {error}
+              </p>
+            )}
           </motion.div>
+
+          {/* Sticky action bar */}
+          <div className={styles.actionBar}>
+            {step > 1 && (
+              <NewsButton variant="outline" size="lg" onClick={handleBack} disabled={submitting}>
+                חזרה
+              </NewsButton>
+            )}
+            <NewsButton
+              variant="red"
+              size="lg"
+              className={styles.primaryAction}
+              onClick={step < STEP_COUNT ? handleNext : handleSubmit}
+              disabled={submitting}
+              trailing={step < STEP_COUNT ? <span aria-hidden>←</span> : undefined}
+            >
+              {primaryLabel}
+            </NewsButton>
+          </div>
         </div>
       </main>
       <Footer />

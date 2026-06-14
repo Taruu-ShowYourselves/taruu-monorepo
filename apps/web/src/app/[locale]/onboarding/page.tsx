@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/Button';
+import { NewsButton } from '@/components/press/NewsButton';
+import { PressInput } from '@/components/press/PressInput/PressInput';
+import { Stepper } from '@/components/press/Stepper/Stepper';
 import styles from './page.module.css';
 
 const MUNICIPALITIES = [
@@ -29,6 +30,8 @@ const MUNICIPALITIES = [
   'לוד',
   'רמלה',
 ];
+
+const STEPS = [{ label: 'פתיחה' }, { label: 'הרשות שלכם' }];
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -77,130 +80,149 @@ export default function OnboardingPage() {
   if (isLoading) {
     return (
       <div className={styles.loadingContainer}>
-        <div className={styles.spinner} />
-        <p>טוען...</p>
+        <div className={styles.spinner} aria-hidden />
+        <p>טוען…</p>
       </div>
     );
   }
 
   return (
-    <div className={styles.container}>
-      <div className={styles.content}>
-        {/* Progress */}
-        <div className={styles.progress}>
-          <div className={styles.progressBar}>
-            <motion.div
-              className={styles.progressFill}
-              initial={{ width: 0 }}
-              animate={{ width: `${(step / 2) * 100}%` }}
-              transition={{ duration: 0.3 }}
-            />
-          </div>
-          <span className={styles.progressText}>שלב {step} מתוך 2</span>
-        </div>
+    <div className={styles.field}>
+      <div className={styles.desk}>
+        <span className={styles.wordmark}>תַּרְאוּ</span>
 
-        <AnimatePresence mode="wait">
-          {step === 1 && (
-            <motion.div
-              key="step1"
-              className={styles.step}
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className={styles.stepIcon}>👋</div>
-              <h1>ברוכים הבאים לתַּרְאוּ!</h1>
-              <p>
-                שלום {user?.firstName || 'שם'},<br />
-                אנחנו שמחים שהצטרפתם. בואו נגדיר את הפרופיל שלכם כדי שתוכלו להתחיל להצביע.
-              </p>
+        <Stepper steps={STEPS} current={step - 1} className={styles.stepper} />
 
-              <div className={styles.features}>
-                <div className={styles.feature}>
-                  <span className={styles.featureIcon}>🗳️</span>
-                  <div>
-                    <strong>הצביעו על נושאים מקומיים</strong>
-                    <p>השפיעו על ההחלטות בקהילה שלכם</p>
-                  </div>
-                </div>
-                <div className={styles.feature}>
-                  <span className={styles.featureIcon}>🔒</span>
-                  <div>
-                    <strong>הצבעות מאובטחות</strong>
-                    <p>כל הצבעה נשמרת ומאומתת</p>
-                  </div>
-                </div>
-                <div className={styles.feature}>
-                  <span className={styles.featureIcon}>📊</span>
-                  <div>
-                    <strong>עקבו אחרי התוצאות</strong>
-                    <p>תמונה ברורה לאורך זמן</p>
-                  </div>
-                </div>
-              </div>
+        {step === 1 && (
+          <section className={styles.step}>
+            <span className={styles.kicker}>
+              <span aria-hidden className={styles.kickerTick} />
+              קליטת חבר · ONBOARDING
+            </span>
+            <h1 className={styles.title}>
+              ברוכים הבאים, <span className={styles.red}>{user?.firstName || 'חבר'}.</span>
+            </h1>
+            <p className={styles.standfirst}>
+              שמחים שהצטרפתם. נגדיר את הפרופיל שלכם בשני שלבים קצרים — ואז אפשר
+              להתחיל להצביע.
+            </p>
 
-              <Button onClick={() => setStep(2)} size="large">
+            <div className={styles.rule} aria-hidden />
+
+            <ul className={styles.briefs}>
+              <li className={styles.brief}>
+                <span className={styles.briefNum}>01</span>
+                <div>
+                  <span className={styles.briefKicker}>הצביעו</span>
+                  <p className={styles.briefText}>
+                    השפיעו על ההחלטות המקומיות בקהילה שלכם.
+                  </p>
+                </div>
+              </li>
+              <li className={styles.brief}>
+                <span className={styles.briefNum}>02</span>
+                <div>
+                  <span className={styles.briefKicker}>מאומת</span>
+                  <p className={styles.briefText}>
+                    כל הצבעה נשמרת, נחתמת ומאומתת.
+                  </p>
+                </div>
+              </li>
+              <li className={styles.brief}>
+                <span className={styles.briefNum}>03</span>
+                <div>
+                  <span className={styles.briefKicker}>שקוף</span>
+                  <p className={styles.briefText}>
+                    תמונת מצב ברורה לאורך זמן, פתוחה לכולם.
+                  </p>
+                </div>
+              </li>
+            </ul>
+
+            <div className={styles.actions}>
+              <NewsButton
+                variant="red"
+                size="lg"
+                className={styles.primaryBtn}
+                onClick={() => setStep(2)}
+                trailing={<span aria-hidden>←</span>}
+              >
                 בואו נתחיל
-              </Button>
-            </motion.div>
-          )}
+              </NewsButton>
+            </div>
+          </section>
+        )}
 
-          {step === 2 && (
-            <motion.div
-              key="step2"
-              className={styles.step}
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className={styles.stepIcon}>📍</div>
-              <h1>באיזו רשות אתם גרים?</h1>
-              <p>בחרו את הרשות המקומית שלכם כדי לראות הצבעות רלוונטיות</p>
+        {step === 2 && (
+          <section className={styles.step}>
+            <span className={styles.kicker}>
+              <span aria-hidden className={styles.kickerTick} />
+              בחירת רשות · LOCALE
+            </span>
+            <h1 className={styles.title}>
+              איפה אתם <span className={styles.red}>גרים?</span>
+            </h1>
+            <p className={styles.standfirst}>
+              בחרו את הרשות המקומית שלכם כדי לראות הצבעות רלוונטיות.
+            </p>
 
-              <div className={styles.searchContainer}>
-                <input
-                  type="text"
-                  className={styles.searchInput}
-                  placeholder="חיפוש רשות..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+            <div className={styles.rule} aria-hidden />
 
-              <div className={styles.municipalityGrid}>
-                {filteredMunicipalities.map((municipality) => (
-                  <button
-                    key={municipality}
-                    className={`${styles.municipalityButton} ${
-                      selectedMunicipality === municipality ? styles.selected : ''
-                    }`}
-                    onClick={() => setSelectedMunicipality(municipality)}
-                  >
-                    {municipality}
-                    {selectedMunicipality === municipality && (
-                      <span className={styles.checkmark}>✓</span>
-                    )}
-                  </button>
-                ))}
-              </div>
+            <PressInput
+              type="text"
+              label="הרשות שלכם"
+              placeholder="בחרו עיר / מועצה"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={styles.search}
+            />
 
-              <div className={styles.stepActions}>
-                <button className={styles.backButton} onClick={() => setStep(1)}>
-                  חזרה
-                </button>
-                <Button
-                  onClick={handleComplete}
-                  disabled={!selectedMunicipality || loading}
-                  size="large"
-                >
-                  {loading ? 'שומר...' : 'סיום והתחלה'}
-                </Button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            <ul className={styles.muniList} role="listbox" aria-label="רשות מקומית">
+              {filteredMunicipalities.map((municipality) => {
+                const selected = selectedMunicipality === municipality;
+                return (
+                  <li key={municipality}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={selected}
+                      className={`${styles.muniBtn} ${selected ? styles.selected : ''}`}
+                      onClick={() => setSelectedMunicipality(municipality)}
+                    >
+                      <span className={styles.muniMark} aria-hidden>
+                        {selected ? '✓' : '○'}
+                      </span>
+                      <span className={styles.muniName}>{municipality}</span>
+                    </button>
+                  </li>
+                );
+              })}
+              {filteredMunicipalities.length === 0 && (
+                <li className={styles.muniEmpty}>לא נמצאה רשות תואמת.</li>
+              )}
+            </ul>
+
+            <div className={styles.actions}>
+              <button
+                type="button"
+                className={styles.backBtn}
+                onClick={() => setStep(1)}
+              >
+                → חזרה
+              </button>
+              <NewsButton
+                variant="red"
+                size="lg"
+                className={styles.primaryBtn}
+                onClick={handleComplete}
+                disabled={!selectedMunicipality || loading}
+                trailing={<span aria-hidden>←</span>}
+              >
+                {loading ? 'שומר…' : 'סיום והתחלה'}
+              </NewsButton>
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { Button } from '@/components/ui/Button';
+import { NewsButton } from '@/components/press/NewsButton';
 import { useAuth } from '@/providers/AuthProvider';
 import { getIdentityLevelLabel } from '@sync/shared';
 import styles from './page.module.css';
@@ -91,8 +90,8 @@ export default function ConnectSocialPage() {
   if (isLoading) {
     return (
       <div className={styles.loadingContainer}>
-        <div className={styles.spinner} />
-        <p>טוען...</p>
+        <div className={styles.spinner} aria-hidden />
+        <p>טוען…</p>
       </div>
     );
   }
@@ -107,50 +106,41 @@ export default function ConnectSocialPage() {
       <Header />
       <main className={styles.main}>
         <div className={styles.container}>
-          {/* Header */}
-          <motion.div
-            className={styles.header}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <h1>שפרו את ציון הזהות</h1>
-            <p>
-              חברו עוד רשתות חברתיות לאימות זהות מלא ולגישה לכל ההצבעות
+          <header className={styles.head}>
+            <span className={styles.kicker}>
+              <span aria-hidden className={styles.kickerTick} />
+              אימות זהות · IDENTITY
+            </span>
+            <h1 className={styles.title}>
+              שפרו את <span className={styles.red}>ציון הזהות.</span>
+            </h1>
+            <p className={styles.standfirst}>
+              חברו עוד רשתות חברתיות לאימות זהות מלא ולגישה לכל ההצבעות.
             </p>
-          </motion.div>
+          </header>
 
-          {/* Current Score Card */}
-          <motion.div
-            className={styles.scoreCard}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
+          {/* Current score */}
+          <section className={styles.scoreCard}>
             <div className={styles.scoreHeader}>
-              <span>הציון הנוכחי שלכם</span>
+              <span className={styles.scoreLabel}>הציון הנוכחי שלכם</span>
               <span className={styles.scoreBadge}>{currentScore}/100</span>
             </div>
             <div className={styles.progressBar}>
-              <motion.div
+              <div
                 className={styles.progressFill}
-                initial={{ width: 0 }}
-                animate={{ width: `${currentScore}%` }}
-                transition={{ duration: 0.8, delay: 0.3 }}
+                style={{ inlineSize: `${currentScore}%` }}
+                aria-hidden
               />
             </div>
-            <span className={styles.levelText}>רמה: {currentLevel}</span>
-          </motion.div>
+            <span className={styles.levelText}>רמה · {currentLevel}</span>
+          </section>
 
-          {/* Error Message */}
+          {/* Error */}
           {connectionError && (
-            <motion.div
-              className={styles.errorMessage}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <span className={styles.errorIcon}>⚠️</span>
+            <div className={styles.errorMessage} role="alert">
+              <span aria-hidden className={styles.errorGlyph}>
+                ✕
+              </span>
               <p>{connectionError}</p>
               <button
                 className={styles.dismissError}
@@ -159,131 +149,129 @@ export default function ConnectSocialPage() {
               >
                 ✕
               </button>
-            </motion.div>
+            </div>
           )}
 
-          {/* Social Platforms */}
-          <div className={styles.platforms}>
-            {/* Google - Already Connected */}
-            <motion.div
-              className={`${styles.platformCard} ${styles.connected}`}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
-            >
-              <div className={styles.platformInfo}>
-                <div className={`${styles.platformIcon} ${styles.google}`}>G</div>
-                <div className={styles.platformText}>
+          {/* Social platforms */}
+          <ul className={styles.platforms}>
+            {/* Google — already connected */}
+            <li className={`${styles.row} ${styles.connected}`}>
+              <div className={styles.rowInfo}>
+                <span className={`${styles.rowIcon} ${styles.google}`} aria-hidden>
+                  G
+                </span>
+                <div className={styles.rowText}>
                   <h3>Google</h3>
-                  <p>מחובר</p>
+                  <p className={styles.rowMeta}>מחובר</p>
                 </div>
               </div>
-              <div className={styles.platformStatus}>
-                <span className={styles.checkmark}>✓</span>
+              <div className={styles.rowStatus}>
+                <span className={styles.statusOn}>
+                  <span aria-hidden>✓ </span>מחובר
+                </span>
                 <span className={styles.points}>+40 נקודות</span>
               </div>
-            </motion.div>
+            </li>
 
             {/* Facebook */}
-            <motion.div
-              className={`${styles.platformCard} ${facebookConnected ? styles.connected : ''}`}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3, delay: 0.3 }}
-            >
-              <div className={styles.platformInfo}>
-                <div className={`${styles.platformIcon} ${styles.facebook}`}>f</div>
-                <div className={styles.platformText}>
+            <li className={`${styles.row} ${facebookConnected ? styles.connected : ''}`}>
+              <div className={styles.rowInfo}>
+                <span className={`${styles.rowIcon} ${styles.facebook}`} aria-hidden>
+                  f
+                </span>
+                <div className={styles.rowText}>
                   <h3>Facebook</h3>
-                  <p>{facebookConnected ? 'מחובר' : 'הוסיפו 30 נקודות לציון'}</p>
+                  <p className={styles.rowMeta}>
+                    {facebookConnected ? 'מחובר' : '+30 נקודות לציון'}
+                  </p>
                 </div>
               </div>
-              <div className={styles.platformStatus}>
+              <div className={styles.rowStatus}>
                 {facebookConnected ? (
                   <>
-                    <span className={styles.checkmark}>✓</span>
+                    <span className={styles.statusOn}>
+                      <span aria-hidden>✓ </span>מחובר
+                    </span>
                     <span className={styles.points}>+30 נקודות</span>
                   </>
                 ) : (
-                  <Button
+                  <NewsButton
+                    variant="ink"
+                    size="sm"
                     onClick={handleConnectFacebook}
                     disabled={connecting === 'facebook'}
-                    size="sm"
-                    className={styles.facebookButton}
                   >
-                    {connecting === 'facebook' ? 'מתחבר...' : 'חבר'}
-                  </Button>
+                    {connecting === 'facebook' ? 'מתחבר…' : 'חברו'}
+                  </NewsButton>
                 )}
               </div>
-            </motion.div>
+            </li>
 
             {/* Instagram */}
-            <motion.div
-              className={`${styles.platformCard} ${instagramConnected ? styles.connected : ''}`}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3, delay: 0.4 }}
-            >
-              <div className={styles.platformInfo}>
-                <div className={`${styles.platformIcon} ${styles.instagram}`}>
+            <li className={`${styles.row} ${instagramConnected ? styles.connected : ''}`}>
+              <div className={styles.rowInfo}>
+                <span className={`${styles.rowIcon} ${styles.instagram}`} aria-hidden>
                   <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
                     <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
                   </svg>
-                </div>
-                <div className={styles.platformText}>
+                </span>
+                <div className={styles.rowText}>
                   <h3>Instagram</h3>
-                  <p>{instagramConnected ? 'מחובר' : 'הוסיפו 30 נקודות לציון'}</p>
+                  <p className={styles.rowMeta}>
+                    {instagramConnected ? 'מחובר' : '+30 נקודות לציון'}
+                  </p>
                 </div>
               </div>
-              <div className={styles.platformStatus}>
+              <div className={styles.rowStatus}>
                 {instagramConnected ? (
                   <>
-                    <span className={styles.checkmark}>✓</span>
+                    <span className={styles.statusOn}>
+                      <span aria-hidden>✓ </span>מחובר
+                    </span>
                     <span className={styles.points}>+30 נקודות</span>
                   </>
                 ) : (
-                  <Button
+                  <NewsButton
+                    variant="ink"
+                    size="sm"
                     onClick={handleConnectInstagram}
                     disabled={connecting === 'instagram'}
-                    size="sm"
-                    className={styles.instagramButton}
                   >
-                    {connecting === 'instagram' ? 'מתחבר...' : 'חבר'}
-                  </Button>
+                    {connecting === 'instagram' ? 'מתחבר…' : 'חברו'}
+                  </NewsButton>
                 )}
               </div>
-            </motion.div>
+            </li>
+          </ul>
+
+          {/* Privacy note */}
+          <div className={styles.info}>
+            <span aria-hidden className={styles.infoGlyph}>
+              ■
+            </span>
+            <p>
+              אנחנו לא מפרסמים בשמכם ולא משתפים מידע. החיבור משמש לאימות זהות
+              בלבד.
+            </p>
           </div>
 
-          {/* Info */}
-          <motion.div
-            className={styles.info}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
-          >
-            <span className={styles.infoIcon}>🛡️</span>
-            <p>
-              אנחנו לא מפרסמים בשמכם ולא משתפים מידע. החיבור משמש לאימות זהות בלבד.
-            </p>
-          </motion.div>
-
           {/* Actions */}
-          <motion.div
-            className={styles.actions}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.6 }}
-          >
-            <Button onClick={handleContinue} size="large">
+          <div className={styles.actions}>
+            <NewsButton
+              variant="red"
+              size="lg"
+              className={styles.primaryBtn}
+              onClick={handleContinue}
+              trailing={<span aria-hidden>←</span>}
+            >
               {connectedPlatforms.length > 0 ? 'המשך לאפליקציה' : 'המשך בלי לחבר'}
-            </Button>
+            </NewsButton>
             {connectedPlatforms.length === 0 && (
               <button className={styles.skipButton} onClick={handleSkip}>
                 אפשר לחבר גם אחר כך בהגדרות
               </button>
             )}
-          </motion.div>
+          </div>
         </div>
       </main>
       <Footer />

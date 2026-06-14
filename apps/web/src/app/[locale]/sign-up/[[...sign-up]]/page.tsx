@@ -3,17 +3,15 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { useAuth } from '@/providers/AuthProvider';
-import { Button } from '@/components/ui/Button';
 import styles from '../../sign-in/[[...sign-in]]/page.module.css';
 
-// Reuse sign-in styles since they're similar
+// Reuse the membership-desk styles — sign-up shares the press desk.
 
-// Google icon SVG
+// Google brand glyph — kept as-is (brand asset)
 function GoogleIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="20" height="20">
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
       <path
         fill="#4285F4"
         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -57,7 +55,10 @@ export default function SignUpPage() {
         callback_failed: 'שגיאה בתהליך ההרשמה.',
         access_denied: 'הגישה נדחתה.',
       };
-      setError(errorMessages[errorParam] || 'שגיאה לא ידועה');
+      setError(
+        errorMessages[errorParam] ||
+          'משהו השתבש אצלנו, לא אצלכם. נסו שוב בעוד רגע.'
+      );
     }
   }, [searchParams]);
 
@@ -67,80 +68,90 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className={styles.container}>
-      <motion.div
-        className={styles.content}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Link href="/" className={styles.logoLink}>
-          <span className={styles.logo}>תַּרְאוּ</span>
+    <div className={styles.field}>
+      <div className={styles.desk}>
+        <Link href="/" className={styles.wordmark}>
+          תַּרְאוּ
         </Link>
 
-        <h1 className={styles.title}>הצטרפו לתַּרְאוּ</h1>
-        <p className={styles.subtitle}>יצרו חשבון והתחילו להצביע על נושאים מקומיים</p>
+        <span className={styles.kicker}>
+          <span aria-hidden className={styles.kickerTick} />
+          דלפק החברים · SIGN UP
+        </span>
 
-        <div className={styles.authCard}>
-          {error && (
-            <motion.div
-              className={styles.error}
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-            >
-              {error}
-            </motion.div>
-          )}
+        <h1 className={styles.title}>
+          הצטרפו <span className={styles.red}>לתַּרְאוּ.</span>
+        </h1>
+        <p className={styles.standfirst}>
+          יצרו חשבון והתחילו להצביע על נושאים מקומיים — מאומת, שקוף, בלתי ניתן
+          לזיוף.
+        </p>
 
-          <Button
-            variant="outline"
-            size="lg"
-            isFullWidth
-            leftIcon={<GoogleIcon />}
-            onClick={handleGoogleSignUp}
-            isLoading={isLoading}
-            className={styles.googleButton}
-          >
-            הרשמה עם Google
-          </Button>
+        <div className={styles.rule} aria-hidden />
 
-          <p className={styles.terms}>
-            בהרשמה אתם מסכימים{' '}
-            <Link href="/terms" className={styles.link}>
-              לתנאי השימוש
-            </Link>{' '}
-            ו
-            <Link href="/privacy" className={styles.link}>
-              מדיניות הפרטיות
-            </Link>
+        {error && (
+          <p className={styles.error} role="alert">
+            <span aria-hidden>✕ </span>
+            {error}
           </p>
+        )}
 
-          <div className={styles.divider}>
-            <span>יש לכם חשבון?</span>
-          </div>
+        <button
+          type="button"
+          className={styles.googleBtn}
+          onClick={handleGoogleSignUp}
+          disabled={isLoading}
+        >
+          <span className={styles.googleGlyph} aria-hidden>
+            <GoogleIcon />
+          </span>
+          <span className={styles.googleLabel}>
+            {isLoading ? 'נרשם…' : 'הרשמה עם Google'}
+          </span>
+        </button>
 
-          <Link href="/sign-in" className={styles.switchLink}>
-            <Button variant="ghost" isFullWidth>
-              התחברות לחשבון קיים
-            </Button>
+        <p className={styles.terms}>
+          בהרשמה אתם מסכימים{' '}
+          <Link href="/terms" className={styles.link}>
+            לתנאי השימוש
+          </Link>{' '}
+          ו
+          <Link href="/privacy" className={styles.link}>
+            מדיניות הפרטיות
           </Link>
+        </p>
+
+        <div className={styles.divider}>
+          <span>יש לכם חשבון?</span>
         </div>
 
-        <div className={styles.features}>
-          <div className={styles.feature}>
-            <span className={styles.featureIcon}>🔒</span>
-            <span className={styles.featureText}>מאובטח בבלוקצ׳יין</span>
-          </div>
-          <div className={styles.feature}>
-            <span className={styles.featureIcon}>📍</span>
-            <span className={styles.featureText}>אימות מיקום</span>
-          </div>
-          <div className={styles.feature}>
-            <span className={styles.featureIcon}>🎫</span>
-            <span className={styles.featureText}>טוקנים לתרומה</span>
-          </div>
-        </div>
-      </motion.div>
+        <Link href="/sign-in" className={styles.switchLink}>
+          התחברות לחשבון קיים ←
+        </Link>
+
+        <ul className={styles.features}>
+          <li className={styles.feature}>
+            <span aria-hidden className={styles.featGlyph}>
+              ●
+            </span>
+            <span>מאובטח בבלוקצ׳יין</span>
+          </li>
+          <li className={styles.feature}>
+            <span aria-hidden className={styles.featGlyph}>
+              ■
+            </span>
+            <span>אימות מיקום</span>
+          </li>
+          <li className={styles.feature}>
+            <span aria-hidden className={styles.featGlyph}>
+              ▍
+            </span>
+            <span>טוקנים לתרומה</span>
+          </li>
+        </ul>
+
+        <p className={styles.trust}>הקול שלכם. הקהילה שלכם.</p>
+      </div>
     </div>
   );
 }

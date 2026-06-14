@@ -5,9 +5,10 @@ import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { Button } from '@/components/ui/Button';
+import { useReducedMotion } from '@/hooks';
+import { NewsButton } from '@/components/press/NewsButton';
+import { ParticipationFlow, type FlowOption } from './flow/ParticipationFlow';
 import styles from './page.module.css';
-import { useAuthStore } from '@/stores/authStore';
 
 interface VoteOption {
   id: string;
@@ -47,11 +48,10 @@ function getTimeRemaining(endDate: string): string {
 export default function VoteDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { user, isAuthenticated } = useAuthStore();
+  const reduced = useReducedMotion();
   const [vote, setVote] = useState<Vote | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [hasVoted, setHasVoted] = useState(false);
 
@@ -134,7 +134,9 @@ export default function VoteDetailPage() {
             </span>
             <h1>{error || 'ההצבעה לא נמצאה'}</h1>
             <p>לא ניתן לטעון את פרטי ההצבעה</p>
-            <Button onClick={() => router.push('/votes')}>חזרה להצבעות</Button>
+            <NewsButton variant="red" size="lg" onClick={() => router.push('/votes')}>
+              חזרה להצבעות
+            </NewsButton>
           </div>
         </main>
         <Footer />
@@ -145,6 +147,13 @@ export default function VoteDetailPage() {
   const totalVotes = vote.options.reduce((sum, opt) => sum + opt.votes, 0);
   const timeRemaining = getTimeRemaining(vote.endDate);
   const isActive = vote.status === 'active';
+  const flowOptions: FlowOption[] = vote.options.map((o) => ({
+    id: o.id,
+    text: o.text,
+    votes: o.votes,
+  }));
+  const showFlow = isActive && !hasVoted;
+  const showResults = hasVoted || !isActive;
 
   const handleShare = async () => {
     if (typeof window === 'undefined' || !vote) return;
@@ -173,229 +182,157 @@ export default function VoteDetailPage() {
     }
   };
 
-  const handleVote = async () => {
-    if (!selectedOption || !vote) return;
-
-    // Check if user is authenticated
-    if (!isAuthenticated) {
-      router.push('/sign-in?redirect=' + encodeURIComponent(`/votes/${params.id}`));
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      // Create Paddle payment
-      const response = await fetch('/api/payments/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'vote_participation',
-          voteId: params.id,
-          optionId: selectedOption,
-          voteTitle: vote.title,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create payment');
-      }
-
-      const data = await response.json();
-
-      // Redirect to Paddle payment page
-      if (data.payment?.paymentUrl) {
-        window.location.href = data.payment.paymentUrl;
-      } else {
-        throw new Error('No payment URL received');
-      }
-    } catch (err: unknown) {
-      console.error('Payment error:', err);
-      alert(err instanceof Error ? err.message : 'שגיאה בתשלום');
-      setSubmitting(false);
-    }
-  };
+  const titleAnim = reduced
+    ? {}
+    : { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.4 } };
 
   return (
     <>
       <Header />
       <main className={styles.main}>
         <div className={styles.container}>
-          {/* Back Button */}
-          <button className={styles.backButton} onClick={() => router.back()}>
-            <svg className={styles.backArrow} viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-              <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            חזרה
-          </button>
-
-          {/* Vote Header */}
-          <motion.div
-            className={styles.header}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className={styles.statusBadge} data-status={vote.status}>
-              {isActive ? `נותרו ${timeRemaining}` : 'ההצבעה הסתיימה'}
-            </div>
-            <span className={styles.municipality}>{vote.municipality}</span>
-          </motion.div>
-
-          <motion.h1
-            className={styles.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
-            {vote.title}
-          </motion.h1>
-
-          {/* Stats */}
-          <motion.div
-            className={styles.stats}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <div className={styles.stat}>
-              <span className={styles.statValue}>{totalVotes.toLocaleString('he-IL')}</span>
-              <span className={styles.statLabel}>הצבעות</span>
-            </div>
-            <div className={styles.statDivider} />
-            <div className={styles.stat}>
-              <span className={styles.statValue}>{vote.options.length}</span>
-              <span className={styles.statLabel}>אפשרויות</span>
-            </div>
-            <div className={styles.statDivider} />
-            <div className={styles.stat}>
-              <span className={styles.statValue}>{timeRemaining}</span>
-              <span className={styles.statLabel}>נותרו</span>
-            </div>
-          </motion.div>
-
-          <div className={styles.content}>
-            {/* Description */}
-            <motion.div
-              className={styles.descriptionCard}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-            >
-              <h2>תיאור ההצעה</h2>
-              <p className={styles.description}>{vote.description}</p>
-              <div className={styles.creator}>
-                <span>נוצר על ידי:</span>
-                <strong>{vote.creator.name}</strong>
-              </div>
-            </motion.div>
-
-            {/* Options */}
-            <motion.div
-              className={styles.optionsCard}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-            >
-              <h2>{hasVoted ? 'תוצאות' : 'אפשרויות להצבעה'}</h2>
-
-              <div className={styles.options}>
-                {vote.options.map((option, index) => {
-                  const percentage = totalVotes > 0
-                    ? Math.round((option.votes / totalVotes) * 100)
-                    : 0;
-                  const isSelected = selectedOption === option.id;
-
-                  return (
-                    <motion.button
-                      key={option.id}
-                      className={`${styles.option} ${isSelected ? styles.selected : ''} ${hasVoted ? styles.voted : ''}`}
-                      onClick={() => !hasVoted && setSelectedOption(option.id)}
-                      disabled={hasVoted || !isActive}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: 0.5 + index * 0.1 }}
-                    >
-                      <div className={styles.optionContent}>
-                        <span className={styles.optionText}>{option.text}</span>
-                        {(hasVoted || !isActive) && (
-                          <span className={styles.optionVotes}>
-                            {option.votes.toLocaleString('he-IL')} הצבעות
-                          </span>
-                        )}
-                      </div>
-                      {(hasVoted || !isActive) && (
-                        <div className={styles.optionBar}>
-                          <motion.div
-                            className={styles.optionProgress}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${percentage}%` }}
-                            transition={{ duration: 0.8, delay: 0.6 + index * 0.1 }}
-                          />
-                        </div>
-                      )}
-                      {(hasVoted || !isActive) && (
-                        <span className={styles.optionPercentage}>{percentage}%</span>
-                      )}
-                      {isSelected && !hasVoted && (
-                        <span className={styles.checkmark} aria-hidden>
-                          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.4">
-                            <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </span>
-                      )}
-                    </motion.button>
-                  );
-                })}
-              </div>
-
-              {isActive && !hasVoted && (
-                <div className={styles.voteAction}>
-                  <p className={styles.voteInfo}>
-                    עלות הצבעה: <strong>₪3</strong> • נרשם בבלוקצ׳יין
-                  </p>
-                  <Button
-                    onClick={handleVote}
-                    disabled={!selectedOption || submitting}
-                    size="large"
-                  >
-                    {submitting ? 'מעבד תשלום...' : 'הצביעו עכשיו'}
-                  </Button>
-                </div>
-              )}
-
-              {hasVoted && (
-                <div className={styles.votedMessage}>
-                  <span className={styles.votedIcon} aria-hidden>
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.4">
-                      <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </span>
-                  הצבעתכם נקלטה בהצלחה
-                </div>
-              )}
-            </motion.div>
+          {/* Back / dateline bar */}
+          <div className={styles.topBar}>
+            <button className={styles.backButton} onClick={() => router.back()}>
+              <span aria-hidden>↳</span>
+              חזרה
+            </button>
+            <span className={styles.edition}>
+              <span className={styles.editionDot} data-status={vote.status} aria-hidden />
+              {isActive ? `פעיל · נותרו ${timeRemaining}` : 'ההצבעה הסתיימה'}
+            </span>
           </div>
 
-          {/* Share */}
-          <motion.div
-            className={styles.shareSection}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.7 }}
-          >
-            <button className={styles.shareButton} onClick={handleShare}>
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-                <circle cx="18" cy="5" r="3" />
-                <circle cx="6" cy="12" r="3" />
-                <circle cx="18" cy="19" r="3" />
-                <path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" strokeLinecap="round" />
-              </svg>
-              שתפו את ההצבעה
-            </button>
-          </motion.div>
+          <div className={styles.ruleHeavy} aria-hidden />
+
+          {/* Article masthead — kicker + headline + standfirst */}
+          <header className={styles.head}>
+            <span className={styles.kicker}>
+              <span aria-hidden className={styles.kickerTick} />
+              הצבעה חיה · {vote.municipality}
+            </span>
+
+            <motion.h1 className={styles.title} {...titleAnim}>
+              {vote.title}
+            </motion.h1>
+
+            {/* Stats — mono figures */}
+            <div className={styles.stats}>
+              <div className={styles.stat}>
+                <span className={styles.statValue}>{totalVotes.toLocaleString('he-IL')}</span>
+                <span className={styles.statLabel}>קולות</span>
+              </div>
+              <span className={styles.statDivider} aria-hidden />
+              <div className={styles.stat}>
+                <span className={styles.statValue}>{vote.options.length}</span>
+                <span className={styles.statLabel}>אפשרויות</span>
+              </div>
+              <span className={styles.statDivider} aria-hidden />
+              <div className={styles.stat}>
+                <span className={styles.statValue}>{timeRemaining}</span>
+                <span className={styles.statLabel}>נותרו</span>
+              </div>
+            </div>
+          </header>
+
+          {/* Broadsheet spread: editorial column + participation panel */}
+          <div className={styles.spread}>
+            {/* Editorial column — description */}
+            <article className={styles.story}>
+              <span className={styles.colKicker}>ההצעה</span>
+              <p className={styles.description}>{vote.description}</p>
+              <div className={styles.byline}>
+                <span>מאת {vote.creator.name}</span>
+                <span className={styles.sep} aria-hidden>■</span>
+                <span>{vote.municipality}</span>
+              </div>
+
+              <div className={styles.shareRow}>
+                <button className={styles.shareButton} onClick={handleShare}>
+                  <span aria-hidden>↗</span>
+                  שתפו את ההצבעה
+                </button>
+              </div>
+            </article>
+
+            {/* Participation panel — flow when active, results otherwise */}
+            <aside className={styles.panelCol}>
+              {showFlow && (
+                <ParticipationFlow
+                  voteId={String(params.id)}
+                  voteTitle={vote.title}
+                  options={flowOptions}
+                  totalVotes={totalVotes}
+                  initialOptionId={selectedOption}
+                  onComplete={() => setHasVoted(true)}
+                />
+              )}
+
+              {showResults && (
+                <section className={styles.results} aria-label="תוצאות">
+                  <header className={styles.resultsHead}>
+                    <span className={styles.kicker}>
+                      <span aria-hidden className={styles.kickerTick} />
+                      תוצאות · RESULTS
+                    </span>
+                    <span className={styles.place}>
+                      {totalVotes.toLocaleString('he-IL')} קולות מאומתים
+                    </span>
+                  </header>
+
+                  <ul className={styles.options}>
+                    {vote.options.map((option, index) => {
+                      const percentage =
+                        totalVotes > 0 ? Math.round((option.votes / totalVotes) * 100) : 0;
+                      const isMine = hasVoted && selectedOption === option.id;
+                      return (
+                        <li key={option.id}>
+                          <div className={`${styles.option} ${isMine ? styles.optionMine : ''}`}>
+                            <span className={styles.optionTop}>
+                              <span className={styles.mark} aria-hidden>
+                                {isMine ? '■' : '□'}
+                              </span>
+                              <span className={styles.optionLabel}>{option.text}</span>
+                              <span className={styles.pct}>{percentage}%</span>
+                            </span>
+                            <span className={styles.track} aria-hidden>
+                              <motion.span
+                                className={`${styles.fill} ${isMine ? styles.fillMine : ''}`}
+                                initial={reduced ? false : { width: 0 }}
+                                whileInView={{ width: `${percentage}%` }}
+                                viewport={{ once: true, margin: '-40px' }}
+                                transition={{
+                                  duration: reduced ? 0 : 0.7,
+                                  delay: reduced ? 0 : 0.05 * index,
+                                  ease: [0.2, 0, 0, 1],
+                                }}
+                              />
+                            </span>
+                            <span className={styles.optionCount}>
+                              {option.votes.toLocaleString('he-IL')} קולות
+                            </span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+
+                  {hasVoted && (
+                    <div className={styles.votedMessage}>
+                      <span className={styles.votedGlyph} aria-hidden>✓</span>
+                      הצבעתכם נקלטה ונחתמה בבלוקצ׳יין
+                    </div>
+                  )}
+
+                  <footer className={styles.resultsMeta}>
+                    <span>מאומת · זהות + GPS</span>
+                    <span className={styles.sep} aria-hidden>■</span>
+                    <span>חתום בבלוקצ׳יין</span>
+                  </footer>
+                </section>
+              )}
+            </aside>
+          </div>
         </div>
       </main>
       <Footer />
