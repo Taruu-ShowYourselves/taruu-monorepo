@@ -23,23 +23,23 @@ Look & feel: newsprint cream `--np-paper #F4F1E8` + ink `--np-ink #14110E` + pil
 - Standfirst: serif, `clamp(var(--text-base), 0.5vw+0.9rem, var(--text-xl))`, lh 1.45, ink-soft.
 - Numbers/meta/captions: mono, tabular.
 
-## DONE
-Homepage front page fully rebuilt to the locked system (masthead · ticker · 3-col broadsheet Lead with engraving + live ballot · Participate · Pillars · HowItWorks · PilotDispatch · Colophon). tsc + lint green, HTTP 200, desktop + mobile verified. Newsletter capsule + newspaper OG done. Mobile overflow fixed (NewsButton wraps; headline clamps mobile-safe).
+## DONE — full site migrated to brutalist tech-press (web-only, mobile-first)
+Homepage front page (masthead · ticker · 3-col broadsheet Lead · Participate · Pillars · HowItWorks · PilotDispatch · Colophon) + newsletter capsule + newspaper OG.
 
-## TODO — manifest ALL control surfaces + flows in the press system
-Everything below is still **Luminous v1** or unbuilt — migrate/build in brutalist tech-press, reusing press primitives + canonical scale.
+**Site-wide migration complete (2026-06-15 build night).** 6 commits on `redesign/brutalist-tech-press` (ee9312d → 6f58807). tsc + lint green, all 19 routes verified at 390 (mobile) + 1600 (desktop) via Playwright.
+- **Shell site-wide**: `Header`→`Masthead`, `Footer`→`Colophon` aliased at the layout barrels (`components/layout/{Header,Footer}/index.ts`) — every page inherits the press shell, zero call-site churn.
+- **Press form/flow primitives** (NEW, `components/press/`): `PressInput`, `PressSelect`, `Segmented`, `Stepper`, `Receipt`, `SealCard` — hard-edge mono control surfaces, mobile-first, RTL logical props, red focus/error, reduced-motion guards. Exported from the `@/components/press` barrel.
+- **Content pages** → press: votes board + archive, economics (deep Issue-Coin/flywheel), treasury (public ledger), pricing (rate card), about (editorial manifesto + drop-cap), faq, support, download (press dispatch), legal privacy/terms/refund (shared `LegalPage`/`LegalContent`).
+- **Flows** → press: `votes/[id]` vote detail + full participation flow (choose → GPS verify → pay ₪3 → Receipt → SealCard) via `flow/ParticipationFlow.tsx`; `votes/create` wizard (Stepper, propose→options→duration→pay); `verification` (reassurance-first one-time GPS); `dashboard` (personal ledger: history, Issue-Coin balance, fund contributions, billing history, refund request, settings); auth `sign-in`/`sign-up`/`connect-social`/`onboarding`/`settings/social-connections` (OAuth preserved, municipality Stepper).
+- Pricing/dashboard/create read `VOTE_COST`/`CREATE_VOTE_COST` from `@sync/shared` (no hardcoded amounts).
 
-1. **Global shell site-wide**: replace luminous `components/layout/Header`+`Footer` with `Masthead`+`Colophon` across all pages (only homepage uses them now). Best: wire into the `[locale]` layout.
-2. **Inner pages → press**: `votes` (list/[id]/create/archive), `economics`, `treasury`, `pricing`, `about`, `faq`, `support`, `download`, `verification`, legal (`privacy/terms/refund`). Per-page copy in CONTENT_STRATEGY §5.
-3. **Participation FLOW** (real, not just the home surface): vote detail → choose option → verify presence (GPS) → pay ₪3 → confirmation/receipt → blockchain-seal view. Press multi-step.
-4. **Payments & billing**: Paddle checkout, ₪3 vote / ₪50 create-vote, payment status/verify/receipt, billing history, refunds UI. API routes exist under `apps/web/src/app/api/payments/*` + `api/payments/webhook`; build press surfaces on top. Mobile payment screens: `apps/mobile/app/payment/*`.
-5. **Verification flow**: identity + one-time GPS check, reassurance UI, check-in screens (`apps/mobile/app/verification/*` + web `verification`).
-6. **User dashboard**: profile, voting history, token/Issue-Coin balance, treasury contributions, settings (notifications/municipality/profile), verification status — press furniture (boxed ledgers, mono tallies, ink rules).
-7. **Auth**: sign-in / sign-up / onboarding / connect-social (Supabase OAuth) — press-styled.
-8. **Create-vote wizard**: propose issue → options → duration → ₪50 — press multi-step.
-9. **Mobile app** (`apps/mobile`, NativeWind/luminous): decide whether to port the press language to RN (separate system, lower priority — flag to user).
+## OPEN DECISIONS / NEXT
+1. **₪ create-vote price mismatch (decide):** code constant `CREATE_VOTE_COST = 200` (`packages/shared/src/constants/index.ts`); CONTENT_STRATEGY §5 says **₪50**. Whole site is wired to the constant → renders ₪200 everywhere. If ₪50 is canonical, change the one constant and the site follows.
+2. **Payment wiring is real-with-mock-fallback:** participation ₪3 + create ₪200 POST `/api/payments/create` and redirect to Paddle when `paymentUrl` is returned; otherwise they synthesize an in-page Receipt + SealCard (consistent with the app's placeholder-cred MOCK behavior). Needs real Supabase/Paddle creds for live e2e. No standalone billing/refunds route — folded into `dashboard` (refund submit is a mock no-op; wire when an endpoint lands).
+3. **VoteWidget hardcodes** `· גיליון 04` / place text — parametrize if per-vote issue numbers are wanted.
+4. **Auth-gated pages** (`verification`, `dashboard`, `onboarding`) redirect to the press `sign-in` when unauthenticated — verified that redirect is graceful; their own press bodies need a logged-in session to screenshot.
 
-Build approach that worked: fan out parallel agents (one per page/flow) with NEWSPRINT_TECH.md + Lead as reference + the canonical-scale block above + "use press primitives, keep all data/logic, typecheck only your files." Then assemble + verify with Playwright screenshots (desktop-first 1600/1920, mobile 390).
+Build approach that worked: fan out parallel agents (one per page/flow) with NEWSPRINT_TECH.md + Lead as reference + the canonical-scale block + "use press primitives, keep all data/logic, scope-locked to your page folder." Then assemble + verify with Playwright (`.redesign/shot-routes.mjs`, 390 + 1600). Gotcha caught: press sections render **static** — don't gate body content behind `whileInView` (it left legal bodies blank until fixed in 6f58807).
 
 ## Run / verify
 - Dev: `cd apps/web && node_modules/.bin/next dev -p 3777` → http://localhost:3777/he. **Never `next build` while dev runs** (clobbers `.next`). Hebrew-only.
