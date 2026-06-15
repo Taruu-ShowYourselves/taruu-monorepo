@@ -2,6 +2,16 @@
 
 _Created 2026-06-15. Working doc for the UX breakdown session._
 
+## Backlog — new requests (2026-06-15, for next session)
+Captured for GSD/next-session pickup (GSD `.planning/` not initialised in this repo — init later if wanted).
+
+- **B1 · OTP via serverless Cloudflare Worker.** Replace/supplement Twilio Verify (current J4 phone OTP) with a Cloudflare Worker for code generation + delivery. Keep the `/api/user/phone/send-code|verify` contract; swap the backend. Infra + security (rate-limit, secrets in Worker env, no creds in client).
+- **B2 · Account icon bar (masthead).** Show the authenticated Google account in the chrome — avatar/email + the verified **location** (city/municipality) as a compact indicator/menu. Today the masthead has NO auth state. Signed-out → the founders'-group CTA; signed-in → account menu (account, dashboard, sign out) + location chip.
+- **B3 · Account space.** A dedicated account area (likely `/account` or expand `/settings`) — profile, the Google identity, verification status, location. Distinct from `/dashboard` (the civic ledger).
+- **B4 · City + Country fields.** Onboarding/account currently capture **municipality only**. Add explicit **city** + **country** fields (capture in onboarding + editable in the account space; surface in B2's location chip). Update `UserProfile`/profile API as needed.
+
+These mostly land in **J8 (auth/onboarding)** + a new **account** surface; B1 is J4 infra.
+
 ## Decisions log
 - **2026-06-15 · J1 channels:** WhatsApp pilot group + email newsletter are **two separate channels**, both kept. Not competing — do not collapse.
 - **2026-06-15 · J5 rebrand → BAGS:** "Issue Coin" is renamed **bags.fm memecoin** in all user-facing copy. Lexicon below. Tone = **bridge** (civic-trust spine; memecoin mechanics framed as the economic engine outsiders buy into to fund execution — like a stock; dignified, not hype). Code identifiers (IssueCoin type, API routes, CSS classes) stay unchanged — copy layer only.
@@ -127,6 +137,7 @@ Nav today: הצבעות · מטבעות הקהילה · כלכלה אזרחית 
 **Goal:** account + municipality set, lowest friction.
 **Path:** `/he/sign-in|sign-up` (Google OAuth) → `connect-social` → `/he/onboarding` (municipality) → home.
 **Friction:** social-connect step purpose (identity score?) needs framing; municipality lock-in; where verification slots in vs onboarding.
+**New requests folded in (see Backlog):** B2 account icon bar in masthead (auth state + location chip — masthead has none today), B3 dedicated account space, B4 city + country fields (currently municipality-only). Confirmed present: Google OAuth sign-in, `/dashboard`, `/sign-up`(+connect-social).
 `[ ] MAP  [ ] FRICTION  [ ] UX  [ ] UI  [ ] COPY`
 
 ### J9 · Vote resolution → certificate  🟧backend, UX undefined
