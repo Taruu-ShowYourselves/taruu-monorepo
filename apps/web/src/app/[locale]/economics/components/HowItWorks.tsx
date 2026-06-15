@@ -111,7 +111,7 @@ function Glyph({ name }: { name: IconName }) {
 }
 
 const residentSteps: Step[] = [
-  { number: '1', title: 'אימות זהות', description: 'התחברות עם Google ואימות מיקום ב-GPS', icon: 'shield' },
+  { number: '1', title: 'אימות זהות', description: 'התחברות עם Google, אימות טלפון ומיקום ב-GPS', icon: 'shield' },
   { number: '2', title: 'צפייה בהצבעות פעילות', description: 'נושאים בעיר שלך שדורשים הכרעה', icon: 'eye' },
   { number: '3', title: 'תשלום ₪3 והצבעה', description: 'בחירת העמדה שאתה מאמין בה', icon: 'vote' },
   { number: '4', title: 'תעודת מצביע מאומת', description: 'הוכחה דיגיטלית להשתתפות שלך', icon: 'badge' },
