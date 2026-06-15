@@ -75,6 +75,17 @@
   border-block-start: var(--np-rule-hair) solid var(--np-paper-edge);
 }
 
+.gateNote {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  color: var(--np-ink);
+  background: var(--np-paper-2);
+  border: var(--np-rule-hair) solid var(--np-ink);
+  padding: var(--space-3) var(--space-4);
+  margin-block-start: var(--space-4);
+}
+
 /* ------------------------------------------------------------------ */
 /* Step 1 — options (ballot rows)                                     */
 /* ------------------------------------------------------------------ */

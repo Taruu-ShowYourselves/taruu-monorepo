@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { NewsButton } from '@/components/press/NewsButton';
@@ -29,21 +29,22 @@ interface ParticipationFlowProps {
   onComplete: () => void;
 }
 
-type Stage = 'choice' | 'presence' | 'payment' | 'receipt';
+type Stage = 'choice' | 'payment' | 'receipt';
 
 const STEPS = [
   { label: 'בחירה' },
-  { label: 'אימות נוכחות' },
   { label: 'תשלום' },
-  { label: 'קבלה' },
+  { label: 'אישור' },
 ] as const;
 
 const STAGE_INDEX: Record<Stage, number> = {
   choice: 0,
-  presence: 1,
-  payment: 2,
-  receipt: 3,
+  payment: 1,
+  receipt: 2,
 };
+
+/** sessionStorage key for restoring a choice across an auth/verify round-trip. */
+const PENDING_KEY = 'taruu-pending-vote';
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                            */
@@ -65,11 +66,13 @@ function mockHash(): string {
 }
 
 /**
- * ParticipationFlow — the press multi-step ballot. Choice → one-time GPS
- * presence check → ₪3 payment → blockchain receipt + seal. Drives the real
- * payment API (Paddle redirect) when configured, and falls back gracefully to
- * an in-page mock seal when the provider/session is unavailable (mirrors how
- * the app degrades against placeholder creds).
+ * ParticipationFlow — the press ballot, reshaped (UX flow J2). Choice → ₪3
+ * payment → blockchain receipt + seal. Residency is verified ONCE elsewhere
+ * (/verification), so there is no per-vote GPS step. The auth + verified-resident
+ * gate sits at payment: guests pick freely, and the selected option is persisted
+ * across the sign-in / verification round-trip so nothing is lost. Drives the
+ * real payment API (Paddle redirect) when configured, and falls back gracefully
+ * to an in-page mock seal when the provider/session is unavailable.
  */
 export function ParticipationFlow({
   voteId,
@@ -81,14 +84,12 @@ export function ParticipationFlow({
 }: ParticipationFlowProps) {
   const router = useRouter();
   const reduced = useReducedMotion();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
+
+  const isVerifiedResident = user?.verificationStatus?.phase === 'completed';
 
   const [stage, setStage] = useState<Stage>('choice');
   const [selectedOption, setSelectedOption] = useState<string | null>(initialOptionId);
-  const [presenceState, setPresenceState] = useState<'idle' | 'checking' | 'verified' | 'error'>(
-    'idle'
-  );
-  const [presenceMessage, setPresenceMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   const [seal, setSeal] = useState<{ hash: string; block: string; ts: string } | null>(null);
@@ -98,6 +99,40 @@ export function ParticipationFlow({
     [options, selectedOption]
   );
 
+  // Restore a choice persisted before an auth/verify redirect (or ?option=…),
+  // and jump straight back to the payment step so the round-trip is seamless.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let restored: string | null = null;
+    try {
+      const raw = sessionStorage.getItem(PENDING_KEY);
+      if (raw) {
+        const pending = JSON.parse(raw) as { voteId?: string; optionId?: string };
+        if (pending.voteId === voteId && pending.optionId) restored = pending.optionId;
+        sessionStorage.removeItem(PENDING_KEY);
+      }
+    } catch {
+      /* ignore malformed cache */
+    }
+    if (!restored) {
+      restored = new URLSearchParams(window.location.search).get('option');
+    }
+    if (restored && options.some((o) => o.id === restored)) {
+      setSelectedOption(restored);
+      setStage('payment');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Persist the choice so it survives a sign-in / verification redirect. */
+  const persistPending = useCallback(() => {
+    try {
+      sessionStorage.setItem(PENDING_KEY, JSON.stringify({ voteId, optionId: selectedOption }));
+    } catch {
+      /* storage unavailable — non-fatal */
+    }
+  }, [voteId, selectedOption]);
+
   const stepAnim = reduced
     ? {}
     : {
@@ -106,68 +141,13 @@ export function ParticipationFlow({
         transition: { duration: 0.22, ease: [0.2, 0, 0, 1] as const },
       };
 
-  /* ---- Step 1: choice ---- */
+  /* ---- Step 1: choice (open to guests) ---- */
   const handleConfirmChoice = useCallback(() => {
     if (!selectedOption) return;
-    if (!isAuthenticated) {
-      router.push('/sign-in?redirect=' + encodeURIComponent(`/votes/${voteId}`));
-      return;
-    }
-    setStage('presence');
-  }, [selectedOption, isAuthenticated, router, voteId]);
+    setStage('payment');
+  }, [selectedOption]);
 
-  /* ---- Step 2: GPS presence ---- */
-  const handleVerifyPresence = useCallback(() => {
-    setPresenceState('checking');
-    setPresenceMessage(null);
-
-    const finishVerified = (place?: string | null) => {
-      setPresenceState('verified');
-      setPresenceMessage(place ? `אומת · ${place}` : 'הנוכחות אומתה');
-    };
-
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      // No geolocation available — degrade to a verified mock presence.
-      finishVerified();
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const res = await fetch(`/api/votes/${voteId}/verify-location`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude,
-            }),
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.verified) {
-              finishVerified(data.municipality);
-              return;
-            }
-            setPresenceState('error');
-            setPresenceMessage('המיקום שלכם מחוץ לתחום הרשות של ההצבעה.');
-            return;
-          }
-          // Endpoint unavailable (e.g. unauthenticated mock) — accept presence.
-          finishVerified();
-        } catch {
-          finishVerified();
-        }
-      },
-      () => {
-        setPresenceState('error');
-        setPresenceMessage('לא הצלחנו לקרוא את המיקום. אשרו הרשאת מיקום ונסו שוב.');
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-    );
-  }, [voteId]);
-
-  /* ---- Step 3: ₪3 payment ---- */
+  /* ---- Step 2: ₪3 payment ---- */
   const completeWithMockSeal = useCallback(() => {
     setSeal({
       hash: mockHash(),
@@ -180,6 +160,21 @@ export function ParticipationFlow({
 
   const handlePay = useCallback(async () => {
     if (!selectedOption) return;
+
+    const back = encodeURIComponent(`/votes/${voteId}`);
+    // Gate at payment: must be signed in AND a verified resident. Persist the
+    // choice so the round-trip returns the user straight to this step.
+    if (!isAuthenticated) {
+      persistPending();
+      router.push(`/sign-in?redirect=${back}`);
+      return;
+    }
+    if (!isVerifiedResident) {
+      persistPending();
+      router.push(`/verification?redirect=${back}`);
+      return;
+    }
+
     setSubmitting(true);
     setPayError(null);
 
@@ -215,7 +210,16 @@ export function ParticipationFlow({
     } finally {
       setSubmitting(false);
     }
-  }, [selectedOption, voteId, voteTitle, completeWithMockSeal]);
+  }, [
+    selectedOption,
+    voteId,
+    voteTitle,
+    completeWithMockSeal,
+    isAuthenticated,
+    isVerifiedResident,
+    persistPending,
+    router,
+  ]);
 
   /* ------------------------------------------------------------------ */
   return (
@@ -279,87 +283,32 @@ export function ParticipationFlow({
                 disabled={!selectedOption}
                 trailing={<span aria-hidden>←</span>}
               >
-                המשיכו · אימות נוכחות
+                המשיכו · תשלום
               </NewsButton>
             </div>
           </section>
         )}
 
-        {/* ---- STEP 2 — אימות נוכחות ---- */}
-        {stage === 'presence' && (
-          <section className={styles.panel} aria-label="אימות נוכחות">
-            <span className={styles.kicker}>
-              <span aria-hidden className={styles.kickerTick} />
-              שלב 02 · אימות נוכחות
-            </span>
-            <h2 className={styles.panelTitle}>אנחנו רק מוודאים שאתם כאן</h2>
-            <p className={styles.lead}>
-              בדיקת נוכחות חד-פעמית מוודאת שאתם תושבי הרשות שבה מתקיימת ההצבעה. זה כל מה
-              שנדרש — לחיצה אחת.
-            </p>
-
-            <div
-              className={styles.presenceBox}
-              data-state={presenceState}
-              aria-live="polite"
-            >
-              <span className={styles.presenceGlyph} aria-hidden>
-                {presenceState === 'verified' ? '✓' : presenceState === 'error' ? '✕' : '●'}
-              </span>
-              <span className={styles.presenceText}>
-                {presenceState === 'idle' && 'ממתין לאישור מיקום'}
-                {presenceState === 'checking' && 'בודק נוכחות…'}
-                {(presenceState === 'verified' || presenceState === 'error') &&
-                  presenceMessage}
-              </span>
-            </div>
-
-            <p className={styles.trust}>בדיקה חד-פעמית. לא שומרים מיקום.</p>
-
-            <div className={styles.actions}>
-              {presenceState !== 'verified' ? (
-                <NewsButton
-                  variant="ink"
-                  size="lg"
-                  className={styles.cta}
-                  onClick={handleVerifyPresence}
-                  disabled={presenceState === 'checking'}
-                  trailing={<span aria-hidden>●</span>}
-                >
-                  {presenceState === 'checking' ? 'בודק…' : 'אמתו נוכחות'}
-                </NewsButton>
-              ) : (
-                <NewsButton
-                  variant="red"
-                  size="lg"
-                  className={styles.cta}
-                  onClick={() => setStage('payment')}
-                  trailing={<span aria-hidden>←</span>}
-                >
-                  המשיכו · תשלום
-                </NewsButton>
-              )}
-              <button type="button" className={styles.backLink} onClick={() => setStage('choice')}>
-                ↳ חזרה לבחירה
-              </button>
-            </div>
-          </section>
-        )}
-
-        {/* ---- STEP 3 — תשלום ---- */}
+        {/* ---- STEP 2 — תשלום ---- */}
         {stage === 'payment' && (
           <section className={styles.panel} aria-label="תשלום">
             <span className={styles.kicker}>
               <span aria-hidden className={styles.kickerTick} />
-              שלב 03 · תשלום
+              שלב 02 · תשלום
             </span>
             <h2 className={styles.panelTitle}>דמי השתתפות · ₪3</h2>
+
+            <p className={styles.lead}>
+              שלושת השקלים אינם אגרה — הם הדלק של ההצבעה. ₪2 נכנסים לקרן הקהילתית
+              שמממנת את ביצוע ההחלטה, ומזינים את ה-BAG של ההצבעה ב-bags.fm; ₪1 לתפעול
+              המערכת. ככל שיותר תושבים משתתפים, יש לנושא יותר משאבים אמיתיים מאחוריו.
+            </p>
 
             <Receipt
               className={styles.receipt}
               kicker="חיוב · CHARGE"
               rows={[
-                { label: 'לקרן הקהילתית', value: '₪2' },
+                { label: 'לקרן הקהילתית · ה-BAG', value: '₪2' },
                 { label: 'לתפעול המערכת', value: '₪1' },
                 { label: 'סה״כ לחיוב', value: '₪3', strong: true },
               ]}
@@ -367,6 +316,19 @@ export function ParticipationFlow({
             />
 
             <p className={styles.trust}>₪2 לקרן הקהילתית · ₪1 לתפעול. הכל מתועד.</p>
+
+            {/* Gate notice — what the pay button will do next */}
+            {!isAuthenticated ? (
+              <p className={styles.gateNote}>
+                <span aria-hidden>■ </span>
+                צריך חשבון כדי להשלים — נשמור את הבחירה שלכם ונחזיר אתכם לכאן.
+              </p>
+            ) : !isVerifiedResident ? (
+              <p className={styles.gateNote}>
+                <span aria-hidden>■ </span>
+                אימות תושב חד-פעמי לפני התשלום. נשמור את הבחירה ונמשיך מכאן.
+              </p>
+            ) : null}
 
             {payError && (
               <p className={styles.payError} role="alert">
@@ -384,26 +346,32 @@ export function ParticipationFlow({
                 disabled={submitting}
                 trailing={<span aria-hidden>←</span>}
               >
-                {submitting ? 'מעבד תשלום…' : 'שלמו · ₪3'}
+                {submitting
+                  ? 'מעבד תשלום…'
+                  : !isAuthenticated
+                    ? 'התחברו והשלימו · ₪3'
+                    : !isVerifiedResident
+                      ? 'אמתו תושבוּת והשלימו · ₪3'
+                      : 'שלמו · ₪3'}
               </NewsButton>
               <button
                 type="button"
                 className={styles.backLink}
-                onClick={() => setStage('presence')}
+                onClick={() => setStage('choice')}
                 disabled={submitting}
               >
-                ↳ חזרה
+                ↳ חזרה לבחירה
               </button>
             </div>
           </section>
         )}
 
-        {/* ---- STEP 4 — קבלה + חתימה ---- */}
+        {/* ---- STEP 3 — אישור + חתימה ---- */}
         {stage === 'receipt' && seal && (
           <section className={styles.panel} aria-label="קבלה וחתימה">
             <span className={styles.kicker}>
               <span aria-hidden className={styles.kickerTick} />
-              שלב 04 · קבלה
+              שלב 03 · אישור
             </span>
             <h2 className={styles.panelTitle}>
               הקול שלכם <span className={styles.red}>נחתם.</span>

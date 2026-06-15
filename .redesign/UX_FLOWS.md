@@ -85,8 +85,9 @@ Nav today: הצבעות · מטבעות הקהילה · כלכלה אזרחית 
 **Goal:** verified resident casts a paid, sealed vote.
 **Path:** `/he/votes` → `/he/votes/[id]` → Stepper: choose option → GPS presence → pay ₪3 → receipt + blockchain seal.
 **Backend:** `votes`, `votes/[id]`, `verify-location`, `payments/create` (Paddle), `participate`, `issue-coin`.
-**Friction (hypotheses):** paying ₪3 *to vote* is a novel ask — needs justification at the moment of payment; GPS permission anxiety; 4-step stepper weight on mobile; auth gate mid-flow (must sign in to vote).
-`[ ] MAP  [ ] FRICTION  [ ] UX  [ ] UI  [ ] COPY`
+**Decisions (UX):** (1) Flow reshaped to **choice → pay ₪3 → seal** — per-vote GPS removed. (2) Residency is verified **once** via J4; voting then skips location entirely. (3) Auth gate moves to **payment**; the selected option persists across the OAuth round-trip (no lost choice). (4) Verified-resident is a **precondition at payment** — unverified users route to J4 verification, then return to finish. (5) GPS **hard-fails with retry** (moved into J4); soft-pass only behind an explicit dev/mock flag. (6) Payment step must **justify the ₪3** in place (₪2 fund / ₪1 ops · funds execution · feeds the vote's BAG).
+**Grounding notes:** the vote is recorded server-side on the Paddle `payment.completed` webhook, not by the client; the mock-seal path persists nothing (demo only).
+`[x] MAP  [x] FRICTION  [x] UX  [x] UI  [x] COPY` — flow rebuilt (choice→pay→seal, gate-at-payment with choice persisted via sessionStorage, verified-resident precondition routing to /verification, ₪3 justified + tied to the BAG). **J2 complete** pending live visual (dev DB empty — no seed votes). Cross-journey TODOs: (a) /verification must honour `?redirect=` to return after verifying (J4); (b) server-side vote recording on the Paddle webhook is the source of truth (mock seal persists nothing).
 
 ### J3 · Create a vote  ✅built
 **Goal:** resident proposes an issue, pays ₪200, it goes live.
