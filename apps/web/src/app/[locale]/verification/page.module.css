@@ -285,6 +285,48 @@
   flex-shrink: 0;
 }
 
+/* ---------- Error + secondary action (phone / GPS steps) ---------- */
+
+.payError {
+  display: block;
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  color: var(--np-red);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: var(--np-rule-hair) solid var(--np-red);
+  background: var(--np-paper-box);
+}
+
+.windowNote {
+  display: block;
+  margin-block-start: var(--space-1);
+  color: var(--np-ink-soft);
+}
+
+.backLink {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  letter-spacing: 0.02em;
+  color: var(--np-ink-soft);
+  cursor: pointer;
+  text-align: start;
+}
+
+.backLink:hover:not(:disabled) {
+  color: var(--np-red);
+}
+
+.backLink:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ---------- Progress (in_progress) ---------- */
 
 .progress {

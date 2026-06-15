@@ -99,8 +99,9 @@ Nav today: הצבעות · מטבעות הקהילה · כלכלה אזרחית 
 **Goal:** prove "I live here" once, privately.
 **Path:** `/he/verification` → identity → one-time GPS → (phone?) → verified badge.
 **Backend:** `verification/start|check-in|schedule|status`, `user/phone/*`, `user/verify-location`.
-**Friction:** privacy anxiety is the core barrier; phone verification exists in API but not in the UI; relationship between verification and the in-vote GPS check is unclear (verify once vs every vote?).
-`[ ] MAP  [ ] FRICTION  [ ] UX  [ ] UI  [ ] COPY`
+**Decisions (UX):** (1) **One successful GPS check-in gates voting** — keep the program, but the first check-in flips eligibility; further check-ins continue in the background for trust scoring, never blocking. (2) **Phone OTP (identity) + GPS (residency)** two-factor. (3) **Wire it for real** — replace the stubbed `alert('coming soon')` actions with the live APIs + geolocation, **hard-fail + retry**, honour `?redirect=` back to the originating vote. (4) Eligibility helper `phase==='completed' || checkInsCompleted>=1` shared with J2's payment gate.
+**Grounding notes:** phone = Twilio Verify (rate-limited; mock-degrade without creds); GPS check-ins are gated by scheduled windows — the **first** check-in must be immediate to gate voting, scheduled windows continue the program after. Actions were stubbed; status comes from `user.verificationStatus` (refresh via AuthProvider.refreshSession).
+`[x] MAP  [x] FRICTION  [x] UX  [x] UI  [x] COPY` — **J4 wired for real**: phone OTP (Twilio, mock-degrade) → immediate first GPS check-in (start→check-in, hard-fail+retry, next-window surfaced) → eligible; `?redirect=` preserved through sign-in back to the vote; `lib/verification.ts isEligibleToVote()` shared with the J2 gate. **J4 complete** (live visual pending Twilio creds + seed schedule).
 
 ### J5 · Issue-Coin: discover → understand → back  🟡UI built, journey thin
 **Goal:** supporter finds an issue they care about and backs it (puts money behind it).

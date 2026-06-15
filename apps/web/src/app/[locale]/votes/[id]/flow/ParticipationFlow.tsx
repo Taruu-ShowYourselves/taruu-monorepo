@@ -7,6 +7,7 @@ import { NewsButton } from '@/components/press/NewsButton';
 import { Stepper, Receipt, SealCard } from '@/components/press';
 import { useReducedMotion } from '@/hooks';
 import { useAuthStore } from '@/stores/authStore';
+import { isEligibleToVote } from '@/lib/verification';
 import styles from './ParticipationFlow.module.css';
 
 /* ------------------------------------------------------------------ */
@@ -86,7 +87,7 @@ export function ParticipationFlow({
   const reduced = useReducedMotion();
   const { isAuthenticated, user } = useAuthStore();
 
-  const isVerifiedResident = user?.verificationStatus?.phase === 'completed';
+  const isVerifiedResident = isEligibleToVote(user);
 
   const [stage, setStage] = useState<Stage>('choice');
   const [selectedOption, setSelectedOption] = useState<string | null>(initialOptionId);
