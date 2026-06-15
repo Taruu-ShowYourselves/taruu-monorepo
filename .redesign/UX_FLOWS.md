@@ -151,7 +151,9 @@ Nav today: הצבעות · מטבעות הקהילה · כלכלה אזרחית 
 **Goal:** after a vote ends, participant gets a digital certificate (NFT) + result.
 **Backend:** `cron/resolve-votes`, `votes/[id]/resolution`, `user/nfts`, NFT service.
 **Friction:** no claim/view surface; how the result + certificate are presented (email? dashboard? seal view?) is unspecified.
-`[ ] MAP  [ ] FRICTION  [ ] UX  [ ] UI  [ ] COPY`
+**MAP (grounded 2026-06-15):** vote ends → cron `resolve-votes` → `processVoteResolutions` (`nft/index.ts:425`) sets `vote.resolution_status` + bulk-creates `vote_nfts` (status `pending`), type `verified_voter` (resident voter) / `civic_patron` (BAG backer). Result already shows on resolved vote detail (`votes/[id]:271`). `GET /api/user/nfts` existed but **no UI**; minting + IPFS image stubbed (`ipfs://placeholder`); archive NFT stats are mock.
+**Decisions (UX) 2026-06-15:** (1) **Dashboard tab + per-vote** placement. (2) **Auto-issued, view-only** — resolution = issuance; show from the record with a status badge, no claim. (3) **Higgsfield cert art**.
+`[x] MAP  [x] FRICTION  [x] UX  [x] UI  [x] COPY` — **J9 shipped (view-only tier).** 2 Higgsfield duotone civic seals (verified_voter: hand+ballot+check; civic_patron: pillar+coins+arrow) → `public/images/certificates/<type>.png`. `CertificateCard` (seal plate + vote title + role + municipality + date + on-chain status badge + seal hash). Dashboard gained a **תעודות** tab (grid of cards from `/api/user/nfts`, composed empty state). Per-vote **"התעודה שלכם"** block on resolved vote detail (matched by voteId). API relaxed to return **all** records (not just minted) + `status`; cert image served from local type art. `generateNftMetadata` image → type path. tsc+lint green; seals serve 200. **Deferred:** real on-chain mint (batch minter) + IPFS pin; per-vote-unique art; wiring archive NFT stats to real data. Auth-gated → live visual needs a session + resolved vote with a vote_nft.
 
 ### J10 · Treasury transparency  ✅built (single municipality)
 **Goal:** anyone audits where the money goes.
