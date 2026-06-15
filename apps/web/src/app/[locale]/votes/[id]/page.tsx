@@ -7,6 +7,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { useReducedMotion } from '@/hooks';
 import { NewsButton } from '@/components/press/NewsButton';
+import { CertificateCard, type Certificate } from '@/components/certificate/CertificateCard';
 import { ParticipationFlow, type FlowOption } from './flow/ParticipationFlow';
 import styles from './page.module.css';
 
@@ -54,6 +55,7 @@ export default function VoteDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [hasVoted, setHasVoted] = useState(false);
+  const [myCert, setMyCert] = useState<Certificate | null>(null);
 
   const fetchVote = useCallback(async () => {
     setLoading(true);
@@ -98,6 +100,29 @@ export default function VoteDetailPage() {
       fetchVote();
     }
   }, [params.id, router, fetchVote]);
+
+  // Once the vote has ended, surface the signed-in user's certificate for it
+  // (auto-issued on resolution; 401/none simply renders nothing).
+  useEffect(() => {
+    if (!vote || vote.status === 'active') return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/user/nfts');
+        if (!res.ok) return;
+        const data = await res.json();
+        const match = ((data.nfts || []) as Certificate[]).find(
+          (n) => n.voteId === vote.id
+        );
+        if (!cancelled && match) setMyCert(match);
+      } catch {
+        // No certificate to show.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [vote]);
 
   if (loading) {
     return (
@@ -329,6 +354,16 @@ export default function VoteDetailPage() {
                     <span className={styles.sep} aria-hidden>■</span>
                     <span>חתום בבלוקצ׳יין</span>
                   </footer>
+
+                  {myCert && (
+                    <div className={styles.certBlock}>
+                      <span className={styles.certKicker}>
+                        <span aria-hidden className={styles.certTick} />
+                        התעודה שלכם · YOUR CERTIFICATE
+                      </span>
+                      <CertificateCard cert={myCert} />
+                    </div>
+                  )}
                 </section>
               )}
             </aside>
