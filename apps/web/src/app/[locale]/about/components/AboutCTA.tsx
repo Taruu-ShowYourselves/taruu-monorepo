@@ -12,7 +12,7 @@ interface AboutCTAProps {
 
 export function AboutCTA(_props: AboutCTAProps) {
   return (
-    <section id="join" className={styles.cta} aria-label="הצטרפו לפיילוט">
+    <section id="join" className={styles.cta} aria-label="קבוצת המייסדים">
       <div className={styles.inner}>
         <div className={styles.dateline}>
           <span className={styles.kicker}>
@@ -42,7 +42,7 @@ export function AboutCTA(_props: AboutCTAProps) {
             size="lg"
             trailing={<span aria-hidden>←</span>}
           >
-            הצטרפו לפיילוט
+            קבוצת המייסדים
           </NewsButton>
           <span className={styles.microcopy}>
             האפליקציה תהיה זמינה ב-App Store ו-Google Play לקראת ההצבעה הראשונה.

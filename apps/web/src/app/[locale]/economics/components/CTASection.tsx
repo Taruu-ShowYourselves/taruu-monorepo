@@ -45,7 +45,7 @@ export function CTASection(_props: CTASectionProps) {
               size="lg"
               trailing={<span aria-hidden>←</span>}
             >
-              הצטרפו לפיילוט
+              קבוצת המייסדים
             </NewsButton>
           </div>
 

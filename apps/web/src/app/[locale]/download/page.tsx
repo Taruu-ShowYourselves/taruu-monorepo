@@ -8,7 +8,7 @@ import styles from './page.module.css';
 export const metadata: Metadata = {
   title: 'תַּרְאוּ בכיס שלכם — בקרוב',
   description:
-    'האפליקציה של תַּרְאוּ תהיה זמינה ב-App Store וב-Google Play לקראת ההצבעה הראשונה. הצטרפו לוואטסאפ הפיילוט ותהיו הראשונים לדעת כשהיא יוצאת.',
+    'האפליקציה של תַּרְאוּ תהיה זמינה ב-App Store וב-Google Play לקראת ההצבעה הראשונה. הצטרפו לקבוצת המייסדים ותהיו הראשונים לדעת כשהיא יוצאת.',
 };
 
 interface DownloadPageProps {

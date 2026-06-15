@@ -79,7 +79,7 @@ export function DownloadHero() {
 
             <p className={`np-dropcap ${styles.body}`}>
               האפליקציה תהיה זמינה ב-App Store וב-Google Play לקראת ההצבעה
-              הראשונה. בינתיים — הצטרפו לוואטסאפ הפיילוט ותהיו הראשונים לדעת
+              הראשונה. בינתיים — הצטרפו לקבוצת המייסדים ותהיו הראשונים לדעת
               כשהיא יוצאת.
             </p>
 
@@ -94,7 +94,7 @@ export function DownloadHero() {
               >
                 <span className={styles.primaryLabel}>
                   <WhatsappGlyph />
-                  הצטרפו לוואטסאפ הפיילוט
+                  קבוצת המייסדים
                 </span>
               </NewsButton>
               <a href="#features" className={styles.textLink}>

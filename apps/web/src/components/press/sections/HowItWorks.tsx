@@ -86,7 +86,7 @@ export function HowItWorks({ locale = 'he' }: HowItWorksProps) {
             size="md"
             trailing={<span aria-hidden>←</span>}
           >
-            הצטרפו לפיילוט
+            קבוצת המייסדים
           </NewsButton>
         </footer>
       </div>

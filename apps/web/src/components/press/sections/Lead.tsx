@@ -69,7 +69,7 @@ export function Lead({ locale = 'he' }: LeadProps) {
 
           <div className={styles.actions}>
             <NewsButton href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" variant="red" size="lg" trailing={<span aria-hidden>←</span>}>
-              הצטרפו לפיילוט
+              קבוצת המייסדים
             </NewsButton>
             <a href="#participate" className={styles.textLink}>איך משתתפים ↓</a>
           </div>

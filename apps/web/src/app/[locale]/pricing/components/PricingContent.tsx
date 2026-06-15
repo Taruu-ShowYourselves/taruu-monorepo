@@ -176,7 +176,7 @@ export function PricingContent() {
         <div className={styles.ctaWrap}>
           <h3 className={styles.ctaTitle}>רוצים לשמוע עוד?</h3>
           <p className={styles.ctaBody}>
-            הצטרפו לפיילוט — בלי התחייבות, בלי תשלום מראש.
+            הצטרפו לקבוצת המייסדים — בלי התחייבות, בלי תשלום מראש.
           </p>
           <NewsButton
             href={WHATSAPP_URL}
@@ -186,7 +186,7 @@ export function PricingContent() {
             size="lg"
             trailing={<span aria-hidden>←</span>}
           >
-            הצטרפו לפיילוט
+            קבוצת המייסדים
           </NewsButton>
         </div>
       </div>

@@ -150,7 +150,7 @@ export function CoinDossier({ voteId, locale = 'he' }: CoinDossierProps) {
               size="md"
               trailing={<span aria-hidden>←</span>}
             >
-              הצטרפו לפיילוט
+              קבוצת המייסדים
             </NewsButton>
           </div>
         </div>

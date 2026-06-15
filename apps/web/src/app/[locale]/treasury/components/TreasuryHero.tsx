@@ -111,7 +111,7 @@ export function TreasuryHero() {
               size="lg"
               trailing={<span aria-hidden>←</span>}
             >
-              הצטרפו לפיילוט
+              קבוצת המייסדים
             </NewsButton>
             <span className={styles.dateline}>קריית טבעון · גיליון כלכלה</span>
           </div>

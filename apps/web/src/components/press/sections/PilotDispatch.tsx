@@ -88,7 +88,7 @@ export function PilotDispatch({ locale = 'he' }: PilotDispatchProps) {
                 size="lg"
                 trailing={<span aria-hidden>←</span>}
               >
-                להצטרפות לקבוצת הוואטסאפ של הפיילוט
+                להצטרפות לקבוצת המייסדים
               </NewsButton>
               <a href="#subscribe" className={styles.textLink}>
                 הירשמו לעדכון במייל ↓

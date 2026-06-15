@@ -111,7 +111,7 @@ export function HeroSection() {
                 rel="noopener noreferrer"
                 className={styles.primaryBtn}
               >
-                <span className={styles.btnLabel}>הצטרפו לפיילוט</span>
+                <span className={styles.btnLabel}>קבוצת המייסדים</span>
                 <span aria-hidden className={styles.btnTrailing}>←</span>
               </a>
               <a href="#flywheel" className={styles.textLink}>

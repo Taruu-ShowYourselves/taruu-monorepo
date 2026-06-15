@@ -244,7 +244,7 @@ function EmptyState() {
       </span>
       <h2 className={styles.emptyTitle}>עוד לא נפתחו BAGS.</h2>
       <p className={styles.emptyText}>
-        ה-BAG הראשון ייפתח ב-bags.fm עם ההצבעה הראשונה — הצטרפו לוואטסאפ הפיילוט ותהיו
+        ה-BAG הראשון ייפתח ב-bags.fm עם ההצבעה הראשונה — הצטרפו לקבוצת המייסדים ותהיו
         שם כשזה קורה.
       </p>
       <NewsButton
@@ -255,7 +255,7 @@ function EmptyState() {
         size="lg"
         trailing={<span aria-hidden>←</span>}
       >
-        הצטרפו לפיילוט
+        קבוצת המייסדים
       </NewsButton>
     </div>
   );

@@ -378,7 +378,7 @@ function EmptyState() {
         size="lg"
         trailing={<span aria-hidden>←</span>}
       >
-        הצטרפו לפיילוט
+        קבוצת המייסדים
       </NewsButton>
     </div>
   );
