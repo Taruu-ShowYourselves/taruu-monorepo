@@ -240,3 +240,90 @@
     transition: none;
   }
 }
+
+/* ── Desktop manifesto panel (≥1024px) ──────────────────────────────────
+   Below 1024px the membership desk is a centered bordered card (mobile-first,
+   unchanged). On the broadsheet it becomes a 2-pane split: the form desk at the
+   inline-start, an ink manifesto panel filling the inline-end so the card never
+   strands in empty cream. */
+.brand {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .field {
+    align-items: stretch;
+    justify-content: stretch;
+    padding: 0;
+  }
+  .desk {
+    flex: 0 0 34rem;
+    max-inline-size: 34rem;
+    border: 0;
+    border-inline-end: var(--np-rule-heavy) solid var(--np-ink);
+    justify-content: center;
+    padding: var(--space-16) var(--space-12) var(--space-16);
+  }
+  .brand {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--space-12);
+    background: var(--np-ink);
+    color: var(--np-paper);
+    padding: var(--space-16) var(--space-12);
+    overflow: hidden;
+  }
+}
+
+.brandWordmark {
+  font-family: var(--np-font-display);
+  font-weight: 900;
+  font-size: var(--text-5xl);
+  letter-spacing: -0.03em;
+  line-height: 0.9;
+  color: var(--np-paper);
+}
+
+.brandLine {
+  font-family: var(--np-font-display);
+  font-weight: 900;
+  font-size: var(--text-6xl);
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+.brandRed {
+  color: var(--np-red);
+}
+.brandSub {
+  font-family: var(--np-font-body);
+  font-size: var(--text-lg);
+  line-height: 1.5;
+  color: var(--np-paper);
+  opacity: 0.78;
+  margin: var(--space-4) 0 0;
+  max-inline-size: 34ch;
+}
+
+.brandTrust {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.brandTrust li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  letter-spacing: 0.04em;
+  color: var(--np-paper);
+}
+.brandTrustGlyph {
+  color: var(--np-red);
+}

@@ -141,6 +141,24 @@ export default function SignUpPage() {
 
         <p className={styles.trust}>הקול שלכם. הקהילה שלכם.</p>
       </div>
+
+      <aside className={styles.brand} aria-hidden>
+        <span className={styles.brandWordmark}>תַּרְאוּ</span>
+        <p className={styles.brandLine}>
+          הצטרפו <span className={styles.brandRed}>לרשת.</span>
+        </p>
+        <ul className={styles.brandTrust}>
+          <li>
+            <span className={styles.brandTrustGlyph}>●</span> מאומת · חתום בבלוקצ׳יין
+          </li>
+          <li>
+            <span className={styles.brandTrustGlyph}>■</span> אימות תושב לפי מיקום
+          </li>
+          <li>
+            <span className={styles.brandTrustGlyph}>▍</span> ₪2 מכל ₪3 לקרן הקהילתית
+          </li>
+        </ul>
+      </aside>
     </div>
   );
 }
