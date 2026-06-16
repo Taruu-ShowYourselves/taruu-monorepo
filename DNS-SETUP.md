@@ -70,13 +70,18 @@ Add only when transactional email goes live.
 
 Cloudflare SSL/TLS mode → **Full (strict)**.
 
-## Cron (TODO — bridge not wired)
+## Cron (wired)
 
-Two HTTP cron routes exist, guarded by `CRON_SECRET`:
-`/api/cron/verification-notifications` and `/api/cron/resolve-votes`. On Vercel
-these were scheduled externally. On Cloudflare, enable `triggers.crons` in
-`wrangler.jsonc` (currently commented) AND add a `scheduled` handler that
-fetches each route with the `CRON_SECRET` bearer. Left for the deploy pass.
+The two HTTP cron routes (`/api/cron/verification-notifications`,
+`/api/cron/resolve-votes`, guarded by `CRON_SECRET`) run via Cloudflare Cron
+Triggers. `worker.ts` is a custom entry that re-exports the OpenNext fetch
+handler and adds a `scheduled` handler; it maps each cron expression to its
+route (CRON_ROUTES) and POSTs with the `CRON_SECRET` bearer. Schedules live in
+`wrangler.jsonc` → `triggers.crons` (must match CRON_ROUTES keys):
+`*/15 * * * *` → verification-notifications, `0 * * * *` → resolve-votes.
+
+Required: `wrangler secret put CRON_SECRET`. Test locally with
+`wrangler dev --test-scheduled` then hit `/__scheduled?cron=*+*+*+*+*`.
 
 ## Open items before production
 

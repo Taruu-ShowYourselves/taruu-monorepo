@@ -7,7 +7,9 @@
   // Preview: pnpm --filter @sync/web preview
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "taruu-web",
-  "main": ".open-next/worker.js",
+  // Custom entry (worker.ts) re-exports the OpenNext fetch handler and adds the
+  // scheduled handler that drives the cron routes — see triggers.crons below.
+  "main": "worker.ts",
   "compatibility_date": "2025-03-25",
   // nodejs_compat gives the full Node runtime the app relies on (supabase-js,
   // twilio, jose, resend, expo-server-sdk). Required by OpenNext.
@@ -29,16 +31,15 @@
   // creates the proxied DNS records itself. The zone must be Active first.
 
   // --- Scheduled jobs ---
-  // The app exposes two HTTP cron routes guarded by CRON_SECRET:
-  //   /api/cron/verification-notifications
-  //   /api/cron/resolve-votes
-  // To run them on Cloudflare, enable Cron Triggers below AND add a `scheduled`
-  // handler that fetches each route with the CRON_SECRET bearer (see
-  // DNS-SETUP.md "Cron" — this needs a small bridge in open-next.config.ts /
-  // a custom worker entry; left commented until wired).
-  // "triggers": {
-  //   "crons": ["*/15 * * * *", "0 * * * *"]
-  // },
+  // Cron Triggers fire worker.ts's scheduled handler, which POSTs the matching
+  // HTTP cron route with the CRON_SECRET bearer. Schedules MUST match the keys
+  // in CRON_ROUTES (worker.ts):
+  //   */15 * * * *  → /api/cron/verification-notifications
+  //   0 * * * *     → /api/cron/resolve-votes
+  // Requires the CRON_SECRET secret to be set (wrangler secret put CRON_SECRET).
+  "triggers": {
+    "crons": ["*/15 * * * *", "0 * * * *"]
+  },
 
   // Secrets are NOT stored here. Set them with `wrangler secret put <NAME>`
   // (or .dev.vars locally). Only NON-secret public vars belong in `vars`.
