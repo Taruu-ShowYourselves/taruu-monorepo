@@ -37,6 +37,7 @@ interface Env {
 const CRON_ROUTES: Record<string, string> = {
   '*/15 * * * *': '/api/cron/verification-notifications',
   '0 * * * *': '/api/cron/resolve-votes',
+  '*/10 * * * *': '/api/cron/mint-nfts',
 };
 
 export default {

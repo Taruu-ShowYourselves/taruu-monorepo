@@ -41,11 +41,16 @@ GREENINVOICE_API_SECRET=
 GREENINVOICE_PLUGIN_ID=
 GREENINVOICE_WEBHOOK_SECRET=
 
-# bags.fm (BAGS)
+# bags.fm (BAGS) — private key is also the cNFT minter keypair
 BAGS_API_KEY=
 BAGS_WEBHOOK_SECRET=
 BAGS_MASTER_WALLET_ADDRESS=
 BAGS_MASTER_WALLET_PRIVATE_KEY=
+
+# Solana compressed-NFT certificates (Bubblegum + Helius + Pinata)
+SOLANA_RPC_URL=
+SOLANA_MERKLE_TREE=
+PINATA_JWT=
 
 # Resend (transactional email)
 RESEND_API_KEY=

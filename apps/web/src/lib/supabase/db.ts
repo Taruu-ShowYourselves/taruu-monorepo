@@ -1782,6 +1782,52 @@ export async function getVoteNftStats(voteId: string): Promise<{
 /**
  * Get pending NFTs for minting (for batch processing)
  */
+/** A pending NFT row with its mint recipient resolved (external wallet, else the user's wallet). */
+export interface PendingNftWithRecipient {
+  id: string;
+  vote_id: string;
+  type: 'verified_voter' | 'civic_patron';
+  metadata: Record<string, unknown> | null;
+  recipient: string | null;
+}
+
+/**
+ * Pending NFTs across all votes, oldest first, for the batch minter. Recipient
+ * is the external `wallet_address` (patrons) or the user's `qubik_wallet_address`
+ * (voters); null when neither exists (left pending until a wallet is linked).
+ */
+export async function getPendingNfts(limit = 50): Promise<PendingNftWithRecipient[]> {
+  const { data, error } = await supabaseAdmin
+    .from('vote_nfts')
+    .select('id, vote_id, type, metadata, wallet_address, users(qubik_wallet_address)')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true })
+    .limit(limit);
+
+  if (error) {
+    console.error('Failed to get pending NFTs:', error);
+    return [];
+  }
+
+  return (data || []).map((row) => {
+    const r = row as unknown as {
+      id: string;
+      vote_id: string;
+      type: 'verified_voter' | 'civic_patron';
+      metadata: Record<string, unknown> | null;
+      wallet_address: string | null;
+      users: { qubik_wallet_address: string | null } | null;
+    };
+    return {
+      id: r.id,
+      vote_id: r.vote_id,
+      type: r.type,
+      metadata: r.metadata,
+      recipient: r.wallet_address || r.users?.qubik_wallet_address || null,
+    };
+  });
+}
+
 export async function getPendingNftsForVote(voteId: string, limit = 100) {
   const { data, error } = await supabaseAdmin
     .from('vote_nfts')

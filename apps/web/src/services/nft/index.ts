@@ -7,7 +7,8 @@
  * @see specs/nft-system.md for implementation details
  */
 
-import { qubikService } from '../qubik';
+import { pinMetadata, isPinataConfigured } from './pinata';
+import { mintCompressedNft, isSolanaMintConfigured } from './solana';
 import { seedVoteBag } from '@/services/treasury/bagSeeding';
 import { emailService, sendInBatches } from '@/services/email';
 import {
@@ -16,6 +17,7 @@ import {
   updateIssueCoin,
   updateVoteNft,
   bulkCreateVoteNfts,
+  getPendingNfts,
   getVoteNftStats,
   updateVoteResolutionStatus,
   getVotesNeedingResolution,
@@ -26,7 +28,8 @@ import type { NftMetadata } from '@sync/shared';
 
 // === Configuration ===
 
-const NFT_IMAGE_CDN_URL = process.env.NFT_IMAGE_CDN_URL || 'https://cdn.taruu.co.il/nfts';
+const NFT_IMAGE_CDN_URL =
+  process.env.NFT_IMAGE_CDN_URL || 'https://taruu.co.il/images/certificates';
 const NFT_SYMBOL = 'TARUU';
 
 // === Types ===
@@ -173,50 +176,109 @@ export function generateNftMetadata(input: NftMetadataInput): NftMetadata {
  */
 export async function mintSingleNft(
   nftId: string,
-  walletAddress: string,
+  walletAddress: string | null,
   metadata: NftMetadata
 ): Promise<MintResult> {
+  // Config / recipient skip: leave the record `pending` (not `failed`) so it's
+  // picked up once a wallet is linked or the chain creds are set. No spend.
+  if (!walletAddress) {
+    return { success: false, nftId, error: 'no recipient wallet' };
+  }
+  if (!isSolanaMintConfigured() || !isPinataConfigured()) {
+    return { success: false, nftId, error: 'minting not configured' };
+  }
+
   try {
-    // Mark as minting
     await updateVoteNft(nftId, { status: 'minting' });
 
-    // Call Qubik to mint NFT
-    const mintResult = await qubikService.mintTokens({
-      walletAddress,
-      amount: 1,
-      reason: 'vote',
+    // 1) Pin the metadata JSON to IPFS → on-chain metadata_uri.
+    const metadataUri = await pinMetadata(metadata, metadata.name);
+
+    // 2) Mint the compressed NFT to the recipient wallet.
+    const { assetId, signature } = await mintCompressedNft({
+      recipient: walletAddress,
+      name: metadata.name,
+      metadataUri,
     });
 
-    // Update NFT record with success
     await updateVoteNft(nftId, {
       status: 'minted',
-      mintAddress: mintResult.txHash, // Using txHash as mint address for now
-      mintTxHash: mintResult.txHash,
-      metadataUri: `ipfs://placeholder/${nftId}`, // TODO: Upload to IPFS/Arweave
+      mintAddress: assetId,
+      mintTxHash: signature,
+      metadataUri,
     });
 
-    return {
-      success: true,
-      nftId,
-      mintAddress: mintResult.txHash,
-      txHash: mintResult.txHash,
-    };
+    return { success: true, nftId, mintAddress: assetId, txHash: signature };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-
-    // Update NFT record with failure
     await updateVoteNft(nftId, {
       status: 'failed',
       errorMessage: message,
-      retryCount: 1, // Will be incremented on retry
+      retryCount: 1, // incremented per retry batch
+    });
+    return { success: false, nftId, error: message };
+  }
+}
+
+/**
+ * Batch-mint pending NFTs across all resolved votes. Regenerates the Metaplex
+ * metadata per record, pins it, and mints to the recipient wallet. Records with
+ * no recipient (voter without a linked wallet) or an unresolvable vote are left
+ * pending. No-op (and no spend) when the chain/IPFS creds are absent.
+ *
+ * Intended to run on a schedule (see /api/cron/mint-nfts).
+ */
+export async function mintPendingNfts(
+  limit = 25
+): Promise<{ attempted: number; minted: number; skipped: number; failed: number }> {
+  const summary = { attempted: 0, minted: 0, skipped: 0, failed: 0 };
+  if (!isSolanaMintConfigured() || !isPinataConfigured()) return summary;
+
+  const pending = await getPendingNfts(limit);
+  summary.attempted = pending.length;
+
+  // Cache vote lookups across records of the same vote.
+  const voteCache = new Map<string, Awaited<ReturnType<typeof getVoteById>>>();
+
+  for (const nft of pending) {
+    if (!nft.recipient) {
+      summary.skipped++;
+      continue;
+    }
+    if (!voteCache.has(nft.vote_id)) {
+      voteCache.set(nft.vote_id, await getVoteById(nft.vote_id));
+    }
+    const vote = voteCache.get(nft.vote_id);
+    if (!vote) {
+      summary.skipped++;
+      continue;
+    }
+
+    const meta = (nft.metadata || {}) as { voteCast?: string; tokensHeld?: number };
+    const metadata = generateNftMetadata({
+      vote: {
+        id: vote.id,
+        title: vote.title,
+        description: vote.description,
+        municipality: vote.municipality_id,
+        endDate: new Date(vote.end_date),
+        result: '',
+        totalVoters: vote.participant_count ?? 0,
+        totalRaised: 0,
+      },
+      holder: {
+        type: nft.type,
+        voteCast: meta.voteCast,
+        tokensHeld: meta.tokensHeld,
+      },
     });
 
-    return {
-      success: false,
-      nftId,
-      error: message,
-    };
+    const result = await mintSingleNft(nft.id, nft.recipient, metadata);
+    if (result.success) summary.minted++;
+    else summary.failed++;
   }
+
+  return summary;
 }
 
 /**

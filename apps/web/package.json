@@ -17,6 +17,9 @@
     "cf:typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
+    "@metaplex-foundation/mpl-bubblegum": "^5.0.2",
+    "@metaplex-foundation/umi": "^1.5.1",
+    "@metaplex-foundation/umi-bundle-defaults": "^1.5.1",
     "@playwright/test": "^1.40.0",
     "@studio-freight/lenis": "^1.0.42",
     "@supabase/supabase-js": "^2.39.0",
@@ -40,6 +43,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",
+    "@opennextjs/cloudflare": "^1.0.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
@@ -50,7 +54,6 @@
     "eslint-config-next": "^15.5.18",
     "typescript": "^5.7.0",
     "vitest": "^1.0.0",
-    "@opennextjs/cloudflare": "^1.0.0",
     "wrangler": "^4.0.0"
   }
 }

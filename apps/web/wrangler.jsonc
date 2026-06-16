@@ -44,9 +44,10 @@
   // in CRON_ROUTES (worker.ts):
   //   */15 * * * *  → /api/cron/verification-notifications
   //   0 * * * *     → /api/cron/resolve-votes
+  //   */10 * * * *  → /api/cron/mint-nfts
   // Requires the CRON_SECRET secret to be set (wrangler secret put CRON_SECRET).
   "triggers": {
-    "crons": ["*/15 * * * *", "0 * * * *"]
+    "crons": ["*/15 * * * *", "0 * * * *", "*/10 * * * *"]
   },
 
   // Secrets are NOT stored here. Set them with `wrangler secret put <NAME>`
