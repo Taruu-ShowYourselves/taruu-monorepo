@@ -19,6 +19,7 @@ import {
   getIdentityLevelLabel,
   getIdentityLevelDescription,
   CREATE_VOTE_COST,
+  VOTE_COST,
   formatCurrency,
 } from '@sync/shared';
 import styles from './page.module.css';
@@ -560,7 +561,7 @@ export default function DashboardPage() {
                   <div className={styles.receiptStack}>
                     {tokenTxns.map((t) => {
                       const isCreate = t.reason === 'vote_creation';
-                      const charge = isCreate ? 200 : 3;
+                      const charge = isCreate ? CREATE_VOTE_COST : VOTE_COST;
                       return (
                         <Receipt
                           key={t.id}

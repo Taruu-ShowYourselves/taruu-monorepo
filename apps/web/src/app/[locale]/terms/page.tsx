@@ -36,7 +36,7 @@ function content(locale: Locale): { title: string; intro: string; updated: strin
         {
           heading: '3. Payments & Fees',
           paragraphs: [
-            'Paid actions are priced in Israeli New Shekels (ILS). Participating in a vote costs ₪3; creating a vote costs ₪200. Payments are processed by Paddle.com, which acts as the Merchant of Record for your purchase. Applicable taxes are calculated and collected by Paddle at checkout.',
+            'Paid actions are priced in Israeli New Shekels (ILS). Participating in a vote costs ₪3; creating a vote costs ₪50. Payments are processed by Paddle.com, which acts as the Merchant of Record for your purchase. Applicable taxes are calculated and collected by Paddle at checkout.',
             'Funds collected from vote participation are accrued in a per-vote treasury ledger and, at vote resolution, are used to seed the vote’s BAG (its bags.fm memecoin).',
           ],
         },
@@ -95,7 +95,7 @@ function content(locale: Locale): { title: string; intro: string; updated: strin
       {
         heading: '3. תשלומים ועמלות',
         paragraphs: [
-          'הפעולות בתשלום מתומחרות בשקלים חדשים (₪). השתתפות בהצבעה עולה ₪3; יצירת הצבעה עולה ₪200. התשלומים מעובדים על ידי Paddle.com, המשמשת כסוחר הרשום (Merchant of Record) עבור הרכישה. מסים רלוונטיים מחושבים ונגבים על ידי Paddle בעת התשלום.',
+          'הפעולות בתשלום מתומחרות בשקלים חדשים (₪). השתתפות בהצבעה עולה ₪3; יצירת הצבעה עולה ₪50. התשלומים מעובדים על ידי Paddle.com, המשמשת כסוחר הרשום (Merchant of Record) עבור הרכישה. מסים רלוונטיים מחושבים ונגבים על ידי Paddle בעת התשלום.',
           'כספים שנאספים מהשתתפות בהצבעה נצברים בספר אוצר ייעודי לכל הצבעה, ובעת סיום ההצבעה משמשים לזריעת ה-BAG (המטבע ב-bags.fm) של אותה הצבעה.',
         ],
       },

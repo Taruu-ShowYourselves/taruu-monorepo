@@ -24,7 +24,7 @@ function content(locale: Locale): { title: string; intro: string; updated: strin
         {
           heading: '1. What You Are Paying For',
           paragraphs: [
-            'Vote participation (₪3) records your vote with blockchain verification. Vote creation (₪200) publishes a new vote. These are digital civic actions delivered immediately.',
+            'Vote participation (₪3) records your vote with blockchain verification. Vote creation (₪50) publishes a new vote. These are digital civic actions delivered immediately.',
           ],
         },
         {
@@ -64,7 +64,7 @@ function content(locale: Locale): { title: string; intro: string; updated: strin
       {
         heading: '1. עבור מה אתם משלמים',
         paragraphs: [
-          'השתתפות בהצבעה (₪3) מתעדת את הצבעתכם עם אימות בלוקצ׳יין. יצירת הצבעה (₪200) מפרסמת הצבעה חדשה. אלו פעולות אזרחיות דיגיטליות הניתנות באופן מיידי.',
+          'השתתפות בהצבעה (₪3) מתעדת את הצבעתכם עם אימות בלוקצ׳יין. יצירת הצבעה (₪50) מפרסמת הצבעה חדשה. אלו פעולות אזרחיות דיגיטליות הניתנות באופן מיידי.',
         ],
       },
       {

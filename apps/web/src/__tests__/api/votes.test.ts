@@ -23,6 +23,8 @@ vi.mock('@/lib/supabase/db', () => ({
   createVoteOptions: vi.fn(),
   verifyPaymentCompleted: vi.fn(),
   isPaymentAlreadyUsed: vi.fn(),
+  getUserById: vi.fn(),
+  getUsersByMunicipality: vi.fn(),
 }));
 
 // Import mocked modules for type-safe access
@@ -34,11 +36,22 @@ import {
   createVoteOptions,
   verifyPaymentCompleted,
   isPaymentAlreadyUsed,
+  getUserById,
+  getUsersByMunicipality,
 } from '@/lib/supabase/db';
 
 describe('Votes API Routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // POST gate: a fully verified resident of tel-aviv by default.
+    (getUserById as Mock).mockResolvedValue({
+      id: 'user-123',
+      verification_status: 'verified',
+      municipality_id: 'tel-aviv',
+      email: 'creator@example.com',
+      first_name: 'יוצר',
+    });
+    (getUsersByMunicipality as Mock).mockResolvedValue([]);
   });
 
   describe('GET /api/votes', () => {

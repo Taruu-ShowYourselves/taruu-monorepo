@@ -63,7 +63,16 @@ export async function POST(request: Request) {
       order.payment_id ||
       null;
 
-    await updateMerchOrder(orderId, { status: 'paid', payment_id: paymentId });
+    const updated = await updateMerchOrder(orderId, {
+      status: 'paid',
+      payment_id: paymentId,
+    });
+    if (!updated) {
+      // The write failed (transient DB error). Do NOT ack 200 — return 500 so
+      // Green Invoice retries the notification rather than dropping a paid order.
+      logger.error('Merch webhook: order update returned no row', { orderId });
+      return NextResponse.json({ error: 'update failed' }, { status: 500 });
+    }
     logger.info('Merch order marked paid', { orderId });
     // TODO(J6+): hand the paid order to the POD partner → status 'fulfilling'.
   } catch (error) {

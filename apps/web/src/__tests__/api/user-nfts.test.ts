@@ -78,6 +78,20 @@ describe('User NFTs API Routes', () => {
     { id: 'vote-2', title: 'Test Vote 2', municipality_id: 'jerusalem' },
   ];
 
+  // Chain-agnostic, thenable query builder: every method returns the same
+  // builder, and awaiting at any point resolves the data. Tolerant of the
+  // route's exact .eq()/.order()/.range() ordering.
+  const chainQuery = (data: unknown) => {
+    const b: Record<string, unknown> = {
+      then: (resolve: (v: { data: unknown; error: null }) => void) =>
+        resolve({ data, error: null }),
+    };
+    b.eq = () => b;
+    b.order = () => b;
+    b.range = () => b;
+    return b;
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockRange.mockReset();
@@ -117,17 +131,7 @@ describe('User NFTs API Routes', () => {
 
       mockFrom.mockImplementation((table: string) => {
         if (table === 'vote_nfts') {
-          return {
-            select: () => ({
-              eq: () => ({
-                eq: () => ({
-                  order: () => ({
-                    range: () => Promise.resolve({ data: mockNfts, error: null }),
-                  }),
-                }),
-              }),
-            }),
-          };
+          return { select: () => chainQuery(mockNfts) };
         }
         if (table === 'votes') {
           return {
@@ -159,28 +163,18 @@ describe('User NFTs API Routes', () => {
         voteTitle: 'Test Vote 1',
         municipality: 'tel-aviv',
         mintAddress: 'MintAddress123',
-        imageUrl: 'https://example.com/nft1.png',
+        imageUrl: '/images/certificates/verified_voter.png',
         displayName: 'Custom Name',
       });
     });
 
-    it('should use CDN fallback for missing image', async () => {
+    it('should serve the type-based certificate art', async () => {
       (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
       (getUserByGoogleId as Mock).mockResolvedValue(mockUser);
 
       mockFrom.mockImplementation((table: string) => {
         if (table === 'vote_nfts') {
-          return {
-            select: () => ({
-              eq: () => ({
-                eq: () => ({
-                  order: () => ({
-                    range: () => Promise.resolve({ data: [mockNfts[1]], error: null }),
-                  }),
-                }),
-              }),
-            }),
-          };
+          return { select: () => chainQuery([mockNfts[1]]) };
         }
         if (table === 'votes') {
           return {
@@ -203,7 +197,7 @@ describe('User NFTs API Routes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.nfts[0].imageUrl).toBe('https://cdn.taruu.co.il/nfts/vote-2/civic_patron.png');
+      expect(data.nfts[0].imageUrl).toBe('/images/certificates/civic_patron.png');
     });
 
     it('should return 400 for invalid limit parameter', async () => {
@@ -296,17 +290,7 @@ describe('User NFTs API Routes', () => {
 
       mockFrom.mockImplementation((table: string) => {
         if (table === 'vote_nfts') {
-          return {
-            select: () => ({
-              eq: () => ({
-                eq: () => ({
-                  order: () => ({
-                    range: () => Promise.resolve({ data: mockNfts, error: null }),
-                  }),
-                }),
-              }),
-            }),
-          };
+          return { select: () => chainQuery(mockNfts) };
         }
         if (table === 'votes') {
           return {
@@ -339,17 +323,7 @@ describe('User NFTs API Routes', () => {
 
       mockFrom.mockImplementation((table: string) => {
         if (table === 'vote_nfts') {
-          return {
-            select: () => ({
-              eq: () => ({
-                eq: () => ({
-                  order: () => ({
-                    range: () => Promise.resolve({ data: [], error: null }),
-                  }),
-                }),
-              }),
-            }),
-          };
+          return { select: () => chainQuery([]) };
         }
         return {
           select: () => ({

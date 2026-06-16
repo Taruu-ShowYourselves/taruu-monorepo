@@ -83,8 +83,11 @@ export default function PaymentReturnPage() {
             await SLEEP(2000);
             continue;
           }
-          // Verified failure (already used, bad data) or exhausted retries.
-          setPhase(res.status === 402 ? 'processing' : 'error');
+          // 402 = payment still settling; 400 = payment already consumed, which
+          // most often means a prior attempt already created the vote (e.g. a
+          // network blip after the server committed). Neither is a hard error —
+          // send the user to their dashboard to find the vote.
+          setPhase(res.status === 402 || res.status === 400 ? 'processing' : 'error');
           return;
         } catch {
           if (attempt < 3) {
@@ -144,9 +147,13 @@ export default function PaymentReturnPage() {
           {busy && <div className={styles.bar} aria-hidden />}
 
           <div className={styles.actions}>
-            {phase === 'created' && voteId && (
-              <NewsButton variant="red" size="lg" onClick={() => router.push(`/votes/${voteId}`)}>
-                לצפייה בהצבעה
+            {phase === 'created' && (
+              <NewsButton
+                variant="red"
+                size="lg"
+                onClick={() => router.push(voteId ? `/votes/${voteId}` : '/votes')}
+              >
+                {voteId ? 'לצפייה בהצבעה' : 'לכל ההצבעות'}
               </NewsButton>
             )}
             {(phase === 'processing' || phase === 'received') && (
