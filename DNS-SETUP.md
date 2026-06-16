@@ -91,3 +91,14 @@ Required: `wrangler secret put CRON_SECRET`. Test locally with
   unauthenticated POSTs once it's set; checkout appends it to the notify URL.
 - Image optimization on Workers may need a custom loader / Cloudflare Images —
   verify after first deploy.
+
+## Verified on workerd (2026-06-16, `wrangler dev --local`)
+
+- **Module-top `process.env` reads work.** Probed the cron route
+  (`const CRON_SECRET = process.env.CRON_SECRET` at import) + the webhook secret
+  gate: requests passed config + auth checks using those values. No lazy-env
+  refactor needed — `process.env.*` captured at module scope is populated on the
+  OpenNext/Workers runtime.
+- Webhook secret gate confirmed: valid token → 200, wrong token → 401.
+- Build + `wrangler deploy --dry-run` + `wrangler dev` all succeed; the worker
+  boots and routes. Remaining unknown is `next/image` (needs a real deploy).
