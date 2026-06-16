@@ -16,9 +16,9 @@ _Updated 2026-06-16. All 11 UX journeys shipped + code-reviewed; security/nits f
 **Decision needed from user:** merge PR #7, or keep hardening. Hosting cost: ~$5/mo Workers Paid (free DNS + free egress + free static assets).
 
 **Highest-value remaining work (wiring/infra, not UX), priority order:**
-1. **Deploy to Cloudflare + live creds e2e** — `wrangler login` → set secrets (`wrangler secret put` per `.dev.vars.example`) → `pnpm deploy` → attach `taruu.co.il`/`www`/`api` domains (auto-creates DNS). Then visually verify every auth-gated surface (dashboard, settings, verification, certificates, create-finalise, signed-in masthead) — built + tested but never seen with a real session. Set real **Paddle vote-creation price = ₪50** and **`GREENINVOICE_WEBHOOK_SECRET`**.
+1. **Deploy to Cloudflare + live creds e2e** — `wrangler login` → `wrangler kv namespace create OTP_KV` (paste id into `wrangler.jsonc`) → set secrets (`wrangler secret put` per `.dev.vars.example`) → `pnpm deploy` → attach `taruu.co.il`/`www`/`api` domains (auto-creates DNS). Then visually verify every auth-gated surface (dashboard, settings, verification, certificates, create-finalise, signed-in masthead) — built + tested but never seen with a real session. Set real **Paddle vote-creation price = ₪50** and **`GREENINVOICE_WEBHOOK_SECRET`**; wire an **SMS gateway** (`SMS_API_URL`/`SMS_API_KEY`) for OTP delivery.
 2. **Image optimization on Workers** — verify `next/image` works post-deploy; may need a custom loader / Cloudflare Images (only thing not validatable locally).
-3. **Deferred per-journey infra:** on-chain NFT mint + IPFS pin (J9, no batch minter runs); POD fulfilment webhook→Printful (J6); in-app custodial swap via qubik wiring `quote`/`swap` (J5); push notifications + real refund endpoint (J7); B1 OTP via Cloudflare Worker (J4).
+3. **Deferred per-journey infra (STACK LOCKED — see [[taruu-stack-decisions]] / `DNS-SETUP.md`):** Solana, not qubik. J9 = compressed-NFT mint (Metaplex Bubblegum) + IPFS/Arweave metadata pin; J5 = backing/swap via Jupiter; J6 = POD fulfilment webhook (Printful/Printify — TBC); J7 = push notifications + **Paddle** refund endpoint. ~~J4 OTP~~ **DONE** (Workers KV, Twilio removed).
 4. **Minor:** treasury split/resolved-count are derived from a 25-row ledger (approximate at volume — API doesn't track them natively).
 
 **Migrations added (session 1):** `user_city`, `user_notification_settings`, `merch_orders` (all under `supabase/migrations/2026061500000*`).
@@ -78,7 +78,7 @@ Latest tier: **J7** (dashboard retention hook — open-votes-in-your-city callou
 3. **Merch:** webhook now **persists + hardened** (secret gate + atomic paid transition, +10 tests — session 2); POD fulfilment (→Printful) still TODO; no product imagery beyond the 5 Higgsfield duotone shots; Green Invoice creds needed for live checkout, and `GREENINVOICE_WEBHOOK_SECRET` must be set in prod.
 4. **BAGS trading unwired:** `/api/bags/quote` + `/api/bags/swap` exist; no buy/back UI or wallet connect (J5).
 5. **NFT resolution certificates** (`user/nfts`, `votes/[id]/resolution`, cron) — engine exists, no claim/view UX (J9).
-6. **Verification creds:** Twilio (OTP) — mock-degrades in dev; B1 plans a Cloudflare Worker replacement.
+6. ~~**Verification creds:** Twilio~~ **DONE (session 2)** — OTP now in-app on Workers KV (`services/sms/otp.ts`); Twilio removed. Only an SMS gateway (`SMS_API_URL`/`SMS_API_KEY`) + the `OTP_KV` namespace are needed for live delivery; mock-degrades (503 → soft-pass) without them.
 7. ~~**VoteWidget hardcodes** `· גיליון 04`~~ **DONE (session 2)** — `issueNo` optional prop; real votes omit it, demo placements pass it.
 8. **Hosting = Cloudflare Workers (OpenNext)**, not Vercel. Deploy not yet run (needs `wrangler login` + secrets). Cron via `worker.ts` scheduled handler + Cron Triggers. `next/image` optimization on Workers unverified until first deploy. See `DNS-SETUP.md`.
 
