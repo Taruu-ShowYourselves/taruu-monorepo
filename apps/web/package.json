@@ -10,7 +10,11 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "cf:build": "opennextjs-cloudflare build",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf:typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
     "@playwright/test": "^1.40.0",
@@ -25,7 +29,7 @@
     "expo-server-sdk": "^3.9.0",
     "framer-motion": "^11.11.0",
     "jose": "^5.2.0",
-    "next": "^15.0.0",
+    "next": "^15.5.18",
     "qrcode.react": "^4.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -44,8 +48,10 @@
     "@typescript-eslint/eslint-plugin": "^8.53.0",
     "@typescript-eslint/parser": "^8.53.0",
     "eslint": "^9.0.0",
-    "eslint-config-next": "^15.0.0",
+    "eslint-config-next": "^15.5.18",
     "typescript": "^5.7.0",
-    "vitest": "^1.0.0"
+    "vitest": "^1.0.0",
+    "@opennextjs/cloudflare": "^1.0.0",
+    "wrangler": "^4.0.0"
   }
 }

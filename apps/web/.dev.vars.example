@@ -1,0 +1,74 @@
+# Local Workers secrets for `next dev` / `wrangler dev` (OpenNext).
+# Copy to `.dev.vars` (gitignored) and fill. In production these are set with
+# `wrangler secret put <NAME>` — NOT committed, NOT in wrangler.jsonc.
+#
+# Non-secret public vars (GREENINVOICE_ENV, PADDLE_ENV, QUBIK_NETWORK) live in
+# wrangler.jsonc `vars` instead.
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# JWT sessions
+JWT_SECRET=
+JWT_EXPIRY=7d
+
+# Google OAuth
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+# Facebook / Instagram OAuth
+FACEBOOK_APP_ID=
+FACEBOOK_APP_SECRET=
+INSTAGRAM_APP_ID=
+INSTAGRAM_APP_SECRET=
+
+# Qubik blockchain
+QUBIK_API_KEY=
+
+# Paddle (digital vote fees)
+PADDLE_API_KEY=
+PADDLE_WEBHOOK_SECRET=
+PADDLE_PRICE_VOTE_PARTICIPATION=
+PADDLE_PRICE_VOTE_CREATION=
+NEXT_PUBLIC_PADDLE_CLIENT_TOKEN=
+
+# Green Invoice (merch store)
+GREENINVOICE_API_KEY_ID=
+GREENINVOICE_API_SECRET=
+GREENINVOICE_PLUGIN_ID=
+GREENINVOICE_WEBHOOK_SECRET=
+
+# bags.fm (BAGS)
+BAGS_API_KEY=
+BAGS_WEBHOOK_SECRET=
+BAGS_MASTER_WALLET_ADDRESS=
+BAGS_MASTER_WALLET_PRIVATE_KEY=
+
+# Resend (transactional email)
+RESEND_API_KEY=
+
+# Twilio (phone OTP)
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_VERIFY_SERVICE_SID=
+
+# Beehiiv (newsletter)
+BEEHIIV_API_KEY=
+BEEHIIV_PUBLICATION_ID=
+
+# Expo push
+EXPO_ACCESS_TOKEN=
+
+# Upstash rate limiting
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+
+# Cron auth (guards /api/cron/* — see DNS-SETUP.md "Cron")
+CRON_SECRET=
+
+# Public app URLs
+NEXT_PUBLIC_APP_URL=https://taruu.co.il
+EXPO_PUBLIC_API_URL=https://api.taruu.co.il

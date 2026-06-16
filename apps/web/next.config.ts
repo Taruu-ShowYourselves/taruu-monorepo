@@ -52,3 +52,8 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+// Initialise the OpenNext Cloudflare dev shim so `next dev` can access Workers
+// bindings (env / secrets) locally via getCloudflareContext(). No-op at build.
+import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare';
+initOpenNextCloudflareForDev();

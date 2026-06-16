@@ -1,0 +1,50 @@
+{
+  // Cloudflare Workers config for the Next.js app, built via the OpenNext
+  // adapter (@opennextjs/cloudflare). `main` points at the worker the adapter
+  // emits; static assets are served from the generated `.open-next/assets` dir.
+  //
+  // Deploy:  pnpm --filter @sync/web deploy
+  // Preview: pnpm --filter @sync/web preview
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "taruu-web",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2025-03-25",
+  // nodejs_compat gives the full Node runtime the app relies on (supabase-js,
+  // twilio, jose, resend, expo-server-sdk). Required by OpenNext.
+  "compatibility_flags": ["nodejs_compat"],
+
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+
+  "observability": {
+    "enabled": true
+  },
+
+  // --- Custom domains ---
+  // Do NOT add DNS records by hand. After the first deploy, attach the domains
+  // in the dashboard (Workers > taruu-web > Domains & Routes > Add custom
+  // domain) for taruu.co.il, www.taruu.co.il, api.taruu.co.il — Cloudflare
+  // creates the proxied DNS records itself. The zone must be Active first.
+
+  // --- Scheduled jobs ---
+  // The app exposes two HTTP cron routes guarded by CRON_SECRET:
+  //   /api/cron/verification-notifications
+  //   /api/cron/resolve-votes
+  // To run them on Cloudflare, enable Cron Triggers below AND add a `scheduled`
+  // handler that fetches each route with the CRON_SECRET bearer (see
+  // DNS-SETUP.md "Cron" — this needs a small bridge in open-next.config.ts /
+  // a custom worker entry; left commented until wired).
+  // "triggers": {
+  //   "crons": ["*/15 * * * *", "0 * * * *"]
+  // },
+
+  // Secrets are NOT stored here. Set them with `wrangler secret put <NAME>`
+  // (or .dev.vars locally). Only NON-secret public vars belong in `vars`.
+  "vars": {
+    "GREENINVOICE_ENV": "production",
+    "PADDLE_ENV": "production",
+    "QUBIK_NETWORK": "mainnet"
+  }
+}
