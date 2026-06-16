@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/services/auth/session';
 import { emailService, sendInBatches } from '@/services/email';
+import { sendBatchNotifications } from '@/services/notifications/expo';
 import {
   getActiveVotes,
   getVotesByMunicipality,
@@ -10,6 +11,7 @@ import {
   isPaymentAlreadyUsed,
   getUserById,
   getUsersByMunicipality,
+  getActiveUserPushTokens,
 } from '@/lib/supabase/db';
 
 /**
@@ -203,9 +205,24 @@ export async function POST(request: NextRequest) {
             endDate: new Date(vote.end_date),
           })
         );
+
+        // Push the same residents (best-effort, chunked).
+        const tokenLists = await Promise.all(
+          recipients.map((r) => getActiveUserPushTokens(r.id))
+        );
+        const tokens = [...new Set(tokenLists.flat())];
+        if (tokens.length > 0) {
+          await sendBatchNotifications(tokens, {
+            title: '🗳️ הצבעה חדשה בעיר שלכם',
+            body: `${vote.municipality_id}: "${vote.title}". הקול שלכם נספר.`,
+            data: { type: 'new_vote', voteId: vote.id, screen: `/votes/${vote.id}` },
+            channelId: 'votes',
+            priority: 'default',
+          });
+        }
       }
-    } catch (emailError) {
-      console.warn('Vote creation emails failed (non-fatal):', emailError);
+    } catch (notifyError) {
+      console.warn('Vote creation notifications failed (non-fatal):', notifyError);
     }
 
     // Transform to API response format

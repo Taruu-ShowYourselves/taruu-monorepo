@@ -9,6 +9,7 @@
 
 import { pinMetadata, isPinataConfigured } from './pinata';
 import { mintCompressedNft, isSolanaMintConfigured } from './solana';
+import { sendBatchNotifications } from '@/services/notifications/expo';
 import { seedVoteBag } from '@/services/treasury/bagSeeding';
 import { emailService, sendInBatches } from '@/services/email';
 import {
@@ -22,6 +23,7 @@ import {
   updateVoteResolutionStatus,
   getVotesNeedingResolution,
   getVoteParticipantsWithEmails,
+  getActiveUserPushTokens,
 } from '@/lib/supabase/db';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import type { NftMetadata } from '@sync/shared';
@@ -379,6 +381,26 @@ async function sendResolutionEmails(voteId: string, voteTitle: string): Promise<
       userWon: p.option_id === winning.id,
     })
   );
+
+  // Push the same audience (best-effort, chunked). Generic payload — the email
+  // carries the personalised detail.
+  try {
+    const tokenLists = await Promise.all(
+      participants.map((p) => getActiveUserPushTokens(p.user_id))
+    );
+    const tokens = [...new Set(tokenLists.flat())];
+    if (tokens.length > 0) {
+      await sendBatchNotifications(tokens, {
+        title: '📊 התוצאות בפנים',
+        body: `ההצבעה "${voteTitle}" הוכרעה — הבחירה: ${winning.text}.`,
+        data: { type: 'vote_results', voteId, screen: `/votes/${voteId}` },
+        channelId: 'votes',
+        priority: 'high',
+      });
+    }
+  } catch (pushError) {
+    console.warn('Resolution push failed (non-fatal):', pushError);
+  }
 }
 
 /**

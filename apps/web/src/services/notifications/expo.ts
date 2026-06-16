@@ -7,8 +7,9 @@
 
 import { Expo, ExpoPushMessage, ExpoPushTicket, ExpoPushReceipt } from 'expo-server-sdk';
 
-// Create Expo SDK client
-const expo = new Expo();
+// Create Expo SDK client. An access token (Expo > Account > Access Tokens)
+// raises rate limits and is required for enhanced push security; optional in dev.
+const expo = new Expo({ accessToken: process.env.EXPO_ACCESS_TOKEN });
 
 export interface PushNotificationPayload {
   title: string;
@@ -182,6 +183,38 @@ export async function getNotificationReceipts(
   }
 
   return receipts;
+}
+
+// ============================================================================
+// Vote notification helpers
+// ============================================================================
+
+/** Notify a participant that a vote they took part in has resolved. */
+export async function sendVoteResultsNotification(
+  pushToken: string,
+  data: { voteTitle: string; voteId: string; winningOption: string }
+): Promise<SendNotificationResult> {
+  return sendPushNotification(pushToken, {
+    title: '📊 התוצאות בפנים',
+    body: `ההצבעה "${data.voteTitle}" הוכרעה — הבחירה: ${data.winningOption}.`,
+    data: { type: 'vote_results', voteId: data.voteId, screen: `/votes/${data.voteId}` },
+    channelId: 'votes',
+    priority: 'high',
+  });
+}
+
+/** Notify a city resident that a new vote opened in their municipality. */
+export async function sendNewVoteNotification(
+  pushToken: string,
+  data: { voteTitle: string; voteId: string; municipality: string }
+): Promise<SendNotificationResult> {
+  return sendPushNotification(pushToken, {
+    title: '🗳️ הצבעה חדשה בעיר שלכם',
+    body: `${data.municipality}: "${data.voteTitle}". הקול שלכם נספר.`,
+    data: { type: 'new_vote', voteId: data.voteId, screen: `/votes/${data.voteId}` },
+    channelId: 'votes',
+    priority: 'default',
+  });
 }
 
 // ============================================================================
