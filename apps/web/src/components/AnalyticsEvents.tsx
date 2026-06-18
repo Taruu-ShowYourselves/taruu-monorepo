@@ -50,7 +50,7 @@ export function AnalyticsEvents() {
         return;
       }
       if (href) {
-        if (/buymeacoffee|patreon|ko-fi|paypal/i.test(href))
+        if (/patreon|ko-fi|paypal/i.test(href))
           track('support_click', { platform: href.replace(/^https?:\/\//, '').split('/')[0] });
         if (/\.(pdf|zip|csv|tex|gif)$/i.test(href))
           track('file_download', { file_name: href.split('/').pop() });
