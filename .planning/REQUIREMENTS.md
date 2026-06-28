@@ -70,17 +70,31 @@ This milestone: swap the vote-payment rail to Green Invoice card-on-file (₪5/v
 
 ## Traceability
 
-Populated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (filled by roadmapper) | — | Pending |
+| LAND-01 | Phase 1 | Pending |
+| SEC-01 | Phase 1 | Pending |
+| SPIKE-01 | Phase 2 | Pending |
+| SPIKE-02 | Phase 2 | Pending |
+| SPIKE-03 | Phase 2 | Pending |
+| SEC-02 | Phase 3 | Pending |
+| SEC-03 | Phase 3 | Pending |
+| SEC-04 | Phase 3 | Pending |
+| SEC-05 | Phase 3 | Pending |
+| PAY-01 | Phase 3 | Pending |
+| PAY-02 | Phase 3 | Pending |
+| PAY-03 | Phase 3 | Pending |
+| PAY-04 | Phase 3 | Pending |
+| PAY-05 | Phase 3 | Pending |
+| PAY-06 | Phase 3 | Pending |
+| PAY-07 | Phase 3 | Pending |
+| PAY-08 | Phase 3 | Pending |
+| GO-01 | Phase 4 | Pending |
+| GO-02 | Phase 4 | Pending |
 
-**Coverage:**
-- v1 requirements: 19 total
-- Mapped to phases: TBD (roadmapper)
-- Unmapped: TBD
+**Coverage:** 19/19 v1 requirements mapped — 0 orphaned
 
 ---
 *Requirements defined: 2026-06-28*
+*Traceability populated: 2026-06-28*
 *Last updated: 2026-06-28 after initialization*
