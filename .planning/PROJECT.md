@@ -18,16 +18,17 @@ A resident pays ₪6 once a month to vote freely on their city's affairs, and tr
 - ✓ Vote payments via **Paddle** (`api/payments/create`, `api/payments/webhook`) with treasury deposit ledger — existing
 - ✓ Merch checkout + fulfilment-less orders via **Green Invoice** (`api/merch/checkout`, `api/merch/webhook`) — existing (the GI pattern to model)
 - ✓ Treasury ledger with idempotency (`record_treasury_deposit`, `UNIQUE uq_treasury_tx_payment`) — existing
-- ✓ Auth via OAuth → custom JWT session (`public.user_id()` RLS helper); Auth0 OIDC swap in working tree — existing/in-progress
+- ✓ Auth via OAuth → custom JWT session (`public.user_id()` RLS helper); Auth0 OIDC swap landed — existing
 - ✓ Solana compressed-NFT vote certificates, BAGS token backing — existing
 - ✓ Cloudflare Workers deploy scaffold, OTP via Workers KV, Resend email — existing
+- ✓ Clean foundation landed (Validated in Phase 1): Auth0 swap + Printful removal + RLS fixes committed as one clean commit (`44961e0`); corrective RLS migration `auth.uid()`→`public.user_id()` on treasury_transactions/issue_coin_holdings/phone_verifications (`31d6860`) — LAND-01, SEC-01
 
 ### Active
 
 <!-- This milestone: P0 payments + go-live. Hypotheses until shipped. -->
 
-- [ ] Land the coherent uncommitted change (Auth0 swap + Printful removal + RLS fix) as one clean commit, with the two cleanups (dead Printful `.dev.vars` entries, orphaned `merch_orders` tracking columns)
-- [ ] Corrective RLS migration: `auth.uid()` → `public.user_id()` on the 3 remaining migrations (`treasury_transactions`, `issue_coin_holdings`, `phone_verifications`) — prerequisite before card-on-file writes treasury rows
+- [x] Land the coherent uncommitted change (Auth0 swap + Printful removal + RLS fix) as one clean commit, with the two cleanups (dead Printful `.dev.vars` entries, orphaned `merch_orders` tracking columns) — ✓ Phase 1 (LAND-01)
+- [x] Corrective RLS migration: `auth.uid()` → `public.user_id()` on the 3 remaining migrations (`treasury_transactions`, `issue_coin_holdings`, `phone_verifications`) — prerequisite before card-on-file writes treasury rows — ✓ Phase 1 (SEC-01)
 - [ ] Green Invoice sandbox spike: verify off-session MIT token charge, 3DS/decline behavior, document return (gates production payment code)
 - [ ] GI card-on-file **membership** payments: card saved once via `/payments/form`; the **first vote of each calendar month** charges the saved token **₪6** via `/payments/tokens/{id}/charge`, rest of month free; GI Prime plan
 - [ ] Server-side **deterministic** idempotency key (replace the `Date.now()` key) + once-per-calendar-month charge gate + charge-then-commit + atomic accrual of ₪2.10 to the **monthly civic pool** (mirror `markMerchOrderPaid`)
@@ -67,7 +68,7 @@ Key codebase facts: votes are on Paddle, merch is already on Green Invoice (reus
 | GI Prime plan mandatory | ₪0.15/receipt rate; economics break on Best (₪1.00/receipt) | — Pending |
 | Treasury = **₪2.10/member/month → monthly pool** (not per-vote, not 70%) | Free votes can't fund per-vote treasury; pool funds the month's executed decisions | ✓ Owner-locked 2026-06-29 |
 | Vote-bags withdrawal deferred to later milestone | Holding/disbursing public money needs a license/trust structure | — Pending (legal) |
-| Land uncommitted Auth0+Printful+RLS as one commit | Concerns audit verdict: coherent + landable | — Pending |
+| Land uncommitted Auth0+Printful+RLS as one commit | Concerns audit verdict: coherent + landable | ✓ Done Phase 1 (`44961e0`) |
 
 ---
-*Last updated: 2026-06-28 after initialization (brownfield, synthesized from PRD/spec/roadmap + codebase map)*
+*Last updated: 2026-06-29 — Phase 1 (Clean Foundation) complete: LAND-01 + SEC-01 validated.*
