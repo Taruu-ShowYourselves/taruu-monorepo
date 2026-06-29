@@ -63,3 +63,13 @@ docker-compose.yml
 .redesign/*.mjs
 .redesign/*.html
 .redesign/*.jpg
+
+# direnv
+.envrc
+.direnv/
+
+# Supabase CLI local state
+supabase/.temp/
+
+# Local MCP server config (machine-specific)
+.mcp.json

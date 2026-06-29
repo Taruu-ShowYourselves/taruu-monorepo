@@ -90,10 +90,6 @@ export interface Database {
           status: 'pending' | 'paid' | 'fulfilling' | 'shipped' | 'cancelled' | 'failed';
           shipping: Record<string, unknown>;
           payment_id: string | null;
-          pod_order_id: string | null;
-          tracking_number: string | null;
-          tracking_url: string | null;
-          carrier: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -108,20 +104,12 @@ export interface Database {
           status?: 'pending' | 'paid' | 'fulfilling' | 'shipped' | 'cancelled' | 'failed';
           shipping: Record<string, unknown>;
           payment_id?: string | null;
-          pod_order_id?: string | null;
-          tracking_number?: string | null;
-          tracking_url?: string | null;
-          carrier?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           status?: 'pending' | 'paid' | 'fulfilling' | 'shipped' | 'cancelled' | 'failed';
           payment_id?: string | null;
-          pod_order_id?: string | null;
-          tracking_number?: string | null;
-          tracking_url?: string | null;
-          carrier?: string | null;
           updated_at?: string;
         };
         Relationships: [];

@@ -36,7 +36,7 @@ export function Lead({ locale = 'he' }: LeadProps) {
           </span>
 
           <h1 className={styles.headline}>
-            הקול של השכונה. עכשיו <span className={styles.red}>במספרים.</span>
+            הקול של העיר. האנשים עכשיו <span className={styles.red}>במספרים.</span>
           </h1>
 
           <p className={styles.standfirst}>

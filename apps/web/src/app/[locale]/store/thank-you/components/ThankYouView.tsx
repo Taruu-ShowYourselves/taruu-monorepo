@@ -66,12 +66,6 @@ export function ThankYouView({ locale }: ThankYouViewProps) {
         { label: 'סטטוס', value: STATUS_LABEL[order.status], strong: true },
         { label: 'פריטים', value: String(itemCount(order)) },
         { label: 'משלוח', value: order.shippingILS === 0 ? 'חינם' : formatCurrency(order.shippingILS) },
-        ...(order.status === 'shipped' && order.carrier
-          ? [{ label: 'חברת שילוח', value: order.carrier }]
-          : []),
-        ...(order.status === 'shipped' && order.trackingNumber
-          ? [{ label: 'מספר מעקב', value: order.trackingNumber }]
-          : []),
         { label: 'סך הכול', value: formatCurrency(order.totalILS), strong: true },
       ]
     : [
@@ -130,18 +124,6 @@ export function ThankYouView({ locale }: ThankYouViewProps) {
         />
 
         <div className={styles.actions}>
-          {order?.status === 'shipped' && order.trackingUrl ? (
-            <NewsButton
-              href={order.trackingUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              variant="ink"
-              size="lg"
-              trailing={<span aria-hidden>↗</span>}
-            >
-              עקבו אחרי המשלוח
-            </NewsButton>
-          ) : null}
           <NewsButton
             href={`/${locale}/store`}
             variant="red"

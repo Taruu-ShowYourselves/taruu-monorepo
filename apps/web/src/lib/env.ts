@@ -16,9 +16,11 @@ const serverEnvSchema = z.object({
   // JWT Session
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
 
-  // Google OAuth
-  GOOGLE_CLIENT_ID: z.string().min(1, 'GOOGLE_CLIENT_ID is required'),
-  GOOGLE_CLIENT_SECRET: z.string().min(1, 'GOOGLE_CLIENT_SECRET is required'),
+  // Auth0 (primary login — OIDC Universal Login; federates Google)
+  AUTH0_CLIENT_ID: z.string().min(1, 'AUTH0_CLIENT_ID is required'),
+  AUTH0_CLIENT_SECRET: z.string().min(1, 'AUTH0_CLIENT_SECRET is required'),
+  NEXT_PUBLIC_AUTH0_DOMAIN: z.string().min(1, 'NEXT_PUBLIC_AUTH0_DOMAIN is required'),
+  NEXT_PUBLIC_AUTH0_CLIENT_ID: z.string().min(1, 'NEXT_PUBLIC_AUTH0_CLIENT_ID is required'),
 
   // Paddle (Merchant of Record)
   PADDLE_ENV: z.enum(['sandbox', 'production']).default('sandbox'),
@@ -47,6 +49,9 @@ const clientEnvSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url('NEXT_PUBLIC_APP_URL must be a valid URL'),
   NEXT_PUBLIC_SUPABASE_URL: z.string().url('NEXT_PUBLIC_SUPABASE_URL must be a valid URL'),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, 'NEXT_PUBLIC_SUPABASE_ANON_KEY is required'),
+  // Auth0 public config (used client-side to build the /authorize URL)
+  NEXT_PUBLIC_AUTH0_DOMAIN: z.string().min(1, 'NEXT_PUBLIC_AUTH0_DOMAIN is required'),
+  NEXT_PUBLIC_AUTH0_CLIENT_ID: z.string().min(1, 'NEXT_PUBLIC_AUTH0_CLIENT_ID is required'),
 });
 
 // === Type Exports ===
@@ -101,6 +106,8 @@ export function getClientEnv(): ClientEnv {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_AUTH0_DOMAIN: process.env.NEXT_PUBLIC_AUTH0_DOMAIN,
+    NEXT_PUBLIC_AUTH0_CLIENT_ID: process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID,
   });
 
   if (!result.success) {

@@ -18,7 +18,21 @@
       "Bash(git fetch:*)",
       "Bash(git checkout:*)",
       "Bash(git pull:*)",
-      "Bash(pnpm -C apps/web typecheck)"
+      "Bash(pnpm -C apps/web typecheck)",
+      "Bash(rm -rf .next)",
+      "Bash(nohup node_modules/.bin/next dev -p 3777)",
+      "Bash(disown)",
+      "Bash(echo \"started pid $!\")",
+      "mcp__auth0__auth0_list_applications",
+      "Bash(gh auth *)",
+      "Bash(awk -F/ '{print $1\"/\"$2}')",
+      "Read(//Users/saharbarak/personal/**)",
+      "Bash(curl -fsSL https://releases.aside.com/install.sh -o /private/tmp/claude-501/-Users-saharbarak-personal-taro/a73acf0b-58a2-4fdc-ab91-5cf44cb485d8/scratchpad/aside-install.sh)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase",
+    "auth0"
+  ]
 }

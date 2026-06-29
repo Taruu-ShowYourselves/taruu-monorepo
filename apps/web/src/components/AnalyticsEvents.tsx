@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 /**
  * Cross-site GA4 auto-instrumentation (the base gtag tag is already in the
@@ -9,6 +10,27 @@ import { useEffect } from 'react';
  * section_view.
  */
 export function AnalyticsEvents() {
+  const pathname = usePathname();
+
+  // Manual page_view on every route change. send_page_view is false in the
+  // base config, so this is the single source of page_view. Double rAF lets
+  // Next apply the new <title> before we read it — otherwise page_title lands
+  // as (not set) in GA4.
+  useEffect(() => {
+    const g = (window as unknown as { gtag?: (...a: unknown[]) => void }).gtag;
+    if (!g) return;
+    const id = requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        g('event', 'page_view', {
+          page_path: pathname,
+          page_location: window.location.href,
+          page_title: document.title,
+        });
+      })
+    );
+    return () => cancelAnimationFrame(id);
+  }, [pathname]);
+
   useEffect(() => {
     const w = window as unknown as { gtag?: (...a: unknown[]) => void };
     const track = (name: string, params?: Record<string, unknown>) => {

@@ -7,7 +7,7 @@
 
 -- Function to get current user ID from request context
 -- Used when our custom JWT auth sets the user context
-CREATE OR REPLACE FUNCTION auth.user_id()
+CREATE OR REPLACE FUNCTION public.user_id()
 RETURNS UUID AS $$
 BEGIN
   RETURN COALESCE(
@@ -50,13 +50,13 @@ ALTER TABLE user_votes ENABLE ROW LEVEL SECURITY;
 -- Users can read their own profile
 CREATE POLICY "Users can view own profile"
   ON users FOR SELECT
-  USING (id = auth.user_id());
+  USING (id = public.user_id());
 
 -- Users can update their own profile
 CREATE POLICY "Users can update own profile"
   ON users FOR UPDATE
-  USING (id = auth.user_id())
-  WITH CHECK (id = auth.user_id());
+  USING (id = public.user_id())
+  WITH CHECK (id = public.user_id());
 
 -- Service role can insert new users (during signup)
 -- No INSERT policy for regular users - handled by service role
@@ -68,12 +68,12 @@ CREATE POLICY "Users can update own profile"
 -- Users can read their own social proofs
 CREATE POLICY "Users can view own social proofs"
   ON social_proofs FOR SELECT
-  USING (user_id = auth.user_id());
+  USING (user_id = public.user_id());
 
 -- Users can delete their own social proofs
 CREATE POLICY "Users can delete own social proofs"
   ON social_proofs FOR DELETE
-  USING (user_id = auth.user_id());
+  USING (user_id = public.user_id());
 
 -- ============================================
 -- VERIFICATION RUNS TABLE POLICIES
@@ -82,7 +82,7 @@ CREATE POLICY "Users can delete own social proofs"
 -- Users can read their own verification runs
 CREATE POLICY "Users can view own verification runs"
   ON verification_runs FOR SELECT
-  USING (user_id = auth.user_id());
+  USING (user_id = public.user_id());
 
 -- ============================================
 -- VERIFICATION SCHEDULE TABLE POLICIES
@@ -93,7 +93,7 @@ CREATE POLICY "Users can view own verification schedule"
   ON verification_schedule FOR SELECT
   USING (
     run_id IN (
-      SELECT id FROM verification_runs WHERE user_id = auth.user_id()
+      SELECT id FROM verification_runs WHERE user_id = public.user_id()
     )
   );
 
@@ -104,7 +104,7 @@ CREATE POLICY "Users can view own verification schedule"
 -- Users can read their own attempts
 CREATE POLICY "Users can view own verification attempts"
   ON verification_attempts FOR SELECT
-  USING (user_id = auth.user_id());
+  USING (user_id = public.user_id());
 
 -- ============================================
 -- PAYMENTS TABLE POLICIES
@@ -113,7 +113,7 @@ CREATE POLICY "Users can view own verification attempts"
 -- Users can read their own payments
 CREATE POLICY "Users can view own payments"
   ON payments FOR SELECT
-  USING (user_id = auth.user_id());
+  USING (user_id = public.user_id());
 
 -- ============================================
 -- ENTITLEMENTS TABLE POLICIES
@@ -122,7 +122,7 @@ CREATE POLICY "Users can view own payments"
 -- Users can read their own entitlements
 CREATE POLICY "Users can view own entitlements"
   ON entitlements FOR SELECT
-  USING (user_id = auth.user_id());
+  USING (user_id = public.user_id());
 
 -- ============================================
 -- VOTES TABLE POLICIES
@@ -136,7 +136,7 @@ CREATE POLICY "Anyone can view active votes"
 -- Creators can view their own votes regardless of status
 CREATE POLICY "Creators can view own votes"
   ON votes FOR SELECT
-  USING (creator_id = auth.user_id());
+  USING (creator_id = public.user_id());
 
 -- ============================================
 -- VOTE OPTIONS TABLE POLICIES
@@ -149,7 +149,7 @@ CREATE POLICY "Anyone can view vote options"
     vote_id IN (
       SELECT id FROM votes WHERE status = 'active'
       UNION
-      SELECT id FROM votes WHERE creator_id = auth.user_id()
+      SELECT id FROM votes WHERE creator_id = public.user_id()
     )
   );
 
@@ -160,7 +160,7 @@ CREATE POLICY "Anyone can view vote options"
 -- Users can read their own vote records
 CREATE POLICY "Users can view own vote records"
   ON user_votes FOR SELECT
-  USING (user_id = auth.user_id());
+  USING (user_id = public.user_id());
 
 -- ============================================
 -- SERVICE ROLE BYPASS

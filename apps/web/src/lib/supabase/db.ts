@@ -1981,24 +1981,7 @@ export async function getMerchOrderById(
   return data;
 }
 
-/** Look up a merch order by its POD partner order id (for fulfilment webhooks). */
-export async function getMerchOrderByPodOrderId(
-  podOrderId: string
-): Promise<MerchOrderRow | null> {
-  const { data, error } = await supabaseAdmin
-    .from('merch_orders')
-    .select('*')
-    .eq('pod_order_id', podOrderId)
-    .maybeSingle();
-
-  if (error) {
-    console.error('Failed to fetch merch order by pod id:', error);
-    return null;
-  }
-  return data;
-}
-
-/** Patch a merch order (webhook status flips, payment/POD ids). */
+/** Patch a merch order (webhook status flips, payment ids). */
 export async function updateMerchOrder(
   id: string,
   updates: UpdateTables<'merch_orders'>

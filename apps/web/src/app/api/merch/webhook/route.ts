@@ -3,17 +3,13 @@
  *
  * Green Invoice notifies this endpoint after a payment completes (the `custom`
  * field carries our order id). Acknowledge fast (200), then mark the order paid
- * idempotently and store the issued document id.
- *
- * TODO (POD wiring): hand a freshly-paid order to the POD partner
- * (Printful/Printify) for fulfilment and advance it to `fulfilling`.
+ * idempotently and store the issued document id. Orders settle at `paid` and
+ * stop there — there is no downstream fulfilment handoff.
  */
 
 import { timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
-import { getMerchOrderById, markMerchOrderPaid, updateMerchOrder } from '@/lib/supabase/db';
-import { createPrintfulOrder, isPrintfulConfigured } from '@/services/fulfillment/printful';
-import type { CartItem, ShippingAddress } from '@sync/shared';
+import { getMerchOrderById, markMerchOrderPaid } from '@/lib/supabase/db';
 import { logger } from '@/lib/logger';
 
 /**
@@ -110,25 +106,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true });
     }
     logger.info('Merch order marked paid', { orderId });
-
-    // Hand the paid order to Printful (best-effort). A failure leaves it `paid`
-    // for reconciliation — we still ack 200 since the payment itself settled.
-    if (isPrintfulConfigured()) {
-      try {
-        const pod = await createPrintfulOrder({
-          externalId: orderId,
-          items: result.row.items as unknown as CartItem[],
-          shipping: result.row.shipping as unknown as ShippingAddress,
-        });
-        await updateMerchOrder(orderId, { status: 'fulfilling', pod_order_id: pod.id });
-        logger.info('Merch order handed to Printful', { orderId, podOrderId: pod.id });
-      } catch (podError) {
-        logger.error('Merch webhook: Printful handoff failed', {
-          orderId,
-          error: String(podError),
-        });
-      }
-    }
   } catch (error) {
     // Log but still ack — the order stays 'pending' and can be reconciled.
     logger.error('Merch webhook processing failed', {

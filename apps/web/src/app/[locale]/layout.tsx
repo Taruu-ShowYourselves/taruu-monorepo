@@ -300,7 +300,9 @@ export default async function LocaleLayout({
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', '${GA_MEASUREMENT_ID}');
+            // send_page_view:false — page_view fired manually on route change
+            // (with explicit page_title) by AnalyticsEvents to avoid (not set).
+            gtag('config', '${GA_MEASUREMENT_ID}', { send_page_view: false });
           `}
         </Script>
       </head>

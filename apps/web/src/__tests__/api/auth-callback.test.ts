@@ -2,16 +2,16 @@
  * Auth Callback API Route Tests
  *
  * Tests for the /api/auth/callback endpoint:
- * - POST /api/auth/callback - Handle Google OAuth callback
+ * - POST /api/auth/callback - Handle Auth0 OIDC callback (federates Google)
  */
 
 import { describe, it, expect, beforeEach, vi, type Mock, afterAll } from 'vitest';
 import { NextRequest } from 'next/server';
 
-// Mock Google OAuth service
-vi.mock('@/services/auth/google', () => ({
+// Mock Auth0 OIDC service (primary login)
+vi.mock('@/services/auth/auth0', () => ({
   exchangeCodeForTokens: vi.fn(),
-  getGoogleUserInfo: vi.fn(),
+  getAuth0UserInfo: vi.fn(),
 }));
 
 // Mock session service
@@ -35,7 +35,7 @@ vi.mock('@sync/shared', () => ({
 }));
 
 // Import mocked modules
-import { exchangeCodeForTokens, getGoogleUserInfo } from '@/services/auth/google';
+import { exchangeCodeForTokens, getAuth0UserInfo } from '@/services/auth/auth0';
 import { createSessionToken, createRefreshToken, setSessionCookies } from '@/services/auth/session';
 import { getUserByGoogleId, createUser, updateUser, upsertSocialProof } from '@/lib/supabase/db';
 import { generateEncryptedDID } from '@sync/shared';
@@ -44,19 +44,21 @@ describe('Auth Callback API Routes', () => {
   let POST: typeof import('@/app/api/auth/callback/route').POST;
   const originalEnv = process.env;
 
-  const mockGoogleUser = {
-    id: 'google-123',
+  // Auth0 OIDC /userinfo shape. `sub` is the external identity key
+  // (federated Google subject) persisted on users.google_id / session.googleId.
+  const mockAuth0User = {
+    sub: 'google-oauth2|google-123',
     email: 'test@example.com',
     name: 'Test User',
     given_name: 'Test',
     family_name: 'User',
     picture: 'https://example.com/photo.jpg',
-    verified_email: true,
+    email_verified: true,
   };
 
   const mockDbUser = {
     id: 'user-123',
-    google_id: 'google-123',
+    google_id: 'google-oauth2|google-123',
     email: 'test@example.com',
     first_name: 'Test',
     last_name: 'User',
@@ -73,7 +75,7 @@ describe('Auth Callback API Routes', () => {
     process.env = {
       ...originalEnv,
       NEXT_PUBLIC_APP_URL: 'https://taruu.co.il',
-      GOOGLE_CLIENT_SECRET: 'google-secret',
+      AUTH0_CLIENT_SECRET: 'auth0-secret',
     };
     vi.resetModules();
     const routeModule = await import('@/app/api/auth/callback/route');
@@ -98,8 +100,8 @@ describe('Auth Callback API Routes', () => {
       expect(data.code).toBe('MISSING_CODE');
     });
 
-    it('should return 500 when GOOGLE_CLIENT_SECRET is not set', async () => {
-      delete process.env.GOOGLE_CLIENT_SECRET;
+    it('should return 500 when AUTH0_CLIENT_SECRET is not set', async () => {
+      delete process.env.AUTH0_CLIENT_SECRET;
       vi.resetModules();
       const { POST: POST2 } = await import('@/app/api/auth/callback/route');
 
@@ -127,7 +129,7 @@ describe('Auth Callback API Routes', () => {
         accessToken: 'google-access-token',
         idToken: 'google-id-token',
       });
-      (getGoogleUserInfo as Mock).mockResolvedValue(mockGoogleUser);
+      (getAuth0UserInfo as Mock).mockResolvedValue(mockAuth0User);
       (getUserByGoogleId as Mock).mockResolvedValue(null);
       (generateEncryptedDID as Mock).mockResolvedValue(mockDIDData);
       (createUser as Mock).mockResolvedValue({
@@ -161,7 +163,7 @@ describe('Auth Callback API Routes', () => {
         accessToken: 'google-access-token',
         idToken: 'google-id-token',
       });
-      (getGoogleUserInfo as Mock).mockResolvedValue(mockGoogleUser);
+      (getAuth0UserInfo as Mock).mockResolvedValue(mockAuth0User);
       (getUserByGoogleId as Mock).mockResolvedValue(mockDbUser);
       (updateUser as Mock).mockResolvedValue(mockDbUser);
       (createSessionToken as Mock).mockResolvedValue('session-token');
@@ -202,7 +204,7 @@ describe('Auth Callback API Routes', () => {
         accessToken: 'google-access-token',
         idToken: 'google-id-token',
       });
-      (getGoogleUserInfo as Mock).mockResolvedValue(mockGoogleUser);
+      (getAuth0UserInfo as Mock).mockResolvedValue(mockAuth0User);
       (getUserByGoogleId as Mock).mockRejectedValue(new Error('Database connection failed'));
 
       const request = new NextRequest('http://localhost:3000/api/auth/callback', {

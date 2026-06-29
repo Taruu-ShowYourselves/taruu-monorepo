@@ -1,18 +1,16 @@
 /**
  * Merch Store Types
  *
- * Print-on-demand physical merch (apparel, stickers, accessories, prints).
- * Payments settle through Green Invoice (morning) as the Israeli merchant of
- * record + invoicing rail — distinct from Paddle, which handles the digital
- * vote fees. A POD partner fulfils and ships; we hold the catalogue + orders.
+ * Physical merch (apparel, stickers, accessories, prints). Payments settle
+ * through Green Invoice (morning) as the Israeli merchant of record +
+ * invoicing rail — distinct from Paddle, which handles the digital vote fees.
+ * We hold the catalogue + orders; orders settle at `paid` with no fulfilment
+ * handoff.
  */
 
 // === Catalogue ===
 
 export type MerchCategory = 'apparel' | 'sticker' | 'accessory' | 'print';
-
-/** Print-on-demand fulfilment partner. */
-export type PodProvider = 'printful' | 'printify' | 'manual';
 
 /**
  * A single buyable variant of a product (size / colour). Price is absolute
@@ -23,12 +21,10 @@ export interface ProductVariant {
   id: string;
   /** Human label, e.g. "M · שחור". */
   label: string;
-  /** Stock-keeping unit handed to the POD partner. */
+  /** Stock-keeping unit. */
   sku: string;
   /** Absolute price in ILS. */
   priceILS: number;
-  /** POD partner's variant id (for fulfilment), when known. */
-  podVariantId?: string;
   inStock: boolean;
 }
 
@@ -47,9 +43,6 @@ export interface Product {
   /** Image URLs (first is the lead). */
   images: string[];
   variants: ProductVariant[];
-  podProvider: PodProvider;
-  /** POD partner's product id (for fulfilment), when known. */
-  podProductId?: string;
   /** Hidden from the storefront when false. */
   active: boolean;
 }
@@ -105,12 +98,6 @@ export interface MerchOrder {
   shipping: ShippingAddress;
   /** Green Invoice payment / document id once issued. */
   paymentId?: string;
-  /** POD partner order id once fulfilment starts. */
-  podOrderId?: string;
-  /** Shipment tracking, set when the POD partner ships the order. */
-  trackingNumber?: string;
-  trackingUrl?: string;
-  carrier?: string;
   createdAt: Date;
   updatedAt: Date;
 }
