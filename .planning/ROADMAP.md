@@ -6,7 +6,7 @@ Starting from a brownfield Next.js codebase with Paddle vote payments and a work
 
 ## Phases
 
-- [ ] **Phase 1: Clean Foundation** - Land the uncommitted change and corrective RLS migration — clean, secure base before payment rails
+- [x] **Phase 1: Clean Foundation** - Land the uncommitted change and corrective RLS migration — clean, secure base before payment rails
 - [ ] **Phase 2: Spike + Gate** - Validate GI card-on-file in sandbox (hard technical gate); initiate parallel external tracks (legal sign-off, Prime plan)
 - [ ] **Phase 3: Payment Rails + Hardening** - Build complete GI card-on-file vote payment loop with full security hardening
 - [ ] **Phase 4: Go-Live** - Deploy with real credentials, run end-to-end money check, reconcile treasury
@@ -25,8 +25,8 @@ Starting from a brownfield Next.js codebase with Paddle vote payments and a work
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Land the Auth0/Printful/RLS bundle + cleanups (dead env vars, orphaned merch_orders POD columns, gitignore CLI temp) as one clean commit [LAND-01]
-- [ ] 01-02-PLAN.md — New corrective RLS migration: auth.uid() to public.user_id() on treasury_transactions, issue_coin_holdings, phone_verifications [SEC-01]
+- [x] 01-01-PLAN.md — Land the Auth0/Printful/RLS bundle + cleanups (dead env vars, orphaned merch_orders POD columns, gitignore CLI temp) as one clean commit [LAND-01] — commit 44961e0
+- [x] 01-02-PLAN.md — New corrective RLS migration: auth.uid() to public.user_id() on treasury_transactions, issue_coin_holdings, phone_verifications [SEC-01] — commit 31d6860
 
 ### Phase 2: Spike + Gate
 **Goal**: The GI card-on-file integration is technically verified in sandbox (hard gate — no production payment code before this clears); the slow external dependencies (accountant/legal sign-off and GI Prime provisioning) are initiated as parallel tracks that must resolve before go-live.
@@ -73,7 +73,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Clean Foundation | 1/2 | In Progress|  |
+| 1. Clean Foundation | 2/2 | Done | 2026-06-29 |
 | 2. Spike + Gate | 0/TBD | Not started | - |
 | 3. Payment Rails + Hardening | 0/TBD | Not started | - |
 | 4. Go-Live | 0/TBD | Not started | - |

@@ -13,7 +13,7 @@ This milestone: move vote payments to a Green Invoice card-on-file **membership*
 
 ### Security Prerequisites
 
-- [ ] **SEC-01**: Corrective migration replaces `auth.uid()` with `public.user_id()` on `treasury_transactions`, `issue_coin_holdings`, and `phone_verifications` policies, so per-user reads work and tables aren't anon-readable — before any card-on-file write to `treasury_transactions`.
+- [x] **SEC-01**: Corrective migration replaces `auth.uid()` with `public.user_id()` on `treasury_transactions`, `issue_coin_holdings`, and `phone_verifications` policies, so per-user reads work and tables aren't anon-readable — before any card-on-file write to `treasury_transactions`. *(Done: 20260628000002_fix_rls_user_id_helper.sql — commit 31d6860)*
 - [ ] **SEC-02**: Treasury transactions endpoint (`api/treasury/[municipality]/transactions`) scopes results to the caller's `user_id` for non-admin requests (or strips `userId` and exposes only anonymized aggregates) — no full-ledger enumeration.
 - [ ] **SEC-03**: The vote-payment webhook verifies its secret via an HTTP header or payload HMAC (never a `?token=` URL param) and fails closed in production with constant-time comparison.
 - [ ] **SEC-04**: The payment idempotency key is generated server-side and deterministically (`{userId}:{type}:{voteId|optionId}`), never using `Date.now()`, so retries dedupe.
@@ -73,7 +73,7 @@ This milestone: move vote payments to a Green Invoice card-on-file **membership*
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | LAND-01 | Phase 1 | Complete |
-| SEC-01 | Phase 1 | Pending |
+| SEC-01 | Phase 1 | Complete |
 | SPIKE-01 | Phase 2 | Pending |
 | SPIKE-02 | Phase 2 | Pending |
 | SPIKE-03 | Phase 2 | Pending |

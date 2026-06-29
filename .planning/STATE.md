@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-stopped_at: Completed 01-clean-foundation plan 01 (LAND-01)
-last_updated: "2026-06-29T06:34:49.497Z"
+status: phase-complete
+stopped_at: Completed 01-clean-foundation plan 02 (SEC-01) — Phase 1 DONE
+last_updated: "2026-06-29T07:15:00.000Z"
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -23,17 +23,16 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 
 ## Current Position
 
-Phase: 01 (clean-foundation) — EXECUTING
-Plan: 1 of 2
+Phase: 01 (clean-foundation) — COMPLETE
+Plan: 2 of 2 (all plans done)
 
 ## ▶ RESUME HERE (after /clear)
 
-**Run `/gsd:execute-phase 1`** — executes 2 plans in 2 waves:
+**Phase 1 is COMPLETE.** Run `/gsd:execute-phase 2` to begin Phase 2 (GI sandbox spike).
 
-- 01-01 (LAND-01): land the uncommitted Auth0 + Printful-removal + RLS-fix bundle as one `feat(foundation):` commit (+ cleanups: dead PRINTFUL_* in .dev.vars.example, drop orphaned merch_orders columns). **Owner confirmed Auth0 IS intended.**
-- 01-02 (SEC-01): new corrective migration `auth.uid()`→`public.user_id()` on treasury_transactions / issue_coin_holdings / phone_verifications, as a `fix(rls):` commit.
-
-The Auth0/Printful app-code change is intentionally still in the working tree (19 files) — Phase 1 plan 01-01 stages + commits it with an explicit file list (NOT `git add -A`; growth/ + .planning/ already committed separately and stay out).
+Phase 1 completed:
+- 01-01 (LAND-01): Auth0 OIDC swap, Printful POD removal, RLS user_id helper fix — commit 44961e0
+- 01-02 (SEC-01): Corrective RLS migration for treasury/issue_coin/phone_verifications per-user policies — commit 31d6860
 
 After Phase 1: Phase 2 = GI sandbox spike (the gate). Start the slow external tracks NOW in parallel — GI Prime plan provisioning + accountant/legal merchant-of-record sign-off — neither is code; both gate go-live.
 
@@ -43,23 +42,24 @@ Open question to resolve before Phase 3 planning: **monthly civic-pool allocatio
 
 **Velocity:**
 
-- Total plans completed: 0
-- Average duration: —
-- Total execution time: —
+- Total plans completed: 2
+- Average duration: ~5 min
+- Total execution time: ~13 min
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01-clean-foundation | 2 | ~13 min | ~6.5 min |
 
 **Recent Trend:**
 
-- Last 5 plans: —
-- Trend: —
+- Last 5 plans: 8 min (P01), 3 min (P02)
+- Trend: fast
 
 *Updated after each plan completion*
-| Phase 01-clean-foundation P01 | 8 | 3 tasks | 32 files |
+| Phase 01-clean-foundation P01 | 8 min | 3 tasks | 32 files |
+| Phase 01-clean-foundation P02 | 3 min | 2 tasks | 1 file |
 
 ## Accumulated Context
 
@@ -77,6 +77,8 @@ Recent decisions affecting current work:
 - [Phase 01-clean-foundation]: AUTH0_DOMAIN server var removed from env schema — bare var had no readers; NEXT_PUBLIC_AUTH0_DOMAIN and AUTH0_CLIENT_SECRET retained
 - [Phase 01-clean-foundation]: POD columns (pod_order_id, tracking_number, tracking_url, carrier) dropped via idempotent migration 20260628000001 — Printful definitively abandoned
 - [Phase 01-clean-foundation]: supabase/.temp/ and .mcp.json gitignored — machine-specific scratch files
+- [Phase 01-clean-foundation]: auth.uid() replaced with public.user_id() on treasury_transactions, issue_coin_holdings, phone_verifications per-user SELECT policies — built-in helper returns NULL under custom JWT
+- [Phase 01-clean-foundation]: USING(true) public-read policies on treasury and issue_coins deliberately left untouched — balances and token info are public by product design
 
 ### Pending Todos
 
@@ -91,6 +93,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-29T06:34:49.493Z
-Stopped at: Completed 01-clean-foundation plan 01 (LAND-01)
+Last session: 2026-06-29T07:15:00.000Z
+Stopped at: Completed 01-clean-foundation plan 02 (SEC-01) — Phase 1 DONE
 Resume file: None
