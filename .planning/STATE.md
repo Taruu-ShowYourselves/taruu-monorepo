@@ -10,11 +10,24 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 1 of 4 (Clean Foundation)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-06-28 — Roadmap created (4 phases, 19 requirements mapped)
+Plan: 0 of 2 executed (both PLANs written + plan-checker PASSED)
+Status: **PLANNED & VERIFIED — ready to execute**
+Next action: `/gsd:execute-phase 1`  (run after `/clear` for a fresh window)
+Last activity: 2026-06-29 — Phase 1 planned + verified; membership pricing pivot reconciled across all docs
 
 Progress: [░░░░░░░░░░] 0%
+
+## ▶ RESUME HERE (after /clear)
+
+**Run `/gsd:execute-phase 1`** — executes 2 plans in 2 waves:
+- 01-01 (LAND-01): land the uncommitted Auth0 + Printful-removal + RLS-fix bundle as one `feat(foundation):` commit (+ cleanups: dead PRINTFUL_* in .dev.vars.example, drop orphaned merch_orders columns). **Owner confirmed Auth0 IS intended.**
+- 01-02 (SEC-01): new corrective migration `auth.uid()`→`public.user_id()` on treasury_transactions / issue_coin_holdings / phone_verifications, as a `fix(rls):` commit.
+
+The Auth0/Printful app-code change is intentionally still in the working tree (19 files) — Phase 1 plan 01-01 stages + commits it with an explicit file list (NOT `git add -A`; growth/ + .planning/ already committed separately and stay out).
+
+After Phase 1: Phase 2 = GI sandbox spike (the gate). Start the slow external tracks NOW in parallel — GI Prime plan provisioning + accountant/legal merchant-of-record sign-off — neither is code; both gate go-live.
+
+Open question to resolve before Phase 3 planning: **monthly civic-pool allocation policy** (how the month's ₪2.10×members pool splits across executed decisions).
 
 ## Performance Metrics
 
