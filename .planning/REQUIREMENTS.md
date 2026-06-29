@@ -1,11 +1,11 @@
 # Requirements: Taruu — P0 Payments + Go-Live
 
 **Defined:** 2026-06-28
-**Core Value:** A resident can pay for a civic vote and trust the fixed ₪2.10 civic share reaches the treasury — every vote, provably, platform solvent.
+**Core Value:** A resident pays ₪6 once a month to vote freely on their city's affairs, and trusts that the civic pool funds the decisions that actually execute.
 
 ## v1 Requirements
 
-This milestone: swap the vote-payment rail to Green Invoice card-on-file (₪5/vote), make the money rails correct and secure, and go live. Hard gate (spike + legal + Prime + creds) precedes production payment code.
+This milestone: move vote payments to a Green Invoice card-on-file **membership** model — the **first vote of a calendar month costs ₪6, the rest of the month is free** — make the money rails correct and secure, and go live. The ₪6 splits ₪2.10 → monthly civic pool / ₪3.90 → platform. Hard gate (spike + legal + Prime + creds) precedes production payment code.
 
 ### Foundation
 
@@ -28,13 +28,13 @@ This milestone: swap the vote-payment rail to Green Invoice card-on-file (₪5/v
 ### Payments (Green Invoice card-on-file)
 
 - [ ] **PAY-01**: A user with no saved card is sent to the GI `/payments/form` hosted page once; on completion the card token + GI client id are stored against the user, with off-session-charge consent captured.
-- [ ] **PAY-02**: Every subsequent vote charges the saved token server-side for **₪5** via `/payments/tokens/{id}/charge`, with no card re-entry.
-- [ ] **PAY-03**: A vote is recorded only after payment-success (charge-then-commit); a failed charge records no vote.
-- [ ] **PAY-04**: Each settled participation accrues a fixed **₪2.10** to the treasury ledger atomically with the charge commit, idempotent under retries/webhook replay (mirrors `markMerchOrderPaid`).
+- [ ] **PAY-02**: On a vote, the server checks whether the user has already paid this calendar month. First vote of the month → charge the saved token **₪6** via `/payments/tokens/{id}/charge` (no re-entry) and mark the membership-month paid. Subsequent votes that month → no charge. The month-paid check + write is atomic and idempotent (one charge per member per calendar month, even under concurrent first votes).
+- [ ] **PAY-03**: The first (paid) vote of a month is recorded only after payment-success (charge-then-commit); a failed charge records no vote and no membership-month. Free votes commit directly.
+- [ ] **PAY-04**: Each ₪6 membership charge accrues a fixed **₪2.10** to the **monthly civic pool** (and ₪3.90 to platform), atomically with the charge commit, idempotent under retries/webhook replay (mirrors `markMerchOrderPaid`). The pool is allocated to the month's executed decisions (allocation policy detailed in the bags spec) — NOT a per-vote treasury credit.
 - [ ] **PAY-05**: A declined/expired/missing token shows a localized (Hebrew/RTL) retry/update-card path and never surfaces a raw gateway error.
-- [ ] **PAY-06**: Vote creation charges **₪50** through the same token-charge flow (100% platform; treasury not credited on creation).
-- [ ] **PAY-07**: Each settled charge issues a Green Invoice receipt (חשבונית/קבלה) with correct Israeli private-payer fields, and stores the document id with the transaction.
-- [ ] **PAY-08**: Paddle is removed from the vote-payment flow; the pricing/messaging restates the civic share as "fixed ₪2.10/vote" (not "70%").
+- [ ] **PAY-06**: Vote creation charges **₪50** through the same token-charge flow (100% platform; not part of the monthly membership; treasury pool not credited on creation).
+- [ ] **PAY-07**: Each settled charge (the ₪6 membership charge and the ₪50 create) issues a Green Invoice receipt (חשבונית/קבלה) with correct Israeli private-payer fields, and stores the document id with the transaction.
+- [ ] **PAY-08**: Paddle is removed from the vote-payment flow; pricing/messaging states the model as "₪6/month, first vote of the month — then free" and the civic share as "₪2.10/member/month into the civic pool" (not per-vote, not "70%").
 
 ### Go-Live
 
@@ -45,7 +45,7 @@ This milestone: swap the vote-payment rail to Green Invoice card-on-file (₪5/v
 
 ### Vote-Bags Treasury Execution (separate later milestone)
 
-- **BAG-01**: Per-vote treasury bag fills with the ₪2.10 share and shows a live balance.
+- **BAG-01**: The monthly civic pool (₪2.10 × paying members) is allocated to that month's executed decisions, each showing a live balance.
 - **BAG-02**: On-chain (Solana) read-only transparency mirror of each bag's lifecycle.
 - **BAG-03**: In-house, dual-control vendor payout (KYC + approval + proof-of-execution) — gated on a license/trust structure.
 - **BAG-04**: Refund path for failed/cancelled votes (GI credit-note).

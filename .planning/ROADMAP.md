@@ -2,7 +2,7 @@
 
 ## Overview
 
-Starting from a brownfield Next.js codebase with Paddle vote payments and a working Green Invoice merch rail, this milestone swaps the vote-payment rail to Green Invoice card-on-file (₪5/vote), makes the money rails correct and secure, and ships a live product. Four phases, sequenced by hard dependencies: land the coherent working-tree change first, validate the GI integration in sandbox before writing a line of production payment code, build all payment rails and security hardening together, then go live once the external gates (legal sign-off, GI Prime provisioning) have cleared.
+Starting from a brownfield Next.js codebase with Paddle vote payments and a working Green Invoice merch rail, this milestone moves vote payments to a Green Invoice card-on-file monthly membership (first vote of the month ₪6, rest free), makes the money rails correct and secure, and ships a live product. Four phases, sequenced by hard dependencies: land the coherent working-tree change first, validate the GI integration in sandbox before writing a line of production payment code, build all payment rails and security hardening together, then go live once the external gates (legal sign-off, GI Prime provisioning) have cleared.
 
 ## Phases
 
@@ -43,26 +43,26 @@ Plans:
 **Plans**: TBD
 
 ### Phase 3: Payment Rails + Hardening
-**Goal**: A voter sets up their card once and votes repeatedly at ₪5 — the full GI card-on-file payment loop (card setup, token charge, charge-then-commit, treasury accrual, receipt, Paddle cutover) is implemented, idempotent, and hardened against the security gaps identified in CONCERNS.md.
+**Goal**: A voter sets up their card once and votes freely all month after a single ₪6 first-vote-of-the-month charge — the full GI card-on-file membership loop (card setup, once-per-calendar-month token charge, charge-then-commit, monthly-pool accrual, receipt, Paddle cutover) is implemented, idempotent, and hardened against the security gaps identified in CONCERNS.md.
 **Depends on**: Phase 1 (corrective RLS migration in place), Phase 2 SPIKE-01 cleared (sandbox verified)
 **Requirements**: SEC-02, SEC-03, SEC-04, SEC-05, PAY-01, PAY-02, PAY-03, PAY-04, PAY-05, PAY-06, PAY-07, PAY-08
 **Success Criteria** (what must be TRUE):
   1. A user with no saved card is redirected to the GI hosted card-entry page; on completion their GI token id is persisted against their user record; every subsequent vote in the same session (and in a new session) charges the saved token without prompting for card details.
-  2. Casting a vote atomically charges ₪5 and commits the ballot: a failed or declined charge records no vote; a double-click or webhook replay of the same vote charges once and accrues one treasury row — idempotency key collision returns the original result, not an error or a second charge.
-  3. Each successful vote participation accrues exactly ₪2.10 to the treasury ledger (`treasury_ledger` append-only row); one, zero, or many webhook deliveries of the same event produce exactly one ledger row per vote.
-  4. Vote creation charges ₪50 through the same token-charge flow (100% platform, no treasury credit); Paddle is removed from the vote-payment route; the `/api/payments/create` pricing endpoint and all user-facing copy state the civic share as "₪2.10/vote to the civic treasury" (not "70%").
+  2. The first vote of a calendar month atomically charges ₪6 and commits the ballot; subsequent votes that month commit free with no charge. A failed/declined first-vote charge records no vote and no membership-month; a double-click, concurrent first vote, or webhook replay charges once and accrues one pool row — the once-per-month idempotency key collision returns the original result, not a second charge.
+  3. Each ₪6 membership charge accrues exactly ₪2.10 to the monthly civic pool (`treasury_ledger` append-only row, ₪3.90 to platform); one, zero, or many webhook deliveries of the same event produce exactly one pool row per member per month.
+  4. Vote creation charges ₪50 through the same token-charge flow (100% platform, not part of membership, no pool credit); Paddle is removed from the vote-payment route; the `/api/payments/create` pricing endpoint and all user-facing copy state the model as "₪6/month — first vote then free" and the civic share as "₪2.10/member/month to the civic pool" (not per-vote, not "70%").
   5. A declined, expired, or missing token shows a Hebrew/RTL message with a card-update path — no raw gateway error string is ever surfaced to the user; a GI receipt (חשבונית מס/קבלה) with correct Israeli private-payer fields is issued and its document id stored with every settled charge.
   6. The payments webhook verifies its secret via a constant-time header comparison (not `?token=` URL param), fails closed in production on any secret mismatch or DB error; the idempotency key is `{userId}:{voteId}:{action}` generated server-side; `env.ts` validates all runtime-read vars (including renamed `SUPABASE_SERVICE_ROLE_KEY` and new `GREENINVOICE_*` vars) at app startup with fail-fast behavior; the treasury transactions endpoint scopes results to the caller's `user_id` or exposes only anonymized aggregates.
 **Plans**: TBD
 
 ### Phase 4: Go-Live
-**Goal**: The platform is live — real Israeli residents can pay for civic votes, the ₪2.10 civic share reaches the treasury on every vote, and the end-to-end money flow reconciles with zero open mismatches.
+**Goal**: The platform is live — real Israeli residents pay ₪6 on their first vote of the month and vote free after, the ₪2.10 civic share reaches the monthly pool, and the end-to-end money flow reconciles with zero open mismatches.
 **Depends on**: Phase 3 (payment rails complete) + SPIKE-02/03 cleared (legal sign-off obtained, GI Prime provisioned with real credentials)
 **Requirements**: GO-01, GO-02
 **Success Criteria** (what must be TRUE):
   1. The app deploys to Cloudflare Workers with real GI Prime credentials, all production secrets validated at startup (no `validateEnv()` failures), and the Cloudflare Worker serving live traffic without errors.
   2. A real ₪50 vote-creation charge lands in the GI dashboard, a חשבונית with correct Israeli private-payer fields is issued, and the charge id + document id are stored in the internal `transactions` table.
-  3. A real ₪5 vote-participation charge lands; the `treasury_ledger` shows exactly ₪2.10 accrued; a webhook replay of the same event produces no second ledger row.
+  3. A real ₪6 first-vote-of-month membership charge lands; the `treasury_ledger` shows exactly ₪2.10 accrued to the monthly pool; a second vote that month charges nothing; a webhook replay produces no second ledger row.
   4. GI settlement report, internal `transactions` table, and `treasury_ledger` reconcile to zero open mismatches after the end-to-end check — every settled charge has a matching ledger row, every ledger row has a matching settled charge.
 **Plans**: TBD
 
