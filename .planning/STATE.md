@@ -1,3 +1,17 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: unknown
+stopped_at: Completed 01-clean-foundation plan 01 (LAND-01)
+last_updated: "2026-06-29T06:34:49.497Z"
+progress:
+  total_phases: 4
+  completed_phases: 0
+  total_plans: 2
+  completed_plans: 1
+---
+
 # Project State
 
 ## Project Reference
@@ -5,21 +19,17 @@
 See: .planning/PROJECT.md (updated 2026-06-28)
 
 **Core value:** A resident pays ₪6 once a month to vote freely on their city's affairs, and trusts that the civic pool funds the decisions that actually execute.
-**Current focus:** Phase 1 — Clean Foundation
+**Current focus:** Phase 01 — clean-foundation
 
 ## Current Position
 
-Phase: 1 of 4 (Clean Foundation)
-Plan: 0 of 2 executed (both PLANs written + plan-checker PASSED)
-Status: **PLANNED & VERIFIED — ready to execute**
-Next action: `/gsd:execute-phase 1`  (run after `/clear` for a fresh window)
-Last activity: 2026-06-29 — Phase 1 planned + verified; membership pricing pivot reconciled across all docs
-
-Progress: [░░░░░░░░░░] 0%
+Phase: 01 (clean-foundation) — EXECUTING
+Plan: 1 of 2
 
 ## ▶ RESUME HERE (after /clear)
 
 **Run `/gsd:execute-phase 1`** — executes 2 plans in 2 waves:
+
 - 01-01 (LAND-01): land the uncommitted Auth0 + Printful-removal + RLS-fix bundle as one `feat(foundation):` commit (+ cleanups: dead PRINTFUL_* in .dev.vars.example, drop orphaned merch_orders columns). **Owner confirmed Auth0 IS intended.**
 - 01-02 (SEC-01): new corrective migration `auth.uid()`→`public.user_id()` on treasury_transactions / issue_coin_holdings / phone_verifications, as a `fix(rls):` commit.
 
@@ -32,6 +42,7 @@ Open question to resolve before Phase 3 planning: **monthly civic-pool allocatio
 ## Performance Metrics
 
 **Velocity:**
+
 - Total plans completed: 0
 - Average duration: —
 - Total execution time: —
@@ -43,10 +54,12 @@ Open question to resolve before Phase 3 planning: **monthly civic-pool allocatio
 | - | - | - | - |
 
 **Recent Trend:**
+
 - Last 5 plans: —
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 01-clean-foundation P01 | 8 | 3 tasks | 32 files |
 
 ## Accumulated Context
 
@@ -61,6 +74,9 @@ Recent decisions affecting current work:
 - Growth bet: Target band (₪40k take-home) needs ~8,000 monthly members + 900 creates — ~1.5-2x old engagement
 - Uncommitted working-tree change (Auth0 + Printful removal + RLS): verdict = coherent + landable as one commit
 - SPIKE-02/03 (legal, Prime plan) are parallel external tracks — gate go-live, not the rails build
+- [Phase 01-clean-foundation]: AUTH0_DOMAIN server var removed from env schema — bare var had no readers; NEXT_PUBLIC_AUTH0_DOMAIN and AUTH0_CLIENT_SECRET retained
+- [Phase 01-clean-foundation]: POD columns (pod_order_id, tracking_number, tracking_url, carrier) dropped via idempotent migration 20260628000001 — Printful definitively abandoned
+- [Phase 01-clean-foundation]: supabase/.temp/ and .mcp.json gitignored — machine-specific scratch files
 
 ### Pending Todos
 
@@ -75,6 +91,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-28
-Stopped at: Roadmap created — ready to run /gsd:plan-phase 1
+Last session: 2026-06-29T06:34:49.493Z
+Stopped at: Completed 01-clean-foundation plan 01 (LAND-01)
 Resume file: None

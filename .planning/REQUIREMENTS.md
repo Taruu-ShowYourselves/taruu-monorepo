@@ -9,7 +9,7 @@ This milestone: move vote payments to a Green Invoice card-on-file **membership*
 
 ### Foundation
 
-- [ ] **LAND-01**: Land the uncommitted change (Auth0 OIDC swap + Printful removal + RLS `public.user_id()` fix) as one clean commit, including the two cleanups — dead Printful entries in `.dev.vars.example` and orphaned `merch_orders` tracking/`pod_order_id` columns (drop or document as reserved).
+- [x] **LAND-01**: Land the uncommitted change (Auth0 OIDC swap + Printful removal + RLS `public.user_id()` fix) as one clean commit, including the two cleanups — dead Printful entries in `.dev.vars.example` and orphaned `merch_orders` tracking/`pod_order_id` columns (drop or document as reserved).
 
 ### Security Prerequisites
 
@@ -72,7 +72,7 @@ This milestone: move vote payments to a Green Invoice card-on-file **membership*
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LAND-01 | Phase 1 | Pending |
+| LAND-01 | Phase 1 | Complete |
 | SEC-01 | Phase 1 | Pending |
 | SPIKE-01 | Phase 2 | Pending |
 | SPIKE-02 | Phase 2 | Pending |

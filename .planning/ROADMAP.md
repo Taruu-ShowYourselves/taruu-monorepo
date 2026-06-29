@@ -73,7 +73,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Clean Foundation | 0/TBD | Not started | - |
+| 1. Clean Foundation | 1/2 | In Progress|  |
 | 2. Spike + Gate | 0/TBD | Not started | - |
 | 3. Payment Rails + Hardening | 0/TBD | Not started | - |
 | 4. Go-Live | 0/TBD | Not started | - |
