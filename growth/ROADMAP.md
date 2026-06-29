@@ -4,15 +4,15 @@ _Owner: 2 founders. Updated 2026-06-24. Companion docs: [`FINANCIAL-MODEL.md`](.
 
 ## Where we are
 
-The product is **built and code-reviewed** (11 UX journeys shipped, brutalist tech-press, Cloudflare Workers deploy scaffolded). What's missing is **(a) it's not live with real creds, (b) zero distribution, (c) the payment unit-economics are broken at the ₪3 tier.** See `HANDOVER.md` for the build state.
+The product is **built and code-reviewed** (11 UX journeys shipped, brutalist tech-press, Cloudflare Workers deploy scaffolded). What's missing is **(a) it's not live with real creds, (b) zero distribution, (c) the payment rail + pricing needed a fix — now resolved in design (Green Invoice card-on-file, **₪6/month membership** — first vote of the month charged, rest free; see [`PRD-P0-payments.md`](./PRD-P0-payments.md)), pending build.** See `HANDOVER.md` for build state.
 
-The whole company reduces to one number: **paid vote-creations per month.** Target = **~600/mo** (with ~50 active ambassadors and ~50 paid voters each) → **₪33.8k/mo take-home**, inside our ₪30–45k goal. Everything below serves that number.
+The whole company reduces to one number: **paid vote-creations per month.** Target = **~900/mo** (alongside **~8,000 active paying members** at ₪6/mo) → **~₪40k/mo take-home**, inside our ₪30–45k goal at the new membership economics. Everything below serves that number — but note the membership model is a **growth bet**: voting is now free after the first of the month, so the funnel must grow the member + creator base ≈1.5–2× to land the band (see [`FINANCIAL-MODEL.md`](./FINANCIAL-MODEL.md)).
 
 ## North-star metric & guardrails
 
-- **North star:** paid creates/mo (driver of the P&L, 69× richer than a participation).
-- **Leading indicators:** active ambassadors · ambassador→creator conversion · paid voters per vote · wallet top-up rate.
-- **Health guardrail:** treasury always receives its ₪2.10/vote (the civic promise). The wallet fix only changes who eats Paddle's fee, never the treasury.
+- **North star:** paid creates/mo (driver of the P&L, ~19× richer than a member-month: +₪47.95 vs +₪2.47).
+- **Leading indicators:** active ambassadors · ambassador→creator conversion · **monthly active paying members** · card-on-file setup rate.
+- **Health guardrail:** treasury always receives its **fixed ₪2.10 per paying member per month** into the civic **pool** (the civic promise — an amount, not "70%"), allocated to the month's executed decisions. The rail/pricing model only changes who covers processing + the receipt, never the treasury.
 
 ---
 
@@ -20,12 +20,12 @@ The whole company reduces to one number: **paid vote-creations per month.** Targ
 
 | # | Item | Why |
 |---|---|---|
-| 0.1 | **Credit wallet** (top-up packs ₪30/₪60/₪150, vote draws from balance) | ₪3 single-charge **loses ₪1.10/vote**. Until this ships, more voting = more loss. **P0.** |
-| 0.2 | Go live: Cloudflare deploy + real creds (Supabase/Paddle/Green Invoice), Paddle create price = **₪50**, `GREENINVOICE_WEBHOOK_SECRET`, SMS OTP gateway | Can't earn ₪0 while in mock mode. (`HANDOVER.md` deploy seq.) |
-| 0.3 | **Backend e2e flow check** — one real ₪50 create + one real wallet top-up + one participation, end to end, money landing, treasury ledger correct, webhook idempotent | Prove the rails before we drive traffic. |
+| 0.1 | **Green Invoice card-on-file payments** (**₪6/month membership** — first vote of the month charged, rest of month free; ₪50 create; Prime plan; no batching) — supersedes the dropped credit-wallet. Card saved once, one membership charge/member/month → **+₪2.47/member/mo**. | Old ₪3-on-Paddle **lost ₪1.10/vote**, and per-vote pricing walled off the voting that fuels the funnel. Until this ships, can't earn safely. **P0.** Spec: [`PRD-P0-payments.md`](./PRD-P0-payments.md). |
+| 0.2 | Go live: Cloudflare deploy + real creds (Supabase/**Green Invoice Prime**), GI create price = **₪50** / membership = **₪6**, `GREENINVOICE_WEBHOOK_SECRET`, SMS OTP gateway | Can't earn ₪0 while in mock mode. (`HANDOVER.md` deploy seq.) |
+| 0.3 | **Backend e2e flow check** — one real ₪50 create + one real **₪6 first-vote-of-month** membership charge (card-on-file token) **plus a second free vote in the same month**, end to end, money landing, treasury pool ledger correct, once-per-month gate + webhook idempotent | Prove the rails before we drive traffic. |
 | 0.4 | **Security pre-launch pass** — close deferred MED findings: Google OAuth **state+PKCE**, `merch_orders` **RLS**, webhook-secret→header, OTP attempt-reset, send-code rate-limit | Civic + payments + PII. Non-negotiable before outreach. (`SECURITY-AUDIT.md`) |
 
-**Exit:** a real human can top up, create a ₪50 vote, others can vote, money + treasury reconcile, no open HIGH/MED security findings.
+**Exit:** a real human can save a card, create a ₪50 vote, others can vote (first of the month ₪6, rest free), money + treasury pool reconcile, no open HIGH/MED security findings.
 
 ## Phase 1 — Seed distribution: the ambassador engine (Week 2–6)
 
@@ -68,21 +68,21 @@ The growth thesis (adapted from the Postiz playbook → civic): **one-to-many, g
 | Backend / flow e2e check | before each release | founder B |
 | Security review | pre-launch + monthly | founder B + `octo:security` |
 | Agent run review (listening/outreach/marketing) | daily, 15 min, in `dashboard.html` | both |
-| Financial reconciliation (treasury ↔ Paddle ↔ ledger) | weekly | founder A |
+| Financial reconciliation (treasury ↔ Green Invoice ↔ ledger ↔ vote bags) | weekly | founder A / treasury hire |
 
 ## 90-day plan (one line each)
 
-- **Weeks 1–2:** wallet + go-live + e2e + security → stop bleeding, be real.
+- **Weeks 1–2:** GI payments (₪6/mo membership, card-on-file) + go-live + e2e + security → stop bleeding, be real.
 - **Weeks 2–6:** listening + outreach agents → 8–15 ambassadors, first executed votes.
 - **Weeks 4–10:** marketing agent + homepage rewrite → first outcome stories drive inbound creates.
-- **Month 3:** push ambassador→creator conversion; measure against the 600-creates/mo target; decide if/where to add paid ads.
+- **Month 3:** push ambassador→creator conversion; measure against the 900-creates/mo + 8,000-member target; decide if/where to add paid ads.
 
 ## Risk register
 
 | Risk | Mitigation |
 |---|---|
-| Wallet not shipped → losses scale with usage | P0; gate all traffic behind it |
+| GI payments not shipped / wrong plan tier → losses scale with usage | P0; gate all traffic behind it; **must be on GI Prime** (₪0.15/receipt) or economics break |
 | Anti-spam / Meta ToS exposure | human-in-the-loop, public data, personal messages, per-spec kill-switches |
 | Creates don't materialize (participation-only) | product nudges every voter → creator; track cohort; price/》why-create messaging |
-| Treasury trust (handling civic money) | full ledger transparency, reconciliation, never touch the 70% |
+| Treasury trust (handling civic money) | full ledger transparency, reconciliation, never touch the ₪2.10/member-month civic pool |
 | Founder bandwidth (2 people) | agents draft, humans approve; ruthless WIP limits; dashboard as single pane |
