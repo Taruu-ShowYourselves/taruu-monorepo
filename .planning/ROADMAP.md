@@ -40,7 +40,11 @@ Plans:
   2. The integration sequence — card setup via `/payments/form`, webhook delivery, token persistence, repeat token charge — is traced end-to-end in sandbox with no undocumented surprises; any deviations from the merch flow (different webhook shape, header vs query-param secret, settlement timing) are documented.
   3. Accountant/legal sign-off is obtained (or a written timeline is in place) covering: correct GI document type per flow (חשבונית קבלה vs חשבונית מס), VAT treatment, refund/credit-note (זיכוי) mechanics, and consumer-protection obligations under Israeli law.
   4. GI Prime plan (₪0.15/receipt rate) is provisioned and confirmed in writing; real `GREENINVOICE_*` and Supabase production credentials are staged in the Cloudflare Workers secret store; written merchant clearing terms (actual clearing %, hard minimums, brand/tourist-card surcharges, settlement payout threshold) are on file.
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — GI card-on-file sandbox spike harness (chargeToken MIT call + guarded runner) + SPIKE-RESULT trace [SPIKE-01]
+- [ ] 02-02-PLAN.md — External-track checklists: legal/accountant merchant-of-record + GI Prime/creds/clearing terms [SPIKE-02, SPIKE-03]
 
 ### Phase 3: Payment Rails + Hardening
 **Goal**: A voter sets up their card once and votes freely all month after a single ₪6 first-vote-of-the-month charge — the full GI card-on-file membership loop (card setup, once-per-calendar-month token charge, charge-then-commit, monthly-pool accrual, receipt, Paddle cutover) is implemented, idempotent, and hardened against the security gaps identified in CONCERNS.md.
@@ -74,6 +78,6 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Clean Foundation | 2/2 | Done | 2026-06-29 |
-| 2. Spike + Gate | 0/TBD | Not started | - |
+| 2. Spike + Gate | 0/2 | Planned | - |
 | 3. Payment Rails + Hardening | 0/TBD | Not started | - |
 | 4. Go-Live | 0/TBD | Not started | - |
