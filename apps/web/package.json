@@ -14,7 +14,8 @@
     "cf:build": "opennextjs-cloudflare build",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "cf:typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
+    "cf:typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "spike:gi": "tsx --env-file=.dev.vars scripts/gi-spike.ts"
   },
   "dependencies": {
     "@metaplex-foundation/mpl-bubblegum": "^5.0.2",
@@ -53,6 +54,7 @@
     "eslint": "^9.0.0",
     "eslint-config-next": "^15.5.18",
     "typescript": "^5.7.0",
+    "tsx": "^4.0.0",
     "vitest": "^1.0.0",
     "wrangler": "^4.0.0"
   }
