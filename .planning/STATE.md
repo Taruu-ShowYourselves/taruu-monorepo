@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 01-clean-foundation plan 02 (SEC-01) — Phase 1 DONE
-last_updated: "2026-06-29T06:44:09.463Z"
+stopped_at: Completed 02-spike-gate plan 02 (SPIKE-02+03 checklists)
+last_updated: "2026-06-30T07:22:01.873Z"
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  completed_phases: 2
+  total_plans: 4
+  completed_plans: 4
 ---
 
 # Project State
@@ -61,6 +61,8 @@ Open question to resolve before Phase 3 planning: **monthly civic-pool allocatio
 *Updated after each plan completion*
 | Phase 01-clean-foundation P01 | 8 min | 3 tasks | 32 files |
 | Phase 01-clean-foundation P02 | 3 min | 2 tasks | 1 file |
+| Phase 02-spike-gate P02 | 2 | 2 tasks | 2 files |
+| Phase 02-spike-gate P01 | 4 | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -80,6 +82,8 @@ Recent decisions affecting current work:
 - [Phase 01-clean-foundation]: supabase/.temp/ and .mcp.json gitignored — machine-specific scratch files
 - [Phase 01-clean-foundation]: auth.uid() replaced with public.user_id() on treasury_transactions, issue_coin_holdings, phone_verifications per-user SELECT policies — built-in helper returns NULL under custom JWT
 - [Phase 01-clean-foundation]: USING(true) public-read policies on treasury and issue_coins deliberately left untouched — balances and token info are public by product design
+- [Phase 02-spike-gate]: Tourist/foreign-card surcharge (~3.5%) captured as explicit block-or-flag decision gate in GI-PRIME-CHECKLIST.md
+- [Phase 02-spike-gate]: Both SPIKE-02/03 checklist docs flagged PENDING/external-human-track — gate Phase 4 go-live only, not Phase 3 build
 
 ### Pending Todos
 
@@ -94,6 +98,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-29T07:15:00.000Z
-Stopped at: Completed 01-clean-foundation plan 02 (SEC-01) — Phase 1 DONE
+Last session: 2026-06-30T07:21:46.782Z
+Stopped at: Completed 02-spike-gate plan 02 (SPIKE-02+03 checklists)
 Resume file: None
