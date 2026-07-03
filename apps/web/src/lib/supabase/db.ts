@@ -537,7 +537,7 @@ export async function createPayment(
  * same statement. Returns the row to the single caller that won the race, or
  * null if it was already completed / lost (idempotent). All downstream
  * fulfilment (treasury, tokens, entitlement) MUST gate on a non-null return so
- * Paddle's dual completed/paid events + retries can't double-process.
+ * Green Invoice's webhook retries can't double-process.
  */
 export async function markPaymentCompleted(
   paymentId: string,
@@ -616,8 +616,8 @@ export type RefundRequestResult =
 /**
  * Record a user's refund request on the payment's metadata. Ownership +
  * `completed` status are enforced here so the route can't request a refund on
- * someone else's or an unsettled payment. Refunds are issued manually in Paddle
- * (per policy) — this only captures the intake, it does not move money.
+ * someone else's or an unsettled payment. Refunds are issued manually in Green
+ * Invoice (per policy) — this only captures the intake, it does not move money.
  */
 export async function requestPaymentRefund(
   paymentId: string,

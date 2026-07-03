@@ -155,7 +155,7 @@ export default function CreateVotePage() {
     setError('');
 
     try {
-      // Create Paddle payment session
+      // Create Green Invoice payment session
       const response = await fetch('/api/payments/create', {
         method: 'POST',
         headers: {
@@ -184,7 +184,7 @@ export default function CreateVotePage() {
         orderId: data.payment?.orderId,
       };
 
-      // Real flow: redirect to the Paddle checkout when a URL is issued.
+      // Real flow: redirect to the Green Invoice checkout when a URL is issued.
       if (data.payment?.paymentUrl) {
         sessionStorage.setItem('pendingVote', JSON.stringify(pendingVote));
         window.location.href = data.payment.paymentUrl;
@@ -192,7 +192,7 @@ export default function CreateVotePage() {
       }
 
       // Graceful MOCK fallback: API succeeded but issued no checkout URL
-      // (e.g. sandbox without Paddle). Render the in-page seal instead of
+      // (e.g. sandbox without Green Invoice). Render the in-page seal instead of
       // erroring, so the press success surface is reachable.
       sessionStorage.setItem('pendingVote', JSON.stringify(pendingVote));
       setSealHash(
@@ -450,7 +450,7 @@ export default function CreateVotePage() {
                       strong: true,
                     },
                   ]}
-                  footer="תשלום מאובטח · Paddle · חתום בבלוקצ׳יין"
+                  footer="תשלום מאובטח · Green Invoice · חתום בבלוקצ׳יין"
                 />
               </div>
             )}

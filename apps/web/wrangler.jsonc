@@ -66,7 +66,6 @@
   // (or .dev.vars locally). Only NON-secret public vars belong in `vars`.
   "vars": {
     "GREENINVOICE_ENV": "production",
-    "PADDLE_ENV": "production",
     "QUBIK_NETWORK": "mainnet"
   }
 }

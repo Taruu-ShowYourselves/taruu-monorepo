@@ -3,7 +3,7 @@
  *
  * Implements the "treasury accrual + batch seed" model:
  *
- *  1. While a vote is open, each Paddle-paid participation accrues ILS into the
+ *  1. While a vote is open, each Green Invoice-paid participation accrues ILS into the
  *     municipality treasury ledger, tagged with the vote_id (see payments webhook).
  *  2. When the vote ends, this service is invoked once per vote at resolution:
  *       - sums the accrued ILS for the vote,

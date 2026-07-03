@@ -164,8 +164,8 @@ class EmailService {
 
   /**
    * Notify support that a user requested a refund. Refunds are issued manually
-   * in Paddle (per the published policy), so this is the intake channel —
-   * reply-to is the requester so support can respond directly.
+   * in Green Invoice (a credit note, per the published policy), so this is the
+   * intake channel — reply-to is the requester so support can respond directly.
    */
   async sendRefundRequestNotification(params: {
     paymentId: string;
@@ -178,7 +178,7 @@ class EmailService {
   }): Promise<void> {
     const rows = [
       ['תשלום', params.paymentId],
-      ['Paddle txn', params.providerId || '—'],
+      ['מסמך Green Invoice', params.providerId || '—'],
       ['משתמש', `${params.userId} (${params.userEmail})`],
       ['סוג', params.type],
       ['סכום', `₪${params.amountILS}`],
@@ -196,11 +196,11 @@ class EmailService {
       html: `<!DOCTYPE html><html dir="rtl" lang="he"><body style="font-family:'Heebo',Arial,sans-serif">
         <h2>בקשת החזר חדשה</h2>
         <table style="border-collapse:collapse">${rows}</table>
-        <p>הנפק את ההחזר ב-Paddle (Adjustments → Refund) על העסקה למעלה.</p>
+        <p>הנפק את ההחזר ב-Green Invoice (חשבונית זיכוי) על המסמך למעלה.</p>
       </body></html>`,
       text:
         `בקשת החזר חדשה\n` +
-        `תשלום: ${params.paymentId}\nPaddle txn: ${params.providerId || '—'}\n` +
+        `תשלום: ${params.paymentId}\nמסמך Green Invoice: ${params.providerId || '—'}\n` +
         `משתמש: ${params.userId} (${params.userEmail})\nסוג: ${params.type}\n` +
         `סכום: ₪${params.amountILS}\nסיבה: ${params.reason}\n`,
     });
