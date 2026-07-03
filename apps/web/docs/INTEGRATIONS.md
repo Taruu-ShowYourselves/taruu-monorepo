@@ -19,9 +19,8 @@ These need no third party; generated into `.dev.vars`:
 |---|---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | **REQ** | Supabase → Project → Settings → API | Pick/create the prod project. Run `supabase/migrations/*`. NEXT_PUBLIC ones are **build-time**. |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | **REQ** | Google Cloud Console → APIs & Credentials → OAuth client | Add `https://taruu.co.il/api/auth/callback` redirect. Also paste into Supabase Auth → Providers → Google. |
-| `PADDLE_API_KEY`, `PADDLE_WEBHOOK_SECRET`, `PADDLE_PRICE_VOTE_PARTICIPATION`, `PADDLE_PRICE_VOTE_CREATION`, `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` | **PAY** | Paddle → Developer Tools | **Production Paddle needs business/website approval.** Set creation price = **₪50** (matches `CREATE_VOTE_COST`). `PADDLE_ENV` flip sandbox→production in wrangler.jsonc. |
+| `GREENINVOICE_API_KEY_ID`, `GREENINVOICE_API_SECRET`, `GREENINVOICE_PLUGIN_ID` | **PAY** | morning/Green Invoice → Settings → API | Israeli **Merchant of Record** for vote fees (₪3 participation / ₪50 creation, matching `VOTE_COST` / `CREATE_VOTE_COST`) **and** the merch store. `/payments/form` opens a hosted payment page (type 320) that issues a receipt/invoice; success hits `/api/payments/webhook`. Vote fees + merch checkout mock-fall-back without these creds. `GREENINVOICE_ENV` flip sandbox→production in wrangler.jsonc. |
 | `SMS_API_URL`, `SMS_API_KEY`, `SMS_FROM` | OPT* | any SMS REST gateway | *Unset → OTP mock-degrades (soft-pass). REQ for real phone verification. |
-| `GREENINVOICE_API_KEY_ID`, `GREENINVOICE_API_SECRET`, `GREENINVOICE_PLUGIN_ID` | OPT | morning/Green Invoice → Settings → API | Israeli business invoicing. Merch checkout mock-falls-back without it. |
 | `PRINTFUL_API_KEY` + catalog `podVariantId`s | OPT | Printful dashboard | Unset → paid merch orders stay `paid` (no fulfilment handoff). |
 | `BAGS_API_KEY`, `BAGS_MASTER_WALLET_ADDRESS`, `BAGS_MASTER_WALLET_PRIVATE_KEY` | OPT | dev.bags.fm | **Private key = real funds + the cNFT minter keypair. Handle out-of-band.** |
 | `SOLANA_RPC_URL`, `SOLANA_MERKLE_TREE`, `PINATA_JWT` | OPT | Helius + Pinata; merkle tree created via Bubblegum | Unset → NFT certs stay pending (no spend). Needs a created merkle tree + mainnet smoke test. |
@@ -46,5 +45,5 @@ These need no third party; generated into `.dev.vars`:
 ## What can / can't be browser-automated (auto-browser)
 auto-browser is human-in-the-loop, does **not** solve CAPTCHA, and is explicitly
 not for unauthorized account automation. Logins guarded by 2FA, plus production
-payment/tax onboarding (Paddle live, Green Invoice) and the **Solana private
+payment/tax onboarding (Green Invoice live) and the **Solana private
 key**, are owner-only / supervised steps — not safe to mint unattended.

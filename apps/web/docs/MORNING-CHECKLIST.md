@@ -47,6 +47,6 @@ Fills: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID
 5. I visually verify auth-gated surfaces with a real session.
 
 ## Deferred (NOT in minimal launch — your call later)
-Paddle production (needs business approval), Green Invoice, Printful, Solana cNFT
+Green Invoice production (Israeli MoR — vote fees + merch), Printful, Solana cNFT
 mint + **private key** (real funds — handle out-of-band), Upstash, Beehiiv,
 Facebook/Instagram OAuth, SMS gateway (OTP mock-degrades until then).
