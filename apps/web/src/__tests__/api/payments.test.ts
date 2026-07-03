@@ -1,12 +1,12 @@
 /**
- * Payments API Route Tests (Paddle)
+ * Payments API Route Tests (Green Invoice)
  *
  * Tests for the /api/payments endpoints:
- * - POST /api/payments/create - Create a Paddle checkout
+ * - POST /api/payments/create - Create a Green Invoice payment page
  * - GET /api/payments/create - Get pricing information
  * - GET /api/payments/[id]/status - Get payment status
  * - POST /api/payments/[id]/verify - Verify payment completion
- * - POST /api/payments/webhook - Handle Paddle webhooks
+ * - POST /api/payments/webhook - Handle Green Invoice notifications
  */
 
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
@@ -39,18 +39,18 @@ vi.mock('@/lib/supabase/db', () => ({
   updateWebhookEventStatus: vi.fn(),
 }));
 
-// Mock Paddle service
-vi.mock('@/services/payments/paddle', () => ({
-  paddleService: {
+// Mock Green Invoice payment service
+vi.mock('@/services/payments/greenInvoice', () => ({
+  paymentService: {
     createVotePayment: vi.fn(),
     createVoteCreationPayment: vi.fn(),
     getPaymentStatus: vi.fn(),
-    verifyWebhookSignature: vi.fn(),
+    verifyWebhook: vi.fn(),
     parseWebhookEvent: vi.fn(),
   },
   getPaymentAmounts: vi.fn(() => ({
     voteParticipation: 3,
-    voteCreation: 200,
+    voteCreation: 50,
     currency: 'ILS',
   })),
 }));
@@ -96,11 +96,11 @@ import {
   createWebhookEvent,
   updateWebhookEventStatus,
 } from '@/lib/supabase/db';
-import { paddleService } from '@/services/payments/paddle';
+import { paymentService } from '@/services/payments/greenInvoice';
 import { qubikService } from '@/services/qubik';
 import { emailService } from '@/services/email';
 
-describe('Payments API Routes (Paddle)', () => {
+describe('Payments API Routes (Green Invoice)', () => {
   const mockSession = {
     userId: 'user-123',
     googleId: 'google-123',
@@ -149,9 +149,9 @@ describe('Payments API Routes (Paddle)', () => {
       expect(response.status).toBe(200);
       expect(data.pricing).toBeDefined();
       expect(data.pricing.voteParticipation.amount).toBe(3);
-      expect(data.pricing.voteCreation.amount).toBe(200);
+      expect(data.pricing.voteCreation.amount).toBe(50);
       expect(data.tokenRate.rate).toBe(1);
-      expect(data.paymentProvider).toBe('paddle');
+      expect(data.paymentProvider).toBe('green_invoice');
     });
   });
 
@@ -275,8 +275,8 @@ describe('Payments API Routes (Paddle)', () => {
       (getUserById as Mock).mockResolvedValue(mockUser);
       (getPaymentByIdempotencyKey as Mock).mockResolvedValue(null);
       (dbCreatePayment as Mock).mockResolvedValue(mockPayment);
-      (paddleService.createVotePayment as Mock).mockResolvedValue({
-        paymentUrl: 'https://checkout.paddle.com/txn_123',
+      (paymentService.createVotePayment as Mock).mockResolvedValue({
+        paymentUrl: 'https://sandbox.d.greeninvoice.co.il/form/123',
         expiresAt: new Date(Date.now() + 3600000),
       });
 
@@ -293,9 +293,9 @@ describe('Payments API Routes (Paddle)', () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      expect(data.payment.paymentUrl).toBe('https://checkout.paddle.com/txn_123');
+      expect(data.payment.paymentUrl).toBe('https://sandbox.d.greeninvoice.co.il/form/123');
       expect(data.payment.amount).toBe(3);
-      expect(paddleService.createVotePayment).toHaveBeenCalled();
+      expect(paymentService.createVotePayment).toHaveBeenCalled();
     });
 
     it('should create checkout successfully for vote creation', async () => {
@@ -303,8 +303,8 @@ describe('Payments API Routes (Paddle)', () => {
       (getUserById as Mock).mockResolvedValue(mockUser);
       (getPaymentByIdempotencyKey as Mock).mockResolvedValue(null);
       (dbCreatePayment as Mock).mockResolvedValue({ ...mockPayment, type: 'vote_creation', amount: 20000 });
-      (paddleService.createVoteCreationPayment as Mock).mockResolvedValue({
-        paymentUrl: 'https://checkout.paddle.com/txn_456',
+      (paymentService.createVoteCreationPayment as Mock).mockResolvedValue({
+        paymentUrl: 'https://sandbox.d.greeninvoice.co.il/form/456',
         expiresAt: new Date(Date.now() + 3600000),
       });
 
@@ -320,8 +320,8 @@ describe('Payments API Routes (Paddle)', () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      expect(data.payment.amount).toBe(200);
-      expect(paddleService.createVoteCreationPayment).toHaveBeenCalled();
+      expect(data.payment.amount).toBe(50);
+      expect(paymentService.createVoteCreationPayment).toHaveBeenCalled();
     });
 
     it('should handle database errors gracefully', async () => {
@@ -385,8 +385,8 @@ describe('Payments API Routes (Paddle)', () => {
         status: 'completed',
         provider_id: 'txn_123',
       });
-      (paddleService.getPaymentStatus as Mock).mockResolvedValue({
-        receiptUrl: 'https://paddle.com/invoice/123',
+      (paymentService.getPaymentStatus as Mock).mockResolvedValue({
+        receiptUrl: 'https://greeninvoice.co.il/doc/123',
       });
 
       const request = new NextRequest('http://localhost:3000/api/payments/payment-123/status');
@@ -396,7 +396,7 @@ describe('Payments API Routes (Paddle)', () => {
       expect(response.status).toBe(200);
       expect(data.status).toBe('completed');
       expect(data.succeeded).toBe(true);
-      expect(data.receiptUrl).toBe('https://paddle.com/invoice/123');
+      expect(data.receiptUrl).toBe('https://greeninvoice.co.il/doc/123');
       expect(data.tokensEarned).toBe(1);
     });
 
@@ -465,8 +465,8 @@ describe('Payments API Routes (Paddle)', () => {
         status: 'completed',
         provider_id: 'txn_123',
       });
-      (paddleService.getPaymentStatus as Mock).mockResolvedValue({
-        receiptUrl: 'https://paddle.com/invoice/123',
+      (paymentService.getPaymentStatus as Mock).mockResolvedValue({
+        receiptUrl: 'https://greeninvoice.co.il/doc/123',
       });
 
       const request = new NextRequest('http://localhost:3000/api/payments/payment-123/verify', {
@@ -487,9 +487,9 @@ describe('Payments API Routes (Paddle)', () => {
         status: 'pending',
         provider_id: 'txn_123',
       });
-      (paddleService.getPaymentStatus as Mock).mockResolvedValue({
+      (paymentService.getPaymentStatus as Mock).mockResolvedValue({
         status: 'succeeded',
-        receiptUrl: 'https://paddle.com/invoice/123',
+        receiptUrl: 'https://greeninvoice.co.il/doc/123',
       });
       (updatePaymentStatus as Mock).mockResolvedValue(undefined);
 
@@ -531,25 +531,25 @@ describe('Payments API Routes (Paddle)', () => {
         method: 'POST',
         body,
         headers: {
-          'paddle-signature': signature,
+          'x-greeninvoice-token': signature,
         },
       });
     };
 
     it('should return 401 when signature verification fails', async () => {
-      (paddleService.verifyWebhookSignature as Mock).mockReturnValue(false);
+      (paymentService.verifyWebhook as Mock).mockReturnValue(false);
 
       const request = createWebhookRequest({ event_type: 'transaction.completed' }, 'bad');
       const response = await handleWebhook(request);
       const data = await response.json();
 
       expect(response.status).toBe(401);
-      expect(data.error).toBe('Invalid signature');
+      expect(data.error).toBe('Invalid token');
     });
 
     it('should return success on replay (idempotent)', async () => {
-      (paddleService.verifyWebhookSignature as Mock).mockReturnValue(true);
-      (paddleService.parseWebhookEvent as Mock).mockReturnValue({
+      (paymentService.verifyWebhook as Mock).mockReturnValue(true);
+      (paymentService.parseWebhookEvent as Mock).mockReturnValue({
         type: 'payment.succeeded',
         paymentId: 'txn_123',
         amount: 300,
@@ -571,8 +571,8 @@ describe('Payments API Routes (Paddle)', () => {
     });
 
     it('should handle transaction.completed: complete payment, accrue treasury, mint, record vote', async () => {
-      (paddleService.verifyWebhookSignature as Mock).mockReturnValue(true);
-      (paddleService.parseWebhookEvent as Mock).mockReturnValue({
+      (paymentService.verifyWebhook as Mock).mockReturnValue(true);
+      (paymentService.parseWebhookEvent as Mock).mockReturnValue({
         type: 'payment.succeeded',
         paymentId: 'txn_123',
         amount: 300,
@@ -586,7 +586,7 @@ describe('Payments API Routes (Paddle)', () => {
       (recordTreasuryDeposit as Mock).mockResolvedValue('tx-1');
       (createEntitlement as Mock).mockResolvedValue(undefined);
       (qubikService.mintTokens as Mock).mockResolvedValue(undefined);
-      (paddleService.getPaymentStatus as Mock).mockResolvedValue({ receiptUrl: 'https://paddle.com/invoice/123' });
+      (paymentService.getPaymentStatus as Mock).mockResolvedValue({ receiptUrl: 'https://greeninvoice.co.il/doc/123' });
       (emailService.sendPaymentReceiptEmail as Mock).mockResolvedValue(undefined);
       (recordUserVote as Mock).mockResolvedValue(undefined);
       (incrementVoteOption as Mock).mockResolvedValue(undefined);
@@ -622,8 +622,8 @@ describe('Payments API Routes (Paddle)', () => {
     });
 
     it('should handle transaction.payment_failed event', async () => {
-      (paddleService.verifyWebhookSignature as Mock).mockReturnValue(true);
-      (paddleService.parseWebhookEvent as Mock).mockReturnValue({
+      (paymentService.verifyWebhook as Mock).mockReturnValue(true);
+      (paymentService.parseWebhookEvent as Mock).mockReturnValue({
         type: 'payment.failed',
         paymentId: 'txn_123',
         metadata: { orderId: 'payment-123' },
@@ -648,8 +648,8 @@ describe('Payments API Routes (Paddle)', () => {
     });
 
     it('should handle refund (adjustment.created) event', async () => {
-      (paddleService.verifyWebhookSignature as Mock).mockReturnValue(true);
-      (paddleService.parseWebhookEvent as Mock).mockReturnValue({
+      (paymentService.verifyWebhook as Mock).mockReturnValue(true);
+      (paymentService.parseWebhookEvent as Mock).mockReturnValue({
         type: 'refund.created',
         paymentId: 'txn_123',
         metadata: { orderId: 'payment-123' },
@@ -674,8 +674,8 @@ describe('Payments API Routes (Paddle)', () => {
     });
 
     it('should return idempotent when payment already completed', async () => {
-      (paddleService.verifyWebhookSignature as Mock).mockReturnValue(true);
-      (paddleService.parseWebhookEvent as Mock).mockReturnValue({
+      (paymentService.verifyWebhook as Mock).mockReturnValue(true);
+      (paymentService.parseWebhookEvent as Mock).mockReturnValue({
         type: 'payment.succeeded',
         paymentId: 'txn_123',
         metadata: { orderId: 'payment-123' },
@@ -703,8 +703,8 @@ describe('Payments API Routes (Paddle)', () => {
     });
 
     it('should return 404 when payment not found', async () => {
-      (paddleService.verifyWebhookSignature as Mock).mockReturnValue(true);
-      (paddleService.parseWebhookEvent as Mock).mockReturnValue({
+      (paymentService.verifyWebhook as Mock).mockReturnValue(true);
+      (paymentService.parseWebhookEvent as Mock).mockReturnValue({
         type: 'payment.succeeded',
         paymentId: 'txn_123',
         metadata: { orderId: 'nonexistent-payment' },
@@ -728,8 +728,8 @@ describe('Payments API Routes (Paddle)', () => {
     });
 
     it('should handle webhook processing errors', async () => {
-      (paddleService.verifyWebhookSignature as Mock).mockReturnValue(true);
-      (paddleService.parseWebhookEvent as Mock).mockImplementation(() => {
+      (paymentService.verifyWebhook as Mock).mockReturnValue(true);
+      (paymentService.parseWebhookEvent as Mock).mockImplementation(() => {
         throw new Error('Parse error');
       });
       (updateWebhookEventStatus as Mock).mockResolvedValue(undefined);

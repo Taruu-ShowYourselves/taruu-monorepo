@@ -22,12 +22,14 @@ const serverEnvSchema = z.object({
   NEXT_PUBLIC_AUTH0_DOMAIN: z.string().min(1, 'NEXT_PUBLIC_AUTH0_DOMAIN is required'),
   NEXT_PUBLIC_AUTH0_CLIENT_ID: z.string().min(1, 'NEXT_PUBLIC_AUTH0_CLIENT_ID is required'),
 
-  // Paddle (Merchant of Record)
-  PADDLE_ENV: z.enum(['sandbox', 'production']).default('sandbox'),
-  PADDLE_API_KEY: z.string().min(1, 'PADDLE_API_KEY is required'),
-  PADDLE_WEBHOOK_SECRET: z.string().min(1, 'PADDLE_WEBHOOK_SECRET is required'),
-  PADDLE_PRICE_VOTE_PARTICIPATION: z.string().min(1, 'PADDLE_PRICE_VOTE_PARTICIPATION is required'),
-  PADDLE_PRICE_VOTE_CREATION: z.string().min(1, 'PADDLE_PRICE_VOTE_CREATION is required'),
+  // Green Invoice (Merchant of Record — vote fees + merch)
+  // Optional so dev/build without creds doesn't fail; the payment service guards on
+  // isGreenInvoiceConfigured() and fails closed in production when the secret is unset.
+  GREENINVOICE_ENV: z.enum(['sandbox', 'production']).default('sandbox'),
+  GREENINVOICE_API_KEY_ID: z.string().optional(),
+  GREENINVOICE_API_SECRET: z.string().optional(),
+  GREENINVOICE_PLUGIN_ID: z.string().optional(),
+  GREENINVOICE_WEBHOOK_SECRET: z.string().optional(),
 
   // Resend Email
   RESEND_API_KEY: z.string().min(1, 'RESEND_API_KEY is required'),

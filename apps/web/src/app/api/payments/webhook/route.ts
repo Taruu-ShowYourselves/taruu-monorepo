@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
-import { paddleService } from '@/services/payments/paddle';
+import { paymentService } from '@/services/payments/greenInvoice';
 import type { PaymentWebhookEvent } from '@sync/shared';
 import { qubikService } from '@/services/qubik';
 import { emailService } from '@/services/email';
@@ -22,15 +22,16 @@ import { webhookLogger as log } from '@/lib/logger';
 
 /**
  * POST /api/payments/webhook
- * Handle Paddle Billing webhooks.
+ * Handle Green Invoice payment notifications.
  *
  * Security:
- * - Paddle-Signature HMAC verification (authenticity + freshness; the signed
- *   timestamp is rejected if older than 5 min — replay protection).
+ * - Shared-secret token auth (`?token=` query or `x-greeninvoice-token` header;
+ *   constant-time compare, fail-closed in production). Green Invoice's hosted-form
+ *   notify supports only a URL, so the secret rides in the query string.
  * - event_id tracking (uniqueness — prevents duplicate processing).
  * - Idempotent payment processing (safe retries).
  *
- * Fulfilment on transaction.completed:
+ * Fulfilment on a successful payment notification (document issued):
  * - mark payment completed
  * - accrue ILS into the per-vote treasury ledger (funds the Bags.fm bag at resolution)
  * - mint SYNC tokens, record the vote, email a receipt
@@ -39,24 +40,22 @@ export async function POST(request: NextRequest) {
   let eventId: string | null = null;
 
   try {
-    const payload = await request.text();
-    const signature = request.headers.get('paddle-signature') || '';
-
-    // Verify webhook signature (authenticity + freshness)
-    if (!paddleService.verifyWebhookSignature(payload, signature)) {
-      log.error('Webhook signature verification failed');
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    // Verify webhook authenticity (shared secret) BEFORE reading the body.
+    if (!paymentService.verifyWebhook(request)) {
+      log.error('Webhook auth failed — bad or missing token');
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
+    const payload = await request.text();
     const rawPayload = JSON.parse(payload);
-    const event: PaymentWebhookEvent = paddleService.parseWebhookEvent(rawPayload);
+    const event: PaymentWebhookEvent = paymentService.parseWebhookEvent(rawPayload);
 
     // === REPLAY / DUPLICATE PREVENTION ===
     const payloadHash = createHash('sha256').update(payload).digest('hex');
     const generatedEventId =
       rawPayload.event_id ||
       rawPayload.notification_id ||
-      `pdl_${event.paymentId}_${payloadHash.substring(0, 16)}`;
+      `gi_${event.paymentId}_${payloadHash.substring(0, 16)}`;
     eventId = generatedEventId;
 
     const existingEvent = await getWebhookEventByEventId(generatedEventId);
@@ -72,7 +71,7 @@ export async function POST(request: NextRequest) {
       try {
         await createWebhookEvent({
           event_id: generatedEventId,
-          provider: 'paddle',
+          provider: 'green_invoice',
           event_type: rawPayload.event_type || event.type,
           payload_hash: payloadHash,
           idempotency_key: event.metadata.orderId || event.paymentId,
@@ -103,10 +102,9 @@ export async function POST(request: NextRequest) {
         }
 
         // Atomic claim: pending→completed in one statement. Only the delivery
-        // that flips the row runs fulfilment — Paddle fires BOTH transaction.
-        // completed and transaction.paid (distinct event_ids that both pass the
-        // event_id dedup) and retries on non-2xx, so a TOCTOU status read would
-        // double-credit treasury + double-mint tokens. The loser is idempotent.
+        // that flips the row runs fulfilment — Green Invoice retries the notify on
+        // any non-2xx, so a TOCTOU status read would double-credit treasury +
+        // double-mint tokens. The loser is idempotent.
         const claimed = await markPaymentCompleted(payment.id, event.paymentId);
         if (!claimed) {
           log.info('Payment already processed (idempotent)', { paymentId: payment.id });
@@ -174,7 +172,7 @@ export async function POST(request: NextRequest) {
 
         // Receipt email (best-effort)
         try {
-          const paymentStatus = await paddleService.getPaymentStatus(event.paymentId);
+          const paymentStatus = await paymentService.getPaymentStatus(event.paymentId);
           await emailService.sendPaymentReceiptEmail({
             to: user.email,
             firstName: user.first_name || 'משתמש',
