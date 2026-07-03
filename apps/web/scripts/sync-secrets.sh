@@ -20,7 +20,7 @@ WRANGLER="node_modules/.bin/wrangler"
 [ -f "$ENV_FILE" ] || { echo "missing $ENV_FILE"; exit 1; }
 
 # Vars that live in wrangler.jsonc `vars` (NOT secrets) — never push as secrets.
-SKIP="GREENINVOICE_ENV PADDLE_ENV QUBIK_NETWORK"
+SKIP="GREENINVOICE_ENV QUBIK_NETWORK"
 
 pushed=0; skipped=0
 while IFS= read -r line; do

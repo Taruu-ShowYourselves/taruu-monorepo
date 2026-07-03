@@ -3,8 +3,8 @@
  *
  * Green Invoice is the Israeli merchant of record + invoicing rail for the
  * merch store: it collects ILS, hosts the payment page, and auto-issues a tax
- * document (receipt/invoice) on success. Distinct from Paddle, which handles
- * the digital vote fees.
+ * document (receipt/invoice) on success. The same Green Invoice account also
+ * backs the vote-fee payments service (services/payments/greenInvoice).
  *
  * Flow:
  * - getToken(): exchange API key id + secret for a short-lived JWT.

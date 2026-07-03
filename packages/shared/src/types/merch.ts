@@ -3,7 +3,7 @@
  *
  * Physical merch (apparel, stickers, accessories, prints). Payments settle
  * through Green Invoice (morning) as the Israeli merchant of record +
- * invoicing rail — distinct from Paddle, which handles the digital vote fees.
+ * invoicing rail — the same rail that handles the vote fees.
  * We hold the catalogue + orders; orders settle at `paid` with no fulfilment
  * handoff.
  */
