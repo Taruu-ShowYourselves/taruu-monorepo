@@ -21,7 +21,7 @@ This milestone: move vote payments to a Green Invoice card-on-file **membership*
 
 ### Spike & Gate
 
-- [ ] **SPIKE-01**: Green Invoice sandbox spike confirms the saved-card token charge is a valid off-session MIT, documents 3DS/SCA + soft-decline behavior, and verifies `/payments/tokens/{id}/charge` returns a usable document + charge id.
+- [x] **SPIKE-01**: Green Invoice sandbox spike confirms the saved-card token charge is a valid off-session MIT, documents 3DS/SCA + soft-decline behavior, and verifies `/payments/tokens/{id}/charge` returns a usable document + charge id.
 - [x] **SPIKE-02**: Accountant/legal sign-off on merchant-of-record status — correct GI document type per flow, VAT treatment, refund/credit-note (זיכוי) mechanics, consumer-protection.
 - [x] **SPIKE-03**: GI **Prime** plan provisioned and real Green Invoice + Supabase credentials in place (the ₪0.15/receipt rate the economics depend on).
 
@@ -74,7 +74,7 @@ This milestone: move vote payments to a Green Invoice card-on-file **membership*
 |-------------|-------|--------|
 | LAND-01 | Phase 1 | Complete |
 | SEC-01 | Phase 1 | Complete |
-| SPIKE-01 | Phase 2 | Pending |
+| SPIKE-01 | Phase 2 | Complete |
 | SPIKE-02 | Phase 2 | Complete |
 | SPIKE-03 | Phase 2 | Complete |
 | SEC-02 | Phase 3 | Pending |
