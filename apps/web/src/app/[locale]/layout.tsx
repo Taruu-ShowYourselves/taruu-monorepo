@@ -4,6 +4,7 @@ import Script from 'next/script';
 import { Secular_One, Heebo } from 'next/font/google';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { LenisProvider } from '@/providers/LenisProvider';
+import { GeoGate } from '@/components/press/GeoGate/GeoGate';
 import { i18n, localeDirections, getDictionary } from '@/lib/i18n';
 import type { Locale } from '@/lib/i18n';
 import '@/styles/globals.css';
@@ -310,6 +311,7 @@ export default async function LocaleLayout({
         <AnalyticsEvents />
         <AuthProvider>
           <LenisProvider>{children}</LenisProvider>
+          <GeoGate />
         </AuthProvider>
       </body>
     </html>

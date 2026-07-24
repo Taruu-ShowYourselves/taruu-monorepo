@@ -1,7 +1,7 @@
 .colophon {
   background: var(--np-ink);
   color: var(--np-paper);
-  padding-inline: clamp(var(--space-6), 4vw, var(--space-16));
+  padding-inline: var(--np-gutter);
   padding-block: clamp(var(--space-10), 4vw, var(--space-16));
 }
 

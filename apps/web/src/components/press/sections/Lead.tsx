@@ -72,7 +72,7 @@ export function Lead({ locale = 'he' }: LeadProps) {
             <NewsButton href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" variant="red" size="lg" trailing={<span aria-hidden>←</span>}>
               קבוצת המייסדים
             </NewsButton>
-            <a href="#participate" className={styles.textLink}>איך משתתפים ↓</a>
+            <a href={`/${locale}/how-it-works`} className={styles.textLink}>איך זה עובד ←</a>
           </div>
         </div>
 
@@ -97,7 +97,7 @@ export function Lead({ locale = 'he' }: LeadProps) {
             <span className={styles.priceMeta}>₪2 לקרן הקהילתית · ₪1 לתפעול</span>
           </div>
 
-          <a href="#participate" className={styles.briefMore}>לכל הכלים ←</a>
+          <a href={`/${locale}/how-it-works`} className={styles.briefMore}>לכל הכלים ←</a>
         </aside>
       </div>
     </section>

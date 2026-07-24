@@ -1,4 +1,7 @@
 export { Lead } from './Lead';
+export { ConsensusDesk } from './ConsensusDesk';
+export { KnessetDesk } from './KnessetDesk';
+export { ActNow } from './ActNow';
 export { Participate } from './Participate';
 export { Pillars } from './Pillars';
 export { HowItWorks } from './HowItWorks';

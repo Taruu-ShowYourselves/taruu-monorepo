@@ -1,7 +1,7 @@
 .features {
   background: var(--np-paper-2);
   color: var(--np-ink);
-  padding-inline: clamp(var(--space-5), 3vw, var(--space-12));
+  padding-inline: var(--np-gutter);
   padding-block: clamp(var(--space-10), 5vw, var(--space-20));
 }
 

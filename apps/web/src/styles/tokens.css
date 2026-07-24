@@ -372,6 +372,9 @@
 
   /* Layout */
   --np-container: 1600px;
+  /* Page gutter — single source of truth for inline padding.
+     Matches the masthead; every section shell must use this. */
+  --np-gutter: clamp(var(--space-6), 4vw, var(--space-16));
 }
 
 /* ============================================
