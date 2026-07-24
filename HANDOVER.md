@@ -1,8 +1,33 @@
 # HANDOVER — Taruu Redesign → Full Build
 
-_Updated 2026-06-16. All 11 UX journeys shipped + code-reviewed; security/nits fixed; Cloudflare Workers deploy scaffolded & validated. PR open. Resume via "RESUME HERE" below._
+_Updated 2026-07-24. Launch-prep session: geo-first homepage v2 + discovery ingest pipeline shipped on `rebuild/launch-site` (pushed, NOT deployed); agents numeric-engagement work MERGED+DEPLOYED (taruu-agents PR #14 → fleet auto-pull). Resume via "RESUME HERE" below._
 
-## ▶ RESUME HERE (2026-06-16, session 2)
+## ▶ RESUME HERE (2026-07-24, session 3 — launch prep)
+
+**Branches:** taro `rebuild/launch-site` — pushed, 32 commits ahead of `origin/main`, working tree clean. **Site deliberately NOT deployed** (user instruction). taruu-agents: PR #14 **merged to main 2026-07-24 07:03Z** → fleet workers auto-pull within minutes (`taruu-update.timer`, ff-only from main) — that IS the agents deploy, done.
+
+**Site work shipped this session (all on `rebuild/launch-site`, 3 commits `b3cccdd`/`2af2afd`/`8e032ca`):**
+- **Homepage v2 (press system):** Lead → ConsensusDesk (municipal ToC boards; edition tabs; Embla RTL carousel w/ auto-scroll "sway" + cloned-slide loop for <6 cards) → KnessetDesk (national scope `KNESSET_SCOPE='כנסת ישראל'`, empty-state plate) → ActNow band → Colophon. Explanations moved to `/how-it-works`; `/knesset` national-desk page; nav = הצבעות/כנסת ישראל/איך זה עובד + **עוד** Radix dropdown (rest). Old `#participate` anchors repointed.
+- **GeoGate** (`components/press/GeoGate`): entry modal when no session + no stored locality. GPS → nearest-centroid (`MUNICIPALITY_GEO` in `@sync/shared`, 21 cities, Haversine, 25km cap, on-device only) with **confirm step (never auto-commits)**, or typed town w/ alias matching. Stored `localStorage taruu.municipality` + `taruu_muni` cookie; `taruu:municipality` event → desk reorders, home tab ● first.
+- **AI-discovery callout** on topic cards (`DeskTopicRow.SourceMetrics`): "ה־AI שלנו איתר · FROM FEED TO BALLOT" narrative + חום thermometer (hotness = 3·comments+reactions, x/(x+400) curve in `deskData.ts`) + per-reaction glyph tallies + מקור link. Renders ONLY when `vote_sources` row exists — no fabricated data anywhere (seed script strips sources on purpose).
+- **Ingest API:** `POST /api/ingest/topics` (Bearer `INGEST_SECRET`, secureEqual; accepts 21 municipalities + Knesset scope; dedup (municipality,title) vs non-ended; new → pending vote + options; `vote_sources` upsert). Contract: `docs/INGEST.md`. Migration: `supabase/migrations/20260723000001_vote_sources.sql` — **NOT applied to prod Supabase yet**.
+- **Header/system fixes:** dynamic Hebrew dateline (Asia/Jerusalem), wordmark niqqud clearance (0.26em pad under 0.9 line-height), single `--np-gutter` token across ~46 section shells + ticker inset, Radix dropdown (fixed dup `@types/react` 18/19 clash via tsconfig `paths` pin — Next's d.ts resolved hoisted RN 18 types).
+- Gates at hand-off: web typecheck clean, 504/504 tests, lint clean on touched files (pre-existing `.open-next`/`.wrangler` lint noise remains — needs eslint `ignores`).
+
+**Agents work (taruu-agents, merged):** per-reaction-kind extraction (DOM aria-labels + GraphQL `top_reactions`), archive v2 + atomic `rewrite`, `facebook-backfill-engagement` (live re-visit; **all 1,145 archived posts have NULL engagement**; 150/run, resumable, checkpoint-safe), comments-3× rerankers (`fb-post-ranker-v2`, `DISCOVERY_RANK_CAP_DISCUSSION_NUMERIC=400`), Topic numeric fields via `[POST n]` citations, migration `0023` (topic columns + re-created `commit_fleet_artifact` RPC), publisher `publish-taruu` + kill-switched auto-hooks. Full ops sequence in `discovery/HANDOFF.md`.
+
+**⚠️ ORDERED OPS CHECKLIST (user-run, blocking launch):**
+1. **NOW:** apply migration `0023` to discovery Supabase (workers already run code that emits the new columns; without it fleet topic commits silently drop engagement).
+2. Backfill campaign: `uv run taruu-discovery facebook-backfill-engagement --commit` daily until `remaining==0` (first run attended, `FB_HEADLESS=false`, check `facebook-session-status` around runs).
+3. `facebook-analyze-archive` per group → `rank --commit`.
+4. Site go-live: apply taro `vote_sources` migration; `wrangler secret put INGEST_SECRET` (+ optional `INGEST_CREATOR_ID`); merge/deploy `rebuild/launch-site` (`pnpm -C apps/web deploy` — NEVER while `next dev` runs); seed desk demo votes if wanted (`apps/web/scripts/seed-consensus-desk.mjs` — votes only, zero fabricated engagement; consider zeroing tallies).
+5. Nodes: `TARUU_INGEST_URL=https://taruu.co.il/api/ingest/topics`, `TARUU_INGEST_SECRET`, `TARUU_PUBLISH_ENABLED=true` → `publish-taruu --all` dry-run first.
+
+**Session gotchas for the next resume:** dev server = port 3777 (`.dev.vars` sourced — `.env.local` holds PLACEHOLDER Supabase + stale Paddle vars, clean it); dev server was killed at session end — restart `next dev` alone; live DB has 9 seeded demo votes (desk user `99999999-…`, delete via 2 queries in seed-script header); prod-DB writes + DDL are permission-blocked for the agent — hand SQL/commands to user; shell is zsh (no word-split; `grep` aliased to ugrep — use `command grep`); reconstruct candidates: legacy Header/Footer pages (settings/sign-up/payments, votes/about/etc. still on old chrome), `--np-font-body` = Frank Ruhl Libre serif NOT webfont-loaded (falls back to Georgia — audit remaining usages), ticker copy fabricated/stale, ears ₪3 bidi.
+
+---
+
+## ▶ (older) RESUME (2026-06-16, session 2)
 **State:** branch `redesign/brutalist-tech-press` — **41 commits, pushed**. **PR #7 OPEN** → https://github.com/SaharBarak/taro/pull/7 (base `main`). All 11 UX journeys (J1–J11) shipped. Code review done + fixes applied. **This session added: webhook hardening, the two cleanup nits, and the full Vercel→Cloudflare Workers migration scaffold (validated locally).** Verification: `tsc=0`, lint clean, **470/470 web tests pass** (+10 webhook tests).
 
 **What's DONE:** whole-site brutalist migration + every primary journey (funnel, participate, verify, auth/account, BAGS coin, store, certificate, create, dashboard, treasury, info). Detail per journey + each one's "Deferred" list in `.redesign/UX_FLOWS.md`.
