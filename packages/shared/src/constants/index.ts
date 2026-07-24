@@ -64,9 +64,19 @@ export const MUNICIPALITIES = [
   'מודיעין-מכבים-רעות',
   'לוד',
   'רעננה',
+  'קריית טבעון',
 ] as const;
 
+export * from './geo';
+
 export type Municipality = (typeof MUNICIPALITIES)[number];
+
+/**
+ * National scope pseudo-municipality — votes carrying this municipality_id
+ * are Knesset-agenda topics (majority decision at the national desk), not
+ * local ones. Kept out of MUNICIPALITIES so municipal pickers never list it.
+ */
+export const KNESSET_SCOPE = 'כנסת ישראל';
 
 // API endpoints
 export const API_ENDPOINTS = {

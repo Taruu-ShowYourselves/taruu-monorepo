@@ -21,6 +21,7 @@ import type {
   WebhookEvent,
   VoteNft,
   MerchOrderRow,
+  VoteSource,
   InsertTables,
   UpdateTables,
 } from './types';
@@ -783,7 +784,7 @@ export async function getVotesByMunicipality(
 
 export async function getActiveVotesWithOptions(
   municipalityId?: string
-): Promise<(Vote & { options: VoteOption[] })[]> {
+): Promise<(Vote & { options: VoteOption[]; source: VoteSource | null })[]> {
   let query = supabaseAdmin
     .from('votes')
     .select(`
@@ -804,10 +805,72 @@ export async function getActiveVotesWithOptions(
     return [];
   }
 
-  return (data || []).map((vote: any) => ({
+  const votes = data || [];
+
+  // Source engagement is fetched separately so a missing/errored
+  // vote_sources table degrades to "no metrics", never to an empty desk.
+  const sourceByVote = new Map<string, VoteSource>();
+  if (votes.length > 0) {
+    const { data: sources, error: sourcesError } = await supabaseAdmin
+      .from('vote_sources')
+      .select('*')
+      .in('vote_id', votes.map((v: any) => v.id));
+
+    if (sourcesError) {
+      console.error('Failed to get vote sources (continuing without):', sourcesError);
+    } else {
+      for (const s of (sources || []) as VoteSource[]) {
+        sourceByVote.set(s.vote_id, s);
+      }
+    }
+  }
+
+  return votes.map((vote: any) => ({
     ...vote,
     options: vote.vote_options || [],
+    source: sourceByVote.get(vote.id) ?? null,
   }));
+}
+
+/** Find an active/pending vote by municipality + exact title (ingest dedup). */
+export async function findVoteByMunicipalityAndTitle(
+  municipalityId: string,
+  title: string
+): Promise<Vote | null> {
+  const { data, error } = await supabaseAdmin
+    .from('votes')
+    .select('*')
+    .eq('municipality_id', municipalityId)
+    .eq('title', title)
+    .in('status', ['pending', 'active'])
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Failed to find vote by title:', error);
+    return null;
+  }
+  return data;
+}
+
+/** Upsert the consolidated FB engagement for a vote (unique per vote_id). */
+export async function upsertVoteSource(
+  source: InsertTables<'vote_sources'>
+): Promise<VoteSource | null> {
+  const { data, error } = await supabaseAdmin
+    .from('vote_sources')
+    .upsert(
+      { ...source, updated_at: new Date().toISOString() },
+      { onConflict: 'vote_id' }
+    )
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Failed to upsert vote source:', error);
+    return null;
+  }
+  return data;
 }
 
 export async function createVote(

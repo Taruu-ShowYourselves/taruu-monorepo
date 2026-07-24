@@ -513,6 +513,42 @@ export interface Database {
         };
         Relationships: [];
       };
+      vote_sources: {
+        Row: {
+          id: string;
+          vote_id: string;
+          post_count: number;
+          comments_count: number;
+          reactions: Record<string, number>;
+          source_url: string | null;
+          fetched_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          vote_id: string;
+          post_count?: number;
+          comments_count?: number;
+          reactions?: Record<string, number>;
+          source_url?: string | null;
+          fetched_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          vote_id?: string;
+          post_count?: number;
+          comments_count?: number;
+          reactions?: Record<string, number>;
+          source_url?: string | null;
+          fetched_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       user_votes: {
         Row: {
           id: string;
@@ -854,3 +890,4 @@ export type PushToken = Tables<'push_tokens'>;
 export type WebhookEvent = Tables<'webhook_events'>;
 export type VoteNft = Tables<'vote_nfts'>;
 export type MerchOrderRow = Tables<'merch_orders'>;
+export type VoteSource = Tables<'vote_sources'>;
