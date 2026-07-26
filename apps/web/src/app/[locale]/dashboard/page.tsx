@@ -166,27 +166,27 @@ export default function DashboardPage() {
       }
     };
 
-    // Treasury contributions for the user's municipality — real endpoint,
-    // filtered to the reader's own deposits, empty fallback on error.
+    // The reader's own contributions to the community fund. The endpoint scopes
+    // rows to the session user in SQL — there is deliberately no client-side
+    // ownership filter here, and none should be reintroduced: filtering in the
+    // browser means the other users' rows were already shipped to it.
     const fetchContributions = async () => {
-      const municipality = user?.municipality;
-      if (!municipality) return;
       try {
         const res = await fetch(
-          `/api/treasury/${encodeURIComponent(municipality)}/transactions?type=deposit&limit=50`
+          '/api/user/treasury-contributions?type=deposit&limit=50'
         );
         if (!res.ok) return;
         const data = await res.json();
-        const mine: TreasuryContribution[] = (data.transactions || [])
-          .filter((t: any) => !user?.id || !t.userId || t.userId === user.id)
-          .map((t: any) => ({
+        const mine: TreasuryContribution[] = (data.transactions || []).map(
+          (t: any) => ({
             id: t.id,
             amountILS: typeof t.amountILS === 'number' ? t.amountILS : 0,
             voteId: t.voteId,
             date: t.createdAt
               ? new Date(t.createdAt).toLocaleDateString('he-IL')
               : '',
-          }));
+          })
+        );
         setContributions(mine);
       } catch (error) {
         console.error('Error fetching treasury contributions:', error);

@@ -21,7 +21,9 @@ import {
   createUser,
   updateUser,
   upsertSocialProof,
+  getSocialProofsByUserId,
 } from '@/lib/supabase/db';
+import { buildUserProfile } from '@/services/user/profile';
 
 export async function POST(request: Request) {
   try {
@@ -85,10 +87,13 @@ export async function POST(request: Request) {
         provider_avatar: googleUser.picture || null,
       });
     } else {
-      // Existing user - update last login
-      await updateUser(user.id, {
+      // Existing user - update last login. Keep the row the update returns so
+      // the profile we map below is the FINAL persisted state (otherwise the
+      // response would carry a pre-update `updatedAt`). Falls back to the row
+      // we already hold if the update failed, matching prior behaviour.
+      user = (await updateUser(user.id, {
         updated_at: new Date().toISOString(),
-      });
+      })) ?? user;
     }
 
     // Create session tokens
@@ -104,18 +109,10 @@ export async function POST(request: Request) {
     // Set session cookies
     await setSessionCookies(sessionToken, refreshToken);
 
-    // Map Supabase user to API response format
-    const userResponse = {
-      id: user.id,
-      did: user.did,
-      email: user.email,
-      firstName: user.first_name,
-      lastName: user.last_name,
-      identityScore: user.identity_score,
-      verificationStatus: user.verification_status,
-      avatarUrl: user.avatar_url,
-      municipality: user.municipality_id,
-    };
+    // Canonical profile shape — shared with /api/user/profile and the other
+    // auth routes so the client only ever sees one user shape.
+    const proofs = await getSocialProofsByUserId(user.id);
+    const userResponse = await buildUserProfile(user, proofs);
 
     // Return response
     return NextResponse.json({

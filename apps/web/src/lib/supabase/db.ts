@@ -1199,7 +1199,13 @@ export async function getTreasuryByMunicipality(municipalityId: string) {
 }
 
 /**
- * Get treasury transactions with pagination
+ * Get treasury transactions with pagination.
+ *
+ * NOTE: this returns the municipality-wide ledger, including rows initiated by
+ * OTHER users and rows with no owner at all. Callers exposing this over HTTP
+ * must strip per-user identifiers. To read a single user's own contributions,
+ * use `getUserTreasuryTransactions` instead — do not filter this result set in
+ * the client.
  */
 export async function getTreasuryTransactions(
   treasuryId: string,
@@ -1222,6 +1228,40 @@ export async function getTreasuryTransactions(
 
   if (error) {
     console.error('Failed to get treasury transactions:', error);
+    throw error;
+  }
+  return data || [];
+}
+
+/**
+ * Get the treasury transactions a specific user initiated.
+ *
+ * Ownership is enforced in the query (`user_id = :userId`), so rows belonging
+ * to other users — and rows with a NULL `user_id`, which belong to nobody —
+ * can never be returned. This is the only supported way to build a user's
+ * personal contribution ledger.
+ */
+export async function getUserTreasuryTransactions(
+  userId: string,
+  options: { limit?: number; offset?: number; type?: TreasuryTransactionType } = {}
+) {
+  const { limit = 50, offset = 0, type } = options;
+
+  let query = supabaseAdmin
+    .from('treasury_transactions')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (type) {
+    query = query.eq('type', type);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Failed to get user treasury transactions:', error);
     throw error;
   }
   return data || [];
