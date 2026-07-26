@@ -1112,6 +1112,47 @@ export function isWebhookStale(
 // ============================================
 
 /**
+ * Count every registered user on the platform.
+ *
+ * Aggregate only — no row is ever returned, so this exposes nothing about any
+ * individual. Uses a HEAD request so Postgres returns the count without
+ * streaming rows.
+ */
+export async function countRegisteredUsers(): Promise<number> {
+  const { count, error } = await supabaseAdmin
+    .from('users')
+    .select('*', { count: 'exact', head: true });
+
+  if (error) {
+    console.error('Failed to count registered users:', error);
+    throw error;
+  }
+  return count || 0;
+}
+
+/**
+ * Count registered users in a single municipality.
+ *
+ * Callers publishing this figure MUST apply a small-cohort floor: in a town
+ * with one or two registrations the count is quasi-identifying, because a
+ * reader who knows the town can infer who it is.
+ */
+export async function countRegisteredUsersByMunicipality(
+  municipalityId: string
+): Promise<number> {
+  const { count, error } = await supabaseAdmin
+    .from('users')
+    .select('*', { count: 'exact', head: true })
+    .eq('municipality_id', municipalityId);
+
+  if (error) {
+    console.error('Failed to count registered users by municipality:', error);
+    throw error;
+  }
+  return count || 0;
+}
+
+/**
  * Count the number of votes a user has participated in.
  */
 export async function countUserVoteParticipations(userId: string): Promise<number> {

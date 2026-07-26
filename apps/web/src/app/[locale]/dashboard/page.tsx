@@ -54,6 +54,12 @@ interface TreasuryContribution {
   date: string;
 }
 
+interface RegistrationStats {
+  registeredTotal: number;
+  registeredInMunicipality: number | null;
+  municipalityWithheld: boolean;
+}
+
 type DashboardTab = 'history' | 'certificates' | 'fund' | 'billing' | 'settings';
 
 const TABS: { value: DashboardTab; label: string }[] = [
@@ -67,6 +73,28 @@ const TABS: { value: DashboardTab; label: string }[] = [
 /** Hebrew-formatted ₪ figure with grouping, tabular-safe. */
 const ils = (n: number) => `₪${n.toLocaleString('he-IL')}`;
 
+/**
+ * Placeholder for a statistic that does not exist yet.
+ *
+ * The community fund and the Issue Coin ("bags") valuation are not implemented
+ * in the MVP. Keeping the card in the layout preserves the information
+ * architecture, but it is deliberately UI-ONLY: it calls no endpoint and holds
+ * no number. Showing ₪0 here would be indistinguishable from a real empty fund,
+ * which is exactly the kind of fake figure this dashboard must never print.
+ */
+function ComingSoonStat({ label, note }: { label: string; note: string }) {
+  return (
+    <div className={`${styles.statCard} ${styles.statCardSoon}`}>
+      <span className={styles.statLabel}>{label}</span>
+      <span className={styles.statSoon}>
+        <span aria-hidden className={styles.statSoonMark}>●</span>
+        בקרוב
+      </span>
+      <span className={styles.statMeta}>{note}</span>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const reduced = useReducedMotion();
@@ -76,6 +104,7 @@ export default function DashboardPage() {
   const [tokenTxns, setTokenTxns] = useState<TokenTransaction[]>([]);
   const [contributions, setContributions] = useState<TreasuryContribution[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [registrations, setRegistrations] = useState<RegistrationStats | null>(null);
   const [activeInCity, setActiveInCity] = useState<{ id: string; title: string }[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [tab, setTab] = useState<DashboardTab>('history');
@@ -193,6 +222,33 @@ export default function DashboardPage() {
       }
     };
 
+    // Community registration figures — public aggregate counts, no per-user
+    // data. Left null on failure so the panel can say so instead of showing a
+    // zero that reads as "nobody registered".
+    const fetchRegistrations = async () => {
+      const municipality = user?.municipality;
+      const query = municipality
+        ? `?municipality=${encodeURIComponent(municipality)}`
+        : '';
+      try {
+        const res = await fetch(`/api/stats/registrations${query}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const s = data.stats;
+        if (!s || typeof s.registeredTotal !== 'number') return;
+        setRegistrations({
+          registeredTotal: s.registeredTotal,
+          registeredInMunicipality:
+            typeof s.registeredInMunicipality === 'number'
+              ? s.registeredInMunicipality
+              : null,
+          municipalityWithheld: Boolean(s.municipalityWithheld),
+        });
+      } catch (error) {
+        console.error('Error fetching registration stats:', error);
+      }
+    };
+
     // Civic certificates (NFTs) — auto-issued on resolution, view-only.
     const fetchCertificates = async () => {
       try {
@@ -230,6 +286,7 @@ export default function DashboardPage() {
       fetchContributions();
       fetchCertificates();
       fetchActiveInCity();
+      fetchRegistrations();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentionally omit user to prevent refetch on every user update; we only want to fetch once when authenticated
   }, [isLoading, isAuthenticated, router]);
@@ -398,6 +455,49 @@ export default function DashboardPage() {
                 <span className={styles.figureNumRed}>{tokenBalance}</span>
                 <span className={styles.figureLabelInverse}>טוקני SYNC</span>
               </div>
+            </div>
+          </motion.section>
+
+          {/* ===== Community statistics ===== */}
+          <motion.section className={styles.statsBand} {...reveal(0.09)}>
+            <span className={styles.boxKicker}>
+              <span aria-hidden className={styles.kickerTick} />
+              המספרים של הקהילה · COMMUNITY
+            </span>
+
+            <div className={styles.statsGrid}>
+              {/* Registered residents — real figures, never fabricated. */}
+              <div className={styles.statCard}>
+                <span className={styles.statLabel}>נרשמו לפלטפורמה</span>
+                {registrations ? (
+                  <>
+                    <span className={styles.statNum}>
+                      {registrations.registeredTotal.toLocaleString('he-IL')}
+                    </span>
+                    <span className={styles.statMeta}>
+                      {registrations.registeredInMunicipality !== null
+                        ? `מתוכם ${registrations.registeredInMunicipality.toLocaleString('he-IL')} ב${user?.municipality || 'עיר שלכם'}`
+                        : registrations.municipalityWithheld
+                          ? 'הפילוח העירוני ייחשף כשיצטרפו עוד תושבים'
+                          : 'סך כל הנרשמים'}
+                    </span>
+                  </>
+                ) : (
+                  <span className={styles.statMeta}>לא הצלחנו לטעון את הנתון כרגע.</span>
+                )}
+              </div>
+
+              {/* Community fund + Issue Coins are not live in the MVP. Render an
+                  honest placeholder rather than a zero or an invented figure —
+                  no endpoint is called for these cards on purpose. */}
+              <ComingSoonStat
+                label="הקרן הקהילתית"
+                note="תיפתח עם ההצבעה הראשונה."
+              />
+              <ComingSoonStat
+                label="שווי התיקים"
+                note="מדד ההשקעה הקהילתית יעלה בהמשך."
+              />
             </div>
           </motion.section>
 
