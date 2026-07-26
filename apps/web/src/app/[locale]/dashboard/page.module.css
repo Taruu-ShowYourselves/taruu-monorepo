@@ -139,6 +139,25 @@
   color: var(--np-red);
 }
 
+/* Actionable slot inside the masthead meta line. Sits on the same mono
+   baseline as the surrounding text so the line still reads as one strip,
+   but is a real button: location state is never a dead end. */
+.metaCta {
+  font-family: inherit;
+  font-size: inherit;
+  letter-spacing: inherit;
+  font-weight: 800;
+  color: var(--np-red);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+
+.metaCta:hover { color: var(--np-ink); }
+
 /* ---------- Verification box ---------- */
 .verifyBox {
   display: flex;
@@ -301,6 +320,40 @@
   font-size: var(--text-xs);
   letter-spacing: 0.08em;
   color: rgba(244, 241, 232, 0.7);
+}
+
+/* ---------- News (coming soon, UI-only) ---------- */
+.newsSoon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-3);
+  padding-block: clamp(var(--space-8), 6vw, var(--space-12));
+  padding-inline: var(--space-6);
+  border: var(--np-rule-hair) dashed var(--np-paper-edge);
+}
+
+.newsSoonMark {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-2xl);
+  color: var(--np-red);
+}
+
+.newsSoonTitle {
+  font-family: var(--np-font-display);
+  font-weight: 900;
+  font-size: var(--text-2xl);
+  letter-spacing: -0.02em;
+  color: var(--np-ink);
+}
+
+.newsSoonText {
+  font-family: var(--np-font-body);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--np-ink-soft);
+  max-width: 42ch;
 }
 
 /* ---------- Community statistics ---------- */

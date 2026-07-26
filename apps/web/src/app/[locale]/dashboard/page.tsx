@@ -14,6 +14,7 @@ import {
   PressInput,
 } from '@/components/press';
 import { useReducedMotion } from '@/hooks';
+import { resolveLocationState } from '@/lib/locationStatus';
 import { CertificateCard, type Certificate } from '@/components/certificate/CertificateCard';
 import {
   getIdentityLevelLabel,
@@ -60,13 +61,20 @@ interface RegistrationStats {
   municipalityWithheld: boolean;
 }
 
-type DashboardTab = 'history' | 'certificates' | 'fund' | 'billing' | 'settings';
+type DashboardTab =
+  | 'history'
+  | 'certificates'
+  | 'fund'
+  | 'billing'
+  | 'news'
+  | 'settings';
 
 const TABS: { value: DashboardTab; label: string }[] = [
   { value: 'history', label: 'הצבעות' },
   { value: 'certificates', label: 'תעודות' },
   { value: 'fund', label: 'הקרן' },
   { value: 'billing', label: 'חיובים' },
+  { value: 'news', label: 'חדשות' },
   { value: 'settings', label: 'הגדרות' },
 ];
 
@@ -305,6 +313,7 @@ export default function DashboardPage() {
   const identityTotal = user?.identityScore?.total || 0;
   const verificationPhase = user?.verificationStatus?.phase || 'not_started';
   const isVerified = verificationPhase === 'completed';
+  const locationState = resolveLocationState(user?.municipality, isVerified);
   const tokenBalance = user?.syncTokenBalance || stats?.tokensEarned || 0;
   const fundTotal = contributions.reduce((s, c) => s + (c.amountILS || 0), 0);
 
@@ -366,15 +375,45 @@ export default function DashboardPage() {
               שלום, <span className={styles.red}>{user?.firstName || 'משתמש'}</span>.
             </h1>
             <div className={styles.editionMeta}>
-              <span>{user?.municipality || 'קריית טבעון'}</span>
+              {/* Location. Never falls back to a default town — see
+                  resolveLocationState. Each state carries its own way forward. */}
+              {locationState === 'unset' ? (
+                <button
+                  type="button"
+                  className={styles.metaCta}
+                  onClick={() => router.push('/settings/municipality')}
+                >
+                  הגדר מיקום ←
+                </button>
+              ) : (
+                <span>{user?.municipality}</span>
+              )}
               <span className={styles.sep} aria-hidden>■</span>
               <span>מהדורה · {issueNo}</span>
               <span className={styles.sep} aria-hidden>■</span>
               <span>{today}</span>
-              <span className={styles.sep} aria-hidden>■</span>
-              <span className={isVerified ? styles.badgeOk : styles.badgeWait}>
-                {isVerified ? '✓ מאומת' : '○ לא מאומת'}
-              </span>
+              {/* Verification slot. Omitted while the town is unset, because
+                  residency cannot be verified before a town is chosen — the
+                  "הגדר מיקום" CTA above is the real next step, and a second
+                  competing CTA would only split it. */}
+              {locationState === 'verified' && (
+                <>
+                  <span className={styles.sep} aria-hidden>■</span>
+                  <span className={styles.badgeOk}>✓ מאומת</span>
+                </>
+              )}
+              {locationState === 'unverified' && (
+                <>
+                  <span className={styles.sep} aria-hidden>■</span>
+                  <button
+                    type="button"
+                    className={styles.metaCta}
+                    onClick={() => router.push('/verification')}
+                  >
+                    אמת את המיקום ←
+                  </button>
+                </>
+              )}
             </div>
           </motion.header>
 
@@ -754,6 +793,26 @@ export default function DashboardPage() {
             )}
 
             {/* --- SETTINGS --- */}
+            {/* --- NEWS --- */}
+            {/* UI-only. There is deliberately no news backend, API, table or
+                sample article behind this: an empty promise is honest, an
+                invented headline is not. */}
+            {tab === 'news' && (
+              <div className={styles.panel}>
+                <span className={styles.panelKicker}>
+                  <span aria-hidden className={styles.kickerTick} />
+                  חדשות ועדכונים · NEWS
+                </span>
+                <div className={styles.newsSoon}>
+                  <span aria-hidden className={styles.newsSoonMark}>●</span>
+                  <h3 className={styles.newsSoonTitle}>בקרוב</h3>
+                  <p className={styles.newsSoonText}>
+                    עדכונים מהקהילה ומהפעילות המקומית יופיעו כאן בהמשך.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {tab === 'settings' && (
               <div className={styles.panel}>
                 <span className={styles.panelKicker}>
