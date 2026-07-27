@@ -38,6 +38,7 @@ const CRON_ROUTES: Record<string, string> = {
   '*/15 * * * *': '/api/cron/verification-notifications',
   '0 * * * *': '/api/cron/resolve-votes',
   '*/10 * * * *': '/api/cron/mint-nfts',
+  '0 */6 * * *': '/api/cron/knesset-agenda',
 };
 
 export default {
