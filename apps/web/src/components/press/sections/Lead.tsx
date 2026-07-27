@@ -63,9 +63,9 @@ export function Lead({ locale = 'he' }: LeadProps) {
           <div className={styles.byline}>
             <span>מאת המערכת</span>
             <span className={styles.sep} aria-hidden>■</span>
-            <span>קריית טבעון</span>
+            <span>כל הארץ</span>
             <span className={styles.sep} aria-hidden>■</span>
-            <span>23.01.26</span>
+            <span>04.08.26</span>
           </div>
 
           <div className={styles.actions}>

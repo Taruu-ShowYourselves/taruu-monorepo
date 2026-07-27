@@ -44,7 +44,7 @@ const MOCK_RESOLVED_VOTES: ResolvedVote[] = [
     id: '1',
     title: 'הקמת גינה קהילתית ברחוב הרצל',
     description: 'האם לאשר תקציב של 500,000 ש"ח להקמת גינה קהילתית חדשה?',
-    municipality: 'קרית טבעון',
+    municipality: 'חיפה',
     status: 'resolved',
     resolvedAt: '2025-01-15T10:00:00Z',
     result: {
@@ -67,7 +67,7 @@ const MOCK_RESOLVED_VOTES: ResolvedVote[] = [
     id: '2',
     title: 'שדרוג תאורת רחובות במרכז',
     description: 'התקנת תאורת LED חסכונית בכל הרחובות המרכזיים',
-    municipality: 'קרית טבעון',
+    municipality: 'באר שבע',
     status: 'resolved',
     resolvedAt: '2025-01-10T10:00:00Z',
     result: {
@@ -90,7 +90,7 @@ const MOCK_RESOLVED_VOTES: ResolvedVote[] = [
     id: '3',
     title: 'הרחבת מרכז הספורט העירוני',
     description: 'בניית אגף חדש למרכז הספורט הכולל בריכה וחדר כושר',
-    municipality: 'קרית טבעון',
+    municipality: 'ירושלים',
     status: 'resolved',
     resolvedAt: '2025-01-05T10:00:00Z',
     result: {

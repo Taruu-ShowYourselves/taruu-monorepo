@@ -251,7 +251,7 @@ export default function CreateVotePage() {
                   { label: 'אפשרויות', value: String(filledOptions.length) },
                   { label: 'דמי יצירה', value: formatCurrency(CREATE_VOTE_COST), strong: true },
                 ]}
-                footer="תַּרְאוּ · קריית טבעון · המהדורה הקהילתית"
+                footer="תַּרְאוּ · כל הארץ · המהדורה הקהילתית"
               />
               <SealCard
                 hash={sealHash}

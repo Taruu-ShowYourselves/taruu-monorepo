@@ -42,7 +42,7 @@ const DEFAULT_OPTIONS: Option[] = [
  */
 export function VoteWidget({
   kicker = 'הצבעה חיה',
-  place = 'קריית טבעון',
+  place = 'ישראל',
   question = 'גינת השכונה ברחוב הרצל — מה עושים?',
   options = DEFAULT_OPTIONS,
   totalLabel = '1,732 קולות מאומתים',

@@ -309,7 +309,7 @@ export default function DashboardPage() {
               שלום, <span className={styles.red}>{user?.firstName || 'משתמש'}</span>.
             </h1>
             <div className={styles.editionMeta}>
-              <span>{user?.municipality || 'קריית טבעון'}</span>
+              <span>{user?.municipality || 'ישראל'}</span>
               <span className={styles.sep} aria-hidden>■</span>
               <span>מהדורה · {issueNo}</span>
               <span className={styles.sep} aria-hidden>■</span>

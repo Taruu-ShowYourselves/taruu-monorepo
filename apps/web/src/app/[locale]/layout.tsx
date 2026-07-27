@@ -232,8 +232,8 @@ function generateStructuredData(locale: Locale) {
         acceptedAnswer: {
           '@type': 'Answer',
           text: isHebrew
-            ? 'כרגע הפיילוט פועל בקריית טבעון. ההצבעה הראשונה מתוכננת ל-23.01.26.'
-            : 'Currently the pilot is running in Kiryat Tivon. The first vote is planned for 23.01.26.',
+            ? 'הפלטפורמה נפתחת בכל הארץ, בכל הרשויות בבת אחת. ההצבעה הראשונה מתוכננת ל-04.08.26.'
+            : 'The platform opens nationwide, in all municipalities at once. The first vote is planned for 04.08.26.',
         },
       },
     ],
@@ -243,18 +243,14 @@ function generateStructuredData(locale: Locale) {
   const localBusiness = {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
-    name: isHebrew ? 'תַּרְאוּ - קריית טבעון' : 'Taro - Kiryat Tivon',
+    name: isHebrew ? 'תַּרְאוּ - ישראל' : 'Taro - Israel',
     description: isHebrew
-      ? 'פלטפורמת הצבעות קהילתיות לתושבי קריית טבעון'
-      : 'Community voting platform for Kiryat Tivon residents',
+      ? 'פלטפורמת הצבעות קהילתיות לתושבי כל הרשויות בישראל'
+      : 'Community voting platform for residents of every Israeli municipality',
     url: SITE_URL,
     areaServed: {
-      '@type': 'City',
-      name: 'Kiryat Tivon',
-      containedInPlace: {
-        '@type': 'Country',
-        name: 'Israel',
-      },
+      '@type': 'Country',
+      name: 'Israel',
     },
     priceRange: '₪3',
   };

@@ -11,7 +11,7 @@ export function AboutHero() {
             <span aria-hidden className={styles.kickerTick} />
             אודות · המניפסט
           </span>
-          <span className={styles.meta}>גיליון המערכת · קריית טבעון</span>
+          <span className={styles.meta}>גיליון המערכת · כל הארץ</span>
         </div>
 
         <hr className={styles.ruleHeavy} aria-hidden />

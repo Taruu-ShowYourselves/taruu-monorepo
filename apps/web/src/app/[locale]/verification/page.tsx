@@ -517,11 +517,11 @@ function VerificationView() {
                   </header>
 
                   <SealCard
-                    hash="מאומת · תושב/ת קריית טבעון"
+                    hash="מאומת · תושב/ת הרשות שלכם"
                     status="sealed"
                     meta={[
                       { label: 'סטטוס', value: 'מאומת' },
-                      { label: 'רשות', value: 'קריית טבעון' },
+                      { label: 'רשות', value: 'לפי המיקום שלכם' },
                       {
                         label: 'אימות',
                         value: 'טלפון · מיקום',

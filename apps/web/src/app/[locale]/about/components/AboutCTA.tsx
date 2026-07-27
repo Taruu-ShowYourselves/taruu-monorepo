@@ -20,7 +20,7 @@ export function AboutCTA(_props: AboutCTAProps) {
             <span aria-hidden className={styles.kickerTick} />
             הצטרפו עכשיו
           </span>
-          <span className={styles.meta}>גיליון הפיילוט · קריית טבעון</span>
+          <span className={styles.meta}>גיליון ההשקה · כל הארץ</span>
         </div>
 
         <hr className={styles.rule} aria-hidden />

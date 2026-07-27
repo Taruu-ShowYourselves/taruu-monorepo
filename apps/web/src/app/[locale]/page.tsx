@@ -1,4 +1,4 @@
-import { Masthead, Ticker } from '@/components/press';
+import { Countdown, Masthead, Ticker } from '@/components/press';
 import {
   Lead,
   BackedBy,
@@ -24,6 +24,7 @@ export default async function HomePage({ params }: HomePageProps) {
     <div className="np-page">
       <Masthead locale={locale} />
       <Ticker />
+      <Countdown />
       <main>
         <Lead locale={locale} />
         <BackedBy />

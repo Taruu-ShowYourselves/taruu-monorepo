@@ -213,7 +213,7 @@ export function Masthead({ locale = 'he' }: MastheadProps) {
         {/* suppressHydrationWarning: server and client may straddle midnight */}
         <span suppressHydrationWarning>{formatDateline(new Date())}</span>
         <span>מהדורת הפיילוט · גיליון 04</span>
-        <span>קריית טבעון · ₪3 / הצבעה</span>
+        <span>כל הארץ · ₪3 / הצבעה</span>
       </div>
 
       <div className={styles.ruleHair} />

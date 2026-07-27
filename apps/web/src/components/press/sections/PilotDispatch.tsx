@@ -59,7 +59,7 @@ export function PilotDispatch({ locale = 'he' }: PilotDispatchProps) {
           <span className={`np-kicker ${styles.kicker}`}>מברק מהשטח · DISPATCH</span>
           <span className={`np-mono ${styles.datelinePlace}`} aria-hidden>
             <PinIcon />
-            קריית טבעון
+            כל הארץ
           </span>
         </div>
 
@@ -69,7 +69,7 @@ export function PilotDispatch({ locale = 'he' }: PilotDispatchProps) {
           {/* Editorial column — headline + drop-cap body */}
           <div className={styles.story}>
             <h2 id="pilot-dispatch-headline" className={styles.headline}>
-              קריית טבעון פותחת.
+              נפתחים בכל הארץ, בבת אחת.
               <br />
               בואו להיות שותפים <span className={styles.red}>מהיום הראשון.</span>
             </h2>
@@ -107,7 +107,7 @@ export function PilotDispatch({ locale = 'he' }: PilotDispatchProps) {
                   <PinIcon />
                 </span>
                 <span className={`np-mono ${styles.factText}`}>
-                  הרשות הראשונה: קריית טבעון
+                  פתיחה ארצית: כל הרשויות יחד
                 </span>
               </div>
 
@@ -124,7 +124,7 @@ export function PilotDispatch({ locale = 'he' }: PilotDispatchProps) {
 
               {/* The proof element — headline number */}
               <div className={styles.proofDate}>
-                <span className={styles.proofNumber}>23.01.26</span>
+                <span className={styles.proofNumber}>04.08.26</span>
                 <span className={`np-mono ${styles.proofMeta}`}>
                   ההצבעה הראשונה · LIVE
                 </span>

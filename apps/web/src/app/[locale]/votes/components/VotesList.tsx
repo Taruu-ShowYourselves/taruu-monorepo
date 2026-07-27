@@ -350,7 +350,7 @@ export function VotesList({ filter }: VotesListProps) {
 
 /**
  * Pre-launch empty state as press furniture: ink-boxed dispatch with dateline,
- * the real pilot moment (first vote in Kiryat Tivon) and a WhatsApp CTA.
+ * the nationwide opening moment and a WhatsApp CTA.
  */
 function EmptyState() {
   return (
@@ -358,17 +358,17 @@ function EmptyState() {
       <div className={styles.emptyHead}>
         <span className={styles.emptyKicker}>
           <span className={styles.emptyDot} aria-hidden />
-          הפיילוט נפתח בקרוב
+          נפתחים בקרוב בכל הארץ
         </span>
-        <span className={styles.emptyDate}>23.01.26</span>
+        <span className={styles.emptyDate}>04.08.26</span>
       </div>
 
       <h2 className={styles.emptyTitle}>
-        עוד אין הצבעות פתוחות בקריית טבעון.
+        עוד אין הצבעות פתוחות.
       </h2>
 
       <p className={styles.emptyText}>
-        ההצבעה הראשונה נפתחת 23.01.26 — הצטרפו לוואטסאפ ותהיו הראשונים.
+        ההצבעה הראשונה נפתחת 04.08.26, בכל הארץ בבת אחת — הצטרפו לוואטסאפ ותהיו הראשונים.
       </p>
 
       <NewsButton
