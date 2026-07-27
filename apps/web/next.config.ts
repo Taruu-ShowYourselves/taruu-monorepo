@@ -24,6 +24,17 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['framer-motion'],
   },
 
+  // Voting is free (issue #37): the pricing and refund-policy pages were
+  // removed. Old links land on the FAQ, whose first voting entry answers the
+  // cost question. Temporary (307) on purpose — browsers and crawlers must not
+  // cache the mapping while the product transition settles.
+  async redirects() {
+    return [
+      { source: '/he/pricing', destination: '/he/faq', permanent: false },
+      { source: '/he/refund', destination: '/he/faq', permanent: false },
+    ];
+  },
+
   async headers() {
     return [
       {
