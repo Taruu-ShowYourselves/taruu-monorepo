@@ -52,6 +52,12 @@
   max-width: 34rem;
 }
 
+.countdown {
+  inline-size: 100%;
+  color: var(--np-paper);
+  margin-block-end: var(--space-6);
+}
+
 .form { display: flex; align-items: flex-end; gap: var(--space-3); flex-wrap: wrap; }
 .fieldLabel { display: flex; flex-direction: column; gap: var(--space-1); flex: 1; min-width: 14rem; }
 .fieldKicker {
