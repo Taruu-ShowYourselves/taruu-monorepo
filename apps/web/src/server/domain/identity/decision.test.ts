@@ -6,7 +6,8 @@ const NOW = new Date('2026-07-27T12:00:00Z');
 
 function submission(
   overrides: Partial<SubmitIdentityDocumentRequest> = {},
-  ocr: Partial<SubmitIdentityDocumentRequest['ocr']> = {}
+  ocr: Partial<SubmitIdentityDocumentRequest['ocr']> = {},
+  face: Partial<SubmitIdentityDocumentRequest['face']> = {}
 ): SubmitIdentityDocumentRequest {
   return {
     documentType: 'id_card',
@@ -18,6 +19,14 @@ function submission(
     consentVersion: 'v1',
     ...overrides,
     ocr: { idNumberMatched: true, confidence: 85, fieldsEdited: false, ...ocr },
+    face: {
+      checked: true,
+      docFaceFound: true,
+      matchScore: 72,
+      livenessPassed: true,
+      antispoofScore: 80,
+      ...face,
+    },
   };
 }
 
@@ -80,6 +89,53 @@ describe('decideDocument', () => {
   it('allows a 17-year-old (municipal voting age)', () => {
     const decision = decideDocument(submission({ dateOfBirth: '2009-01-01' }), NOW);
     expect(decision).toEqual({ outcome: 'verified' });
+  });
+
+  it('queues for review when the face pipeline never ran', () => {
+    expect(decideDocument(submission({}, {}, { checked: false }), NOW)).toEqual({
+      outcome: 'pending_review',
+      reasons: ['face_not_checked'],
+    });
+  });
+
+  it('queues for review on low face match, failed liveness, or low antispoof', () => {
+    expect(decideDocument(submission({}, {}, { matchScore: 40 }), NOW)).toEqual({
+      outcome: 'pending_review',
+      reasons: ['face_low_match'],
+    });
+    expect(decideDocument(submission({}, {}, { livenessPassed: false }), NOW)).toEqual({
+      outcome: 'pending_review',
+      reasons: ['liveness_failed'],
+    });
+    expect(decideDocument(submission({}, {}, { antispoofScore: 30 }), NOW)).toEqual({
+      outcome: 'pending_review',
+      reasons: ['antispoof_low'],
+    });
+  });
+
+  it('treats a missing doc portrait as a review signal, not a rejection', () => {
+    const decision = decideDocument(
+      submission({}, {}, { docFaceFound: false, matchScore: null }),
+      NOW
+    );
+    expect(decision.outcome).toBe('pending_review');
+    if (decision.outcome === 'pending_review') {
+      expect(decision.reasons).toEqual(['doc_face_missing', 'face_low_match']);
+    }
+  });
+
+  it('face never causes rejection — hard failures still win', () => {
+    const decision = decideDocument(
+      submission({ documentExpiry: '2020-01-01' }, {}, { matchScore: 0 }),
+      NOW
+    );
+    expect(decision.outcome).toBe('rejected');
+  });
+
+  it('null antispoof score is not a review signal', () => {
+    expect(decideDocument(submission({}, {}, { antispoofScore: null }), NOW)).toEqual({
+      outcome: 'verified',
+    });
   });
 });
 

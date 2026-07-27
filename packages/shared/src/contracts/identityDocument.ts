@@ -34,6 +34,25 @@ export const OcrProvenanceSchema = z.object({
 });
 export type OcrProvenance = z.infer<typeof OcrProvenanceSchema>;
 
+/**
+ * Face-match provenance — derived scores only. The selfie, the document
+ * portrait and both embeddings never leave the device; the server sees
+ * exactly these numbers.
+ */
+export const FaceProvenanceSchema = z.object({
+  /** Did the face pipeline run at all (camera present, models loaded)? */
+  checked: z.boolean(),
+  /** Was a portrait detected on the document image? */
+  docFaceFound: z.boolean(),
+  /** Normalized selfie↔document similarity (0-100), null when unavailable. */
+  matchScore: z.number().min(0).max(100).nullable(),
+  /** Did the randomized active-liveness challenges pass? */
+  livenessPassed: z.boolean(),
+  /** Antispoof "real" score (0-100), null when the model gave none. */
+  antispoofScore: z.number().min(0).max(100).nullable(),
+});
+export type FaceProvenance = z.infer<typeof FaceProvenanceSchema>;
+
 export const SubmitIdentityDocumentRequestSchema = z.object({
   documentType: IdentityDocumentTypeSchema,
   /** 9-digit Israeli ID number (server re-validates the check digit). */
@@ -45,8 +64,9 @@ export const SubmitIdentityDocumentRequestSchema = z.object({
   /** ISO yyyy-mm-dd document expiry (both card types carry one). */
   documentExpiry: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   ocr: OcrProvenanceSchema,
+  face: FaceProvenanceSchema,
   /** Consent text version the user approved (audit trail, §11 notice). */
-  consentVersion: z.string().min(1).max(32),
+  consentVersion: z.string().min(1).max(64),
 });
 export type SubmitIdentityDocumentRequest = z.infer<
   typeof SubmitIdentityDocumentRequestSchema

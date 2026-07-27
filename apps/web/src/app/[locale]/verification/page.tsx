@@ -14,6 +14,7 @@ import styles from './page.module.css';
 
 const LEDGER_ITEMS = [
   { mark: '✕', tone: 'red' as const, text: 'לא שומרים את צילום התעודה — הסריקה על המכשיר בלבד' },
+  { mark: '✕', tone: 'red' as const, text: 'לא שומרים סלפי או חתימה ביומטרית — רק תוצאת התאמה' },
   { mark: '✕', tone: 'red' as const, text: 'לא שומרים את מספר הזהות — רק הצפנה חד-כיוונית שלו' },
   { mark: '✕', tone: 'red' as const, text: 'לא שומרים מיקום' },
   { mark: '✕', tone: 'red' as const, text: 'לא עוקבים אחריכם בין הצבעה להצבעה' },

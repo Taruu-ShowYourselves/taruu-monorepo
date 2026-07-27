@@ -41,3 +41,27 @@ for (const [src, name] of files) {
   copyFileSync(src, join(outDir, name));
 }
 console.log(`[ocr-assets] copied ${files.length} files → public/ocr`);
+
+// Face pipeline (selfie match, issue #32): the subset of @vladmandic/human
+// models the scan step loads — detector, mesh (gestures), embedding, antispoof.
+const faceOut = join(here, '..', 'public', 'models', 'human');
+mkdirSync(faceOut, { recursive: true });
+
+const humanModels = join(
+  dirname(require.resolve('@vladmandic/human-models/package.json')),
+  'models'
+);
+const faceFiles = ['blazeface', 'facemesh', 'faceres', 'antispoof'].flatMap((m) => [
+  `${m}.json`,
+  `${m}.bin`,
+]);
+
+for (const name of faceFiles) {
+  const src = join(humanModels, name);
+  if (!existsSync(src)) {
+    console.error(`[face-assets] missing ${src}`);
+    process.exit(1);
+  }
+  copyFileSync(src, join(faceOut, name));
+}
+console.log(`[face-assets] copied ${faceFiles.length} files → public/models/human`);

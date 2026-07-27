@@ -896,6 +896,11 @@ export interface Database {
           ocr_id_number_matched: boolean;
           ocr_confidence: number;
           ocr_fields_edited: boolean;
+          face_checked: boolean;
+          face_doc_found: boolean;
+          face_match_score: number | null;
+          face_liveness_passed: boolean;
+          face_antispoof_score: number | null;
           status: 'verified' | 'pending_review' | 'rejected';
           consent_version: string;
           consent_at: string;
@@ -916,6 +921,11 @@ export interface Database {
           ocr_id_number_matched?: boolean;
           ocr_confidence?: number;
           ocr_fields_edited?: boolean;
+          face_checked?: boolean;
+          face_doc_found?: boolean;
+          face_match_score?: number | null;
+          face_liveness_passed?: boolean;
+          face_antispoof_score?: number | null;
           status?: 'verified' | 'pending_review' | 'rejected';
           consent_version: string;
           consent_at?: string;
@@ -934,6 +944,11 @@ export interface Database {
           ocr_id_number_matched?: boolean;
           ocr_confidence?: number;
           ocr_fields_edited?: boolean;
+          face_checked?: boolean;
+          face_doc_found?: boolean;
+          face_match_score?: number | null;
+          face_liveness_passed?: boolean;
+          face_antispoof_score?: number | null;
           status?: 'verified' | 'pending_review' | 'rejected';
           consent_version?: string;
           consent_at?: string;

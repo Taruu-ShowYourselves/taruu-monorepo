@@ -65,6 +65,17 @@ export function submitIdentityDocument(
         ocr_id_number_matched: submission.ocr.idNumberMatched,
         ocr_confidence: Math.round(submission.ocr.confidence),
         ocr_fields_edited: submission.ocr.fieldsEdited,
+        face_checked: submission.face.checked,
+        face_doc_found: submission.face.docFaceFound,
+        face_match_score:
+          submission.face.matchScore === null
+            ? null
+            : Math.round(submission.face.matchScore),
+        face_liveness_passed: submission.face.livenessPassed,
+        face_antispoof_score:
+          submission.face.antispoofScore === null
+            ? null
+            : Math.round(submission.face.antispoofScore),
         status,
         consent_version: submission.consentVersion,
         consent_at: now.toISOString(),

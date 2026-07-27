@@ -1,7 +1,33 @@
+import path from 'node:path';
 import type { NextConfig } from 'next';
+
+/**
+ * @vladmandic/human's exports map keys are not "./"-prefixed, so bundlers
+ * refuse every subpath, and its root `node` condition drags @tensorflow/
+ * tfjs-node into the SSR compile. Alias the bare specifier straight to the
+ * browser ESM bundle (the face pipeline is client-only anyway).
+ */
+const HUMAN_ESM = path.resolve(
+  __dirname,
+  'node_modules/@vladmandic/human/dist/human.esm.js'
+);
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@vladmandic/human$': HUMAN_ESM,
+    };
+    return config;
+  },
+
+  turbopack: {
+    resolveAlias: {
+      '@vladmandic/human': HUMAN_ESM,
+    },
+  },
 
   images: {
     remotePatterns: [

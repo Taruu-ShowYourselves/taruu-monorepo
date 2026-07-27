@@ -17,6 +17,16 @@ export type DocumentDecision =
 /** OCR confidence at or above which an unedited, number-matched scan auto-passes. */
 const AUTO_VERIFY_MIN_CONFIDENCE = 60;
 
+/**
+ * Selfie↔document similarity (0-100) at or above which the face check
+ * auto-passes. faceres similarity ≥50 is the library's "same person" line;
+ * 55 adds margin for old document photos.
+ */
+const AUTO_VERIFY_MIN_FACE_MATCH = 55;
+
+/** Antispoof floor — below this the frame looks like a replay/print attack. */
+const AUTO_VERIFY_MIN_ANTISPOOF = 50;
+
 /** Voting-age floor (municipal elections in Israel allow voting from 17). */
 const MIN_AGE_YEARS = 17;
 const MAX_AGE_YEARS = 120;
@@ -62,6 +72,21 @@ export function decideDocument(
     reviewReasons.push('ocr_low_confidence');
   }
   if (submission.ocr.fieldsEdited) reviewReasons.push('fields_hand_edited');
+
+  // Face signals are soft: they route to manual review, never to rejection —
+  // old document photos and low-end cameras produce honest false negatives.
+  const { face } = submission;
+  if (!face.checked) reviewReasons.push('face_not_checked');
+  else {
+    if (!face.docFaceFound) reviewReasons.push('doc_face_missing');
+    if (face.matchScore === null || face.matchScore < AUTO_VERIFY_MIN_FACE_MATCH) {
+      reviewReasons.push('face_low_match');
+    }
+    if (!face.livenessPassed) reviewReasons.push('liveness_failed');
+    if (face.antispoofScore !== null && face.antispoofScore < AUTO_VERIFY_MIN_ANTISPOOF) {
+      reviewReasons.push('antispoof_low');
+    }
+  }
 
   if (reviewReasons.length > 0) {
     return { outcome: 'pending_review', reasons: reviewReasons };

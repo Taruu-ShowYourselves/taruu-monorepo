@@ -60,6 +60,13 @@ const VALID_BODY = {
   dateOfBirth: '1974-04-04',
   documentExpiry: '2031-03-15',
   ocr: { idNumberMatched: true, confidence: 85, fieldsEdited: false },
+  face: {
+    checked: true,
+    docFaceFound: true,
+    matchScore: 72,
+    livenessPassed: true,
+    antispoofScore: 80,
+  },
   consentVersion: 'v1',
 };
 
