@@ -60,12 +60,13 @@ function AgendaItemRow({
   locale: Locale;
 }) {
   const { topic } = row;
-  const ordinal = row.ordinal ?? position;
 
   return (
     <li className={styles.itemRow}>
+      {/* Sequence position, not the official Ordinal — Knesset ordinals
+          restart per agenda section, so raw values repeat (many "01"s). */}
       <span className={styles.itemOrdinal} aria-hidden>
-        {String(ordinal).padStart(2, '0')}
+        {String(position).padStart(2, '0')}
       </span>
 
       <div className={styles.itemBody}>
