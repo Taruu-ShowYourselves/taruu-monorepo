@@ -1,0 +1,34 @@
+/*
+ * Tailwind v4 — utilities only, no preflight. The site's base styles live in
+ * globals.css/tokens.css (CSS Modules everywhere else); preflight would
+ * clobber them. Utilities are additive and only used by src/components/ui
+ * and the newer pages built on them.
+ */
+@layer theme, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@theme {
+  /* Press palette — resolved through the --np-* tokens in tokens.css so the
+     locked design system stays the single source of truth. */
+  --color-*: initial;
+  --color-ink: var(--np-ink);
+  --color-ink-soft: var(--np-ink-soft);
+  --color-ink-faint: var(--np-ink-faint);
+  --color-paper: var(--np-paper);
+  --color-paper-box: var(--np-paper-box);
+  --color-paper-edge: var(--np-paper-edge);
+  --color-red: var(--np-red);
+  --color-red-dark: var(--np-red-dark);
+  --color-red-ink: var(--np-red-ink);
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --font-mono: var(--np-font-mono);
+  --font-display: var(--np-font-display);
+  --font-body: var(--np-font-body);
+
+  /* Brutalist: nothing rounds. */
+  --radius-*: initial;
+  --radius-none: 0;
+}

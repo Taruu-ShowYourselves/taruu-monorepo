@@ -6,38 +6,30 @@ import { useAuth } from '@/providers/AuthProvider';
 import { NewsButton } from '@/components/press/NewsButton';
 import { PressInput } from '@/components/press/PressInput/PressInput';
 import { Stepper } from '@/components/press/Stepper/Stepper';
+import { MUNICIPALITIES } from '@sync/shared';
+import { cn } from '@/lib/cn';
 import styles from './page.module.css';
 
-const MUNICIPALITIES = [
-  'תל אביב-יפו',
-  'ירושלים',
-  'חיפה',
-  'ראשון לציון',
-  'פתח תקווה',
-  'אשדוד',
-  'נתניה',
-  'באר שבע',
-  'בני ברק',
-  'חולון',
-  'רמת גן',
-  'אשקלון',
-  'רחובות',
-  'בת ים',
-  'הרצליה',
-  'כפר סבא',
-  'מודיעין-מכבים-רעות',
-  'רעננה',
-  'לוד',
-  'רמלה',
+const STEPS = [
+  { label: 'פתיחה' },
+  { label: 'הרשות שלכם' },
+  { label: 'שביעות רצון' },
 ];
 
-const STEPS = [{ label: 'פתיחה' }, { label: 'הרשות שלכם' }];
+const RATING_LABELS: Record<number, string> = {
+  1: 'גרוע מאוד',
+  2: 'גרוע',
+  3: 'סביר',
+  4: 'טוב',
+  5: 'מצוין',
+};
 
 export default function OnboardingPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useAuth();
   const [step, setStep] = useState(1);
   const [selectedMunicipality, setSelectedMunicipality] = useState<string | null>(null);
+  const [rating, setRating] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -61,7 +53,10 @@ export default function OnboardingPage() {
       const response = await fetch('/api/user/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ municipality: selectedMunicipality }),
+        body: JSON.stringify({
+          municipality: selectedMunicipality,
+          ...(rating !== null ? { municipalityRating: rating } : {}),
+        }),
       });
 
       if (!response.ok) {
@@ -103,7 +98,7 @@ export default function OnboardingPage() {
               ברוכים הבאים, <span className={styles.red}>{user?.firstName || 'חבר'}.</span>
             </h1>
             <p className={styles.standfirst}>
-              שמחים שהצטרפתם. נגדיר את הפרופיל שלכם בשני שלבים קצרים — ואז אפשר
+              שמחים שהצטרפתם. נגדיר את הפרופיל שלכם בכמה שלבים קצרים — ואז אפשר
               להתחיל להצביע.
             </p>
 
@@ -214,11 +209,87 @@ export default function OnboardingPage() {
                 variant="red"
                 size="lg"
                 className={styles.primaryBtn}
-                onClick={handleComplete}
-                disabled={!selectedMunicipality || loading}
+                onClick={() => setStep(3)}
+                disabled={!selectedMunicipality}
                 trailing={<span aria-hidden>←</span>}
               >
-                {loading ? 'שומר…' : 'סיום והתחלה'}
+                המשך
+              </NewsButton>
+            </div>
+          </section>
+        )}
+
+        {step === 3 && (
+          <section className={styles.step}>
+            <span className={styles.kicker}>
+              <span aria-hidden className={styles.kickerTick} />
+              שביעות רצון · BASELINE
+            </span>
+            <h1 className={styles.title}>
+              כמה אתם מרוצים <span className={styles.red}>מהרשות שלכם?</span>
+            </h1>
+            <p className={styles.standfirst}>
+              דירוג אחד, מ-1 עד 5. ככה נמדוד את שביעות הרצון של התושבים
+              ב{selectedMunicipality} — לפני שההצבעות משנות אותה.
+            </p>
+
+            <div className={styles.rule} aria-hidden />
+
+            <div
+              role="radiogroup"
+              aria-label="דירוג שביעות רצון מהרשות"
+              className="flex flex-row-reverse justify-between gap-2"
+              dir="ltr"
+            >
+              {[1, 2, 3, 4, 5].map((value) => {
+                const selected = rating === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    aria-label={`${value} — ${RATING_LABELS[value]}`}
+                    onClick={() => setRating(value)}
+                    className={cn(
+                      'flex flex-1 cursor-pointer flex-col items-center gap-2 border-2 border-ink bg-paper-box px-2 py-4 transition-colors',
+                      'hover:bg-paper focus-visible:outline-2 focus-visible:outline-red',
+                      selected && 'border-red bg-ink text-paper'
+                    )}
+                  >
+                    <span className="font-mono text-3xl font-black leading-none tabular-nums">
+                      {value}
+                    </span>
+                    <span
+                      className={cn(
+                        'font-mono text-xs tracking-wider',
+                        selected ? 'text-paper' : 'text-ink-soft'
+                      )}
+                    >
+                      {RATING_LABELS[value]}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className={styles.actions}>
+              <button
+                type="button"
+                className={styles.backBtn}
+                onClick={() => setStep(2)}
+              >
+                → חזרה
+              </button>
+              <NewsButton
+                variant="red"
+                size="lg"
+                className={styles.primaryBtn}
+                onClick={handleComplete}
+                disabled={loading}
+                trailing={<span aria-hidden>←</span>}
+              >
+                {loading ? 'שומר…' : rating === null ? 'דילוג וסיום' : 'סיום והתחלה'}
               </NewsButton>
             </div>
           </section>

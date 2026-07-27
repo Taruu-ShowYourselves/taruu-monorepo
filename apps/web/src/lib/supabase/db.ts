@@ -2156,3 +2156,142 @@ export async function markMerchOrderPaid(
   }
   return data ? { kind: 'updated', row: data } : { kind: 'noop' };
 }
+
+// ============================================
+// MUNICIPALITY PROFILE OPERATIONS
+// ============================================
+
+export interface MunicipalityMetrics {
+  residents: number;
+  participants: number;
+  /** Distinct voters / registered residents, 0-1 (null when no residents) */
+  engagementRate: number | null;
+  /** Average hours between a vote opening and a resident casting their ballot */
+  avgTimeToEngageHours: number | null;
+  /** Average onboarding satisfaction rating, 1-5 */
+  satisfactionAvg: number | null;
+  satisfactionCount: number;
+}
+
+export interface MunicipalityVoteSummary {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  startDate: string | null;
+  endDate: string | null;
+  participantCount: number;
+  createdAt: string;
+  options: { id: string; text: string; votes: number; pct: number }[];
+  totalBallots: number;
+  winningOption: string | null;
+}
+
+export interface MunicipalityProfile {
+  metrics: MunicipalityMetrics;
+  openVotes: MunicipalityVoteSummary[];
+  closedVotes: MunicipalityVoteSummary[];
+}
+
+function summarizeVote(
+  vote: Vote & { vote_options: VoteOption[] }
+): MunicipalityVoteSummary {
+  const options = vote.vote_options ?? [];
+  const totalBallots = options.reduce((sum, o) => sum + (o.votes ?? 0), 0);
+  const withPct = options.map((o) => ({
+    id: o.id,
+    text: o.text,
+    votes: o.votes ?? 0,
+    pct: totalBallots > 0 ? Math.round(((o.votes ?? 0) / totalBallots) * 100) : 0,
+  }));
+  const winner =
+    vote.status === 'ended' && withPct.length > 0
+      ? withPct.reduce((a, b) => (b.votes > a.votes ? b : a)).text
+      : null;
+  return {
+    id: vote.id,
+    title: vote.title,
+    description: vote.description,
+    status: vote.status,
+    startDate: vote.start_date,
+    endDate: vote.end_date,
+    participantCount: vote.participant_count ?? 0,
+    createdAt: vote.created_at,
+    options: withPct,
+    totalBallots,
+    winningOption: winner,
+  };
+}
+
+/**
+ * Aggregate a municipality's civic profile: satisfaction (onboarding
+ * ratings), engagement (distinct voters vs residents), time-to-engagement
+ * (vote open -> ballot cast), and its open + closed votes with results.
+ */
+export async function getMunicipalityProfile(
+  municipalityId: string,
+  voteLimit = 20
+): Promise<MunicipalityProfile> {
+  // Metrics aggregate in SQL (municipality_profile_metrics RPC); only the
+  // vote lists are fetched as rows.
+  const [metricsRes, votesRes] = await Promise.all([
+    supabaseAdmin.rpc('municipality_profile_metrics', { m: municipalityId }),
+    supabaseAdmin
+      .from('votes')
+      .select('*, vote_options (*)')
+      .eq('municipality_id', municipalityId)
+      .in('status', ['active', 'ended'])
+      .order('created_at', { ascending: false })
+      .limit(voteLimit * 2),
+  ]);
+
+  if (metricsRes.error) {
+    throw new Error(
+      `municipality_profile_metrics failed: ${metricsRes.error.message}`
+    );
+  }
+
+  const row = (Array.isArray(metricsRes.data)
+    ? metricsRes.data[0]
+    : metricsRes.data) as {
+    residents: number | null;
+    participants: number | null;
+    avg_time_hours: number | null;
+    satisfaction_avg: number | null;
+    satisfaction_count: number | null;
+  } | undefined;
+
+  const residents = Number(row?.residents ?? 0);
+  const participants = Number(row?.participants ?? 0);
+
+  const votes = (votesRes.data ?? []) as unknown as (Vote & {
+    vote_options: VoteOption[];
+  })[];
+  const openVotes = votes
+    .filter((v) => v.status === 'active')
+    .slice(0, voteLimit)
+    .map(summarizeVote);
+  const closedVotes = votes
+    .filter((v) => v.status === 'ended')
+    .slice(0, voteLimit)
+    .map(summarizeVote);
+
+  return {
+    metrics: {
+      residents,
+      participants,
+      engagementRate: residents > 0 ? participants / residents : null,
+      avgTimeToEngageHours:
+        row?.avg_time_hours !== null && row?.avg_time_hours !== undefined
+          ? Number(row.avg_time_hours)
+          : null,
+      satisfactionAvg:
+        row?.satisfaction_avg !== null && row?.satisfaction_avg !== undefined
+          ? Number(row.satisfaction_avg)
+          : null,
+      satisfactionCount: Number(row?.satisfaction_count ?? 0),
+    },
+    openVotes,
+    closedVotes,
+  };
+}

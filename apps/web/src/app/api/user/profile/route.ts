@@ -11,7 +11,7 @@ import {
 import type { User, SocialProof as DbSocialProof } from '@/lib/supabase/types';
 import { qubikService } from '@/services/qubik';
 import { emailService } from '@/services/email';
-import { calculateIdentityScore, IDENTITY_SCORE_WEIGHTS } from '@sync/shared';
+import { calculateIdentityScore, IDENTITY_SCORE_WEIGHTS, MUNICIPALITIES } from '@sync/shared';
 import type { SocialProof, VerificationStatus, IdentityScore, NotificationSettings } from '@sync/shared';
 
 /**
@@ -243,9 +243,37 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
+    // municipality_id is FK-constrained to the municipalities table — reject
+    // unknown values here with a 400 instead of surfacing a DB error.
+    if (
+      updates.municipality_id !== undefined &&
+      updates.municipality_id !== null &&
+      !(MUNICIPALITIES as readonly string[]).includes(
+        String(updates.municipality_id)
+      )
+    ) {
+      return NextResponse.json(
+        { error: 'Unknown municipality' },
+        { status: 400 }
+      );
+    }
+
     // notificationSettings is a JSON object, not a scalar string field
     if (body.notificationSettings !== undefined) {
       updates.notification_settings = body.notificationSettings;
+    }
+
+    // Municipality satisfaction rating (onboarding question), 1-5 integer
+    if (body.municipalityRating !== undefined) {
+      const rating = body.municipalityRating;
+      if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+        return NextResponse.json(
+          { error: 'municipalityRating must be an integer between 1 and 5' },
+          { status: 400 }
+        );
+      }
+      updates.municipality_rating = rating;
+      updates.municipality_rated_at = new Date().toISOString();
     }
 
     if (Object.keys(updates).length === 0) {

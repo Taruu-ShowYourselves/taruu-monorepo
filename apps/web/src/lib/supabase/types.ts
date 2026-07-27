@@ -24,6 +24,8 @@ export interface Database {
           phone: string | null;
           municipality_id: string | null;
           city: string | null;
+          municipality_rating: number | null;
+          municipality_rated_at: string | null;
           notification_settings: Record<string, boolean> | null;
           did: string | null;
           did_public_key: string | null;
@@ -44,6 +46,8 @@ export interface Database {
           phone?: string | null;
           municipality_id?: string | null;
           city?: string | null;
+          municipality_rating?: number | null;
+          municipality_rated_at?: string | null;
           notification_settings?: Record<string, boolean> | null;
           did?: string | null;
           did_public_key?: string | null;
@@ -64,6 +68,8 @@ export interface Database {
           phone?: string | null;
           municipality_id?: string | null;
           city?: string | null;
+          municipality_rating?: number | null;
+          municipality_rated_at?: string | null;
           notification_settings?: Record<string, boolean> | null;
           did?: string | null;
           did_public_key?: string | null;
@@ -905,6 +911,18 @@ export interface Database {
           p_description?: string;
         };
         Returns: string;
+      };
+      municipality_profile_metrics: {
+        Args: {
+          m: string;
+        };
+        Returns: {
+          residents: number;
+          participants: number;
+          avg_time_hours: number | null;
+          satisfaction_avg: number | null;
+          satisfaction_count: number;
+        }[];
       };
     };
     Enums: {
