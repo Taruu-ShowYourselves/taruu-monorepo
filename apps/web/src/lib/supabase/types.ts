@@ -513,6 +513,60 @@ export interface Database {
         };
         Relationships: [];
       };
+      knesset_items: {
+        Row: {
+          id: string;
+          vote_id: string;
+          item_id: number;
+          plenum_session_id: number;
+          session_date: string | null;
+          session_number: number | null;
+          knesset_num: number | null;
+          item_type: string | null;
+          ordinal: number | null;
+          status_id: number | null;
+          is_discussion: boolean;
+          source_updated_at: string | null;
+          fetched_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          vote_id: string;
+          item_id: number;
+          plenum_session_id: number;
+          session_date?: string | null;
+          session_number?: number | null;
+          knesset_num?: number | null;
+          item_type?: string | null;
+          ordinal?: number | null;
+          status_id?: number | null;
+          is_discussion?: boolean;
+          source_updated_at?: string | null;
+          fetched_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          vote_id?: string;
+          item_id?: number;
+          plenum_session_id?: number;
+          session_date?: string | null;
+          session_number?: number | null;
+          knesset_num?: number | null;
+          item_type?: string | null;
+          ordinal?: number | null;
+          status_id?: number | null;
+          is_discussion?: boolean;
+          source_updated_at?: string | null;
+          fetched_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       vote_sources: {
         Row: {
           id: string;
@@ -891,3 +945,4 @@ export type WebhookEvent = Tables<'webhook_events'>;
 export type VoteNft = Tables<'vote_nfts'>;
 export type MerchOrderRow = Tables<'merch_orders'>;
 export type VoteSource = Tables<'vote_sources'>;
+export type KnessetItem = Tables<'knesset_items'>;

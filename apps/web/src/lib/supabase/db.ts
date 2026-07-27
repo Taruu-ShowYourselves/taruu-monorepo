@@ -22,6 +22,7 @@ import type {
   VoteNft,
   MerchOrderRow,
   VoteSource,
+  KnessetItem,
   InsertTables,
   UpdateTables,
 } from './types';
@@ -871,6 +872,65 @@ export async function upsertVoteSource(
     return null;
   }
   return data;
+}
+
+/** Find a Knesset day-order item by its upstream OData ItemID (sync dedup). */
+export async function getKnessetItemByItemId(
+  itemId: number
+): Promise<KnessetItem | null> {
+  const { data, error } = await supabaseAdmin
+    .from('knesset_items')
+    .select('*')
+    .eq('item_id', itemId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Failed to find knesset item:', error);
+    return null;
+  }
+  return data;
+}
+
+/** Upsert a Knesset day-order item (unique per upstream item_id). */
+export async function upsertKnessetItem(
+  item: InsertTables<'knesset_items'>
+): Promise<KnessetItem | null> {
+  const { data, error } = await supabaseAdmin
+    .from('knesset_items')
+    .upsert(
+      { ...item, updated_at: new Date().toISOString() },
+      { onConflict: 'item_id' }
+    )
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Failed to upsert knesset item:', error);
+    return null;
+  }
+  return data;
+}
+
+/**
+ * Day-order metadata for a set of votes. Fetched separately (mirroring
+ * vote_sources) so a missing/errored knesset_items table degrades to
+ * "no agenda metadata", never to an empty desk.
+ */
+export async function getKnessetItemsByVoteIds(
+  voteIds: string[]
+): Promise<KnessetItem[]> {
+  if (voteIds.length === 0) return [];
+
+  const { data, error } = await supabaseAdmin
+    .from('knesset_items')
+    .select('*')
+    .in('vote_id', voteIds);
+
+  if (error) {
+    console.error('Failed to get knesset items (continuing without):', error);
+    return [];
+  }
+  return data || [];
 }
 
 export async function createVote(
