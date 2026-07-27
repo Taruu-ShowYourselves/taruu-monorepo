@@ -1,6 +1,7 @@
 import { Masthead, Ticker } from '@/components/press';
 import {
   Lead,
+  BackedBy,
   KnessetDesk,
   ConsensusDesk,
   ActNow,
@@ -25,6 +26,7 @@ export default async function HomePage({ params }: HomePageProps) {
       <Ticker />
       <main>
         <Lead locale={locale} />
+        <BackedBy />
         <ConsensusDesk locale={locale} />
         <KnessetDesk locale={locale} />
         <ActNow locale={locale} />
