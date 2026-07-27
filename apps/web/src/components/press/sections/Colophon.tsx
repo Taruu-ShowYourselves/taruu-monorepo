@@ -111,20 +111,16 @@ export function Colophon({ locale = 'he' }: ColophonProps) {
             <span className={styles.colHead}>המוצר</span>
             <Link href={`/${locale}/about`}>אודות</Link>
             <Link href={`/${locale}/votes`}>הצבעות</Link>
-            <Link href={`/${locale}/economics`}>כלכלה אזרחית</Link>
-            <Link href={`/${locale}/treasury`}>שקיפות הקרן</Link>
           </div>
           <div className={styles.col}>
             <span className={styles.colHead}>תמיכה</span>
             <Link href={`/${locale}/faq`}>שאלות נפוצות</Link>
-            <Link href={`/${locale}/pricing`}>תמחור</Link>
             <Link href={`/${locale}/support`}>יצירת קשר</Link>
           </div>
           <div className={styles.col}>
             <span className={styles.colHead}>משפטי</span>
             <Link href={`/${locale}/privacy`}>מדיניות פרטיות</Link>
             <Link href={`/${locale}/terms`}>תנאי שימוש</Link>
-            <Link href={`/${locale}/refund`}>מדיניות החזרים</Link>
           </div>
         </nav>
       </div>

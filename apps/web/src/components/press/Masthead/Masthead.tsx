@@ -16,10 +16,6 @@ interface MastheadProps {
 
 const NAV = [
   { label: 'הצבעות', href: 'votes' },
-  { label: 'BAGS', href: 'coin' },
-  { label: 'כלכלה אזרחית', href: 'economics' },
-  { label: 'שקיפות הקרן', href: 'treasury' },
-  { label: 'חנות', href: 'store' },
   { label: 'אודות', href: 'about' },
   { label: 'שאלות נפוצות', href: 'faq' },
 ];
@@ -152,7 +148,7 @@ export function Masthead({ locale = 'he' }: MastheadProps) {
       <div className={styles.ears}>
         <span>יום שבת · 14.06.26</span>
         <span>מהדורת הפיילוט · גיליון 04</span>
-        <span>קריית טבעון · ₪3 / הצבעה</span>
+        <span>קריית טבעון · ההשתתפות חינם</span>
       </div>
 
       <div className={styles.ruleHair} />

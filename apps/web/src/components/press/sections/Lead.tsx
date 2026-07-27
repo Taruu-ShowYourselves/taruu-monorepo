@@ -92,9 +92,9 @@ export function Lead({ locale = 'he' }: LeadProps) {
           </ul>
 
           <div className={styles.priceBox}>
-            <span className={styles.priceK}>דמי השתתפות</span>
-            <span className={styles.priceNum}>₪3</span>
-            <span className={styles.priceMeta}>₪2 לקרן הקהילתית · ₪1 לתפעול</span>
+            <span className={styles.priceK}>השתתפות</span>
+            <span className={styles.priceNum}>חינם</span>
+            <span className={styles.priceMeta}>בלי תשלום · בלי מנוי</span>
           </div>
 
           <a href="#participate" className={styles.briefMore}>לכל הכלים ←</a>

@@ -129,12 +129,6 @@ export default function SignInPage() {
             </span>
             <span>אימות מיקום</span>
           </li>
-          <li className={styles.feature}>
-            <span aria-hidden className={styles.featGlyph}>
-              ▍
-            </span>
-            <span>טוקנים לתרומה</span>
-          </li>
         </ul>
 
         <p className={styles.trust}>הקול שלכם. הקהילה שלכם.</p>
@@ -153,7 +147,7 @@ export default function SignInPage() {
             <span className={styles.brandTrustGlyph}>■</span> אימות תושב לפי מיקום
           </li>
           <li>
-            <span className={styles.brandTrustGlyph}>▍</span> ₪2 מכל ₪3 לקרן הקהילתית
+            <span className={styles.brandTrustGlyph}>▍</span> ההשתתפות בהצבעה — ללא עלות
           </li>
         </ul>
       </aside>

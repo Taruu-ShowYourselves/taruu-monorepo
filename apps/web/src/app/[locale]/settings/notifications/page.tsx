@@ -49,7 +49,7 @@ const ROWS: NotificationRow[] = [
   {
     key: 'marketing',
     label: 'עדכוני מוצר',
-    description: 'חדשות, פיצ׳רים ומבצעים מתַּרְאוּ.',
+    description: 'חדשות ופיצ׳רים מתַּרְאוּ.',
   },
 ];
 
