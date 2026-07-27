@@ -113,7 +113,7 @@ describe('Votes API Routes', () => {
       expect(response.status).toBe(200);
       expect(data.votes).toHaveLength(1);
       expect(data.votes[0].municipality).toBe('tel-aviv');
-      expect(getVotesByMunicipality).toHaveBeenCalledWith('tel-aviv');
+      expect(getVotesByMunicipality).toHaveBeenCalledWith('tel-aviv', undefined);
     });
 
     it('should filter votes by municipality and status', async () => {
@@ -145,7 +145,8 @@ describe('Votes API Routes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(500);
-      expect(data.error).toBe('Failed to fetch votes');
+      expect(data.error).toBe('Internal server error');
+      expect(data.code).toBe('INTERNAL_ERROR');
     });
   });
 
@@ -197,10 +198,11 @@ describe('Votes API Routes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('Missing required fields');
+      expect(data.error).toBe('Invalid request');
+      expect(data.code).toBe('VALIDATION_ERROR');
     });
 
-    it('should return 402 when paymentTxId is missing', async () => {
+    it('should return 400 when paymentTxId is missing (schema validation)', async () => {
       (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
 
       const dataWithoutPayment = { ...validVoteData, paymentTxId: undefined };
@@ -211,8 +213,8 @@ describe('Votes API Routes', () => {
       const response = await POST(request);
       const data = await response.json();
 
-      expect(response.status).toBe(402);
-      expect(data.error).toBe('Payment required to create a vote');
+      expect(response.status).toBe(400);
+      expect(data.code).toBe('VALIDATION_ERROR');
     });
 
     it('should return 402 when payment verification fails', async () => {
@@ -230,10 +232,11 @@ describe('Votes API Routes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(402);
-      expect(data.error).toContain('Payment verification failed');
+      expect(data.error).toBe('Payment not found');
+      expect(data.code).toBe('PAYMENT_REQUIRED');
     });
 
-    it('should return 400 when payment has already been used', async () => {
+    it('should return 402 when payment has already been used', async () => {
       (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
       (verifyPaymentCompleted as Mock).mockResolvedValue({ valid: true });
       (isPaymentAlreadyUsed as Mock).mockResolvedValue(true);
@@ -245,8 +248,9 @@ describe('Votes API Routes', () => {
       const response = await POST(request);
       const data = await response.json();
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(402);
       expect(data.error).toBe('Payment has already been used');
+      expect(data.code).toBe('PAYMENT_REQUIRED');
     });
 
     it('should create vote successfully with valid data', async () => {
@@ -309,12 +313,14 @@ describe('Votes API Routes', () => {
         created_at: '2025-01-16T00:00:00Z',
         updated_at: '2025-01-16T00:00:00Z',
       });
-      (createVoteOptions as Mock).mockResolvedValue([]);
+      (createVoteOptions as Mock).mockResolvedValue([
+        { id: 'opt-1', text: 'Option A', votes: 0 },
+        { id: 'opt-2', text: 'Option B', votes: 0 },
+      ]);
 
       const pastStartData = {
         ...validVoteData,
         startDate: '2024-01-01T00:00:00Z', // Past date
-        options: [],
       };
 
       const request = new NextRequest('http://localhost:3000/api/votes', {
@@ -344,7 +350,7 @@ describe('Votes API Routes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(500);
-      expect(data.error).toBe('Failed to create vote');
+      expect(data.error).toBe('Internal server error');
     });
   });
 });

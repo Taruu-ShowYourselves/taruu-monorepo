@@ -22,7 +22,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@sync/shared": "workspace:*"
+    "@sync/shared": "workspace:*",
+    "neverthrow": "^8.2.0",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

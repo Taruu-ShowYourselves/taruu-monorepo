@@ -382,7 +382,7 @@ describe('User Profile API Routes', () => {
         body: JSON.stringify({
           firstName: 'First',
           lastName: 'Last',
-          municipality: 'jerusalem',
+          municipality: 'ירושלים',
           phone: '+972509999999',
         }),
       });
@@ -393,10 +393,24 @@ describe('User Profile API Routes', () => {
         expect.objectContaining({
           first_name: 'First',
           last_name: 'Last',
-          municipality_id: 'jerusalem',
+          municipality_id: 'ירושלים',
           phone: '+972509999999',
         })
       );
+    });
+
+    it('should reject an unknown municipality with 400', async () => {
+      (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
+      (getUserByGoogleId as Mock).mockResolvedValue(mockUser);
+
+      const request = new NextRequest('http://localhost:3000/api/user/profile', {
+        method: 'PATCH',
+        body: JSON.stringify({ municipality: 'jerusalem' }),
+      });
+      const response = await PATCH(request);
+
+      expect(response.status).toBe(400);
+      expect(updateUser).not.toHaveBeenCalled();
     });
 
     it('should return 500 when update fails', async () => {

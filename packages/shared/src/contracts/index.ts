@@ -11,3 +11,5 @@ export * from './vote';
 export * from './bags';
 export * from './nft';
 export * from './phone';
+export * from './municipality';
+export * from './dashboard';

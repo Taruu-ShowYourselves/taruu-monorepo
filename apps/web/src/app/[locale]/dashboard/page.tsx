@@ -15,6 +15,7 @@ import {
 } from '@/components/press';
 import { useReducedMotion } from '@/hooks';
 import { CertificateCard, type Certificate } from '@/components/certificate/CertificateCard';
+import { MetricBar } from '@/components/uikit/metric-bar';
 import {
   getIdentityLevelLabel,
   getIdentityLevelDescription,
@@ -54,6 +55,15 @@ interface TreasuryContribution {
   date: string;
 }
 
+interface CityMetrics {
+  residents: number;
+  participants: number;
+  engagementRate: number | null;
+  avgTimeToEngageHours: number | null;
+  satisfactionAvg: number | null;
+  satisfactionCount: number;
+}
+
 type DashboardTab = 'history' | 'certificates' | 'fund' | 'billing' | 'settings';
 
 const TABS: { value: DashboardTab; label: string }[] = [
@@ -77,6 +87,7 @@ export default function DashboardPage() {
   const [contributions, setContributions] = useState<TreasuryContribution[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [activeInCity, setActiveInCity] = useState<{ id: string; title: string }[]>([]);
+  const [cityMetrics, setCityMetrics] = useState<CityMetrics | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
   const [tab, setTab] = useState<DashboardTab>('history');
 
@@ -91,55 +102,53 @@ export default function DashboardPage() {
       return;
     }
 
-    // Fetch dashboard data from API
-    const fetchData = async () => {
+    // One aggregate fetch — GET /api/dashboard composes stats,
+    // participations, billing, fund contributions, certificates, city votes
+    // and city metrics server-side (was six independent round-trips).
+    const fetchDashboard = async () => {
       try {
-        // Fetch stats and participations in parallel
-        const [statsResponse, participationsResponse] = await Promise.all([
-          fetch('/api/user/stats'),
-          fetch('/api/user/participations'),
-        ]);
+        const res = await fetch('/api/dashboard');
+        if (!res.ok) throw new Error(`dashboard fetch failed: ${res.status}`);
+        const data = await res.json();
 
-        // Parse stats
-        if (statsResponse.ok) {
-          const statsData = await statsResponse.json();
-          setStats({
-            totalVotes: statsData.votesParticipated || 0,
-            activeVotes: 0, // Will be calculated from participations
-            tokensEarned: user?.syncTokenBalance || 0,
-            votesCreated: statsData.votesCreated || 0,
-          });
-        }
-
-        // Parse participations for recent votes
-        if (participationsResponse.ok) {
-          const participationsData = await participationsResponse.json();
-          const participations = participationsData.participations || [];
-
-          // Count active votes
-          const activeCount = participations.filter(
-            (p: any) => p.vote?.status === 'active'
-          ).length;
-
-          // Update stats with active count
-          setStats((prev) => prev ? { ...prev, activeVotes: activeCount } : null);
-
-          // Transform to RecentVote format (take last 5)
-          const recentVotesData: RecentVote[] = participations
-            .slice(0, 5)
-            .map((p: any) => ({
-              id: p.voteId,
-              title: p.vote?.title || 'הצבעה',
-              status: (p.vote?.status === 'active' ? 'active' : 'ended') as 'active' | 'ended',
-              votedAt: new Date(p.createdAt).toLocaleDateString('he-IL'),
-              option: p.option?.text || 'בעד',
-            }));
-
-          setRecentVotes(recentVotesData);
-        }
+        setStats({
+          totalVotes: data.stats?.totalVotes ?? 0,
+          activeVotes: data.stats?.activeVotes ?? 0,
+          tokensEarned: user?.syncTokenBalance || 0,
+          votesCreated: data.stats?.votesCreated ?? 0,
+        });
+        setRecentVotes(
+          (data.recentVotes ?? []).slice(0, 5).map(
+            (p: { id: string; title: string; status: 'active' | 'ended'; votedAt: string; option: string }) => ({
+              id: p.id,
+              title: p.title || 'הצבעה',
+              status: p.status,
+              votedAt: new Date(p.votedAt).toLocaleDateString('he-IL'),
+              option: p.option || 'בעד',
+            })
+          )
+        );
+        setTokenTxns(
+          (data.tokenTransactions ?? []).map(
+            (t: { id: string; amount: number; reason: TokenTransaction['reason']; txHash: string; timestamp: string }) => ({
+              ...t,
+              timestamp: new Date(t.timestamp).toLocaleDateString('he-IL'),
+            })
+          )
+        );
+        setContributions(
+          (data.contributions ?? []).map(
+            (t: { id: string; amountILS: number; voteId: string | null; date: string }) => ({
+              ...t,
+              date: t.date ? new Date(t.date).toLocaleDateString('he-IL') : '',
+            })
+          )
+        );
+        setCertificates((data.certificates ?? []) as Certificate[]);
+        setActiveInCity(data.activeInCity ?? []);
+        setCityMetrics(data.cityMetrics ?? null);
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        // Set empty data on error
+        console.error('Error fetching dashboard:', error);
         setStats({ totalVotes: 0, activeVotes: 0, tokensEarned: 0, votesCreated: 0 });
         setRecentVotes([]);
       } finally {
@@ -147,89 +156,8 @@ export default function DashboardPage() {
       }
     };
 
-    // Billing (token transactions) — real endpoint, empty fallback on error.
-    const fetchBilling = async () => {
-      try {
-        const res = await fetch('/api/user/tokens/transactions');
-        if (!res.ok) return;
-        const data = await res.json();
-        const txns: TokenTransaction[] = (data.transactions || []).map((t: any) => ({
-          id: t.id,
-          amount: t.amount || 0,
-          reason: t.reason === 'vote_creation' ? 'vote_creation' : 'vote_participation',
-          txHash: t.txHash || '',
-          timestamp: new Date(t.timestamp).toLocaleDateString('he-IL'),
-        }));
-        setTokenTxns(txns);
-      } catch (error) {
-        console.error('Error fetching billing history:', error);
-      }
-    };
-
-    // Treasury contributions for the user's municipality — real endpoint,
-    // filtered to the reader's own deposits, empty fallback on error.
-    const fetchContributions = async () => {
-      const municipality = user?.municipality;
-      if (!municipality) return;
-      try {
-        const res = await fetch(
-          `/api/treasury/${encodeURIComponent(municipality)}/transactions?type=deposit&limit=50`
-        );
-        if (!res.ok) return;
-        const data = await res.json();
-        const mine: TreasuryContribution[] = (data.transactions || [])
-          .filter((t: any) => !user?.id || !t.userId || t.userId === user.id)
-          .map((t: any) => ({
-            id: t.id,
-            amountILS: typeof t.amountILS === 'number' ? t.amountILS : 0,
-            voteId: t.voteId,
-            date: t.createdAt
-              ? new Date(t.createdAt).toLocaleDateString('he-IL')
-              : '',
-          }));
-        setContributions(mine);
-      } catch (error) {
-        console.error('Error fetching treasury contributions:', error);
-      }
-    };
-
-    // Civic certificates (NFTs) — auto-issued on resolution, view-only.
-    const fetchCertificates = async () => {
-      try {
-        const res = await fetch('/api/user/nfts');
-        if (!res.ok) return;
-        const data = await res.json();
-        setCertificates((data.nfts || []) as Certificate[]);
-      } catch (error) {
-        console.error('Error fetching certificates:', error);
-      }
-    };
-
-    // Retention hook: open votes in the reader's own city, waiting for a ballot.
-    const fetchActiveInCity = async () => {
-      const municipality = user?.municipality;
-      if (!municipality) return;
-      try {
-        const res = await fetch(
-          `/api/votes?municipality=${encodeURIComponent(municipality)}&status=active`
-        );
-        if (!res.ok) return;
-        const data = await res.json();
-        const votes = ((data.votes || []) as { id: string; title: string }[]).map(
-          (v) => ({ id: v.id, title: v.title })
-        );
-        setActiveInCity(votes);
-      } catch (error) {
-        console.error('Error fetching active city votes:', error);
-      }
-    };
-
     if (isAuthenticated) {
-      fetchData();
-      fetchBilling();
-      fetchContributions();
-      fetchCertificates();
-      fetchActiveInCity();
+      fetchDashboard();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentionally omit user to prevent refetch on every user update; we only want to fetch once when authenticated
   }, [isLoading, isAuthenticated, router]);
@@ -400,6 +328,90 @@ export default function DashboardPage() {
               </div>
             </div>
           </motion.section>
+
+          {/* ===== City civic pulse ===== */}
+          {user?.municipality && cityMetrics && (
+            <motion.section
+              className="border-2 border-ink bg-paper-box p-5"
+              aria-label="מדדי הרשות שלכם"
+              {...reveal(0.09)}
+            >
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <span className="flex items-center gap-2 font-mono text-sm font-extrabold uppercase tracking-widest text-red">
+                  <span aria-hidden className="inline-block size-[0.7em] bg-red" />
+                  הדופק האזרחי · {user.municipality}
+                </span>
+                <NewsButton
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    router.push(
+                      `/municipality/${encodeURIComponent(user.municipality!)}`
+                    )
+                  }
+                  trailing={<span aria-hidden>←</span>}
+                >
+                  לפרופיל הרשות המלא
+                </NewsButton>
+              </div>
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+                <MetricBar
+                  label="מעורבות אזרחית"
+                  value={
+                    cityMetrics.engagementRate !== null
+                      ? Math.round(cityMetrics.engagementRate * 100)
+                      : 0
+                  }
+                  display={
+                    cityMetrics.engagementRate !== null
+                      ? `${Math.round(cityMetrics.engagementRate * 100)}%`
+                      : '—'
+                  }
+                  caption={`${cityMetrics.participants.toLocaleString('he-IL')} מצביעים מתוך ${cityMetrics.residents.toLocaleString('he-IL')} רשומים`}
+                />
+                <MetricBar
+                  label="זמן עד הצבעה"
+                  value={
+                    cityMetrics.avgTimeToEngageHours !== null
+                      ? Math.max(
+                          0,
+                          Math.min(
+                            100,
+                            100 - (cityMetrics.avgTimeToEngageHours / 72) * 100
+                          )
+                        )
+                      : 0
+                  }
+                  display={
+                    cityMetrics.avgTimeToEngageHours !== null
+                      ? cityMetrics.avgTimeToEngageHours < 48
+                        ? `${Math.round(cityMetrics.avgTimeToEngageHours)} שע׳`
+                        : `${Math.round(cityMetrics.avgTimeToEngageHours / 24)} ימים`
+                      : '—'
+                  }
+                  caption="ממוצע מפתיחת הצבעה ועד מתן הקול"
+                />
+                <MetricBar
+                  label="שביעות רצון"
+                  value={
+                    cityMetrics.satisfactionAvg !== null
+                      ? Math.round((cityMetrics.satisfactionAvg / 5) * 100)
+                      : 0
+                  }
+                  display={
+                    cityMetrics.satisfactionAvg !== null
+                      ? `${cityMetrics.satisfactionAvg.toFixed(1)} / 5`
+                      : '—'
+                  }
+                  caption={
+                    cityMetrics.satisfactionCount > 0
+                      ? `${cityMetrics.satisfactionCount.toLocaleString('he-IL')} תושבים דירגו`
+                      : 'אין עדיין דירוגים'
+                  }
+                />
+              </div>
+            </motion.section>
+          )}
 
           {/* ===== Quick actions strip ===== */}
           {activeInCity.length > 0 && (
