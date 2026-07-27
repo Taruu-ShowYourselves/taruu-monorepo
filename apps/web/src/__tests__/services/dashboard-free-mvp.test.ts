@@ -124,9 +124,12 @@ describe('the rest of the dashboard is preserved', () => {
     expect(dashboardCode).toContain('נרשמו לפלטפורמה');
   });
 
-  it('keeps the Community Fund and Financial Bags coming-soon cards', () => {
+  it('keeps the Community Fund coming-soon card, without the portfolio-value card', () => {
     expect(dashboardCode).toContain('הקרן הקהילתית');
-    expect(dashboardCode).toContain('שווי התיקים');
+    // "שווי התיקים" was Issue-Coin/BAGS residue — an investment-index framing
+    // with no place in the free MVP (removed in Issue #37, Slice 3).
+    expect(dashboardCode).not.toContain('שווי התיקים');
+    expect(dashboardCode).not.toContain('מדד ההשקעה');
   });
 
   it('keeps the news coming-soon tab', () => {

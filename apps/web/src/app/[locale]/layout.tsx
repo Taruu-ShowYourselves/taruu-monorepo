@@ -182,9 +182,9 @@ function generateStructuredData(locale: Locale) {
       : 'App for local community voting with GPS location verification',
     offers: {
       '@type': 'Offer',
-      price: '3',
+      price: '0',
       priceCurrency: 'ILS',
-      description: isHebrew ? 'דמי השתתפות להצבעה' : 'Voting participation fee',
+      description: isHebrew ? 'השתתפות חינם בהצבעה' : 'Free voting participation',
     },
     featureList: isHebrew
       ? ['אימות GPS', 'תוצאות שקופות', 'הצבעות קהילתיות', 'אימות תושבים']
@@ -212,8 +212,8 @@ function generateStructuredData(locale: Locale) {
         acceptedAnswer: {
           '@type': 'Answer',
           text: isHebrew
-            ? 'דמי ההשתתפות הם ₪3 בלבד. מתוכם ₪2 נשמרים בקרן נאמנות קהילתית ו-₪1 משמש לתחזוקת הפלטפורמה.'
-            : 'The participation fee is only 3 NIS. Of this, 2 NIS goes to a community trust fund and 1 NIS is used for platform maintenance.',
+            ? 'ההשתתפות בהצבעה היא ללא עלות וללא מנוי. כדי להשתתף יש להשלים את תהליך האימות הנדרש במערכת.'
+            : 'Participation is free — there is no participation fee and no subscription. To participate, complete the verification process required by the platform.',
         },
       },
       {
@@ -256,7 +256,6 @@ function generateStructuredData(locale: Locale) {
         name: 'Israel',
       },
     },
-    priceRange: '₪3',
   };
 
   return [organization, website, softwareApp, faq, localBusiness];

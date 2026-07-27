@@ -8,7 +8,7 @@ import type { Locale } from '@/lib/i18n';
 export const metadata: Metadata = {
   title: 'קיר הניצחון | ארכיון הצבעות',
   description:
-    'ארכיון ההצבעות שהסתיימו - צפו בתוצאות, NFTs שהונפקו ובהשפעת התומכים החיצוניים.',
+    'ארכיון ההצבעות שהסתיימו — תוצאות, תעודות השתתפות ורשומות חתומות.',
 };
 
 interface ArchivePageProps {

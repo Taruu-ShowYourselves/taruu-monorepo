@@ -58,15 +58,6 @@ function ShieldIcon() {
   );
 }
 
-function CoinIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className={styles.topicIcon} aria-hidden focusable="false">
-      <circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M12 7.5v9M14.3 9.4c-.5-.8-1.4-1.2-2.4-1.2-1.3 0-2.3.7-2.3 1.8 0 2.4 4.8 1.3 4.8 3.8 0 1.1-1 1.9-2.5 1.9-1.1 0-2-.5-2.5-1.3" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function LockIcon() {
   return (
     <svg viewBox="0 0 24 24" className={styles.topicIcon} aria-hidden focusable="false">
@@ -86,18 +77,13 @@ interface Topic {
 const TOPICS: Topic[] = [
   {
     label: 'הצבעה',
-    blurb: 'איך מצביעים, מתי, וכמה זה עולה.',
+    blurb: 'איך מצביעים, מתי, וכמה זמן זה לוקח.',
     icon: VoteIcon,
   },
   {
     label: 'אימות',
     blurb: 'איך מוודאים שכל קול הוא תושב אמיתי.',
     icon: ShieldIcon,
-  },
-  {
-    label: 'כסף',
-    blurb: 'לאן הולך התשלום ומה מקבלים בתמורה.',
-    icon: CoinIcon,
   },
   {
     label: 'פרטיות',
@@ -163,7 +149,7 @@ export function SupportFlow({ locale = 'he' }: SupportFlowProps) {
               </span>
               <h2 className={styles.pathTitle}>שאלות נפוצות</h2>
               <p className={styles.pathText}>
-                התשובות הברורות לשאלות שכולם שואלים — הצבעה, אימות, כסף ופרטיות,
+                התשובות הברורות לשאלות שכולם שואלים — הצבעה, אימות ופרטיות,
                 בלי ז&apos;רגון.
               </p>
               <span className={styles.pathMore}>

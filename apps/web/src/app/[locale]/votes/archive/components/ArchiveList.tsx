@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Segmented, PressSelect, TallyBar } from '@/components/press';
-import { formatCurrency, formatDate } from '@sync/shared';
+import { formatDate } from '@sync/shared';
 import styles from './ArchiveList.module.css';
 
 interface ResolvedVote {
@@ -150,27 +150,14 @@ function VoteArchiveCard({ vote }: { vote: ResolvedVote }) {
           <dd className={styles.statVal}>{vote.nftStats.verifiedVoters.toLocaleString('he-IL')}</dd>
         </div>
         <div className={styles.statCell}>
-          <dt className={styles.statKey}>תומכים חיצוניים</dt>
+          <dt className={styles.statKey}>שותפים אזרחיים</dt>
           <dd className={styles.statVal}>{vote.nftStats.civicPatrons.toLocaleString('he-IL')}</dd>
         </div>
         <div className={styles.statCell}>
-          <dt className={styles.statKey}>NFTs שהונפקו</dt>
+          <dt className={styles.statKey}>תעודות שהונפקו</dt>
           <dd className={styles.statVal}>{vote.nftStats.totalMinted.toLocaleString('he-IL')}</dd>
         </div>
       </dl>
-
-      {/* Funds — ink block */}
-      <div className={styles.funds}>
-        <div className={styles.fundsHead}>
-          <span className={styles.fundsKey}>כספים שנאספו</span>
-          <span className={styles.fundsTotal}>{formatCurrency(vote.fundsRaised.totalILS)}</span>
-        </div>
-        <div className={styles.fundsBreakdown}>
-          <span>מקומי · {formatCurrency(vote.fundsRaised.localContributions)}</span>
-          <span className={styles.fundsSep} aria-hidden>■</span>
-          <span>חיצוני · {formatCurrency(vote.fundsRaised.externalContributions)}</span>
-        </div>
-      </div>
 
       <footer className={styles.cardFooter}>
         <span className={styles.dateline}>

@@ -86,23 +86,27 @@ describe('BASELINE: dead financial dictionary keys (en.json, orphaned file)', ()
   });
 });
 
-describe('BASELINE: structured data currently advertises a fee (layout.tsx)', () => {
+describe('structured data advertises free participation (layout.tsx — Slice 3 state)', () => {
   // JSON-LD is emitted on every page; Google rich results surface it.
-  // Slice 3 changes the Offer to price '0', rewrites the FAQ answer to the
-  // free wording, and deletes priceRange (which has no free notation).
-  it('offers voting at a price of 3 ILS', () => {
-    expect(layout).toContain("price: '3'");
-    expect(layout).toContain("priceCurrency: 'ILS'");
-    expect(layout).toContain('דמי השתתפות להצבעה');
+  // Slice 3 changed the Offer to price '0', rewrote the FAQ answer to the
+  // free wording, and deleted priceRange (which has no free notation).
+  it('offers voting at a price of 0 ILS', () => {
+    expect(layout).toContain("price: '0'");
+    expect(layout).not.toContain("price: '3'");
+    expect(layout).toContain('השתתפות חינם בהצבעה');
+    expect(layout).toContain('Free voting participation');
   });
 
-  it('answers the cost FAQ with the ₪3 fee in both languages', () => {
+  it('answers the cost FAQ with free participation in both languages', () => {
     expect(layout).toContain('כמה עולה להשתתף בהצבעה?');
-    expect(layout).toContain('דמי ההשתתפות הם ₪3 בלבד');
-    expect(layout).toContain('The participation fee is only 3 NIS');
+    expect(layout).toContain('ההשתתפות בהצבעה היא ללא עלות וללא מנוי.');
+    expect(layout).toContain('Participation is free');
+    expect(layout).not.toContain('₪3');
+    expect(layout).not.toContain('3 NIS');
   });
 
-  it('declares a ₪3 priceRange on the LocalBusiness entity', () => {
-    expect(layout).toContain("priceRange: '₪3'");
+  it('declares no priceRange and carries no shekel glyph at all', () => {
+    expect(layout).not.toContain('priceRange');
+    expect(layout).not.toContain('₪');
   });
 });

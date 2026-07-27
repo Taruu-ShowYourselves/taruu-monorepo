@@ -2,7 +2,6 @@ export type FAQCategory =
   | 'general'
   | 'voting'
   | 'security'
-  | 'payments'
   | 'legal'
   | 'account';
 
@@ -54,25 +53,11 @@ export const faqData: FAQItem[] = [
     category: 'voting',
   },
   {
-    id: 'voting-cost',
-    question: 'כמה עולה להצביע, ולמה בכלל משלמים?',
+    id: 'is-voting-free',
+    question: 'האם ההצבעה עולה כסף?',
     answer:
-      '₪3 להשתתפות בהצבעה. זה לא קנס ולא מס — אלא דמי השתתפות סמליים שמפצלים כך: ₪2 נכנסים לקרן הקהילתית, ו-₪1 מכסה את התפעול. התשלום הסמלי גם מבטיח שכל קול שייך לתושב אמיתי אחד.',
-    category: 'payments',
-  },
-  {
-    id: 'where-money-goes',
-    question: 'לאן הולך הכסף של הקרן?',
-    answer:
-      'ה-₪2 שנכנסים לקרן מנוהלים בקרן קהילתית שקופה, לפי כללים מוגדרים מראש, וכל תנועה שלה גלויה. הכסף חוזר לקהילה — לא אלינו.',
-    category: 'payments',
-  },
-  {
-    id: 'pay-in-shekels',
-    question: 'אני משלם בכסף אמיתי או בקריפטו?',
-    answer:
-      'בשקלים רגילים, דרך כרטיס אשראי מאובטח. אין צורך בארנק קריפטו ולא צריך לדעת כלום על בלוקצ\'יין.',
-    category: 'payments',
+      'לא. ההשתתפות בהצבעה היא ללא עלות וללא מנוי. כדי להשתתף יש להשלים את תהליך האימות הנדרש במערכת.',
+    category: 'voting',
   },
   {
     id: 'location-verification',
@@ -85,7 +70,7 @@ export const faqData: FAQItem[] = [
     id: 'blockchain',
     question: 'מה הקשר לבלוקצ\'יין? זה מסבך?',
     answer:
-      'הבלוקצ\'יין עובד מאחורי הקלעים ועושה דבר אחד פשוט: מקבע את ההצבעות כך שאי אפשר לשנות או לזייף אותן בדיעבד. אתם פשוט מצביעים ומשלמים בשקלים — כל השאר קורה ברקע.',
+      'הבלוקצ\'יין עובד מאחורי הקלעים ועושה דבר אחד פשוט: מקבע את ההצבעות כך שאי אפשר לשנות או לזייף אותן בדיעבד. אתם פשוט מצביעים — כל השאר קורה ברקע.',
     category: 'security',
   },
   {
@@ -107,7 +92,6 @@ export const faqCategories: Record<FAQCategory, string> = {
   general: 'כללי',
   voting: 'הצבעות',
   security: 'אבטחה ופרטיות',
-  payments: 'תשלומים וכסף',
   legal: 'משפטי',
   account: 'חשבון',
 };
@@ -116,7 +100,6 @@ export const faqCategories: Record<FAQCategory, string> = {
 export const faqCategoryOrder: FAQCategory[] = [
   'general',
   'voting',
-  'payments',
   'security',
   'legal',
   'account',

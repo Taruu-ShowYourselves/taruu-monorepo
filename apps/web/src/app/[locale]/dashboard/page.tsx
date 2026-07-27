@@ -408,16 +408,12 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              {/* Community fund + Issue Coins are not live in the MVP. Render an
-                  honest placeholder rather than a zero or an invented figure —
-                  no endpoint is called for these cards on purpose. */}
+              {/* The community fund is not live in the MVP. Render an honest
+                  placeholder rather than a zero or an invented figure —
+                  no endpoint is called for this card on purpose. */}
               <ComingSoonStat
                 label="הקרן הקהילתית"
                 note="תיפתח עם ההצבעה הראשונה."
-              />
-              <ComingSoonStat
-                label="שווי התיקים"
-                note="מדד ההשקעה הקהילתית יעלה בהמשך."
               />
             </div>
           </motion.section>

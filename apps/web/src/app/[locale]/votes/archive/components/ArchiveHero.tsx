@@ -4,8 +4,8 @@ import styles from './ArchiveHero.module.css';
 
 const heroStats = [
   { value: '—', label: 'הצבעות שהסתיימו' },
-  { value: '—', label: 'NFTs שהונפקו' },
-  { value: '—', label: 'כספים שנאספו' },
+  { value: '—', label: 'תעודות שהונפקו' },
+  { value: '—', label: 'קולות מאומתים' },
 ];
 
 export function ArchiveHero() {
