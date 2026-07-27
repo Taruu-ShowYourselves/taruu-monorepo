@@ -276,6 +276,11 @@ const primaryColor = colors.primary[600]; // '#2563EB'
 - `POST /api/votes/[id]/participate` - Cast vote (₪1)
 - `POST /api/votes/[id]/verify-location` - GPS verification
 
+### Identity Documents (issue #32 — on-device scan, fields-only storage)
+- `POST /api/verification/document` - Submit fields extracted on-device (never images)
+- `GET /api/verification/document` - Current document verification status
+- `DELETE /api/verification/document` - Erase identity fields (PPL §14 right)
+
 ### User
 - `GET /api/user/profile` - Get user profile
 - `POST /api/user/profile` - Create profile
@@ -300,6 +305,9 @@ SUPABASE_SERVICE_ROLE_KEY=
 # JWT Sessions
 JWT_SECRET=
 JWT_EXPIRY=7d
+
+# Identity documents — HMAC key for one-way ID-number hashing (falls back to JWT_SECRET)
+IDENTITY_HASH_SECRET=
 
 # Google OAuth
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=

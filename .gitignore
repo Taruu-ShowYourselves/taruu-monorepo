@@ -73,3 +73,7 @@ supabase/.temp/
 
 # Local MCP server config (machine-specific)
 .mcp.json
+
+# tesseract.js assets copied from node_modules (scripts/copy-ocr-assets.mjs)
+public/ocr/worker.min.js
+public/ocr/tesseract-core-*

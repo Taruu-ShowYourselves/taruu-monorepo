@@ -270,6 +270,16 @@ export const verificationCheckInLimiter = createRateLimiter('verification-check-
 });
 
 /**
+ * Rate limiter for identity-document submission endpoint.
+ * 5 requests per minute per user.
+ * Scanning retries happen client-side; server submissions should be rare.
+ */
+export const identityDocumentLimiter = createRateLimiter('identity-document', {
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 5,
+});
+
+/**
  * Rate limiter for newsletter subscription endpoint.
  * 3 requests per minute per IP.
  * Prevents spam signups.

@@ -37,6 +37,9 @@ const eslintConfig = [
       ".next/**",
       "dist/**",
       "build/**",
+      ".wrangler/**",
+      ".open-next/**",
+      "public/ocr/**",
     ],
   },
 ];

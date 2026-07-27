@@ -14,6 +14,10 @@ SUPABASE_SERVICE_ROLE_KEY=
 JWT_SECRET=
 JWT_EXPIRY=7d
 
+# Identity documents (issue #32) — HMAC key for one-way ID-number hashing.
+# Falls back to JWT_SECRET when unset; set a dedicated secret in production.
+IDENTITY_HASH_SECRET=
+
 # Auth0 (primary login — OIDC Universal Login; federates Google).
 # Domain has NO trailing slash, e.g. your-tenant.eu.auth0.com
 AUTH0_CLIENT_ID=

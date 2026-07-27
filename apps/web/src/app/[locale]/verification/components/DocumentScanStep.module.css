@@ -1,0 +1,248 @@
+/* ============================================================
+   DocumentScanStep — on-device ID/license scan (issue #32)
+   Matches the verification page's press-panel vocabulary.
+   ============================================================ */
+
+.panel {
+  display: grid;
+  gap: var(--space-4);
+  background: var(--np-paper-box);
+  border: var(--np-rule-hair) solid var(--np-paper-edge);
+  padding: clamp(var(--space-4), 3vw, var(--space-6));
+}
+
+.panelHead {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.panelTag {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--np-red);
+}
+
+.panelTitle {
+  font-family: var(--np-font-display);
+  font-size: clamp(var(--text-xl), 3vw, var(--text-2xl));
+  font-weight: 900;
+  color: var(--np-ink);
+  line-height: 1.15;
+}
+
+.panelText {
+  font-family: var(--np-font-body);
+  font-size: var(--text-base);
+  color: var(--np-ink-soft);
+  line-height: 1.6;
+  max-width: 46rem;
+}
+
+/* ---------- consent ---------- */
+
+.consentList {
+  display: grid;
+  gap: var(--space-2);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.consentItem {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  font-family: var(--np-font-body);
+  font-size: var(--text-sm);
+  color: var(--np-ink);
+  line-height: 1.55;
+  border-inline-start: 3px solid var(--np-ink);
+  padding-inline-start: var(--space-3);
+}
+
+.consentMark {
+  font-family: var(--np-font-mono);
+  font-weight: 800;
+  color: var(--np-ink);
+  flex-shrink: 0;
+}
+
+.consentCheckRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  font-family: var(--np-font-body);
+  font-size: var(--text-sm);
+  color: var(--np-ink);
+  line-height: 1.55;
+  border: var(--np-rule-hair) solid var(--np-paper-edge);
+  background: var(--np-paper-2);
+  padding: var(--space-3);
+  cursor: pointer;
+}
+
+.consentCheckbox {
+  inline-size: 1.15rem;
+  block-size: 1.15rem;
+  margin-block-start: 0.15rem;
+  accent-color: var(--np-red);
+  flex-shrink: 0;
+}
+
+/* ---------- details ---------- */
+
+.segmented {
+  max-width: 34rem;
+}
+
+/* ---------- camera ---------- */
+
+.cameraBox {
+  position: relative;
+  inline-size: 100%;
+  max-inline-size: 40rem;
+  aspect-ratio: 4 / 3;
+  background: var(--np-ink);
+  overflow: hidden;
+}
+
+.cameraVideo {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+/* Card-aspect guide: 90% width, centered, hard press corners. */
+.cameraFrame {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  translate: 50% -50%;
+  inline-size: 90%;
+  aspect-ratio: 1.586;
+  border: 2px solid var(--np-paper);
+  outline: 9999px solid rgb(0 0 0 / 45%);
+  pointer-events: none;
+}
+
+.processingOverlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 55%);
+}
+
+.processingText {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--np-paper);
+  animation: pulse 1.2s var(--np-ease) infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .processingText {
+    animation: none;
+  }
+}
+
+/* ---------- review ---------- */
+
+.reviewBadges {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.badgeOk,
+.badgePending {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: var(--space-1) var(--space-2);
+  border: var(--np-rule-hair) solid currentColor;
+}
+
+.badgeOk {
+  color: var(--np-ink);
+  background: var(--np-paper-2);
+}
+
+.badgePending {
+  color: var(--np-red);
+}
+
+.reviewGrid {
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (min-width: 768px) {
+  .reviewGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ---------- shared ---------- */
+
+.actions {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.linkButton {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--np-ink-soft);
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+  cursor: pointer;
+}
+
+.linkButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.errorRow {
+  font-family: var(--np-font-body);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--np-red);
+  line-height: 1.5;
+}
+
+.privacyNote {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--np-ink-faint);
+}

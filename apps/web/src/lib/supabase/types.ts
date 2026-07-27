@@ -35,6 +35,7 @@ export interface Database {
           identity_score: number;
           verification_status: 'none' | 'pending' | 'verified' | 'failed';
           qubik_wallet_address: string | null;
+          identity_verified_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -57,6 +58,7 @@ export interface Database {
           identity_score?: number;
           verification_status?: 'none' | 'pending' | 'verified' | 'failed';
           qubik_wallet_address?: string | null;
+          identity_verified_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -79,6 +81,7 @@ export interface Database {
           identity_score?: number;
           verification_status?: 'none' | 'pending' | 'verified' | 'failed';
           qubik_wallet_address?: string | null;
+          identity_verified_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -879,6 +882,96 @@ export interface Database {
         };
         Relationships: [];
       };
+      identity_documents: {
+        Row: {
+          id: string;
+          user_id: string;
+          document_type: 'id_card' | 'drivers_license';
+          id_number_hash: string;
+          id_number_last2: string;
+          first_name: string;
+          last_name: string;
+          date_of_birth: string;
+          document_expiry: string;
+          ocr_id_number_matched: boolean;
+          ocr_confidence: number;
+          ocr_fields_edited: boolean;
+          status: 'verified' | 'pending_review' | 'rejected';
+          consent_version: string;
+          consent_at: string;
+          verified_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          document_type: 'id_card' | 'drivers_license';
+          id_number_hash: string;
+          id_number_last2: string;
+          first_name: string;
+          last_name: string;
+          date_of_birth: string;
+          document_expiry: string;
+          ocr_id_number_matched?: boolean;
+          ocr_confidence?: number;
+          ocr_fields_edited?: boolean;
+          status?: 'verified' | 'pending_review' | 'rejected';
+          consent_version: string;
+          consent_at?: string;
+          verified_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          document_type?: 'id_card' | 'drivers_license';
+          id_number_hash?: string;
+          id_number_last2?: string;
+          first_name?: string;
+          last_name?: string;
+          date_of_birth?: string;
+          document_expiry?: string;
+          ocr_id_number_matched?: boolean;
+          ocr_confidence?: number;
+          ocr_fields_edited?: boolean;
+          status?: 'verified' | 'pending_review' | 'rejected';
+          consent_version?: string;
+          consent_at?: string;
+          verified_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      identity_document_events: {
+        Row: {
+          id: string;
+          user_id: string;
+          event:
+            | 'submitted'
+            | 'auto_verified'
+            | 'queued_review'
+            | 'approved'
+            | 'rejected'
+            | 'deleted';
+          detail: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          event:
+            | 'submitted'
+            | 'auto_verified'
+            | 'queued_review'
+            | 'approved'
+            | 'rejected'
+            | 'deleted';
+          detail?: Json | null;
+          created_at?: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -963,4 +1056,6 @@ export type WebhookEvent = Tables<'webhook_events'>;
 export type VoteNft = Tables<'vote_nfts'>;
 export type MerchOrderRow = Tables<'merch_orders'>;
 export type VoteSource = Tables<'vote_sources'>;
+export type IdentityDocument = Tables<'identity_documents'>;
+export type IdentityDocumentEvent = Tables<'identity_document_events'>;
 export type KnessetItem = Tables<'knesset_items'>;
