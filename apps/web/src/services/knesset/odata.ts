@@ -41,10 +41,14 @@ export interface KnsPlmSessionItem {
   LastUpdatedDate: string | null;
 }
 
+/** Hard cap per upstream call — a hung Knesset API must not eat the cron. */
+const FETCH_TIMEOUT_MS = 15_000;
+
 async function fetchODataCollection<T>(pathAndQuery: string): Promise<T[]> {
   const url = `${KNESSET_ODATA_BASE}/${pathAndQuery}`;
   const response = await fetch(url, {
     headers: { accept: 'application/json' },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
 
   if (!response.ok) {

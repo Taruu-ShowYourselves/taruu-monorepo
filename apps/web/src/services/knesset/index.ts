@@ -27,10 +27,11 @@ import {
 
 // System editorial user that owns agenda-created votes (same default as the
 // discovery ingest route; override with KNESSET_CREATOR_ID / INGEST_CREATOR_ID).
+const DEFAULT_CREATOR_ID = '99999999-9999-4999-8999-999999999999';
 const CREATOR_ID =
   process.env.KNESSET_CREATOR_ID ??
   process.env.INGEST_CREATOR_ID ??
-  '99999999-9999-4999-8999-999999999999';
+  DEFAULT_CREATOR_ID;
 
 const VOTE_OPTIONS = ['בעד', 'נגד', 'נמנע'];
 const VOTE_DAYS = 14;
@@ -154,7 +155,11 @@ async function syncItem(
     VOTE_OPTIONS.map((text) => ({ vote_id: vote.id, text }))
   );
 
-  const linked = await upsertKnessetItem({ ...metadata, vote_id: vote.id });
+  // The vote and its agenda link are two writes — retry the link once so a
+  // transient failure doesn't leave the vote without sitting metadata.
+  const linked =
+    (await upsertKnessetItem({ ...metadata, vote_id: vote.id })) ??
+    (await upsertKnessetItem({ ...metadata, vote_id: vote.id }));
   if (!linked) {
     // Vote exists but lost its agenda link; the title-dup guard keeps the
     // next run from duplicating it. Surface for ops.
@@ -173,6 +178,12 @@ export async function syncKnessetAgenda(): Promise<KnessetSyncResult> {
     skippedTitleDup: 0,
     errors: [],
   };
+
+  if (CREATOR_ID === DEFAULT_CREATOR_ID) {
+    log.warn(
+      'Knesset sync using the default desk seed user as vote creator — set KNESSET_CREATOR_ID (or INGEST_CREATOR_ID) to silence this'
+    );
+  }
 
   const sessions = selectSessions(await fetchRecentPlenumSessions());
   let budget = MAX_ITEMS_PER_RUN;

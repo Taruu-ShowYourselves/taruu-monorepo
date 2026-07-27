@@ -30,6 +30,14 @@ CREATE TABLE IF NOT EXISTS knesset_items (
 CREATE INDEX IF NOT EXISTS idx_knesset_items_vote ON knesset_items(vote_id);
 CREATE INDEX IF NOT EXISTS idx_knesset_items_session ON knesset_items(plenum_session_id);
 
+-- One live ballot per national question: concurrent sync runs (cron overlap,
+-- manual backfill) can both miss the app-level title dedup — make the DB the
+-- authority. Scoped to the Knesset desk so municipal/FB-ingest data is
+-- unaffected.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_votes_knesset_live_title
+  ON votes(title)
+  WHERE municipality_id = 'כנסת ישראל' AND status IN ('pending', 'active');
+
 ALTER TABLE knesset_items ENABLE ROW LEVEL SECURITY;
 
 -- Day-order metadata is public press data — readable by anyone.
