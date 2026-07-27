@@ -62,6 +62,11 @@
   // "triggers": {
   //   "crons": ["*/15 * * * *", "0 * * * *", "*/10 * * * *", "0 */6 * * *"]
   // },
+  // TEMP: only the knesset cron is registered pre-go-live (no-op on the old
+  // worker build; the other three activate with the full deploy).
+  "triggers": {
+    "crons": ["0 */6 * * *"]
+  },
 
   // Secrets are NOT stored here. Set them with `wrangler secret put <NAME>`
   // (or .dev.vars locally). Only NON-secret public vars belong in `vars`.
