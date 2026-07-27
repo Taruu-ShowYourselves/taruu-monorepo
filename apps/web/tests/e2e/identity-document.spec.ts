@@ -324,5 +324,17 @@ test.describe('authenticated UI walk', () => {
     // Names prefilled from the profile.
     await expect(page.getByLabel('שם פרטי')).toHaveValue('בדיקה');
     await expect(page.getByLabel('שם משפחה')).toHaveValue('אוטומטית');
+
+    // Continue into the selfie phase: human.js models load in-browser and the
+    // observation loop runs. The fake camera feeds faceless frames, so the
+    // honest outcome is the "lost you" recovery prompt — which proves the
+    // face pipeline booted, detected nothing, and the liveness machine wired.
+    await page.getByRole('button', { name: 'אישור והמשך לסלפי' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'סלפי קצר לאימות' })
+    ).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('button', { name: 'נסו שוב' })).toBeVisible({
+      timeout: 120_000, // model warmup + MAX_MISSING_FRAMES of empty frames
+    });
   });
 });
