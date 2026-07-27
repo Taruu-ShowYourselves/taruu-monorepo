@@ -11,6 +11,7 @@ import {
   clearSessionCookies,
 } from '@/services/auth/session';
 import { getUserById, getSocialProofsByUserId } from '@/lib/supabase/db';
+import { buildUserProfile } from '@/services/user/profile';
 
 /**
  * POST /api/auth/session
@@ -39,21 +40,10 @@ export async function POST(request: Request) {
 
     // Get social proofs to calculate identity score
     const proofs = await getSocialProofsByUserId(user.id);
-    const providers = proofs.map(p => p.provider);
 
-    // Map Supabase user to API response format
-    const userResponse = {
-      id: user.id,
-      did: user.did,
-      email: user.email,
-      firstName: user.first_name,
-      lastName: user.last_name,
-      avatarUrl: user.avatar_url,
-      identityScore: user.identity_score,
-      verificationStatus: user.verification_status,
-      municipality: user.municipality_id,
-      socialProofs: providers,
-    };
+    // Canonical profile shape — shared with /api/user/profile and the other
+    // auth routes so the client only ever sees one user shape.
+    const userResponse = await buildUserProfile(user, proofs);
 
     return NextResponse.json({
       valid: true,

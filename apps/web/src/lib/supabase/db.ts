@@ -1112,6 +1112,47 @@ export function isWebhookStale(
 // ============================================
 
 /**
+ * Count every registered user on the platform.
+ *
+ * Aggregate only — no row is ever returned, so this exposes nothing about any
+ * individual. Uses a HEAD request so Postgres returns the count without
+ * streaming rows.
+ */
+export async function countRegisteredUsers(): Promise<number> {
+  const { count, error } = await supabaseAdmin
+    .from('users')
+    .select('*', { count: 'exact', head: true });
+
+  if (error) {
+    console.error('Failed to count registered users:', error);
+    throw error;
+  }
+  return count || 0;
+}
+
+/**
+ * Count registered users in a single municipality.
+ *
+ * Callers publishing this figure MUST apply a small-cohort floor: in a town
+ * with one or two registrations the count is quasi-identifying, because a
+ * reader who knows the town can infer who it is.
+ */
+export async function countRegisteredUsersByMunicipality(
+  municipalityId: string
+): Promise<number> {
+  const { count, error } = await supabaseAdmin
+    .from('users')
+    .select('*', { count: 'exact', head: true })
+    .eq('municipality_id', municipalityId);
+
+  if (error) {
+    console.error('Failed to count registered users by municipality:', error);
+    throw error;
+  }
+  return count || 0;
+}
+
+/**
  * Count the number of votes a user has participated in.
  */
 export async function countUserVoteParticipations(userId: string): Promise<number> {
@@ -1199,7 +1240,13 @@ export async function getTreasuryByMunicipality(municipalityId: string) {
 }
 
 /**
- * Get treasury transactions with pagination
+ * Get treasury transactions with pagination.
+ *
+ * NOTE: this returns the municipality-wide ledger, including rows initiated by
+ * OTHER users and rows with no owner at all. Callers exposing this over HTTP
+ * must strip per-user identifiers. To read a single user's own contributions,
+ * use `getUserTreasuryTransactions` instead — do not filter this result set in
+ * the client.
  */
 export async function getTreasuryTransactions(
   treasuryId: string,
@@ -1222,6 +1269,40 @@ export async function getTreasuryTransactions(
 
   if (error) {
     console.error('Failed to get treasury transactions:', error);
+    throw error;
+  }
+  return data || [];
+}
+
+/**
+ * Get the treasury transactions a specific user initiated.
+ *
+ * Ownership is enforced in the query (`user_id = :userId`), so rows belonging
+ * to other users — and rows with a NULL `user_id`, which belong to nobody —
+ * can never be returned. This is the only supported way to build a user's
+ * personal contribution ledger.
+ */
+export async function getUserTreasuryTransactions(
+  userId: string,
+  options: { limit?: number; offset?: number; type?: TreasuryTransactionType } = {}
+) {
+  const { limit = 50, offset = 0, type } = options;
+
+  let query = supabaseAdmin
+    .from('treasury_transactions')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (type) {
+    query = query.eq('type', type);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Failed to get user treasury transactions:', error);
     throw error;
   }
   return data || [];
