@@ -1,6 +1,8 @@
 export { Lead } from './Lead';
+export { BackedBy } from './BackedBy';
 export { ConsensusDesk } from './ConsensusDesk';
 export { KnessetDesk } from './KnessetDesk';
+export { KnessetAgenda } from './KnessetAgenda';
 export { ActNow } from './ActNow';
 export { Participate } from './Participate';
 export { Pillars } from './Pillars';
