@@ -23,13 +23,14 @@ const coreDir = dirname(
   })
 );
 
+// The worker's browser getCore loads the single-file `*.wasm.js` variants
+// (relaxedsimd → simd → plain, lstm-only since we init with OEM.LSTM_ONLY).
 const files = [
   [workerSrc, 'worker.min.js'],
   ...[
-    'tesseract-core-simd-lstm.js',
-    'tesseract-core-simd-lstm.wasm',
-    'tesseract-core-lstm.js',
-    'tesseract-core-lstm.wasm',
+    'tesseract-core-relaxedsimd-lstm.wasm.js',
+    'tesseract-core-simd-lstm.wasm.js',
+    'tesseract-core-lstm.wasm.js',
   ].map((f) => [join(coreDir, f), f]),
 ];
 
