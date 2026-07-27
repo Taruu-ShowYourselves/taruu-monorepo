@@ -1,0 +1,41 @@
+name: Web tests
+
+# Runs the apps/web Vitest suite on pull requests. Added for Issue #37 so the
+# financial-copy baselines (and later absence guards) actually gate changes —
+# no test job existed before this. Deliberately narrow: web unit tests only,
+# no build, no deploy, no other packages.
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/web-tests.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: web-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run web unit tests
+        run: pnpm --filter @sync/web test
