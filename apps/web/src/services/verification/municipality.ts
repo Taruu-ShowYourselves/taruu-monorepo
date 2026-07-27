@@ -5,6 +5,8 @@
  * and point-in-polygon verification for GPS check-ins
  */
 
+import { KNESSET_SCOPE } from '@sync/shared';
+
 interface Coordinate {
   lat: number;
   lng: number;
@@ -375,6 +377,27 @@ export function isAccuracyAcceptable(accuracy: number): boolean {
 }
 
 /**
+ * National bounding box — Knesset-scoped votes are open to any location
+ * inside Israel rather than a single municipality's polygon.
+ */
+const ISRAEL_BOUNDS = {
+  minLat: 29.45,
+  maxLat: 33.35,
+  minLng: 34.2,
+  maxLng: 35.95,
+};
+
+/** Coarse country-level check for national (KNESSET_SCOPE) votes. */
+export function isWithinIsrael(latitude: number, longitude: number): boolean {
+  return (
+    latitude >= ISRAEL_BOUNDS.minLat &&
+    latitude <= ISRAEL_BOUNDS.maxLat &&
+    longitude >= ISRAEL_BOUNDS.minLng &&
+    longitude <= ISRAEL_BOUNDS.maxLng
+  );
+}
+
+/**
  * Verify a GPS check-in
  * Returns verification result with details
  */
@@ -397,6 +420,18 @@ export function verifyCheckIn(
       inMunicipality: false,
       accuracyAcceptable: false,
       error: 'GPS accuracy is too low. Please try in an open area.',
+    };
+  }
+
+  // National scope (Knesset day-order votes): any location inside Israel
+  // qualifies — there is no single municipality polygon to test against.
+  if (expectedMunicipality === KNESSET_SCOPE) {
+    const inIsrael = isWithinIsrael(latitude, longitude);
+    return {
+      verified: inIsrael,
+      inMunicipality: inIsrael,
+      accuracyAcceptable: true,
+      error: inIsrael ? undefined : 'Location is outside Israel',
     };
   }
 
