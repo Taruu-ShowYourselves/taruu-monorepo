@@ -10,7 +10,7 @@ import {
 } from '@/lib/supabase/db';
 import { qubikService } from '@/services/qubik';
 import { emailService } from '@/services/email';
-import { IDENTITY_SCORE_WEIGHTS } from '@sync/shared';
+import { IDENTITY_SCORE_WEIGHTS, MUNICIPALITIES } from '@sync/shared';
 import { transformToProfile, getTokenBalanceSafe } from '@/services/user/profile';
 
 /**

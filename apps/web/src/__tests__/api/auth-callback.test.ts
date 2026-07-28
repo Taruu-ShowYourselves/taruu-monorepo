@@ -225,7 +225,7 @@ describe('Auth Callback API Routes', () => {
         accessToken: 'google-access-token',
         idToken: 'google-id-token',
       });
-      (getGoogleUserInfo as Mock).mockResolvedValue(mockGoogleUser);
+      (getAuth0UserInfo as Mock).mockResolvedValue(mockAuth0User);
       (getUserByGoogleId as Mock).mockResolvedValue(mockDbUser);
       (updateUser as Mock).mockResolvedValue(mockDbUser);
       (createSessionToken as Mock).mockResolvedValue('session-token');
@@ -261,7 +261,7 @@ describe('Auth Callback API Routes', () => {
         accessToken: 'google-access-token',
         idToken: 'google-id-token',
       });
-      (getGoogleUserInfo as Mock).mockResolvedValue(mockGoogleUser);
+      (getAuth0UserInfo as Mock).mockResolvedValue(mockAuth0User);
       (getUserByGoogleId as Mock).mockResolvedValue(mockDbUser);
       // The update returns the fresh row — including a municipality set on
       // another device since this row was last read.
@@ -289,7 +289,7 @@ describe('Auth Callback API Routes', () => {
         accessToken: 'google-access-token',
         idToken: 'google-id-token',
       });
-      (getGoogleUserInfo as Mock).mockResolvedValue(mockGoogleUser);
+      (getAuth0UserInfo as Mock).mockResolvedValue(mockAuth0User);
       (getUserByGoogleId as Mock).mockResolvedValue(mockDbUser);
       (updateUser as Mock).mockResolvedValue(null);
       (createSessionToken as Mock).mockResolvedValue('session-token');

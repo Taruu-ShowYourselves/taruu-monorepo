@@ -46,6 +46,9 @@ const baseUser: User = {
   identity_score: 40,
   verification_status: 'none',
   qubik_wallet_address: 'wallet-123',
+  municipality_rating: null,
+  municipality_rated_at: null,
+  identity_verified_at: null,
   created_at: '2025-01-01T00:00:00Z',
   updated_at: '2025-02-02T00:00:00Z',
 };
