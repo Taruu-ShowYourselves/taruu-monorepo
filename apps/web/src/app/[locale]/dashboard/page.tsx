@@ -9,6 +9,7 @@ import { Footer } from '@/components/layout/Footer';
 import { NewsButton, Segmented, TallyBar } from '@/components/press';
 import { useReducedMotion } from '@/hooks';
 import { resolveLocationState } from '@/lib/locationStatus';
+import { MunicipalityLink } from '@/components/uikit/municipality-link';
 import { CertificateCard, type Certificate } from '@/components/certificate/CertificateCard';
 import {
   getIdentityLevelLabel,
@@ -272,7 +273,7 @@ export default function DashboardPage() {
                   הגדר מיקום ←
                 </button>
               ) : (
-                <span>{user?.municipality}</span>
+                <MunicipalityLink name={user?.municipality} />
               )}
               <span className={styles.sep} aria-hidden>■</span>
               <span>מהדורה · {issueNo}</span>

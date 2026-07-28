@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { NewsButton } from '@/components/press/NewsButton';
 import { TallyBar } from './TallyBar';
 import styles from './VoteWidget.module.css';
@@ -15,7 +15,8 @@ interface Option {
 
 interface VoteWidgetProps {
   kicker?: string;
-  place?: string;
+  /** Plain string or a node (e.g. MunicipalityLink) shown in the header. */
+  place?: ReactNode;
   question?: string;
   options?: Option[];
   totalLabel?: string;

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Receipt } from '@/components/press';
+import { MunicipalityLink } from '@/components/uikit/municipality-link';
 import { useReducedMotion } from '@/hooks';
 import styles from './LiveDashboard.module.css';
 
@@ -191,7 +192,10 @@ export function LiveDashboard() {
                       </div>
                       <div className={styles.coinInfo}>
                         <span className={styles.coinTitle}>{coin.voteTitle}</span>
-                        <span className={styles.coinMunicipality}>{coin.municipality}</span>
+                        <MunicipalityLink
+                          name={coin.municipality}
+                          className={styles.coinMunicipality}
+                        />
                       </div>
                       <div className={styles.coinStats}>
                         <span

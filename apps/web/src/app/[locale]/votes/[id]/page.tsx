@@ -8,6 +8,7 @@ import { Footer } from '@/components/layout/Footer';
 import { useReducedMotion } from '@/hooks';
 import { NewsButton } from '@/components/press/NewsButton';
 import { CertificateCard, type Certificate } from '@/components/certificate/CertificateCard';
+import { MunicipalityLink } from '@/components/uikit/municipality-link';
 import { ParticipationFlow, type FlowOption } from './flow/ParticipationFlow';
 import styles from './page.module.css';
 
@@ -250,7 +251,7 @@ export default function VoteDetailPage() {
           <header className={styles.head}>
             <span className={styles.kicker}>
               <span aria-hidden className={styles.kickerTick} />
-              הצבעה חיה · {vote.municipality}
+              הצבעה חיה · <MunicipalityLink name={vote.municipality} />
             </span>
 
             <motion.h1 className={styles.title} {...titleAnim}>
@@ -289,7 +290,7 @@ export default function VoteDetailPage() {
                     <span className={styles.sep} aria-hidden>■</span>
                   </>
                 ) : null}
-                <span>{vote.municipality}</span>
+                <MunicipalityLink name={vote.municipality} />
               </div>
 
               <div className={styles.shareRow}>
