@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getVoteWithOptions } from '@/lib/supabase/db';
+import { getVoteWithOptions, getUserVote } from '@/lib/supabase/db';
+import { getSessionFromRequest } from '@/services/auth/session';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -35,17 +36,29 @@ export async function GET(
       startDate: voteData.start_date,
       endDate: voteData.end_date,
       participantCount: voteData.participant_count,
-      // Note: vote_options table doesn't have description field
+      // Note: vote_options table doesn't have description field.
+      // `text`/`votes` are the contract's aliases for label/voteCount —
+      // the detail page consumes them directly.
       options: voteData.options.map((opt) => ({
         id: opt.id,
         label: opt.text,
+        text: opt.text,
         voteCount: opt.votes,
+        votes: opt.votes,
       })),
       createdAt: voteData.created_at,
       updatedAt: voteData.updated_at,
     };
 
-    return NextResponse.json({ vote });
+    // Signed-in caller: surface their existing choice (contract: option id).
+    let userVote: string | undefined;
+    const session = await getSessionFromRequest(request).catch(() => null);
+    if (session) {
+      const existing = await getUserVote(session.userId, voteData.id).catch(() => null);
+      if (existing) userVote = existing.option_id;
+    }
+
+    return NextResponse.json({ vote: { ...vote, userVote } });
   } catch (error) {
     console.error('Error fetching vote:', error);
     return NextResponse.json(

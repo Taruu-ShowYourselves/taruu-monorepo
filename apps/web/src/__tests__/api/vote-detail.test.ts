@@ -71,12 +71,16 @@ describe('Vote Detail API Routes', () => {
       expect(data.vote.options[0]).toEqual({
         id: 'opt-1',
         label: 'Option A',
+        text: 'Option A',
         voteCount: 25,
+        votes: 25,
       });
       expect(data.vote.options[1]).toEqual({
         id: 'opt-2',
         label: 'Option B',
+        text: 'Option B',
         voteCount: 17,
+        votes: 17,
       });
     });
 

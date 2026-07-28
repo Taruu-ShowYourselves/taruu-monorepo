@@ -64,11 +64,27 @@ export default function VoteDetailPage() {
       const response = await fetch(`/api/votes/${params.id}`);
       if (response.ok) {
         const data = await response.json();
-        setVote(data);
-        // Check if user already voted
-        if (data.userVote) {
+        // Contract shape: { vote: { ..., options: [{label/voteCount + text/votes
+        // aliases}], userVote?: optionId } } — normalize defensively so a
+        // missing alias can never crash the render again.
+        const raw = data.vote ?? data;
+        setVote({
+          ...raw,
+          options: (raw.options ?? []).map(
+            (o: { id: string; text?: string; label?: string; votes?: number; voteCount?: number }) => ({
+              id: o.id,
+              text: o.text ?? o.label ?? '',
+              votes: o.votes ?? o.voteCount ?? 0,
+            })
+          ),
+          creator: raw.creator ?? { name: '' },
+        });
+        // Check if user already voted (contract: userVote is the option id)
+        const priorOption =
+          typeof raw.userVote === 'string' ? raw.userVote : raw.userVote?.optionId;
+        if (priorOption) {
           setHasVoted(true);
-          setSelectedOption(data.userVote.optionId);
+          setSelectedOption(priorOption);
         }
       } else if (response.status === 404) {
         setError('ההצבעה לא נמצאה');
@@ -267,8 +283,12 @@ export default function VoteDetailPage() {
               <span className={styles.colKicker}>ההצעה</span>
               <p className={styles.description}>{vote.description}</p>
               <div className={styles.byline}>
-                <span>מאת {vote.creator.name}</span>
-                <span className={styles.sep} aria-hidden>■</span>
+                {vote.creator?.name ? (
+                  <>
+                    <span>מאת {vote.creator.name}</span>
+                    <span className={styles.sep} aria-hidden>■</span>
+                  </>
+                ) : null}
                 <span>{vote.municipality}</span>
               </div>
 
