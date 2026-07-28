@@ -1,19 +1,19 @@
 /**
- * Auth0 OIDC Callback API Route
+ * Google OIDC Callback API Route
  *
- * Handles the OAuth callback from Auth0 Universal Login, exchanges the code
- * for tokens, creates or updates the user, and generates a DID if new.
- *
- * Auth0 federates the underlying social IdP (Google). The OIDC `sub` it
- * returns is the external identity key — persisted on the existing
- * `users.google_id` column and `session.googleId` field (names unchanged).
+ * The SPA (AuthProvider on the sign-in page) receives Google's redirect with
+ * ?code&state, verifies state client-side, and POSTs the code here. This
+ * route exchanges it for tokens, creates or updates the user, and generates
+ * a DID if new. The Google `sub` is the external identity key, persisted on
+ * `users.google_id` / `session.googleId`.
  */
 
 import { NextResponse } from 'next/server';
 import {
   exchangeCodeForTokens,
-  getAuth0UserInfo,
-} from '@/services/auth/auth0';
+  getGoogleUserInfo,
+  GOOGLE_REDIRECT_PATH,
+} from '@/services/auth/google';
 import {
   createSessionToken,
   createRefreshToken,
@@ -41,9 +41,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Exchange code for tokens
-    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback`;
-    const clientSecret = process.env.AUTH0_CLIENT_SECRET;
+    // Exchange code for tokens. The redirect_uri must byte-match the one the
+    // authorize request used — the sign-in page, never this API route.
+    const redirectUri = `${(process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '')}${GOOGLE_REDIRECT_PATH}`;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
     if (!clientSecret) {
       return NextResponse.json(
@@ -54,15 +55,14 @@ export async function POST(request: Request) {
 
     const tokens = await exchangeCodeForTokens(code, redirectUri, clientSecret);
 
-    // Get user info from Auth0 (OIDC /userinfo)
-    const auth0User = await getAuth0UserInfo(tokens.accessToken);
+    // Get user info from Google (OIDC userinfo)
+    const googleUser = await getGoogleUserInfo(tokens.accessToken);
 
-    // The Auth0 OIDC `sub` (e.g. "google-oauth2|123...") is the external
-    // identity key. We store it in the existing `users.google_id` column and
-    // look users up with getUserByGoogleId — these names predate Auth0 and are
-    // kept so every consumer route/test that reads `session.googleId` works
-    // unchanged; the value is now an Auth0 subject, not a raw Google id.
-    const externalSubject = auth0User.sub;
+    // The Google `sub` is the external identity key, stored on
+    // `users.google_id` and looked up via getUserByGoogleId. (Any rows
+    // written during the Auth0 era hold `google-oauth2|<sub>` values — auth
+    // never completed in that era, so no real accounts carry them.)
+    const externalSubject = googleUser.sub;
 
     // Check if user exists in Supabase
     let user = await getUserByGoogleId(externalSubject);
@@ -76,29 +76,26 @@ export async function POST(request: Request) {
 
       // Create user in Supabase
       user = await createUser({
-        email: auth0User.email,
-        first_name: auth0User.given_name || null,
-        last_name: auth0User.family_name || null,
-        // google_id now holds the Auth0 subject (not a raw Google id).
+        email: googleUser.email,
+        first_name: googleUser.given_name || null,
+        last_name: googleUser.family_name || null,
         google_id: externalSubject,
-        avatar_url: auth0User.picture || null,
+        avatar_url: googleUser.picture || null,
         did: didData.did,
         did_public_key: JSON.stringify(didData.publicKey),
         did_encrypted_private_key: didData.encryptedPrivateKey,
-        identity_score: 40, // Google (via Auth0) = 40 points
+        identity_score: 40, // Google = 40 points
         verification_status: 'none',
       });
 
-      // Create Google social proof in Supabase. The social_proof enum only has
-      // google/facebook/instagram and the user logs in via Google federated
-      // through Auth0, so the provider stays 'google'; provider_id is the sub.
+      // Create Google social proof in Supabase; provider_id is the sub.
       await upsertSocialProof({
         user_id: user.id,
         provider: 'google',
         provider_id: externalSubject,
-        provider_email: auth0User.email,
-        provider_name: auth0User.name,
-        provider_avatar: auth0User.picture || null,
+        provider_email: googleUser.email,
+        provider_name: googleUser.name,
+        provider_avatar: googleUser.picture || null,
       });
     } else {
       // Existing user - update last login. Keep the row the update returns so
@@ -113,7 +110,6 @@ export async function POST(request: Request) {
     // Create session tokens
     const sessionToken = await createSessionToken({
       userId: user.id,
-      // session.googleId now carries the Auth0 subject (field name unchanged).
       googleId: externalSubject,
       did: user.did || '',
       email: user.email,

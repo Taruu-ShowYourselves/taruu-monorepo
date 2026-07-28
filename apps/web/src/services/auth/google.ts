@@ -5,18 +5,43 @@
  * Primary authentication method for SEL-DID system.
  */
 
-import type { GoogleUserInfo, GoogleOAuthTokens } from '@sync/shared';
+import type { GoogleOAuthTokens } from '@sync/shared';
+
+/**
+ * OIDC standard claims from Google's v3 userinfo endpoint (scope
+ * "openid profile email"). `sub` is the stable external identity key —
+ * unlike the legacy v2 endpoint's `id` shape in @sync/shared.
+ */
+export interface GoogleUserInfo {
+  sub: string;
+  email: string;
+  email_verified: boolean;
+  given_name?: string;
+  family_name?: string;
+  name?: string;
+  picture?: string;
+}
 
 // === Configuration ===
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
+
+/**
+ * Where Google sends the browser back. MUST be an app page, never an API
+ * route: /api/auth/callback only exports POST, so a provider GET redirect
+ * there 405s and the login can never complete (the historical "auth never
+ * works" bug). The AuthProvider mounted on the sign-in page picks up
+ * ?code&state and POSTs them to /api/auth/callback itself.
+ * Must appear verbatim under "Authorized redirect URIs" on the OAuth client.
+ */
+export const GOOGLE_REDIRECT_PATH = '/he/sign-in';
 const GOOGLE_REDIRECT_URI =
-  process.env.NEXT_PUBLIC_APP_URL + '/api/auth/callback' || '';
+  (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '') + GOOGLE_REDIRECT_PATH;
 
 // Google OAuth endpoints
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
-const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v2/userinfo';
+const GOOGLE_USERINFO_URL = 'https://openidconnect.googleapis.com/v1/userinfo';
 
 // Scopes required for authentication
 const SCOPES = [

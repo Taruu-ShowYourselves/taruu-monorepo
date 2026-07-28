@@ -90,25 +90,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
     initAuth();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sign in — now routes through Auth0 Universal Login (OIDC). Auth0 federates
-  // Google, so the method name stays `signInWithGoogle` to avoid touching
-  // callers; only the authorization URL it sends users to has changed.
+  // Sign in — direct Google OIDC (the Auth0 hop is gone). Google redirects
+  // back to the sign-in page, where the callback effect below exchanges the
+  // code. The redirect target must be an app page: the API route only
+  // accepts POST, so pointing the provider redirect at it 405s forever.
   const signInWithGoogle = useCallback(() => {
     // Generate state for CSRF protection (verified in the callback handler)
     const state = crypto.randomUUID();
     sessionStorage.setItem('oauth_state', state);
 
-    // Build the Auth0 /authorize URL (domain has no trailing slash)
-    const domain = process.env.NEXT_PUBLIC_AUTH0_DOMAIN || '';
     const params = new URLSearchParams({
-      client_id: process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID || '',
-      redirect_uri: `${window.location.origin}/api/auth/callback`,
+      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
+      redirect_uri: `${window.location.origin}/he/sign-in`,
       response_type: 'code',
       scope: 'openid profile email',
       state,
+      prompt: 'select_account',
     });
 
-    window.location.href = `https://${domain}/authorize?${params.toString()}`;
+    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
   }, []);
 
   // Sign out
