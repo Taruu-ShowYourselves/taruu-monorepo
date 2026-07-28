@@ -18,7 +18,10 @@ interface KnessetDeskProps {
  * as the municipal desk. Server component; shares the desk furniture.
  */
 export async function KnessetDesk({ locale = 'he' }: KnessetDeskProps) {
-  const votes = await getActiveVotesWithOptions(KNESSET_SCOPE);
+  // Degrade to the empty-state desk when the DB is unreachable — notably at
+  // build-time prerender in CI, where the service-role key deliberately does
+  // not exist (#39); ISR refills real data at runtime on the Worker.
+  const votes = await getActiveVotesWithOptions(KNESSET_SCOPE).catch(() => []);
   const topics = votes
     .map(toDeskTopic)
     .sort((a, b) => (b.source?.hotness ?? 0) - (a.source?.hotness ?? 0));

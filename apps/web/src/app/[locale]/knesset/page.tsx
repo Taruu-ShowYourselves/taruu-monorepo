@@ -28,8 +28,10 @@ interface KnessetPageProps {
 export default async function KnessetPage({ params }: KnessetPageProps) {
   const { locale } = await params;
 
-  const votes = await getActiveVotesWithOptions(KNESSET_SCOPE);
-  const items = await getKnessetItemsByVoteIds(votes.map((v) => v.id));
+  // Degrade to the empty agenda when the DB is unreachable (build-time
+  // prerender in CI has no service-role key — #39); ISR refills at runtime.
+  const votes = await getActiveVotesWithOptions(KNESSET_SCOPE).catch(() => []);
+  const items = await getKnessetItemsByVoteIds(votes.map((v) => v.id)).catch(() => []);
   const agenda = buildKnessetAgenda(votes, items);
   const hasContent = agenda.sessions.length > 0 || agenda.extras.length > 0;
 
