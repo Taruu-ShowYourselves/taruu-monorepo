@@ -18,17 +18,11 @@ JWT_EXPIRY=7d
 # Falls back to JWT_SECRET when unset; set a dedicated secret in production.
 IDENTITY_HASH_SECRET=
 
-# Auth0 (primary login — OIDC Universal Login; federates Google).
-# Domain has NO trailing slash, e.g. your-tenant.eu.auth0.com
-AUTH0_CLIENT_ID=
-AUTH0_CLIENT_SECRET=
-NEXT_PUBLIC_AUTH0_DOMAIN=
-NEXT_PUBLIC_AUTH0_CLIENT_ID=
 
-# Legacy custom Google OAuth (replaced by Auth0 above — kept commented for ref)
-# NEXT_PUBLIC_GOOGLE_CLIENT_ID=
-# GOOGLE_CLIENT_ID=
-# GOOGLE_CLIENT_SECRET=
+# Google OAuth (direct OIDC — primary login).
+# Redirect URI registered on the client MUST be <app-url>/he/sign-in
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
 
 # Facebook / Instagram OAuth
 FACEBOOK_APP_ID=

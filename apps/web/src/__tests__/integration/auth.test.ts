@@ -2,7 +2,7 @@
  * Auth Flow Integration Tests
  *
  * Tests the authentication flow including:
- * - Auth0 OIDC initiation (primary login; federates Google)
+ * - Google OIDC initiation (direct — no intermediary IdP)
  * - Session management
  * - DID generation and recovery
  */
@@ -10,11 +10,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock environment variables
-vi.stubEnv('AUTH0_DOMAIN', 'test-tenant.eu.auth0.com');
-vi.stubEnv('AUTH0_CLIENT_ID', 'test-client-id');
-vi.stubEnv('AUTH0_CLIENT_SECRET', 'test-client-secret');
-vi.stubEnv('NEXT_PUBLIC_AUTH0_DOMAIN', 'test-tenant.eu.auth0.com');
-vi.stubEnv('NEXT_PUBLIC_AUTH0_CLIENT_ID', 'test-client-id');
+vi.stubEnv('NEXT_PUBLIC_GOOGLE_CLIENT_ID', 'test-client-id');
+vi.stubEnv('GOOGLE_CLIENT_SECRET', 'test-client-secret');
 vi.stubEnv('JWT_SECRET', 'test-jwt-secret-at-least-32-chars-long');
 vi.stubEnv('NEXT_PUBLIC_APP_URL', 'http://localhost:3000');
 
@@ -31,22 +28,24 @@ describe('Auth Flow Integration', () => {
     vi.resetAllMocks();
   });
 
-  describe('Auth0 OIDC Flow', () => {
-    it('should generate correct Auth0 /authorize URL', async () => {
-      const clientId = process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID;
-      const domain = process.env.NEXT_PUBLIC_AUTH0_DOMAIN;
-      const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback`;
+  describe('Google OIDC Flow', () => {
+    it('should generate a correct Google /authorize URL pointing at the sign-in page', async () => {
+      const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+      const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/he/sign-in`;
 
-      const authUrl = new URL(`https://${domain}/authorize`);
+      const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
       authUrl.searchParams.set('client_id', clientId!);
       authUrl.searchParams.set('redirect_uri', redirectUri);
       authUrl.searchParams.set('response_type', 'code');
       authUrl.searchParams.set('scope', 'openid profile email');
 
-      expect(authUrl.origin).toBe('https://test-tenant.eu.auth0.com');
-      expect(authUrl.pathname).toBe('/authorize');
+      expect(authUrl.origin).toBe('https://accounts.google.com');
       expect(authUrl.searchParams.get('client_id')).toBe('test-client-id');
-      expect(authUrl.searchParams.get('response_type')).toBe('code');
+      // The redirect target must be an app page — the API route only accepts
+      // POST, so a provider GET redirect there can never complete a login.
+      expect(authUrl.searchParams.get('redirect_uri')).toBe(
+        'http://localhost:3000/he/sign-in'
+      );
       expect(authUrl.searchParams.get('scope')).toContain('openid');
       expect(authUrl.searchParams.get('scope')).toContain('email');
     });
@@ -62,11 +61,11 @@ describe('Auth Flow Integration', () => {
         }),
       });
 
-      // Mock Auth0 /userinfo fetch (OIDC claims; sub is the external subject)
+      // Mock Google userinfo fetch (OIDC claims; sub is the external subject)
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          sub: 'google-oauth2|google-user-123',
+          sub: 'google-user-123',
           email: 'test@example.com',
           email_verified: true,
           name: 'Test User',
@@ -76,13 +75,10 @@ describe('Auth Flow Integration', () => {
 
       // Simulate callback handling
       const code = 'mock-auth-code';
-      const tokenResponse = await fetch(
-        'https://test-tenant.eu.auth0.com/oauth/token',
-        {
-          method: 'POST',
-          body: JSON.stringify({ code }),
-        }
-      );
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        body: JSON.stringify({ code }),
+      });
 
       expect(tokenResponse.ok).toBe(true);
       const tokens = await tokenResponse.json();
@@ -99,13 +95,10 @@ describe('Auth Flow Integration', () => {
         }),
       });
 
-      const response = await fetch(
-        'https://test-tenant.eu.auth0.com/oauth/token',
-        {
-          method: 'POST',
-          body: JSON.stringify({ code: 'invalid-code' }),
-        }
-      );
+      const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        body: JSON.stringify({ code: 'invalid-code' }),
+      });
 
       expect(response.ok).toBe(false);
       expect(response.status).toBe(400);

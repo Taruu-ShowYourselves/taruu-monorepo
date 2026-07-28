@@ -9,9 +9,10 @@ import { describe, it, expect, beforeEach, vi, type Mock, afterAll } from 'vites
 import { NextRequest } from 'next/server';
 
 // Mock Auth0 OIDC service (primary login)
-vi.mock('@/services/auth/auth0', () => ({
+vi.mock('@/services/auth/google', () => ({
   exchangeCodeForTokens: vi.fn(),
-  getAuth0UserInfo: vi.fn(),
+  getGoogleUserInfo: vi.fn(),
+  GOOGLE_REDIRECT_PATH: '/he/sign-in',
 }));
 
 // Mock session service
@@ -46,7 +47,7 @@ vi.mock('@sync/shared', async (importOriginal) => ({
 }));
 
 // Import mocked modules
-import { exchangeCodeForTokens, getAuth0UserInfo } from '@/services/auth/auth0';
+import { exchangeCodeForTokens, getGoogleUserInfo } from '@/services/auth/google';
 import { createSessionToken, createRefreshToken, setSessionCookies } from '@/services/auth/session';
 import {
   getUserByGoogleId,
@@ -63,8 +64,8 @@ describe('Auth Callback API Routes', () => {
 
   // Auth0 OIDC /userinfo shape. `sub` is the external identity key
   // (federated Google subject) persisted on users.google_id / session.googleId.
-  const mockAuth0User = {
-    sub: 'google-oauth2|google-123',
+  const mockGoogleUser = {
+    sub: 'google-123',
     email: 'test@example.com',
     name: 'Test User',
     given_name: 'Test',
@@ -75,7 +76,7 @@ describe('Auth Callback API Routes', () => {
 
   const mockDbUser = {
     id: 'user-123',
-    google_id: 'google-oauth2|google-123',
+    google_id: 'google-123',
     email: 'test@example.com',
     first_name: 'Test',
     last_name: 'User',
@@ -111,7 +112,7 @@ describe('Auth Callback API Routes', () => {
     process.env = {
       ...originalEnv,
       NEXT_PUBLIC_APP_URL: 'https://taruu.co.il',
-      AUTH0_CLIENT_SECRET: 'auth0-secret',
+      GOOGLE_CLIENT_SECRET: 'google-secret',
     };
     vi.resetModules();
     const routeModule = await import('@/app/api/auth/callback/route');
@@ -136,8 +137,8 @@ describe('Auth Callback API Routes', () => {
       expect(data.code).toBe('MISSING_CODE');
     });
 
-    it('should return 500 when AUTH0_CLIENT_SECRET is not set', async () => {
-      delete process.env.AUTH0_CLIENT_SECRET;
+    it('should return 500 when GOOGLE_CLIENT_SECRET is not set', async () => {
+      delete process.env.GOOGLE_CLIENT_SECRET;
       vi.resetModules();
       const { POST: POST2 } = await import('@/app/api/auth/callback/route');
 
@@ -165,7 +166,7 @@ describe('Auth Callback API Routes', () => {
         accessToken: 'google-access-token',
         idToken: 'google-id-token',
       });
-      (getAuth0UserInfo as Mock).mockResolvedValue(mockAuth0User);
+      (getGoogleUserInfo as Mock).mockResolvedValue(mockGoogleUser);
       (getUserByGoogleId as Mock).mockResolvedValue(null);
       (generateEncryptedDID as Mock).mockResolvedValue(mockDIDData);
       (createUser as Mock).mockResolvedValue({
@@ -199,7 +200,7 @@ describe('Auth Callback API Routes', () => {
         accessToken: 'google-access-token',
         idToken: 'google-id-token',
       });
-      (getAuth0UserInfo as Mock).mockResolvedValue(mockAuth0User);
+      (getGoogleUserInfo as Mock).mockResolvedValue(mockGoogleUser);
       (getUserByGoogleId as Mock).mockResolvedValue(mockDbUser);
       (updateUser as Mock).mockResolvedValue(mockDbUser);
       (createSessionToken as Mock).mockResolvedValue('session-token');
@@ -225,7 +226,7 @@ describe('Auth Callback API Routes', () => {
         accessToken: 'google-access-token',
         idToken: 'google-id-token',
       });
-      (getAuth0UserInfo as Mock).mockResolvedValue(mockAuth0User);
+      (getGoogleUserInfo as Mock).mockResolvedValue(mockGoogleUser);
       (getUserByGoogleId as Mock).mockResolvedValue(mockDbUser);
       (updateUser as Mock).mockResolvedValue(mockDbUser);
       (createSessionToken as Mock).mockResolvedValue('session-token');
@@ -261,7 +262,7 @@ describe('Auth Callback API Routes', () => {
         accessToken: 'google-access-token',
         idToken: 'google-id-token',
       });
-      (getAuth0UserInfo as Mock).mockResolvedValue(mockAuth0User);
+      (getGoogleUserInfo as Mock).mockResolvedValue(mockGoogleUser);
       (getUserByGoogleId as Mock).mockResolvedValue(mockDbUser);
       // The update returns the fresh row — including a municipality set on
       // another device since this row was last read.
@@ -289,7 +290,7 @@ describe('Auth Callback API Routes', () => {
         accessToken: 'google-access-token',
         idToken: 'google-id-token',
       });
-      (getAuth0UserInfo as Mock).mockResolvedValue(mockAuth0User);
+      (getGoogleUserInfo as Mock).mockResolvedValue(mockGoogleUser);
       (getUserByGoogleId as Mock).mockResolvedValue(mockDbUser);
       (updateUser as Mock).mockResolvedValue(null);
       (createSessionToken as Mock).mockResolvedValue('session-token');
@@ -329,7 +330,7 @@ describe('Auth Callback API Routes', () => {
         accessToken: 'google-access-token',
         idToken: 'google-id-token',
       });
-      (getAuth0UserInfo as Mock).mockResolvedValue(mockAuth0User);
+      (getGoogleUserInfo as Mock).mockResolvedValue(mockGoogleUser);
       (getUserByGoogleId as Mock).mockRejectedValue(new Error('Database connection failed'));
 
       const request = new NextRequest('http://localhost:3000/api/auth/callback', {
