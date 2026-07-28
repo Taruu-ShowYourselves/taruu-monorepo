@@ -1,0 +1,15 @@
+import { chromium } from '@playwright/test';
+const target = process.argv[2] || 'https://taruu.co.il/he/votes/7b738847-3846-48a5-b33e-8aa21b086fdd';
+const browser = await chromium.launch();
+const page = await (await browser.newContext()).newPage();
+const errors = [];
+page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text().slice(0, 300)); });
+page.on('pageerror', (e) => errors.push('PAGEERROR ' + String(e).slice(0, 300)));
+page.on('response', (r) => { if (r.status() >= 400) errors.push(`HTTP ${r.status()} ${r.url().slice(0, 140)}`); });
+await page.goto(target, { waitUntil: 'networkidle', timeout: 45000 }).catch((e) => errors.push('NAV ' + String(e).slice(0, 150)));
+await page.waitForTimeout(3000);
+console.log('TITLE:', await page.title());
+console.log('H1/H2:', JSON.stringify((await page.locator('h1, h2').allTextContents()).slice(0, 4)));
+console.log('ERRORS:');
+for (const e of [...new Set(errors)]) console.log(' -', e);
+await browser.close();
