@@ -1,7 +1,7 @@
 .colophon {
   background: var(--np-ink);
   color: var(--np-paper);
-  padding-inline: clamp(var(--space-6), 4vw, var(--space-16));
+  padding-inline: var(--np-gutter);
   padding-block: clamp(var(--space-10), 4vw, var(--space-16));
 }
 
@@ -50,6 +50,12 @@
   line-height: 1.45;
   color: rgba(244, 241, 232, 0.7);
   max-width: 34rem;
+}
+
+.countdown {
+  inline-size: 100%;
+  color: var(--np-paper);
+  margin-block-end: var(--space-6);
 }
 
 .form { display: flex; align-items: flex-end; gap: var(--space-3); flex-wrap: wrap; }

@@ -131,7 +131,7 @@ test.describe('Journey 4: GPS Verification', () => {
 });
 
 // ============================================
-// JOURNEY 5: Payments (Paddle)
+// JOURNEY 5: Payments (Green Invoice)
 // ============================================
 
 test.describe('Journey 5: Payments', () => {

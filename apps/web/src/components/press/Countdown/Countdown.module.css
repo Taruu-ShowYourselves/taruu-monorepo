@@ -1,0 +1,117 @@
+.countdown {
+  background: var(--np-paper);
+  color: var(--np-ink);
+  padding-inline: var(--np-gutter);
+}
+
+.inner {
+  max-width: var(--np-container);
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  padding-block: var(--space-4);
+  border-block-end: var(--np-rule) solid var(--np-ink);
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--np-font-mono);
+  font-weight: 800;
+  font-size: var(--text-sm);
+  letter-spacing: 0.16em;
+  color: var(--np-red);
+}
+
+.tick {
+  inline-size: 0.7em;
+  block-size: 0.7em;
+  background: var(--np-red);
+  animation: np-blink 1.4s steps(2, start) infinite;
+}
+
+@keyframes np-blink {
+  50% { opacity: 0.2; }
+}
+
+.date {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  color: var(--np-ink-soft);
+  letter-spacing: 0.04em;
+}
+
+.clock {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.digits {
+  font-family: var(--np-font-mono);
+  font-weight: 800;
+  font-size: clamp(var(--text-3xl), 4.5vw, var(--text-5xl));
+  line-height: 1;
+  color: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.unitLabel {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  color: inherit;
+  opacity: 0.55;
+  letter-spacing: 0.14em;
+}
+
+.sep {
+  font-family: var(--np-font-mono);
+  font-weight: 800;
+  font-size: clamp(var(--text-3xl), 4.5vw, var(--text-5xl));
+  line-height: 1;
+  color: var(--np-red);
+  padding-inline: var(--space-1);
+}
+
+.liveFlag {
+  font-family: var(--np-font-mono);
+  font-weight: 800;
+  font-size: var(--text-lg);
+  letter-spacing: 0.16em;
+  color: var(--np-paper);
+  background: var(--np-red);
+  padding: var(--space-2) var(--space-4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tick { animation: none; }
+}
+
+@media (max-width: 640px) {
+  .inner {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .label {
+    align-items: center;
+  }
+}

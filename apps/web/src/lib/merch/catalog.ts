@@ -1,5 +1,5 @@
 /**
- * Merch catalogue (print-on-demand).
+ * Merch catalogue.
  *
  * Static source of truth for the store. Prices are absolute ILS per variant.
  * The checkout route re-prices every line against this catalogue, so the
@@ -19,7 +19,6 @@ export const MERCH_CATALOG: Product[] = [
     category: 'apparel',
     basePriceILS: 89,
     images: ['/images/merch/press-tee.png'],
-    podProvider: 'printful',
     active: true,
     variants: [
       { id: 's', label: 'S · קרם', sku: 'TEE-PRESS-S', priceILS: 89, inStock: true },
@@ -37,7 +36,6 @@ export const MERCH_CATALOG: Product[] = [
     category: 'sticker',
     basePriceILS: 24,
     images: ['/images/merch/sticker-pack.png'],
-    podProvider: 'printify',
     active: true,
     variants: [
       { id: 'single', label: 'גיליון אחד', sku: 'STK-PACK-1', priceILS: 24, inStock: true },
@@ -53,7 +51,6 @@ export const MERCH_CATALOG: Product[] = [
     category: 'accessory',
     basePriceILS: 49,
     images: ['/images/merch/tote-bag.png'],
-    podProvider: 'printful',
     active: true,
     variants: [
       { id: 'natural', label: 'טבעי', sku: 'TOTE-NAT', priceILS: 49, inStock: true },
@@ -69,7 +66,6 @@ export const MERCH_CATALOG: Product[] = [
     category: 'accessory',
     basePriceILS: 39,
     images: ['/images/merch/press-mug.png'],
-    podProvider: 'printify',
     active: true,
     variants: [
       { id: 'standard', label: '330 מ״ל', sku: 'MUG-330', priceILS: 39, inStock: true },
@@ -84,7 +80,6 @@ export const MERCH_CATALOG: Product[] = [
     category: 'print',
     basePriceILS: 69,
     images: ['/images/merch/manifesto-poster.png'],
-    podProvider: 'printful',
     active: true,
     variants: [
       { id: 'a2', label: 'A2 · 42×59 ס״מ', sku: 'POSTER-A2', priceILS: 69, inStock: true },
@@ -105,15 +100,4 @@ export function resolveVariant(slug: string, variantId: string) {
   const variant = product.variants.find((v) => v.id === variantId);
   if (!variant) return null;
   return { product, variant };
-}
-
-/**
- * The POD partner's variant id for a cart line (productId + variantId), or null.
- * Populate each variant's `podVariantId` with the real Printful sync-variant id
- * once products are set up in the Printful dashboard.
- */
-export function getPodVariantId(productId: string, variantId: string): string | null {
-  const product = MERCH_CATALOG.find((p) => p.id === productId);
-  const variant = product?.variants.find((v) => v.id === variantId);
-  return variant?.podVariantId ?? null;
 }

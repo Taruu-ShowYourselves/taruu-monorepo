@@ -6,6 +6,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Assistant:wght@300;400;500;600;700;800&family=Frank+Ruhl+Libre:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700;800&display=swap');
 
 @import './tokens.css';
+@import './tailwind.css';
 
 /* ============================================
  * CSS RESET & BASE STYLES
@@ -425,7 +426,7 @@ table {
   width: 100%;
   max-width: var(--np-container);
   margin-inline: auto;
-  padding-inline: clamp(var(--space-6), 4vw, var(--space-16));
+  padding-inline: var(--np-gutter);
 }
 
 /* Rules */

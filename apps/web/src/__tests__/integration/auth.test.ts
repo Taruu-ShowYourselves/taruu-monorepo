@@ -2,7 +2,7 @@
  * Auth Flow Integration Tests
  *
  * Tests the authentication flow including:
- * - Google OAuth initiation
+ * - Auth0 OIDC initiation (primary login; federates Google)
  * - Session management
  * - DID generation and recovery
  */
@@ -10,8 +10,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // Mock environment variables
-vi.stubEnv('GOOGLE_CLIENT_ID', 'test-client-id');
-vi.stubEnv('GOOGLE_CLIENT_SECRET', 'test-client-secret');
+vi.stubEnv('AUTH0_DOMAIN', 'test-tenant.eu.auth0.com');
+vi.stubEnv('AUTH0_CLIENT_ID', 'test-client-id');
+vi.stubEnv('AUTH0_CLIENT_SECRET', 'test-client-secret');
+vi.stubEnv('NEXT_PUBLIC_AUTH0_DOMAIN', 'test-tenant.eu.auth0.com');
+vi.stubEnv('NEXT_PUBLIC_AUTH0_CLIENT_ID', 'test-client-id');
 vi.stubEnv('JWT_SECRET', 'test-jwt-secret-at-least-32-chars-long');
 vi.stubEnv('NEXT_PUBLIC_APP_URL', 'http://localhost:3000');
 
@@ -28,19 +31,20 @@ describe('Auth Flow Integration', () => {
     vi.resetAllMocks();
   });
 
-  describe('Google OAuth Flow', () => {
-    it('should generate correct Google OAuth URL', async () => {
-      const clientId = process.env.GOOGLE_CLIENT_ID;
+  describe('Auth0 OIDC Flow', () => {
+    it('should generate correct Auth0 /authorize URL', async () => {
+      const clientId = process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID;
+      const domain = process.env.NEXT_PUBLIC_AUTH0_DOMAIN;
       const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback`;
 
-      const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+      const authUrl = new URL(`https://${domain}/authorize`);
       authUrl.searchParams.set('client_id', clientId!);
       authUrl.searchParams.set('redirect_uri', redirectUri);
       authUrl.searchParams.set('response_type', 'code');
-      authUrl.searchParams.set('scope', 'openid email profile');
-      authUrl.searchParams.set('access_type', 'offline');
-      authUrl.searchParams.set('prompt', 'consent');
+      authUrl.searchParams.set('scope', 'openid profile email');
 
+      expect(authUrl.origin).toBe('https://test-tenant.eu.auth0.com');
+      expect(authUrl.pathname).toBe('/authorize');
       expect(authUrl.searchParams.get('client_id')).toBe('test-client-id');
       expect(authUrl.searchParams.get('response_type')).toBe('code');
       expect(authUrl.searchParams.get('scope')).toContain('openid');
@@ -53,18 +57,18 @@ describe('Auth Flow Integration', () => {
         ok: true,
         json: async () => ({
           access_token: 'mock-access-token',
-          refresh_token: 'mock-refresh-token',
           id_token: 'mock-id-token',
           expires_in: 3600,
         }),
       });
 
-      // Mock user info fetch
+      // Mock Auth0 /userinfo fetch (OIDC claims; sub is the external subject)
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({
-          sub: 'google-user-123',
+          sub: 'google-oauth2|google-user-123',
           email: 'test@example.com',
+          email_verified: true,
           name: 'Test User',
           picture: 'https://example.com/photo.jpg',
         }),
@@ -72,10 +76,13 @@ describe('Auth Flow Integration', () => {
 
       // Simulate callback handling
       const code = 'mock-auth-code';
-      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        body: JSON.stringify({ code }),
-      });
+      const tokenResponse = await fetch(
+        'https://test-tenant.eu.auth0.com/oauth/token',
+        {
+          method: 'POST',
+          body: JSON.stringify({ code }),
+        }
+      );
 
       expect(tokenResponse.ok).toBe(true);
       const tokens = await tokenResponse.json();
@@ -92,10 +99,13 @@ describe('Auth Flow Integration', () => {
         }),
       });
 
-      const response = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        body: JSON.stringify({ code: 'invalid-code' }),
-      });
+      const response = await fetch(
+        'https://test-tenant.eu.auth0.com/oauth/token',
+        {
+          method: 'POST',
+          body: JSON.stringify({ code: 'invalid-code' }),
+        }
+      );
 
       expect(response.ok).toBe(false);
       expect(response.status).toBe(400);

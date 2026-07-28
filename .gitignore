@@ -63,3 +63,23 @@ docker-compose.yml
 .redesign/*.mjs
 .redesign/*.html
 .redesign/*.jpg
+
+# direnv
+.envrc
+.direnv/
+
+# Supabase CLI local state
+supabase/.temp/
+
+# Local MCP server config (machine-specific)
+.mcp.json
+
+# tesseract.js assets copied from node_modules (scripts/copy-ocr-assets.mjs)
+apps/web/public/ocr/worker.min.js
+apps/web/public/ocr/tesseract-core-*
+apps/web/public/models/human/**
+apps/web/*.traineddata
+
+# playwright artifacts
+apps/web/playwright-report/
+apps/web/test-results/

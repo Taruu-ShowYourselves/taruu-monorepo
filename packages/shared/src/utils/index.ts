@@ -11,6 +11,9 @@ export * from './identityScore';
 // Re-export retry utilities
 export * from './retry';
 
+// Re-export Israeli identity-document utilities
+export * from './israeliId';
+
 /**
  * Format currency in ILS
  */

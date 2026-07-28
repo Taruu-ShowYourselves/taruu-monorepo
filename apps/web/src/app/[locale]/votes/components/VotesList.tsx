@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { NewsButton, VoteWidget, TallyBar } from '@/components/press';
+import { useLiveTallies } from '@/hooks';
 import type { VoteFilter } from './types';
 import styles from './VotesList.module.css';
 import { WHATSAPP_FOUNDERS_LINK } from '@sync/shared';
@@ -142,8 +143,9 @@ function matchesFilter(status: Vote['status'], filter: VoteFilter): boolean {
 
 /** Maps an API vote's options into the press VoteWidget option shape (with pct). */
 function toWidgetOptions(vote: Vote) {
-  const total = vote.options.reduce((sum, o) => sum + o.voteCount, 0);
-  return vote.options.map((o) => ({
+  const options = vote.options ?? [];
+  const total = options.reduce((sum, o) => sum + o.voteCount, 0);
+  return options.map((o) => ({
     id: o.id,
     label: o.label,
     count: o.voteCount,
@@ -156,8 +158,12 @@ function toWidgetOptions(vote: Vote) {
  * marked, muted (no live pulse). Mirrors the archive record card.
  */
 function RecordCard({ vote }: { vote: Vote }) {
-  const total = vote.options.reduce((sum, o) => sum + o.voteCount, 0);
-  const leading = vote.options.reduce((a, b) => (a.voteCount > b.voteCount ? a : b));
+  const options = vote.options ?? [];
+  const total = options.reduce((sum, o) => sum + o.voteCount, 0);
+  const leading =
+    options.length > 0
+      ? options.reduce((a, b) => (a.voteCount > b.voteCount ? a : b))
+      : { label: '—', voteCount: 0 };
   const leadingPct = total > 0 ? Math.round((leading.voteCount / total) * 100) : 0;
   const ended = isVoteEnded(vote.status);
 
@@ -212,9 +218,28 @@ export function VotesList({ filter }: VotesListProps) {
   const [isUsingMockData, setIsUsingMockData] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
+  // Live tallies: Supabase Realtime updates on vote_options merge over the
+  // fetched snapshot so bars tick without polling. Mock data stays static.
+  const liveVoteIds = useMemo(
+    () => (isUsingMockData ? [] : votes.map((v) => v.id)),
+    [votes, isUsingMockData]
+  );
+  const liveTallies = useLiveTallies(liveVoteIds);
+  const liveVotes = useMemo(
+    () =>
+      votes.map((vote) => ({
+        ...vote,
+        options: (vote.options ?? []).map((option) => ({
+          ...option,
+          voteCount: liveTallies.get(option.id) ?? option.voteCount,
+        })),
+      })),
+    [votes, liveTallies]
+  );
+
   const filteredVotes = useMemo(
-    () => votes.filter((vote) => matchesFilter(vote.status, filter)),
-    [votes, filter]
+    () => liveVotes.filter((vote) => matchesFilter(vote.status, filter)),
+    [liveVotes, filter]
   );
 
   const visibleVotes = filteredVotes.slice(0, visibleCount);
@@ -350,7 +375,7 @@ export function VotesList({ filter }: VotesListProps) {
 
 /**
  * Pre-launch empty state as press furniture: ink-boxed dispatch with dateline,
- * the real pilot moment (first vote in Kiryat Tivon) and a WhatsApp CTA.
+ * the nationwide opening moment and a WhatsApp CTA.
  */
 function EmptyState() {
   return (
@@ -358,17 +383,17 @@ function EmptyState() {
       <div className={styles.emptyHead}>
         <span className={styles.emptyKicker}>
           <span className={styles.emptyDot} aria-hidden />
-          הפיילוט נפתח בקרוב
+          נפתחים בקרוב בכל הארץ
         </span>
-        <span className={styles.emptyDate}>23.01.26</span>
+        <span className={styles.emptyDate}>04.08.26</span>
       </div>
 
       <h2 className={styles.emptyTitle}>
-        עוד אין הצבעות פתוחות בקריית טבעון.
+        עוד אין הצבעות פתוחות.
       </h2>
 
       <p className={styles.emptyText}>
-        ההצבעה הראשונה נפתחת 23.01.26 — הצטרפו לוואטסאפ ותהיו הראשונים.
+        ההצבעה הראשונה נפתחת 04.08.26, בכל הארץ בבת אחת — הצטרפו לוואטסאפ ותהיו הראשונים.
       </p>
 
       <NewsButton

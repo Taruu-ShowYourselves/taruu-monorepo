@@ -28,7 +28,7 @@ describe('paymentsApi', () => {
         amount: 300,
         currency: 'ILS',
         status: 'pending',
-        paymentUrl: 'https://checkout.paddle.com/txn/123',
+        paymentUrl: 'https://sandbox.d.greeninvoice.co.il/form/123',
       };
 
       mockFetch.mockResolvedValue({
@@ -58,7 +58,7 @@ describe('paymentsApi', () => {
         amount: 20000,
         currency: 'ILS',
         status: 'pending',
-        paymentUrl: 'https://checkout.paddle.com/txn/456',
+        paymentUrl: 'https://sandbox.d.greeninvoice.co.il/form/456',
       };
 
       mockFetch.mockResolvedValue({
@@ -108,14 +108,14 @@ describe('paymentsApi', () => {
         ok: true,
         json: async () => ({
           status: 'succeeded',
-          receiptUrl: 'https://paddle.com/invoice/123',
+          receiptUrl: 'https://greeninvoice.co.il/doc/123',
         }),
       });
 
       const result = await paymentsApi.getPaymentStatus('payment-456');
 
       expect(result.status).toBe('succeeded');
-      expect(result.receiptUrl).toBe('https://paddle.com/invoice/123');
+      expect(result.receiptUrl).toBe('https://greeninvoice.co.il/doc/123');
     });
 
     it('should get failed payment status', async () => {
@@ -136,7 +136,7 @@ describe('paymentsApi', () => {
         ok: true,
         json: async () => ({
           success: true,
-          receiptUrl: 'https://paddle.com/invoice/123',
+          receiptUrl: 'https://greeninvoice.co.il/doc/123',
           tokensEarned: 1,
         }),
       });
@@ -184,7 +184,7 @@ describe('paymentsApi', () => {
         amount: params.amount,
         currency: 'ILS',
         status: 'pending',
-        paymentUrl: 'https://checkout.paddle.com/txn/789',
+        paymentUrl: 'https://sandbox.d.greeninvoice.co.il/form/789',
       };
 
       mockFetch.mockResolvedValue({

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/services/auth/session';
 import { getPaymentById, updatePaymentStatus } from '@/lib/supabase/db';
-import { paddleService } from '@/services/payments/paddle';
+import { paymentService } from '@/services/payments/greenInvoice';
 
 /**
  * POST /api/payments/:id/verify
  * Verify payment completion after redirect from payment provider
- * Called after user returns from the Paddle checkout
+ * Called after the user returns from the Green Invoice hosted payment page
  */
 export async function POST(
   request: NextRequest,
@@ -53,7 +53,7 @@ export async function POST(
 
       if (payment.provider_id) {
         try {
-          const providerStatus = await paddleService.getPaymentStatus(payment.provider_id);
+          const providerStatus = await paymentService.getPaymentStatus(payment.provider_id);
           receiptUrl = providerStatus.receiptUrl || null;
         } catch {
           // Ignore - receipt URL is optional
@@ -70,7 +70,7 @@ export async function POST(
     // If payment is pending, check with provider for actual status
     if (payment.status === 'pending' && payment.provider_id) {
       try {
-        const providerStatus = await paddleService.getPaymentStatus(payment.provider_id);
+        const providerStatus = await paymentService.getPaymentStatus(payment.provider_id);
 
         // If provider shows succeeded, update our database to completed
         if (providerStatus.status === 'succeeded') {

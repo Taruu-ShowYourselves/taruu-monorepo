@@ -15,7 +15,7 @@
   width: 100%;
   max-width: 1180px;
   margin-inline: auto;
-  padding-inline: clamp(var(--space-5), 4vw, var(--space-12));
+  padding-inline: var(--np-gutter);
 }
 
 /* ------------------------------------------------------------------ */

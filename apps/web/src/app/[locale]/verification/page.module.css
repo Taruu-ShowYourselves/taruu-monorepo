@@ -18,7 +18,7 @@
   width: 100%;
   max-width: var(--container-4xl);
   margin-inline: auto;
-  padding-inline: clamp(var(--space-5), 4vw, var(--space-12));
+  padding-inline: var(--np-gutter);
   display: grid;
   gap: clamp(var(--space-6), 3vw, var(--space-10));
 }

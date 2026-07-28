@@ -93,7 +93,7 @@ export default function CheckoutScreen() {
     setProcessing(true);
 
     try {
-      // Open Paddle checkout page in browser
+      // Open Green Invoice hosted payment page in browser
       const result = await WebBrowser.openAuthSessionAsync(
         paymentDetails.paymentUrl,
         `${API_URL}/votes/${params.voteId || 'create'}/callback`
@@ -303,7 +303,7 @@ export default function CheckoutScreen() {
         <View className="flex-row-reverse items-center justify-center mt-4">
           <Ionicons name="lock-closed" size={14} color="#6B7280" />
           <Text className="text-xs font-assistant text-neutral-500 mr-1">
-            תשלום מאובטח באמצעות Paddle
+            תשלום מאובטח באמצעות Green Invoice
           </Text>
         </View>
       </View>

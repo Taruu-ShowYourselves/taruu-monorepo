@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TARUU · WAR ROOM</title>
+<style>
+  :root{
+    --cream:#F4F1E8; --ink:#14110E; --red:#E0301E;
+    --ink-60:rgba(20,17,14,.60); --ink-30:rgba(20,17,14,.30); --ink-12:rgba(20,17,14,.12);
+    --green:#1f7a3d; --amber:#b8730a;
+    --rule:3px solid var(--ink); --hair:1px solid var(--ink);
+    --head:'Heebo','Arial Black','Helvetica Neue',sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+    --body:'Heebo','Helvetica Neue',Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--cream);color:var(--ink);font-family:var(--body);}
+  body{
+    /* halftone grain + faint dot screen */
+    background-image:
+      radial-gradient(var(--ink-12) 0.5px, transparent 0.6px),
+      repeating-linear-gradient(0deg, transparent 0 3px, rgba(20,17,14,.018) 3px 4px);
+    background-size:4px 4px, 100% 4px;
+    padding:0 0 48px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1320px;margin:0 auto;padding:0 20px;}
+
+  /* ---------- MASTHEAD ---------- */
+  .masthead{border-bottom:6px double var(--ink);padding:14px 0 10px;margin-bottom:0;}
+  .mast-top{display:flex;justify-content:space-between;align-items:flex-end;font-family:var(--mono);
+    font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-60);}
+  .mast-title{display:flex;align-items:baseline;gap:14px;margin:6px 0 2px;}
+  .mast-title h1{font-family:var(--head);font-weight:900;font-size:clamp(34px,6vw,68px);
+    letter-spacing:-.03em;line-height:.92;text-transform:uppercase;}
+  .mast-title .war{color:var(--red);}
+  .mast-sub{font-family:var(--mono);font-size:10px;letter-spacing:.34em;text-transform:uppercase;
+    color:var(--ink);border-top:var(--hair);border-bottom:var(--hair);padding:5px 0;margin-top:6px;
+    display:flex;justify-content:space-between;}
+  .mast-sub .dl{color:var(--red);}
+
+  /* ---------- GRID ---------- */
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:0;margin-top:0;}
+  .panel{border-right:var(--rule);border-bottom:var(--rule);padding:18px 18px 20px;background:transparent;}
+  .panel:nth-child(1){border-left:var(--rule);}
+  .col-12{grid-column:span 12;border-left:var(--rule);}
+  .col-7{grid-column:span 7;border-left:var(--rule);}
+  .col-5{grid-column:span 5;}
+  .col-8{grid-column:span 8;border-left:var(--rule);}
+  .col-4{grid-column:span 4;}
+  .col-6{grid-column:span 6;}
+  .col-6.first{border-left:var(--rule);}
+  @media(max-width:940px){
+    .col-7,.col-5,.col-8,.col-4,.col-6{grid-column:span 12;border-left:var(--rule);}
+  }
+
+  .kicker{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--red);display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+  .kicker::before{content:"■";font-size:9px;color:var(--red);}
+  .kicker .n{margin-left:auto;color:var(--ink-30);}
+  h2.ph{font-family:var(--head);font-weight:900;font-size:22px;letter-spacing:-.02em;
+    text-transform:uppercase;line-height:.95;margin-bottom:14px;}
+
+  /* ---------- NORTH STAR ---------- */
+  .ns{display:grid;grid-template-columns:1.3fr 1fr;gap:28px;align-items:end;}
+  @media(max-width:760px){.ns{grid-template-columns:1fr;}}
+  .ns-label{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-60);}
+  .ns-num{font-family:var(--head);font-weight:900;font-size:clamp(64px,12vw,124px);line-height:.84;
+    letter-spacing:-.04em;display:flex;align-items:baseline;gap:6px;}
+  .ns-num input{font-family:var(--head);font-weight:900;font-size:inherit;color:var(--ink);
+    background:transparent;border:none;border-bottom:4px solid var(--red);width:3.2ch;text-align:center;
+    letter-spacing:-.04em;padding:0;outline:none;}
+  .ns-num .of{font-family:var(--mono);font-weight:400;font-size:20px;color:var(--ink-60);letter-spacing:0;}
+  .ns-bar{height:22px;border:var(--hair);margin-top:14px;position:relative;background:repeating-linear-gradient(45deg,transparent 0 6px,var(--ink-12) 6px 7px);}
+  .ns-bar .fill{position:absolute;inset:0 auto 0 0;background:var(--red);width:0;transition:width .25s;}
+  .ns-bar .pct{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-family:var(--mono);
+    font-size:11px;font-weight:700;color:var(--ink);mix-blend-mode:difference;}
+  .substats{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:0;}
+  @media(max-width:760px){.substats{grid-template-columns:repeat(2,1fr);}}
+  .substat{border-left:var(--hair);padding:4px 12px;}
+  .substat:first-child{border-left:none;padding-left:0;}
+  .substat .v{font-family:var(--mono);font-weight:700;font-size:clamp(18px,2.6vw,26px);letter-spacing:-.02em;}
+  .substat .l{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-60);margin-top:3px;}
+
+  /* ---------- CALCULATOR ---------- */
+  .calc-grid{display:grid;grid-template-columns:1fr;gap:16px;}
+  .ctrl{border-bottom:var(--hair);padding-bottom:12px;}
+  .ctrl-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px;}
+  .ctrl-top label{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);}
+  .ctrl-top .val{font-family:var(--mono);font-weight:700;font-size:18px;}
+  .ctrl input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;
+    background:var(--ink-12);outline:none;border:var(--hair);}
+  .ctrl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+    width:14px;height:22px;background:var(--red);cursor:pointer;border:2px solid var(--ink);}
+  .ctrl input[type=range]::-moz-range-thumb{width:14px;height:22px;background:var(--red);cursor:pointer;border:2px solid var(--ink);border-radius:0;}
+  .calc-out{margin-top:4px;border-top:var(--rule);}
+  .orow{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:var(--hair);font-family:var(--mono);}
+  .orow .ol{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-60);}
+  .orow .ov{font-size:20px;font-weight:700;letter-spacing:-.02em;}
+  .orow.big{padding:13px 0;}
+  .orow.big .ol{color:var(--ink);font-size:12px;}
+  .orow.big .ov{font-size:30px;}
+  .takehome .ov{color:var(--green);} /* JS overrides */
+  .verdict{margin-top:14px;background:var(--ink);color:var(--cream);padding:11px 14px;
+    font-family:var(--mono);font-size:13px;letter-spacing:.04em;display:flex;justify-content:space-between;align-items:center;}
+  .verdict .red{color:var(--red);font-weight:700;}
+
+  /* ---------- SATISFACTION GAUGE ---------- */
+  .gauge{height:18px;border:var(--hair);margin-top:10px;position:relative;
+    background:repeating-linear-gradient(45deg,transparent 0 6px,var(--ink-12) 6px 7px);}
+  .gauge .gfill{position:absolute;inset:0 auto 0 0;width:0;transition:width .25s,background .25s;}
+  .gauge .gtag{position:absolute;right:6px;top:50%;transform:translateY(-50%);
+    font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--ink);mix-blend-mode:difference;}
+
+  /* ---------- CIVIC SPLIT ---------- */
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:var(--rule);}
+  @media(max-width:560px){.split{grid-template-columns:1fr;}}
+  .splitcol{border-left:var(--hair);padding:12px 14px;}
+  .splitcol:first-child{border-left:none;padding-left:0;}
+  .splitcol.ours{background:rgba(31,122,61,.06);}
+  .splitcol .sl{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-60);}
+  .splitcol .sv{font-family:var(--head);font-weight:900;font-size:32px;letter-spacing:-.03em;line-height:1;margin:6px 0 5px;}
+  .splitcol.ours .sv{color:var(--green);}
+  .splitcol .sn{font-family:var(--mono);font-size:9.5px;letter-spacing:.04em;color:var(--ink-60);line-height:1.5;}
+  .splitcol .sn b{color:var(--red);}
+
+  /* ---------- TABLES ---------- */
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);}
+  th{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;text-align:right;padding:8px 8px;
+    border-bottom:var(--rule);color:var(--ink);font-weight:700;}
+  th:first-child{text-align:left;}
+  td{font-size:13px;padding:8px 8px;border-bottom:var(--hair);text-align:right;font-variant-numeric:tabular-nums;}
+  td:first-child{text-align:left;font-weight:700;}
+  tr.broken td{background:var(--red);color:#fff;border-bottom-color:rgba(255,255,255,.3);}
+  tr.broken td:first-child{color:#fff;}
+  .neg{color:var(--red);}
+  .cap{font-family:var(--body);font-style:italic;color:var(--red);font-size:12.5px;
+    line-height:1.4;margin-top:12px;border-left:3px solid var(--red);padding-left:10px;}
+
+  /* ---------- KANBAN ---------- */
+  .kan{display:grid;grid-template-columns:repeat(4,1fr);gap:0;}
+  @media(max-width:760px){.kan{grid-template-columns:repeat(2,1fr);}}
+  .kcol{border-left:var(--hair);padding:0 8px;}
+  .kcol:first-child{border-left:none;padding-left:0;}
+  .kcol h3{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+    padding-bottom:7px;border-bottom:var(--rule);margin-bottom:9px;display:flex;justify-content:space-between;}
+  .kcol h3 .c{color:var(--ink-30);}
+  .kcard{border:var(--hair);padding:8px 9px;margin-bottom:8px;background:rgba(20,17,14,.02);}
+  .kcard .city{font-family:var(--head);font-weight:900;font-size:14px;letter-spacing:-.01em;}
+  .kcard .topic{font-family:var(--body);font-size:11.5px;color:var(--ink-60);margin:2px 0 6px;}
+  .kcard .badge{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;border:var(--hair);
+    padding:1px 5px;display:inline-block;}
+  .kcard .badge.hot{background:var(--red);color:#fff;border-color:var(--red);}
+  [contenteditable]:focus{outline:2px solid var(--red);outline-offset:1px;}
+
+  /* ---------- ROADMAP PHASES ---------- */
+  .phases{display:grid;grid-template-columns:repeat(4,1fr);gap:0;}
+  @media(max-width:940px){.phases{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:560px){.phases{grid-template-columns:1fr;}}
+  .phase{border-left:var(--hair);padding:0 14px;position:relative;}
+  .phase:first-child{border-left:none;padding-left:0;}
+  .phase .ptag{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.1em;
+    display:inline-block;border:2px solid var(--ink);padding:1px 7px;margin-bottom:9px;}
+  .phase.now .ptag{background:var(--red);color:#fff;border-color:var(--red);}
+  .phase.now::before{content:"כאן עכשיו ▶";position:absolute;top:2px;right:14px;
+    font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;color:var(--red);font-weight:700;}
+  .phase h3{font-family:var(--head);font-weight:900;font-size:16px;letter-spacing:-.01em;
+    text-transform:uppercase;line-height:.98;margin-bottom:3px;}
+  .phase .win{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--ink-60);margin-bottom:10px;}
+  .phase ul{list-style:none;}
+  .phase li{font-family:var(--body);font-size:11.5px;line-height:1.35;color:var(--ink);
+    padding:4px 0 4px 12px;border-bottom:var(--hair);position:relative;}
+  .phase li:last-child{border-bottom:none;}
+  .phase li::before{content:"›";position:absolute;left:0;color:var(--red);font-weight:700;}
+  .phase .exit{font-family:var(--mono);font-size:9.5px;font-style:normal;color:var(--ink-60);
+    margin-top:9px;border-top:var(--hair);padding-top:8px;line-height:1.4;}
+  .phase .exit b{color:var(--ink);}
+  .ninety{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:16px;
+    border-top:var(--rule);padding-top:0;}
+  @media(max-width:760px){.ninety{grid-template-columns:repeat(2,1fr);}}
+  .ninety .seg{border-left:var(--hair);padding:11px 12px 2px;}
+  .ninety .seg:first-child{border-left:none;padding-left:0;}
+  .ninety .seg .wk{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;
+    color:var(--red);text-transform:uppercase;}
+  .ninety .seg .go{font-family:var(--body);font-size:12px;line-height:1.35;margin-top:4px;}
+  /* RTL mirror for Hebrew roadmap */
+  .rtl-sec{direction:rtl;text-align:right;}
+  .rtl-sec .kicker{flex-direction:row;}
+  .rtl-sec .kicker .n{margin-left:0;margin-right:auto;}
+  .rtl-sec .phase{border-left:none;border-right:var(--hair);}
+  .rtl-sec .phase:first-child{border-right:none;padding-right:0;padding-left:14px;}
+  .rtl-sec .phase.now::before{right:auto;left:14px;}
+  .rtl-sec .phase li{padding:4px 12px 4px 0;}
+  .rtl-sec .phase li::before{left:auto;right:0;}
+  .rtl-sec .ninety .seg{border-left:none;border-right:var(--hair);}
+  .rtl-sec .ninety .seg:first-child{border-right:none;padding-right:0;padding-left:12px;}
+
+  /* ---------- RUN LOG + CHECKLIST ---------- */
+  .dot{font-size:11px;}
+  .dot.ok{color:var(--green);}
+  .dot.bad{color:var(--red);}
+  .dot.warn{color:var(--amber);}
+  td.l{text-align:left;}
+  .checklist{list-style:none;font-family:var(--mono);}
+  .checklist li{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:var(--hair);font-size:12.5px;cursor:pointer;}
+  .checklist li:last-child{border-bottom:none;}
+  .cbox{width:17px;height:17px;border:2px solid var(--ink);flex:0 0 auto;display:grid;place-items:center;
+    font-size:12px;line-height:1;}
+  .checklist li.done .cbox{background:var(--ink);color:var(--cream);}
+  .checklist li.done .txt{text-decoration:line-through;color:var(--ink-60);}
+  .p0{color:var(--red);font-weight:700;}
+  .note{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--ink-30);margin-top:10px;}
+  .colophon{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--ink-60);text-align:center;padding:20px 0 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- MASTHEAD -->
+  <header class="masthead">
+    <div class="mast-top">
+      <span>Vol. I · No. 01</span>
+      <span id="today">— · — · —</span>
+      <span>סינק / TARUU</span>
+    </div>
+    <div class="mast-title">
+      <h1>TARUU <span class="war">· WAR ROOM</span></h1>
+    </div>
+    <div class="mast-sub">
+      <span class="dl">▍ Internal Ops Dispatch — Founders Only</span>
+      <span>Civic Consensus · Israeli Municipalities</span>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <!-- 1. NORTH STAR -->
+    <section class="panel col-12">
+      <div class="kicker">North Star <span class="n">P&amp;L DRIVER · CREATE-LED</span></div>
+      <div class="ns">
+        <div>
+          <div class="ns-label">Paid vote-creations / month</div>
+          <div class="ns-num">
+            <input id="nsCurrent" type="number" min="0" value="600" aria-label="current paid creates">
+            <span class="of">/ 600 target</span>
+          </div>
+          <div class="ns-bar"><div class="fill" id="nsFill"></div><span class="pct" id="nsPct">100%</span></div>
+        </div>
+        <div class="substats">
+          <div class="substat"><div class="v" id="ssAmb">50</div><div class="l">● Active ambassadors</div></div>
+          <div class="substat"><div class="v" id="ssPart">8,000</div><div class="l">↑ Paying members / mo</div></div>
+          <div class="substat"><div class="v" id="ssGP">₪—</div><div class="l">▍ Gross profit / mo</div></div>
+          <div class="substat"><div class="v" id="ssTH">₪—</div><div class="l">■ Est. take-home / mo</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 1b. ROADMAP -->
+    <section class="panel col-12 rtl-sec" dir="rtl" lang="he">
+      <div class="kicker">מפת דרכים <span class="n">תוכנית · 90 יום</span></div>
+      <h2 class="ph">איך ממשיכים</h2>
+      <div class="phases">
+        <div class="phase now">
+          <span class="ptag">P0</span>
+          <h3>לא לדמם</h3>
+          <div class="win">שבוע 1–2 · חוסם הכל</div>
+          <ul>
+            <li>תשלומי Green Invoice (כרטיס שמור, מנוי ₪6/חודש — הצבעה ראשונה בחודש בתשלום, השאר חינם → ‎+₪2.47‎ למנוי/חודש, מסלול Prime)</li>
+            <li>עלייה לאוויר: דיפלוי CF + קרדנציאלים אמיתיים, מחיר ₪50 יצירה / מנוי ₪6, OTP</li>
+            <li>בדיקת e2e בבקאנד: יצירה אמיתית ₪50 + חיוב מנוי ₪6 בהצבעה ראשונה בחודש (חיוב טוקן) + הצבעה נוספת חינם</li>
+            <li>מעבר אבטחה: OAuth state+PKCE, merch RLS, הגבלת קצב</li>
+          </ul>
+          <div class="exit"><b>יציאה:</b> אדם אמיתי שומר כרטיס, יוצר הצבעת ₪50, מצביע (הצבעה ראשונה בחודש ₪6, השאר חינם), הכסף + הקופה מתואמים, אין ממצאי HIGH/MED פתוחים.</div>
+        </div>
+        <div class="phase">
+          <span class="ptag">P1</span>
+          <h3>זריעת הפצה</h3>
+          <div class="win">שבוע 2–6 · מנוע השגרירים</div>
+          <ul>
+            <li>סוכן האזנה — קבוצות פייסבוק ציבוריות, נושאים חמים + תושבים פעילים</li>
+            <li>סוכן פנייה — מנסח הודעות, אנחנו ממממנים הצבעת ₪50 ראשונה</li>
+            <li>ערכת שגריר — "כן" → הצבעה חיה תוך פחות מ-10 דק'</li>
+            <li>לוח פייפליין: זוהה → נוצר קשר → הצטרפות → פעיל</li>
+          </ul>
+          <div class="exit"><b>יעד:</b> 8–15 שגרירים פעילים, הוצאו לפועל החלטות ראשונות במימון הקופה.</div>
+        </div>
+        <div class="phase">
+          <span class="ptag">P2</span>
+          <h3>מכונת השיווק</h3>
+          <div class="win">שבוע 4–10 · חופף</div>
+          <ul>
+            <li>סוכן שיווק — פלייבוק Postiz, רכיבה על טרנדים אזרחיים</li>
+            <li>כתיבה מחדש של דף הבית — משפך מוביל-יצירה, "הצבעה מחייבת ב-₪50"</li>
+            <li>פייפליין תוכן — כל החלטה → סיפור תוצאה</li>
+            <li>AEO/חיפוש-LLM — להופיע ב-Taruu בתשובות ChatGPT/Claude</li>
+          </ul>
+          <div class="exit"><b>מטרה:</b> סיפורי התוצאה הראשונים מניעים יצירות נכנסות.</div>
+        </div>
+        <div class="phase">
+          <span class="ptag">P3</span>
+          <h3>אפקט מצטבר</h3>
+          <div class="win">חודש 3+ · גלגל תנופה</div>
+          <ul>
+            <li>שגריר → יוצר: כל מצביע מונע ליצור הצבעה משלו</li>
+            <li>פרסום ממומן רק אחרי מותג + LTV ידוע</li>
+            <li>אמינות = שימור: Sentry, תמיכת AI</li>
+            <li>התרחבות עיר אחר עיר, שקיפות הקופה כנכס אמון</li>
+            <li><span class="ptag" style="font-size:8px;padding:0 4px;margin:0 4px 0 0;">עתידי</span>מדד שביעות רצון לרשות — ציון אמון תושבים מול הרשות, דירוג רשויות ומנוע ל-benchmarking</li>
+          </ul>
+          <div class="exit"><b>מדידה:</b> מול יעד 600 יצירות/חודש; להחליט היכן להוסיף פרסום ממומן.</div>
+        </div>
+      </div>
+      <div class="ninety">
+        <div class="seg"><div class="wk">שבועות 1–2</div><div class="go">תשלומי Green Invoice (מנוי ₪6/חודש, כרטיס שמור) + עלייה לאוויר + e2e + אבטחה → להפסיק לדמם, להיות אמיתיים.</div></div>
+        <div class="seg"><div class="wk">שבועות 2–6</div><div class="go">סוכני האזנה + פנייה → 8–15 שגרירים, הצבעות ראשונות שהוצאו לפועל.</div></div>
+        <div class="seg"><div class="wk">שבועות 4–10</div><div class="go">סוכן שיווק + כתיבת דף הבית → סיפורי תוצאה מניעים יצירות.</div></div>
+        <div class="seg"><div class="wk">חודש 3</div><div class="go">לדחוף המרת שגריר→יוצר; למדוד מול 600 יצירות/חודש.</div></div>
+      </div>
+    </section>
+
+    <!-- 2. BREAK-EVEN CALCULATOR -->
+    <section class="panel col-7">
+      <div class="kicker">Live Model <span class="n">INTERACTIVE</span></div>
+      <h2 class="ph">Break-Even Calculator</h2>
+      <p class="cap" style="color:var(--ink-60);border-color:var(--ink);font-style:normal;margin:0 0 14px;">
+        ISRAEL MARKET — 255 local authorities (77 cities · 124 local · 54 regional) · pop 10.18M · ~40k residents / authority avg.
+      </p>
+      <div class="calc-grid">
+        <div class="ctrl">
+          <div class="ctrl-top"><label for="cMuni">Municipalities active <span style="color:var(--ink-30)">(of 255)</span></label><span class="val" id="vMuni">1</span></div>
+          <input id="cMuni" type="range" min="0" max="255" step="1" value="1">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-top"><label for="cAmb">Ambassadors <span style="color:var(--ink-30)">(funded creates)</span></label><span class="val" id="vAmb">50</span></div>
+          <input id="cAmb" type="range" min="0" max="300" step="5" value="50">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-top"><label for="cPaid">Paid creates / mo</label><span class="val" id="vPaid">900</span></div>
+          <input id="cPaid" type="range" min="0" max="3000" step="10" value="900">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-top"><label for="cPpc">Active paying members / mo <span style="color:var(--ink-30)">(₪6 ea.)</span></label><span class="val" id="vPpc">8,000</span></div>
+          <input id="cPpc" type="range" min="0" max="50000" step="250" value="8000">
+        </div>
+        <div class="ctrl">
+          <div class="ctrl-top"><label for="cExtra">Extra variable costs ₪ / mo</label><span class="val" id="vExtra">1,200</span></div>
+          <input id="cExtra" type="range" min="0" max="20000" step="100" value="1200">
+        </div>
+        <div class="ctrl" style="border-bottom:none;">
+          <div class="ctrl-top">
+            <label for="cSat">Municipality satisfaction <span class="ptag" style="font-size:8px;padding:0 4px;border-width:1px;">FUTURE</span></label>
+            <span class="val" id="vSat">72%</span>
+          </div>
+          <input id="cSat" type="range" min="0" max="100" step="1" value="72">
+          <div class="gauge"><div class="gfill" id="satFill"></div><span class="gtag" id="satTag">—</span></div>
+          <div class="sn" style="font-family:var(--mono);font-size:9.5px;color:var(--ink-60);margin-top:7px;letter-spacing:.04em;">
+            Resident-trust score per active authority · leading indicator of retention &amp; ambassador→creator conversion · not yet in P&amp;L.
+          </div>
+        </div>
+      </div>
+
+      <div class="calc-out">
+        <div class="orow"><span class="ol">Addressable residents (munis × ~40k)</span><span class="ov" id="oTAM">—</span></div>
+        <div class="orow"><span class="ol">Member reach (members ÷ residents)</span><span class="ov" id="oPen">—</span></div>
+        <div class="orow"><span class="ol">Revenue — creates (₪47.95 net ea.)</span><span class="ov" id="oRevC">₪—</span></div>
+        <div class="orow"><span class="ol">Revenue — membership (₪2.47/member-mo)</span><span class="ov" id="oRevP">₪—</span></div>
+        <div class="orow big"><span class="ol">Gross revenue</span><span class="ov" id="oGross">₪—</span></div>
+        <div class="orow"><span class="ol">Costs (₪1,200 fixed + extra)</span><span class="ov neg" id="oCosts">₪—</span></div>
+        <div class="orow big"><span class="ol">Gross profit</span><span class="ov" id="oGP">₪—</span></div>
+        <div class="orow big takehome"><span class="ol">Est. take-home (after 27% tax+BL)</span><span class="ov" id="oTH">₪—</span></div>
+      </div>
+      <div class="verdict"><span>VERDICT — pace required</span><span class="red" id="oVerdict">— creates/day</span></div>
+
+      <div class="kicker" style="margin-top:18px;">Civic Ledger <span class="n">SPLIT · ₪6 MEMBERSHIP</span></div>
+      <div class="split">
+        <div class="splitcol">
+          <div class="sl">Civic pool — monthly, for execution</div>
+          <div class="sv" id="oBag">₪—</div>
+          <div class="sn">₪2.10 / member / mo · held for the city · <b>not ours</b> · <span id="oBagPer">₪—</span> per active muni</div>
+        </div>
+        <div class="splitcol ours">
+          <div class="sl">Platform take — ours</div>
+          <div class="sv" id="oOurs">₪—</div>
+          <div class="sn">₪2.47 / member-mo (₪3.90 − fee) + ₪47.95 / create · pre-cost gross</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. UNIT ECONOMICS -->
+    <section class="panel col-5">
+      <div class="kicker">Reference <span class="n">STATIC</span></div>
+      <h2 class="ph">Unit Economics — Green Invoice, membership</h2>
+      <table>
+        <thead>
+          <tr><th>Flow</th><th>GI fee</th><th>Treas.</th><th>NET</th></tr>
+        </thead>
+        <tbody>
+          <tr class="win"><td>Member ₪6/mo</td><td>1.43</td><td>2.10</td><td>+2.47</td></tr>
+          <tr><td>Vote (rest of mo)</td><td>—</td><td>—</td><td>₪0 free</td></tr>
+          <tr><td>Create ₪50</td><td>2.05</td><td>—</td><td>+47.95</td></tr>
+        </tbody>
+      </table>
+      <p class="cap">Membership: only the first vote of a calendar month costs ₪6 (₪2.10 → civic pool + ₪3.90 platform); every other vote that month is free. GI = 1.4% + ₪1.2 clearing + ₪0.15 receipt (Prime), one charge/member/mo. Net <b>+₪2.47/member/mo</b> · Create +₪47.95.</p>
+    </section>
+
+    <!-- 4. AMBASSADOR PIPELINE -->
+    <section class="panel col-12">
+      <div class="kicker">Pipeline <span class="n">MANUAL BOARD</span></div>
+      <h2 class="ph">Ambassador Pipeline</h2>
+      <div class="kan" id="kanban"></div>
+      <p class="note">▍ Demo data — contenteditable cards, wire to Supabase later.</p>
+    </section>
+
+    <!-- 5a. AGENT RUN LOG -->
+    <section class="panel col-6 first">
+      <div class="kicker">Automation <span class="n">CRON</span></div>
+      <h2 class="ph">Agent Run Log</h2>
+      <table>
+        <thead><tr><th>Agent</th><th>Last run</th><th>Status</th><th>Output</th></tr></thead>
+        <tbody>
+          <tr><td class="l">Listening</td><td>09:14</td><td><span class="dot ok">●</span> OK</td><td>312 hits</td></tr>
+          <tr><td class="l">Outreach</td><td>09:02</td><td><span class="dot warn">●</span> WARN</td><td>4 sent · 1 fail</td></tr>
+          <tr><td class="l">Marketing</td><td>—</td><td><span class="dot bad">✕</span> DOWN</td><td>no cron yet</td></tr>
+        </tbody>
+      </table>
+      <p class="note">▍ Demo — wire to cron later.</p>
+    </section>
+
+    <!-- 5b. OPS CHECKLIST -->
+    <section class="panel col-6">
+      <div class="kicker">Execution <span class="n">P0 → P2</span></div>
+      <h2 class="ph">Ops Checklist</h2>
+      <ul class="checklist" id="checklist">
+        <li><span class="cbox"></span><span class="txt"><span class="p0">[P0]</span> Ship Green Invoice payments (₪6/mo membership card-on-file, Prime)</span></li>
+        <li><span class="cbox"></span><span class="txt">Set Green Invoice create price = ₪50 · membership ₪6</span></li>
+        <li><span class="cbox"></span><span class="txt">Set GREENINVOICE_WEBHOOK_SECRET</span></li>
+        <li><span class="cbox"></span><span class="txt">Wire SMS OTP gateway</span></li>
+        <li><span class="cbox"></span><span class="txt">Homepage copy rewrite</span></li>
+        <li><span class="cbox"></span><span class="txt">Backend e2e flow check</span></li>
+        <li><span class="cbox"></span><span class="txt">Security: OAuth state + PKCE</span></li>
+        <li><span class="cbox"></span><span class="txt">merch_orders RLS</span></li>
+      </ul>
+    </section>
+
+  </div>
+
+  <div class="colophon">— TARUU WAR ROOM · set in Heebo &amp; JetBrains Mono · printed on newsprint cream —</div>
+</div>
+
+<script>
+"use strict";
+/* ---------- CONSTANTS (hardcoded per spec) ---------- */
+var CREATE_NET   = 47.95;   // 50 − GI fee (1.4% + ₪1.2 + ₪0.15 receipt)
+var MEMBER_NET   = 2.47;    // ₪6 membership − ₪2.10 pool − GI fee (₪1.43) → platform NET / member-mo
+var FIXED_COSTS  = 1200;    // ₪/mo (excl. GI Prime ₪155 + treasury hire)
+var TAX_BL       = 0.27;    // effective tax + bituach leumi
+var NS_TARGET    = 900;     // north-star monthly target (paid creates)
+var MUNI_TOTAL   = 255;     // Israel local authorities (77 cities + 124 local + 54 regional)
+var ISRAEL_POP   = 10180000;// total population, 2025 (CBS)
+var AVG_POP      = Math.round(ISRAEL_POP / MUNI_TOTAL); // ~39,922 residents / authority
+var TREASURY_MEMBER = 2.10; // civic promise: ₪2.10 / paying member / month → monthly civic pool (held, not ours)
+
+var ils = function(n){
+  var r = Math.round(n);
+  return '₪' + r.toLocaleString('en-US');
+};
+
+/* ---------- ELEMENTS ---------- */
+var el = function(id){ return document.getElementById(id); };
+var cMuni=el('cMuni'), cAmb=el('cAmb'), cPaid=el('cPaid'), cPpc=el('cPpc'), cExtra=el('cExtra'), cSat=el('cSat');
+var nsCurrent=el('nsCurrent');
+
+/* ---------- CORE COMPUTE ---------- */
+function compute(){
+  var munis       = +cMuni.value;
+  var ambassadors = +cAmb.value;
+  var paid        = +cPaid.value;
+  var members     = +cPpc.value;               // active PAYING members / mo (membership model driver)
+  var extra       = +cExtra.value;
+
+  // market sizing — addressable residents across active municipalities
+  var addressable = munis * AVG_POP;
+  // penetration: paying members as a share of addressable residents
+  var voteReach = addressable > 0 ? members / addressable : 0;
+
+  var revCreates = paid * CREATE_NET;          // PAID creates earn ₪47.95 net
+  var revPart    = members * MEMBER_NET;        // membership: ₪2.47 net / paying member / month
+  var gross      = revCreates + revPart;       // platform take (ours), civic pool already excluded
+
+  // civic split — monthly civic pool held for execution (NOT platform revenue)
+  var bag        = members * TREASURY_MEMBER;   // ₪2.10 / paying member / month → pool
+  var bagPerMuni = munis > 0 ? bag / munis : 0;
+  var costs      = FIXED_COSTS + extra;
+  var grossProfit = gross - costs;
+  var takehome   = Math.max(0, grossProfit) * (1 - TAX_BL);
+
+  /* control value labels */
+  el('vMuni').textContent  = munis.toLocaleString('en-US');
+  el('vAmb').textContent   = ambassadors.toLocaleString('en-US');
+  el('vPaid').textContent  = paid.toLocaleString('en-US');
+  el('vPpc').textContent   = members.toLocaleString('en-US');
+  el('vExtra').textContent = extra.toLocaleString('en-US');
+
+  /* calculator outputs */
+  el('oTAM').textContent  = addressable.toLocaleString('en-US') + ' res.';
+  var penEl = el('oPen');
+  penEl.textContent = (voteReach * 100).toFixed(voteReach < 0.1 ? 2 : 1) + '% of residents';
+  penEl.className = 'ov' + (voteReach > 1 ? ' neg' : ''); // >100% of population = implausible
+  el('oRevC').textContent = ils(revCreates);
+  el('oRevP').textContent = ils(revPart);
+  el('oGross').textContent = ils(gross);
+  el('oCosts').textContent = '−' + ils(costs);
+  el('oGP').textContent = (grossProfit < 0 ? '−' : '') + ils(Math.abs(grossProfit));
+  el('oGP').className = 'ov' + (grossProfit < 0 ? ' neg' : '');
+
+  /* take-home + colour band */
+  var thEl = el('oTH');
+  thEl.textContent = ils(takehome);
+  var color = '#E0301E';                       // red < 15k
+  if (takehome >= 30000) color = '#1f7a3d';    // green
+  else if (takehome >= 15000) color = '#b8730a'; // amber
+  thEl.style.color = color;
+
+  /* verdict — creates/day */
+  var perDay = paid / 30;
+  el('oVerdict').textContent = (Math.round(perDay * 10) / 10).toLocaleString('en-US') + ' creates/day needed';
+
+  /* civic split — bag (theirs) vs platform take (ours) */
+  el('oBag').textContent    = ils(bag);
+  el('oBagPer').textContent = ils(bagPerMuni);
+  el('oOurs').textContent   = ils(gross);
+
+  /* satisfaction gauge (future leading indicator — not in P&L) */
+  var sat = +cSat.value;
+  el('vSat').textContent = sat + '%';
+  var satFill = el('satFill'), satTag = el('satTag');
+  satFill.style.width = sat + '%';
+  var sColor = '#E0301E', sLabel = 'AT RISK';        // <40 red
+  if (sat >= 70)      { sColor = '#1f7a3d'; sLabel = 'HIGH TRUST'; }
+  else if (sat >= 40) { sColor = '#b8730a'; sLabel = 'MIXED'; }
+  satFill.style.background = sColor;
+  satTag.textContent = sat + '% · ' + sLabel;
+
+  /* north-star sub-stats mirror the live model */
+  el('ssAmb').textContent  = ambassadors.toLocaleString('en-US');
+  el('ssPart').textContent = members.toLocaleString('en-US');
+  el('ssGP').textContent   = (grossProfit < 0 ? '−' : '') + ils(Math.abs(grossProfit));
+  el('ssTH').textContent   = ils(takehome);
+
+  updateNorthStar();
+}
+
+/* ---------- NORTH STAR BAR ---------- */
+function updateNorthStar(){
+  var cur = +nsCurrent.value || 0;
+  var pct = Math.max(0, Math.min(100, (cur / NS_TARGET) * 100));
+  el('nsFill').style.width = pct + '%';
+  el('nsPct').textContent = Math.round(pct) + '%';
+}
+
+[cMuni,cAmb,cPaid,cPpc,cExtra,cSat].forEach(function(c){ c.addEventListener('input', compute); });
+nsCurrent.addEventListener('input', updateNorthStar);
+
+/* keep paid-creates slider loosely synced to north-star input on edit */
+nsCurrent.addEventListener('change', function(){
+  var v = Math.max(0, Math.min(2000, +nsCurrent.value || 0));
+  cPaid.value = v; compute();
+});
+
+/* ---------- DATELINE ---------- */
+(function(){
+  var d = new Date();
+  var months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  el('today').textContent = String(d.getDate()).padStart(2,'0') + ' · ' +
+    months[d.getMonth()] + ' · ' + d.getFullYear();
+})();
+
+/* ---------- KANBAN (demo data) ---------- */
+(function(){
+  var cols = [
+    { name:'Spotted', cards:[
+      {city:'חיפה · Haifa', topic:'municipal parking reform', score:'312 comments', hot:true},
+      {city:'נצרת · Nazareth', topic:'market relocation', score:'88 comments'}
+    ]},
+    { name:'Contacted', cards:[
+      {city:'באר שבע · Beersheba', topic:'school busing routes', score:'warm · replied', hot:true},
+      {city:'אשדוד · Ashdod', topic:'beach access fees', score:'cold · 1 DM'},
+      {city:'רעננה · Ra\'anana', topic:'bike lanes', score:'warm'}
+    ]},
+    { name:'Onboarding', cards:[
+      {city:'מודיעין · Modi\'in', topic:'park renovation vote', score:'kit sent'},
+      {city:'הרצליה · Herzliya', topic:'parking permits', score:'demo booked'}
+    ]},
+    { name:'Active', cards:[
+      {city:'תל אביב · Tel Aviv', topic:'scooter regulation', score:'4 creates · live', hot:true},
+      {city:'ירושלים · Jerusalem', topic:'light-rail stop', score:'2 creates'}
+    ]}
+  ];
+  var html = cols.map(function(col){
+    var cards = col.cards.map(function(c){
+      return '<div class="kcard" contenteditable="true">' +
+        '<div class="city">' + c.city + '</div>' +
+        '<div class="topic">' + c.topic + '</div>' +
+        '<span class="badge' + (c.hot ? ' hot' : '') + '">' + c.score + '</span>' +
+      '</div>';
+    }).join('');
+    return '<div class="kcol"><h3>' + col.name + ' <span class="c">' + col.cards.length + '</span></h3>' + cards + '</div>';
+  }).join('');
+  el('kanban').innerHTML = html;
+})();
+
+/* ---------- CHECKLIST toggle ---------- */
+Array.prototype.forEach.call(document.querySelectorAll('#checklist li'), function(li){
+  li.addEventListener('click', function(){
+    li.classList.toggle('done');
+    li.querySelector('.cbox').textContent = li.classList.contains('done') ? '✓' : '';
+  });
+});
+
+/* ---------- INIT ---------- */
+compute();
+</script>
+</body>
+</html>

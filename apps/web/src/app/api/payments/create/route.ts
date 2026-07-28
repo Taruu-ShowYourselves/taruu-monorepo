@@ -7,9 +7,9 @@ import {
   getPaymentByIdempotencyKey,
 } from '@/lib/supabase/db';
 import {
-  paddleService,
+  paymentService,
   getPaymentAmounts,
-} from '@/services/payments/paddle';
+} from '@/services/payments/greenInvoice';
 
 interface CreatePaymentRequest {
   type: 'vote_participation' | 'vote_creation';
@@ -21,7 +21,7 @@ interface CreatePaymentRequest {
 
 /**
  * POST /api/payments/create
- * Create a Paddle checkout for vote participation or creation
+ * Create a Green Invoice hosted payment page for vote participation or creation
  * Supports idempotency via idempotency_key
  */
 export async function POST(request: NextRequest) {
@@ -114,12 +114,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Create Paddle checkout
+    // Create Green Invoice hosted payment page
     const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
 
     let paymentIntent;
     if (type === 'vote_participation') {
-      paymentIntent = await paddleService.createVotePayment({
+      paymentIntent = await paymentService.createVotePayment({
         orderId: payment.id, // Use our payment ID as the order ID
         voteId: voteId!,
         voteTitle,
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
         municipality: user.municipality_id || undefined,
       });
     } else {
-      paymentIntent = await paddleService.createVoteCreationPayment({
+      paymentIntent = await paymentService.createVoteCreationPayment({
         orderId: payment.id,
         voteTitle: voteTitle || 'הצבעה חדשה',
         userId: user.id,
@@ -194,6 +194,6 @@ export async function GET() {
       rate: 1,
       description: '1 ILS = 1 SYNC token',
     },
-    paymentProvider: 'paddle',
+    paymentProvider: 'green_invoice',
   });
 }

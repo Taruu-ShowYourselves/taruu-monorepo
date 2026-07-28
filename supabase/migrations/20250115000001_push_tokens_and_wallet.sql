@@ -39,19 +39,19 @@ ALTER TABLE push_tokens ENABLE ROW LEVEL SECURITY;
 
 -- Users can view their own push tokens
 CREATE POLICY "Users can view own push tokens" ON push_tokens
-  FOR SELECT USING (user_id = auth.user_id());
+  FOR SELECT USING (user_id = public.user_id());
 
 -- Users can insert their own push tokens
 CREATE POLICY "Users can insert own push tokens" ON push_tokens
-  FOR INSERT WITH CHECK (user_id = auth.user_id());
+  FOR INSERT WITH CHECK (user_id = public.user_id());
 
 -- Users can update their own push tokens
 CREATE POLICY "Users can update own push tokens" ON push_tokens
-  FOR UPDATE USING (user_id = auth.user_id());
+  FOR UPDATE USING (user_id = public.user_id());
 
 -- Users can delete their own push tokens
 CREATE POLICY "Users can delete own push tokens" ON push_tokens
-  FOR DELETE USING (user_id = auth.user_id());
+  FOR DELETE USING (user_id = public.user_id());
 
 -- ============================================
 -- UPDATED_AT TRIGGER

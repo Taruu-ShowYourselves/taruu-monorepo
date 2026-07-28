@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { NewsButton } from '@/components/press/NewsButton';
 import { useAuth } from '@/providers/AuthProvider';
 import type { Locale } from '@/lib/i18n';
@@ -16,6 +17,13 @@ interface MastheadProps {
 
 const NAV = [
   { label: 'הצבעות', href: 'votes' },
+  { label: 'כנסת ישראל', href: 'knesset' },
+  { label: 'איך זה עובד', href: 'how-it-works' },
+];
+
+// Secondary destinations — collapsed into the "עוד" dropdown so the
+// masthead nav stays a short primary row.
+const NAV_MORE = [
   { label: 'BAGS', href: 'coin' },
   { label: 'כלכלה אזרחית', href: 'economics' },
   { label: 'שקיפות הקרן', href: 'treasury' },
@@ -30,6 +38,43 @@ function initialsOf(firstName?: string, lastName?: string): string {
   const b = lastName?.trim()?.[0] ?? '';
   const out = `${a}${b}`.trim();
   return out || '●';
+}
+
+interface MoreMenuProps {
+  locale: Locale;
+}
+
+/**
+ * "עוד" — secondary nav collapsed into a dropdown. Radix DropdownMenu does
+ * the hard part (positioning, viewport collision, focus, keyboard, RTL);
+ * press tokens style it.
+ */
+function MoreMenu({ locale }: MoreMenuProps) {
+  return (
+    <DropdownMenu.Root dir="rtl" modal={false}>
+      <DropdownMenu.Trigger className={styles.moreBtn}>
+        עוד
+        <span aria-hidden className={styles.moreCaret}>▾</span>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          className={styles.moreMenu}
+          align="start"
+          sideOffset={6}
+          collisionPadding={16}
+          loop
+        >
+          {NAV_MORE.map((n) => (
+            <DropdownMenu.Item key={n.href} asChild>
+              <Link href={`/${locale}/${n.href}`} className={styles.moreItem}>
+                {n.label}
+              </Link>
+            </DropdownMenu.Item>
+          ))}
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  );
 }
 
 interface AccountClusterProps {
@@ -143,6 +188,21 @@ function AccountCluster({ locale }: AccountClusterProps) {
   );
 }
 
+/** Hebrew edition dateline, e.g. "יום חמישי · 23.07.26" (Israel time). */
+function formatDateline(date: Date): string {
+  const weekday = new Intl.DateTimeFormat('he-IL', {
+    weekday: 'long',
+    timeZone: 'Asia/Jerusalem',
+  }).format(date);
+  const dmy = new Intl.DateTimeFormat('he-IL', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+    timeZone: 'Asia/Jerusalem',
+  }).format(date);
+  return `יום ${weekday.replace(/^יום /, '')} · ${dmy}`;
+}
+
 export function Masthead({ locale = 'he' }: MastheadProps) {
   const { isAuthenticated } = useAuth();
 
@@ -150,9 +210,10 @@ export function Masthead({ locale = 'he' }: MastheadProps) {
     <header className={styles.masthead}>
       {/* Edition ears */}
       <div className={styles.ears}>
-        <span>יום שבת · 14.06.26</span>
+        {/* suppressHydrationWarning: server and client may straddle midnight */}
+        <span suppressHydrationWarning>{formatDateline(new Date())}</span>
         <span>מהדורת הפיילוט · גיליון 04</span>
-        <span>קריית טבעון · ₪3 / הצבעה</span>
+        <span>כל הארץ · ₪3 / הצבעה</span>
       </div>
 
       <div className={styles.ruleHair} />
@@ -190,6 +251,9 @@ export function Masthead({ locale = 'he' }: MastheadProps) {
               </Link>
             </li>
           ))}
+          <li>
+            <MoreMenu locale={locale} />
+          </li>
         </ul>
       </nav>
       <div className={styles.ruleHair} />

@@ -7,22 +7,26 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { NewsButton, Stepper, SealCard, PressInput } from '@/components/press';
 import { isEligibleToVote } from '@/lib/verification';
+import { DocumentScanStep } from './components/DocumentScanStep';
 import styles from './page.module.css';
 
 /* ------------------------------ reassurance data --------------------------- */
 
 const LEDGER_ITEMS = [
+  { mark: '✕', tone: 'red' as const, text: 'לא שומרים את צילום התעודה — הסריקה על המכשיר בלבד' },
+  { mark: '✕', tone: 'red' as const, text: 'לא שומרים סלפי או חתימה ביומטרית — רק תוצאת התאמה' },
+  { mark: '✕', tone: 'red' as const, text: 'לא שומרים את מספר הזהות — רק הצפנה חד-כיוונית שלו' },
   { mark: '✕', tone: 'red' as const, text: 'לא שומרים מיקום' },
-  { mark: '✕', tone: 'red' as const, text: 'לא משתפים מיקום עם אף גורם' },
   { mark: '✕', tone: 'red' as const, text: 'לא עוקבים אחריכם בין הצבעה להצבעה' },
   { mark: '✓', tone: 'ink' as const, text: 'בדיקה חד-פעמית ברגע ההצבעה בלבד' },
   { mark: '✓', tone: 'ink' as const, text: 'מוודאים רק שאתם בתחום הרשות' },
   { mark: '✓', tone: 'ink' as const, text: 'כל קול בשכונה הוא של תושב אמיתי' },
 ];
 
-/* Press flow steps — identity → presence → confirmation. */
+/* Press flow steps — identity → document → presence → confirmation. */
 const STEPS = [
   { label: 'זהות' },
+  { label: 'תעודה' },
   { label: 'נוכחות' },
   { label: 'אישור' },
 ];
@@ -43,7 +47,7 @@ const COPY = {
 const DEFAULT_REDIRECT = '/votes';
 
 /** Local sub-steps within the page (independent of the server phase model). */
-type Flow = 'phone' | 'otp' | 'gps' | 'done';
+type Flow = 'phone' | 'otp' | 'document' | 'gps' | 'done';
 
 /** Format a date for the "next window" hint (Hebrew, short). */
 function formatWindow(value?: string | Date | null): string | null {
@@ -78,6 +82,9 @@ function VerificationView() {
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [nextWindow, setNextWindow] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [docStatus, setDocStatus] = useState<
+    'unknown' | 'none' | 'verified' | 'pending_review' | 'rejected'
+  >('unknown');
 
   const eligible = isEligibleToVote(user);
 
@@ -96,14 +103,40 @@ function VerificationView() {
     }
   }, [eligible]);
 
+  // --- On entry, learn whether a document was already submitted ---
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/verification/document', {
+          credentials: 'include',
+        });
+        if (!res.ok) {
+          if (!cancelled) setDocStatus('none');
+          return;
+        }
+        const data = await res.json().catch(() => null);
+        if (!cancelled) setDocStatus(data?.document?.status ?? 'none');
+      } catch {
+        if (!cancelled) setDocStatus('none');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /** Document step already satisfied (verified or awaiting manual review). */
+  const docDone = docStatus === 'verified' || docStatus === 'pending_review';
+
   // --- On entry, skip the phone step if the phone is already verified ---
   useEffect(() => {
-    if (!eligible && user?.phone && flow === 'phone') {
+    if (!eligible && user?.phone && flow === 'phone' && docStatus !== 'unknown') {
       setPhone(user.phone);
-      setFlow('gps');
+      setFlow(docDone ? 'gps' : 'document');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.phone, eligible]);
+  }, [user?.phone, eligible, docStatus]);
 
   /* ---- Phone step: send code ---- */
   const handleSendCode = useCallback(async () => {
@@ -164,7 +197,7 @@ function VerificationView() {
         const data = await res.json().catch(() => null);
         if (data?.verified !== false) {
           await refreshSession();
-          setFlow('gps');
+          setFlow(docDone ? 'gps' : 'document');
           return;
         }
         setOtpError(data?.message || COPY.general);
@@ -176,7 +209,7 @@ function VerificationView() {
       // Mock-degrade: SMS service absent → accept the code so the flow proceeds.
       if (res.status === 503) {
         await refreshSession();
-        setFlow('gps');
+        setFlow(docDone ? 'gps' : 'document');
         return;
       }
 
@@ -186,7 +219,7 @@ function VerificationView() {
     } finally {
       setBusy(false);
     }
-  }, [phone, code, refreshSession]);
+  }, [phone, code, refreshSession, docDone]);
 
   /* ---- GPS step: ensure a run exists, then check in ---- */
   const handleCheckIn = useCallback(async () => {
@@ -291,10 +324,12 @@ function VerificationView() {
       case 'phone':
       case 'otp':
         return 0;
-      case 'gps':
+      case 'document':
         return 1;
-      case 'done':
+      case 'gps':
         return 2;
+      case 'done':
+        return 3;
       default:
         return 0;
     }
@@ -353,9 +388,10 @@ function VerificationView() {
               <span className={styles.headingAccent}>לא עוקבים אחריכם.</span>
             </h1>
             <p className={styles.lead_p}>
-              שני שלבים פשוטים: אימות טלפון ובדיקת מיקום חד-פעמית. זה מוודא
-              שאתם תושבי הרשות. לא שומרים מסלולים, לא משתפים מיקום, לא עוקבים. זה
-              מה שמבטיח שכל קול בשכונה הוא של תושב אמיתי.
+              שלושה שלבים פשוטים: אימות טלפון, סריקת תעודה על המכשיר שלכם,
+              ובדיקת מיקום חד-פעמית. זה מוודא שאתם תושבי הרשות — בלי שצילום
+              התעודה או מספר הזהות נשמרים אצלנו, בלי מסלולים ובלי מעקב. זה מה
+              שמבטיח שכל קול בשכונה הוא של תושב אמיתי.
             </p>
           </header>
 
@@ -463,11 +499,23 @@ function VerificationView() {
                 </article>
               )}
 
-              {/* ---- STEP 2 — נוכחות (GPS check-in) ---- */}
+              {/* ---- STEP 2 — תעודה (document scan) ---- */}
+              {flow === 'document' && (
+                <DocumentScanStep
+                  profileFirstName={user?.firstName}
+                  profileLastName={user?.lastName}
+                  onDone={(result) => {
+                    setDocStatus(result.status);
+                    setFlow('gps');
+                  }}
+                />
+              )}
+
+              {/* ---- STEP 3 — נוכחות (GPS check-in) ---- */}
               {flow === 'gps' && (
                 <article className={styles.panel}>
                   <header className={styles.panelHead}>
-                    <span className={styles.panelTag}>שלב 2 · נוכחות</span>
+                    <span className={styles.panelTag}>שלב 3 · נוכחות</span>
                     <h2 className={styles.panelTitle}>אמתו נוכחות</h2>
                   </header>
                   <p className={styles.panelText}>
@@ -508,27 +556,37 @@ function VerificationView() {
                 </article>
               )}
 
-              {/* ---- STEP 3 — אישור (eligible / verified) ---- */}
+              {/* ---- STEP 4 — אישור (eligible / verified) ---- */}
               {flow === 'done' && (
                 <article className={styles.panel}>
                   <header className={styles.panelHead}>
-                    <span className={styles.panelTag}>שלב 3 · אישור</span>
+                    <span className={styles.panelTag}>שלב 4 · אישור</span>
                     <h2 className={styles.panelTitle}>אתם מאומתים — אפשר להצביע</h2>
                   </header>
 
                   <SealCard
-                    hash="מאומת · תושב/ת קריית טבעון"
+                    hash="מאומת · תושב/ת הרשות שלכם"
                     status="sealed"
                     meta={[
                       { label: 'סטטוס', value: 'מאומת' },
-                      { label: 'רשות', value: 'קריית טבעון' },
+                      { label: 'רשות', value: 'לפי המיקום שלכם' },
                       {
                         label: 'אימות',
-                        value: 'טלפון · מיקום',
+                        value:
+                          docStatus === 'verified' || docStatus === 'pending_review'
+                            ? 'טלפון · תעודה · מיקום'
+                            : 'טלפון · מיקום',
                       },
                     ]}
                     className={styles.seal}
                   />
+
+                  {docStatus === 'pending_review' && (
+                    <p className={styles.panelText}>
+                      פרטי התעודה נקלטו ונמצאים בבדיקה ידנית. נעדכן אתכם אם יידרש
+                      משהו נוסף — בינתיים אפשר להמשיך.
+                    </p>
+                  )}
 
                   <p className={styles.panelText}>
                     סיימתם את האימות. הקול שלכם נספר כקול של תושב אמיתי — אפשר

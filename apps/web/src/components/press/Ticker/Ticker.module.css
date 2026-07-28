@@ -5,6 +5,10 @@
   color: var(--np-paper);
   border-block: var(--np-rule) solid var(--np-ink);
   overflow: hidden;
+  /* Respect the page gutters — same inline inset as the masthead padding,
+     so the ink band aligns with the rules above instead of bleeding
+     edge-to-edge. */
+  margin-inline: var(--np-gutter);
 }
 
 .flag {

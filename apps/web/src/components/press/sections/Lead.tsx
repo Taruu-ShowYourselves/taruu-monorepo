@@ -36,7 +36,7 @@ export function Lead({ locale = 'he' }: LeadProps) {
           </span>
 
           <h1 className={styles.headline}>
-            הקול של השכונה. עכשיו <span className={styles.red}>במספרים.</span>
+            הקול של העיר. האנשים עכשיו <span className={styles.red}>במספרים.</span>
           </h1>
 
           <p className={styles.standfirst}>
@@ -63,16 +63,16 @@ export function Lead({ locale = 'he' }: LeadProps) {
           <div className={styles.byline}>
             <span>מאת המערכת</span>
             <span className={styles.sep} aria-hidden>■</span>
-            <span>קריית טבעון</span>
+            <span>כל הארץ</span>
             <span className={styles.sep} aria-hidden>■</span>
-            <span>23.01.26</span>
+            <span>04.08.26</span>
           </div>
 
           <div className={styles.actions}>
             <NewsButton href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" variant="red" size="lg" trailing={<span aria-hidden>←</span>}>
               קבוצת המייסדים
             </NewsButton>
-            <a href="#participate" className={styles.textLink}>איך משתתפים ↓</a>
+            <a href={`/${locale}/how-it-works`} className={styles.textLink}>איך זה עובד ←</a>
           </div>
         </div>
 
@@ -97,7 +97,7 @@ export function Lead({ locale = 'he' }: LeadProps) {
             <span className={styles.priceMeta}>₪2 לקרן הקהילתית · ₪1 לתפעול</span>
           </div>
 
-          <a href="#participate" className={styles.briefMore}>לכל הכלים ←</a>
+          <a href={`/${locale}/how-it-works`} className={styles.briefMore}>לכל הכלים ←</a>
         </aside>
       </div>
     </section>

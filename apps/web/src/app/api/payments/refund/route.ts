@@ -15,10 +15,9 @@ const MAX_REASON_LENGTH = 500;
  *
  * Records a user's refund request for one of their completed payments and
  * notifies support. Per the published policy, refunds are issued manually in
- * Paddle — this endpoint does NOT move money; it captures the request (on the
- * payment metadata) and emails support, who issue the refund via
- * `paddleService.createRefund`. The `adjustment.created` webhook then flips the
- * payment to `refunded`.
+ * Green Invoice — this endpoint does NOT move money; it captures the request (on
+ * the payment metadata) and emails support, who issue a credit note (חשבונית
+ * זיכוי) via `paymentService.createRefund` and flip the payment to `refunded`.
  *
  * Body: { paymentId: string, reason: string }
  */

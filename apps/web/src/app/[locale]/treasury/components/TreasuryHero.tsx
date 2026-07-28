@@ -114,7 +114,7 @@ export function TreasuryHero() {
             >
               קבוצת המייסדים
             </NewsButton>
-            <span className={styles.dateline}>קריית טבעון · גיליון כלכלה</span>
+            <span className={styles.dateline}>כל הארץ · גיליון כלכלה</span>
           </div>
         </header>
 

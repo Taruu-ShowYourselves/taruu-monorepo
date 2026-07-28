@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { NewsButton } from '@/components/press/NewsButton';
+import { CountdownClock } from '@/components/press/Countdown/Countdown';
 import type { Locale } from '@/lib/i18n';
 import styles from './Colophon.module.css';
 import { WHATSAPP_FOUNDERS_LINK } from '@sync/shared';
@@ -57,9 +58,10 @@ export function Colophon({ locale = 'he' }: ColophonProps) {
         <div className={styles.subLeft}>
           <span className={styles.kicker}><span aria-hidden className={styles.tick} />הישארו מעודכנים · SUBSCRIBE</span>
           <h2 className={styles.subHead}>אל תפספסו את <span className={styles.red}>ההצבעה הראשונה.</span></h2>
-          <p className={styles.subText}>עדכון אחד לפני שההצבעה נפתחת ב-23.01.26. בלי ספאם, בלי אותיות קטנות.</p>
+          <p className={styles.subText}>עדכון אחד לפני שההצבעה נפתחת ב-04.08.26. בלי ספאם, בלי אותיות קטנות.</p>
         </div>
         <div className={styles.subRight}>
+          <CountdownClock className={styles.countdown} />
           {state === 'ok' ? (
             <p className={styles.ok}><span aria-hidden>✓</span> {msg}</p>
           ) : (

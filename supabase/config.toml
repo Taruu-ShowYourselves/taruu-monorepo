@@ -24,7 +24,3 @@ enabled = false  # Not using Supabase Storage currently
 
 [realtime]
 enabled = false  # Not using realtime subscriptions currently
-
-# Functions
-[functions]
-verify_jwt_secret = "your-jwt-secret-for-local-dev"

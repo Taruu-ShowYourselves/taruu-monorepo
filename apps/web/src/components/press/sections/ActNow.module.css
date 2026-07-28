@@ -1,0 +1,95 @@
+.act {
+  background: var(--np-paper);
+  color: var(--np-ink);
+  padding-inline: var(--np-gutter);
+  padding-block: clamp(var(--space-8), 3.5vw, var(--space-16));
+  border-block-start: var(--np-rule-heavy) solid var(--np-ink);
+}
+
+.inner {
+  max-width: var(--np-container);
+  margin-inline: auto;
+}
+
+.header {
+  max-width: 56rem;
+  margin-block-end: clamp(var(--space-6), 3vw, var(--space-10));
+}
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--np-red);
+}
+.kickerTick {
+  inline-size: 0.7em;
+  block-size: 0.7em;
+  background: var(--np-red);
+}
+
+.headline {
+  font-family: var(--np-font-display);
+  font-weight: 900;
+  font-size: clamp(var(--text-3xl), 5vw, var(--text-6xl));
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  margin-block: var(--space-3) 0;
+}
+
+.red { color: var(--np-red); }
+
+.doors {
+  display: grid;
+  grid-template-columns: 1fr;
+  border: var(--np-rule) solid var(--np-ink);
+  background: var(--np-paper-box);
+}
+
+.door {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+  padding: clamp(var(--space-4), 2.5vw, var(--space-8));
+  border-block-end: var(--np-rule) solid var(--np-ink);
+}
+.door:last-child { border-block-end: 0; }
+
+.doorNo {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-lg);
+  font-weight: 800;
+  color: var(--np-red);
+  line-height: 1;
+}
+
+.doorTitle {
+  font-family: var(--np-font-display);
+  font-weight: 900;
+  font-size: clamp(var(--text-xl), 2vw, var(--text-3xl));
+  line-height: 1;
+  margin: 0;
+}
+
+.doorNote {
+  font-family: var(--np-font-body);
+  font-size: var(--text-base);
+  line-height: 1.45;
+  color: var(--np-ink-soft);
+  margin: 0 0 var(--space-2);
+  max-width: 26rem;
+}
+
+@media (min-width: 900px) {
+  .doors { grid-template-columns: 1fr 1fr 1fr; }
+  .door {
+    border-block-end: 0;
+    border-inline-end: var(--np-rule) solid var(--np-ink);
+  }
+  .door:last-child { border-inline-end: 0; }
+}

@@ -2,7 +2,7 @@
 # Copy to `.dev.vars` (gitignored) and fill. In production these are set with
 # `wrangler secret put <NAME>` — NOT committed, NOT in wrangler.jsonc.
 #
-# Non-secret public vars (GREENINVOICE_ENV, PADDLE_ENV, QUBIK_NETWORK) live in
+# Non-secret public vars (GREENINVOICE_ENV, QUBIK_NETWORK) live in
 # wrangler.jsonc `vars` instead.
 
 # Supabase
@@ -14,10 +14,21 @@ SUPABASE_SERVICE_ROLE_KEY=
 JWT_SECRET=
 JWT_EXPIRY=7d
 
-# Google OAuth
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
+# Identity documents (issue #32) — HMAC key for one-way ID-number hashing.
+# Falls back to JWT_SECRET when unset; set a dedicated secret in production.
+IDENTITY_HASH_SECRET=
+
+# Auth0 (primary login — OIDC Universal Login; federates Google).
+# Domain has NO trailing slash, e.g. your-tenant.eu.auth0.com
+AUTH0_CLIENT_ID=
+AUTH0_CLIENT_SECRET=
+NEXT_PUBLIC_AUTH0_DOMAIN=
+NEXT_PUBLIC_AUTH0_CLIENT_ID=
+
+# Legacy custom Google OAuth (replaced by Auth0 above — kept commented for ref)
+# NEXT_PUBLIC_GOOGLE_CLIENT_ID=
+# GOOGLE_CLIENT_ID=
+# GOOGLE_CLIENT_SECRET=
 
 # Facebook / Instagram OAuth
 FACEBOOK_APP_ID=
@@ -28,22 +39,11 @@ INSTAGRAM_APP_SECRET=
 # Qubik blockchain
 QUBIK_API_KEY=
 
-# Paddle (digital vote fees)
-PADDLE_API_KEY=
-PADDLE_WEBHOOK_SECRET=
-PADDLE_PRICE_VOTE_PARTICIPATION=
-PADDLE_PRICE_VOTE_CREATION=
-NEXT_PUBLIC_PADDLE_CLIENT_TOKEN=
-
-# Green Invoice (merch store)
+# Green Invoice (Merchant of Record — vote fees + merch store)
 GREENINVOICE_API_KEY_ID=
 GREENINVOICE_API_SECRET=
 GREENINVOICE_PLUGIN_ID=
 GREENINVOICE_WEBHOOK_SECRET=
-
-# Printful (POD fulfilment)
-PRINTFUL_API_KEY=
-PRINTFUL_WEBHOOK_SECRET=
 
 # bags.fm (BAGS) — private key is also the cNFT minter keypair
 BAGS_API_KEY=

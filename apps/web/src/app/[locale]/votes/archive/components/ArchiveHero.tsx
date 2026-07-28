@@ -14,7 +14,7 @@ export function ArchiveHero() {
       <div className={styles.container}>
         <span className={styles.kicker}>
           <span aria-hidden className={styles.kickerTick} />
-          רשומות סגורות · קריית טבעון
+          רשומות סגורות · כל הארץ
         </span>
 
         <h1 className={styles.heading}>

@@ -1,8 +1,8 @@
 {
   "meta": {
     "title": "Taruu | Israel’s Public Consensus Mechanism",
-    "description": "Taruu is a public consensus mechanism that measures, verifies and surfaces where the majority of the public stands — from the voice of a city to the voice of a nation. Every voice is identity- and GPS-verified and sealed on the blockchain. Pilot live in Kiryat Tivon.",
-    "keywords": "public consensus, majority opinion, direct democracy, community voting, GPS resident verification, blockchain voting, public transparency, civic participation, Kiryat Tivon, Israeli municipalities"
+    "description": "Taruu is a public consensus mechanism that measures, verifies and surfaces where the majority of the public stands — from the voice of a city to the voice of a nation. Every voice is identity- and GPS-verified and sealed on the blockchain. Opening nationwide on 04.08.26.",
+    "keywords": "public consensus, majority opinion, direct democracy, community voting, GPS resident verification, blockchain voting, public transparency, civic participation, Israeli municipalities"
   },
   "nav": {
     "home": "Home",
@@ -27,7 +27,7 @@
       "price": "₪3 Participation Fee to Strengthen Community Voice",
       "verification": "Location-Based Resident Verification (GPS)"
     },
-    "pilot": "Pilot running in Kiryat Tivon. Features and procedures evolve with the community."
+    "pilot": "Opening nationwide on 04.08.26. Features and procedures evolve with the community."
   },
   "features": {
     "title": "Why Does This Exist?",
@@ -65,7 +65,7 @@
       {
         "number": "02",
         "title": "See What's Happening (Or Propose a Topic)",
-        "description": "Discover active votes in Kiryat Tivon, or propose a new topic you want to bring to the agenda."
+        "description": "Discover active votes in your municipality, or propose a new topic you want to bring to the agenda."
       },
       {
         "number": "03",
@@ -81,12 +81,12 @@
   },
   "pilot": {
     "label": "Starting from Home",
-    "title": "Kiryat Tivon Pilot: Join as Partners",
+    "title": "Opening Nationwide: Join as Partners",
     "description": "To make this tool truly accurate for us, we've created a quiet WhatsApp group where we consult on development stages, refine user experience, and think together about the first topics for voting.",
     "municipality": "First Municipality",
-    "municipalityValue": "Kiryat Tivon",
+    "municipalityValue": "Nationwide, all at once",
     "date": "First Vote Date",
-    "dateValue": "23.01.26",
+    "dateValue": "04.08.26",
     "cta": {
       "whatsapp": "Join the Pilot WhatsApp Group",
       "email": "Sign Up for Email Updates on Vote Opening"
@@ -116,7 +116,7 @@
     "home": "Back to Home",
     "votes": {
       "title": "Voting Board Coming Soon",
-      "description": "The first vote in Kiryat Tivon will start on 23.01.26. Join the pilot WhatsApp to be the first to know."
+      "description": "The first vote will start on 04.08.26, nationwide all at once. Join the pilot WhatsApp to be the first to know."
     },
     "download": {
       "title": "App Coming Soon",

@@ -14,7 +14,7 @@
 .container {
   max-width: var(--np-container);
   margin: 0 auto;
-  padding-inline: clamp(var(--space-4), 4vw, var(--space-12));
+  padding-inline: var(--np-gutter);
   display: flex;
   flex-direction: column;
   gap: clamp(var(--space-5), 2vw, var(--space-8));

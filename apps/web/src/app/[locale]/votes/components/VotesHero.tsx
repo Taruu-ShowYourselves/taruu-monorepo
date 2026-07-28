@@ -22,7 +22,7 @@ export function VotesHero({ activeFilter, onFilterChange }: VotesHeroProps) {
       <div className={styles.container}>
         <span className={styles.kicker}>
           <span aria-hidden className={styles.kickerTick} />
-          הצבעות פומביות · קריית טבעון
+          הצבעות פומביות · כל הארץ
         </span>
 
         <h1 className={styles.heading}>

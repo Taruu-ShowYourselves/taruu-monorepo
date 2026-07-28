@@ -85,10 +85,16 @@ Required: `wrangler secret put CRON_SECRET`. Test locally with
 
 ## Open items before production
 
-- Set the real Paddle product price for vote creation to **₪50**
-  (`PADDLE_PRICE_VOTE_CREATION`), matching `CREATE_VOTE_COST`.
-- Set `GREENINVOICE_WEBHOOK_SECRET` (long random) — the merch webhook rejects
-  unauthenticated POSTs once it's set; checkout appends it to the notify URL.
+- Confirm the Green Invoice vote-creation charge resolves to **₪50** (driven by
+  `CREATE_VOTE_COST`; the ₪3 participation fee is driven by `VOTE_COST`). The
+  amount is passed into the `/payments/form` hosted page (type 320) per request,
+  so there is no preconfigured product price to set.
+- Fill the Green Invoice server creds (`GREENINVOICE_API_KEY_ID`,
+  `GREENINVOICE_API_SECRET`, `GREENINVOICE_PLUGIN_ID`, `GREENINVOICE_ENV`).
+- Set `GREENINVOICE_WEBHOOK_SECRET` (long random) — the payments and merch
+  webhooks reject unauthenticated POSTs once it's set; checkout passes it as the
+  `?token=` on the notify URL (or the `x-greeninvoice-token` header),
+  constant-time compared and fail-closed in production.
 - Image optimization on Workers may need a custom loader / Cloudflare Images —
   verify after first deploy.
 

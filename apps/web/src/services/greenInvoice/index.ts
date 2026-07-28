@@ -3,8 +3,8 @@
  *
  * Green Invoice is the Israeli merchant of record + invoicing rail for the
  * merch store: it collects ILS, hosts the payment page, and auto-issues a tax
- * document (receipt/invoice) on success. Distinct from Paddle, which handles
- * the digital vote fees.
+ * document (receipt/invoice) on success. The same Green Invoice account also
+ * backs the vote-fee payments service (services/payments/greenInvoice).
  *
  * Flow:
  * - getToken(): exchange API key id + secret for a short-lived JWT.
@@ -191,4 +191,81 @@ export async function createPaymentForm(
 
   logger.info('Green Invoice payment form created', { orderId: order.id });
   return data.url;
+}
+
+// === Token charge (off-session MIT) ===
+
+export interface TokenChargeInput {
+  tokenId: string;           // GI saved-card token id (path param)
+  sum: number;               // amount in ILS (e.g. 6 or 50)
+  description: string;       // document description (Hebrew)
+  client: { name: string; emails?: string[]; taxId?: string };
+  custom?: string;           // correlation id, mirrors merch `custom` field
+}
+
+export interface TokenChargeResult {
+  chargeId: string | null;      // transaction/charge id
+  documentId: string | null;    // issued tax-document id
+  raw: Record<string, unknown>; // full response for SPIKE-RESULT capture
+}
+
+/**
+ * Charge a saved card token off-session (MIT — merchant-initiated transaction).
+ * This is the surface the merch flow never exercises: POST /payments/tokens/{id}/charge
+ * issues an ILS charge against a previously-stored card and, on success, auto-issues
+ * a tax document (receipt/חשבונית קבלה) in one response.
+ *
+ * Use for the monthly membership fee (₪6) and vote-creation fee (₪50).
+ */
+export async function chargeToken(input: TokenChargeInput): Promise<TokenChargeResult> {
+  if (!isGreenInvoiceConfigured()) {
+    throw new Error('Green Invoice is not configured');
+  }
+
+  const token = await getToken();
+
+  const body = {
+    sum: input.sum,
+    currency: 'ILS',
+    lang: 'he',
+    description: input.description,
+    client: input.client,
+    custom: input.custom,
+    type: 320, // payment request that issues a receipt/invoice on success (same as createPaymentForm)
+  };
+
+  const res = await fetch(
+    `${config.baseUrl}/payments/tokens/${encodeURIComponent(input.tokenId)}/charge`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    }
+  );
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`Green Invoice token charge failed (${res.status}): ${detail}`);
+  }
+
+  const data = (await res.json()) as Record<string, unknown>;
+
+  // Derive ids defensively, mirroring the webhook route's payload.id || documentId || paymentId pattern.
+  const chargeId =
+    (data.transactionId as string | undefined) ||
+    (data.chargeId as string | undefined) ||
+    (data.id as string | undefined) ||
+    null;
+
+  // Defensive id read — mirrors webhook route: data.documentId || data.id || data.paymentId
+  const documentId =
+    ((data.documentId || data.id || data.paymentId) as string | null | undefined) ?? null;
+
+  // Log correlation id only — never the tokenId or raw payload.
+  logger.info('Green Invoice token charge issued', { custom: input.custom });
+
+  return { chargeId, documentId, raw: data };
 }

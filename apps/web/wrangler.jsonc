@@ -53,20 +53,25 @@
   //   */15 * * * *  → /api/cron/verification-notifications
   //   0 * * * *     → /api/cron/resolve-votes
   //   */10 * * * *  → /api/cron/mint-nfts
+  //   0 */6 * * *   → /api/cron/knesset-agenda
   // Requires the CRON_SECRET secret to be set (wrangler secret put CRON_SECRET).
   // NOTE: the schedules API rejected these at deploy (account-level cron gate on
-  // this account). worker.ts's scheduled handler IS deployed — add the three
+  // this account). worker.ts's scheduled handler IS deployed — add the four
   // crons in the dashboard (Workers > taruu-web > Settings > Triggers > Cron) or
   // re-enable here once cron triggers are available, then `wrangler triggers deploy`.
   // "triggers": {
-  //   "crons": ["*/15 * * * *", "0 * * * *", "*/10 * * * *"]
+  //   "crons": ["*/15 * * * *", "0 * * * *", "*/10 * * * *", "0 */6 * * *"]
   // },
+  // TEMP: only the knesset cron is registered pre-go-live (no-op on the old
+  // worker build; the other three activate with the full deploy).
+  "triggers": {
+    "crons": ["0 */6 * * *"]
+  },
 
   // Secrets are NOT stored here. Set them with `wrangler secret put <NAME>`
   // (or .dev.vars locally). Only NON-secret public vars belong in `vars`.
   "vars": {
     "GREENINVOICE_ENV": "production",
-    "PADDLE_ENV": "production",
     "QUBIK_NETWORK": "mainnet"
   }
 }

@@ -110,7 +110,7 @@ pnpm typecheck
 | Database | Supabase | PostgreSQL with RLS, primary data storage |
 | Auth | Supabase Auth | User authentication via OAuth (Google, social) |
 | Blockchain | Qubik | Vote recording & tokens |
-| Payments | Paddle | Merchant-of-record checkout (ILS) |
+| Payments | Green Invoice (morning) | Israeli Merchant-of-Record for vote fees (ILS) |
 | Email | Resend | Transactional emails |
 | Hosting | Vercel | Deployment platform |
 
@@ -276,6 +276,11 @@ const primaryColor = colors.primary[600]; // '#2563EB'
 - `POST /api/votes/[id]/participate` - Cast vote (₪1)
 - `POST /api/votes/[id]/verify-location` - GPS verification
 
+### Identity Documents (issue #32 — on-device scan, fields-only storage)
+- `POST /api/verification/document` - Submit fields extracted on-device (never images)
+- `GET /api/verification/document` - Current document verification status
+- `DELETE /api/verification/document` - Erase identity fields (PPL §14 right)
+
 ### User
 - `GET /api/user/profile` - Get user profile
 - `POST /api/user/profile` - Create profile
@@ -287,7 +292,7 @@ const primaryColor = colors.primary[600]; // '#2563EB'
 ### Payments
 - `POST /api/payments/create` - Create payment intent
 - `GET /api/payments/[id]/status` - Check payment status
-- `POST /api/payments/webhook` - Paddle webhook (accrues ILS to per-vote treasury ledger)
+- `POST /api/payments/webhook` - Green Invoice webhook (accrues ILS to per-vote treasury ledger)
 
 ## Environment Variables
 
@@ -301,6 +306,9 @@ SUPABASE_SERVICE_ROLE_KEY=
 JWT_SECRET=
 JWT_EXPIRY=7d
 
+# Identity documents — HMAC key for one-way ID-number hashing (falls back to JWT_SECRET)
+IDENTITY_HASH_SECRET=
+
 # Google OAuth
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
@@ -309,12 +317,12 @@ GOOGLE_CLIENT_SECRET=
 QUBIK_API_KEY=
 QUBIK_NETWORK=mainnet
 
-# Paddle (Merchant of Record)
-PADDLE_ENV=sandbox
-PADDLE_API_KEY=
-PADDLE_WEBHOOK_SECRET=
-PADDLE_PRICE_VOTE_PARTICIPATION=
-PADDLE_PRICE_VOTE_CREATION=
+# Green Invoice (morning) — Israeli Merchant of Record
+GREENINVOICE_ENV=sandbox
+GREENINVOICE_API_KEY_ID=
+GREENINVOICE_API_SECRET=
+GREENINVOICE_PLUGIN_ID=
+GREENINVOICE_WEBHOOK_SECRET=
 
 # Resend
 RESEND_API_KEY=

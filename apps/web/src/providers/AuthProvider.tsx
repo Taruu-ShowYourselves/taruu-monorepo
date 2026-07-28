@@ -90,24 +90,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
     initAuth();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sign in with Google OAuth
+  // Sign in — now routes through Auth0 Universal Login (OIDC). Auth0 federates
+  // Google, so the method name stays `signInWithGoogle` to avoid touching
+  // callers; only the authorization URL it sends users to has changed.
   const signInWithGoogle = useCallback(() => {
-    // Generate state for CSRF protection
+    // Generate state for CSRF protection (verified in the callback handler)
     const state = crypto.randomUUID();
     sessionStorage.setItem('oauth_state', state);
 
-    // Build Google OAuth URL
+    // Build the Auth0 /authorize URL (domain has no trailing slash)
+    const domain = process.env.NEXT_PUBLIC_AUTH0_DOMAIN || '';
     const params = new URLSearchParams({
-      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
+      client_id: process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID || '',
       redirect_uri: `${window.location.origin}/api/auth/callback`,
       response_type: 'code',
-      scope: 'openid email profile',
+      scope: 'openid profile email',
       state,
-      access_type: 'offline',
-      prompt: 'consent',
     });
 
-    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    window.location.href = `https://${domain}/authorize?${params.toString()}`;
   }, []);
 
   // Sign out

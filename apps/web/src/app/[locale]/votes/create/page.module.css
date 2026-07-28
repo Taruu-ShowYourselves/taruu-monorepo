@@ -16,7 +16,7 @@
 .container {
   max-width: 56rem;
   margin-inline: auto;
-  padding-inline: clamp(var(--space-4), 4vw, var(--space-8));
+  padding-inline: var(--np-gutter);
 }
 
 /* ------------------------------------------------------------------ */
@@ -348,8 +348,8 @@
     gap: var(--space-2);
     padding-block: var(--space-3);
     padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
-    margin-inline: calc(-1 * clamp(var(--space-4), 4vw, var(--space-8)));
-    padding-inline: clamp(var(--space-4), 4vw, var(--space-8));
+    margin-inline: calc(-1 * var(--np-gutter));
+    padding-inline: var(--np-gutter);
     background: var(--np-paper);
     border-block-start: var(--np-rule-heavy) solid var(--np-ink);
   }

@@ -18,7 +18,7 @@ function content(locale: Locale): { title: string; intro: string; updated: strin
     return {
       title: 'Refund Policy',
       intro:
-        'This policy explains when payments for civic participation on Taro can be refunded. Payments are processed by Paddle.com (Merchant of Record).',
+        'This policy explains when payments for civic participation on Taro can be refunded. Payments are processed by Green Invoice (Merchant of Record).',
       updated: `Last updated: ${LAST_UPDATED}`,
       sections: [
         {
@@ -44,7 +44,7 @@ function content(locale: Locale): { title: string; intro: string; updated: strin
         {
           heading: '4. How to Request a Refund',
           paragraphs: [
-            'Email support@taruu.co.il with your payment/transaction id (from your Paddle receipt) and a short description. Because Paddle is the Merchant of Record, refunds are issued back to your original payment method via Paddle, typically within 5–10 business days.',
+            'Email support@taruu.co.il with your payment/transaction id (from your Green Invoice receipt) and a short description. Because Green Invoice is the Merchant of Record, refunds are issued back to your original payment method via Green Invoice, typically within 5–10 business days.',
           ],
         },
         {
@@ -58,7 +58,7 @@ function content(locale: Locale): { title: string; intro: string; updated: strin
   return {
     title: 'מדיניות החזרים',
     intro:
-      'מדיניות זו מסבירה מתי ניתן להחזיר תשלומים עבור השתתפות אזרחית בתַּרְאוּ. התשלומים מעובדים על ידי Paddle.com (Merchant of Record).',
+      'מדיניות זו מסבירה מתי ניתן להחזיר תשלומים עבור השתתפות אזרחית בתַּרְאוּ. התשלומים מעובדים על ידי Green Invoice (Merchant of Record).',
     updated: `עודכן לאחרונה: ${LAST_UPDATED}`,
     sections: [
       {
@@ -84,7 +84,7 @@ function content(locale: Locale): { title: string; intro: string; updated: strin
       {
         heading: '4. כיצד לבקש החזר',
         paragraphs: [
-          'שלחו דוא״ל לכתובת support@taruu.co.il עם מזהה התשלום/העסקה (מתוך קבלת Paddle) ותיאור קצר. מאחר ש-Paddle היא הסוחר הרשום, ההחזרים מתבצעים לאמצעי התשלום המקורי דרך Paddle, בדרך כלל בתוך 5–10 ימי עסקים.',
+          'שלחו דוא״ל לכתובת support@taruu.co.il עם מזהה התשלום/העסקה (מתוך קבלת Green Invoice) ותיאור קצר. מאחר ש-Green Invoice היא הסוחר הרשום, ההחזרים מתבצעים לאמצעי התשלום המקורי דרך Green Invoice, בדרך כלל בתוך 5–10 ימי עסקים.',
         ],
       },
       {

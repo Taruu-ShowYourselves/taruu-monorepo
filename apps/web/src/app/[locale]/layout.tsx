@@ -4,6 +4,7 @@ import Script from 'next/script';
 import { Secular_One, Heebo } from 'next/font/google';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { LenisProvider } from '@/providers/LenisProvider';
+import { GeoGate } from '@/components/press/GeoGate/GeoGate';
 import { WhatsAppButton } from '@/components/ui/WhatsAppButton';
 import { i18n, localeDirections, getDictionary } from '@/lib/i18n';
 import type { Locale } from '@/lib/i18n';
@@ -232,8 +233,8 @@ function generateStructuredData(locale: Locale) {
         acceptedAnswer: {
           '@type': 'Answer',
           text: isHebrew
-            ? 'כרגע הפיילוט פועל בקריית טבעון. ההצבעה הראשונה מתוכננת ל-23.01.26.'
-            : 'Currently the pilot is running in Kiryat Tivon. The first vote is planned for 23.01.26.',
+            ? 'הפלטפורמה נפתחת בכל הארץ, בכל הרשויות בבת אחת. ההצבעה הראשונה מתוכננת ל-04.08.26.'
+            : 'The platform opens nationwide, in all municipalities at once. The first vote is planned for 04.08.26.',
         },
       },
     ],
@@ -243,18 +244,14 @@ function generateStructuredData(locale: Locale) {
   const localBusiness = {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
-    name: isHebrew ? 'תַּרְאוּ - קריית טבעון' : 'Taro - Kiryat Tivon',
+    name: isHebrew ? 'תַּרְאוּ - ישראל' : 'Taro - Israel',
     description: isHebrew
-      ? 'פלטפורמת הצבעות קהילתיות לתושבי קריית טבעון'
-      : 'Community voting platform for Kiryat Tivon residents',
+      ? 'פלטפורמת הצבעות קהילתיות לתושבי כל הרשויות בישראל'
+      : 'Community voting platform for residents of every Israeli municipality',
     url: SITE_URL,
     areaServed: {
-      '@type': 'City',
-      name: 'Kiryat Tivon',
-      containedInPlace: {
-        '@type': 'Country',
-        name: 'Israel',
-      },
+      '@type': 'Country',
+      name: 'Israel',
     },
     priceRange: '₪3',
   };
@@ -301,7 +298,9 @@ export default async function LocaleLayout({
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', '${GA_MEASUREMENT_ID}');
+            // send_page_view:false — page_view fired manually on route change
+            // (with explicit page_title) by AnalyticsEvents to avoid (not set).
+            gtag('config', '${GA_MEASUREMENT_ID}', { send_page_view: false });
           `}
         </Script>
       </head>
@@ -312,6 +311,7 @@ export default async function LocaleLayout({
             <script defer src="https://clever-swan-577.convex.site/beacon.js" data-slug="taro" />
             {children}
           </LenisProvider>
+          <GeoGate />
           <WhatsAppButton locale={locale} />
         </AuthProvider>
       </body>

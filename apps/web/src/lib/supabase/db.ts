@@ -21,6 +21,8 @@ import type {
   WebhookEvent,
   VoteNft,
   MerchOrderRow,
+  VoteSource,
+  KnessetItem,
   InsertTables,
   UpdateTables,
 } from './types';
@@ -537,7 +539,7 @@ export async function createPayment(
  * same statement. Returns the row to the single caller that won the race, or
  * null if it was already completed / lost (idempotent). All downstream
  * fulfilment (treasury, tokens, entitlement) MUST gate on a non-null return so
- * Paddle's dual completed/paid events + retries can't double-process.
+ * Green Invoice's webhook retries can't double-process.
  */
 export async function markPaymentCompleted(
   paymentId: string,
@@ -616,8 +618,8 @@ export type RefundRequestResult =
 /**
  * Record a user's refund request on the payment's metadata. Ownership +
  * `completed` status are enforced here so the route can't request a refund on
- * someone else's or an unsettled payment. Refunds are issued manually in Paddle
- * (per policy) — this only captures the intake, it does not move money.
+ * someone else's or an unsettled payment. Refunds are issued manually in Green
+ * Invoice (per policy) — this only captures the intake, it does not move money.
  */
 export async function requestPaymentRefund(
   paymentId: string,
@@ -783,7 +785,7 @@ export async function getVotesByMunicipality(
 
 export async function getActiveVotesWithOptions(
   municipalityId?: string
-): Promise<(Vote & { options: VoteOption[] })[]> {
+): Promise<(Vote & { options: VoteOption[]; source: VoteSource | null })[]> {
   let query = supabaseAdmin
     .from('votes')
     .select(`
@@ -804,10 +806,131 @@ export async function getActiveVotesWithOptions(
     return [];
   }
 
-  return (data || []).map((vote: any) => ({
+  const votes = data || [];
+
+  // Source engagement is fetched separately so a missing/errored
+  // vote_sources table degrades to "no metrics", never to an empty desk.
+  const sourceByVote = new Map<string, VoteSource>();
+  if (votes.length > 0) {
+    const { data: sources, error: sourcesError } = await supabaseAdmin
+      .from('vote_sources')
+      .select('*')
+      .in('vote_id', votes.map((v: any) => v.id));
+
+    if (sourcesError) {
+      console.error('Failed to get vote sources (continuing without):', sourcesError);
+    } else {
+      for (const s of (sources || []) as VoteSource[]) {
+        sourceByVote.set(s.vote_id, s);
+      }
+    }
+  }
+
+  return votes.map((vote: any) => ({
     ...vote,
     options: vote.vote_options || [],
+    source: sourceByVote.get(vote.id) ?? null,
   }));
+}
+
+/** Find an active/pending vote by municipality + exact title (ingest dedup). */
+export async function findVoteByMunicipalityAndTitle(
+  municipalityId: string,
+  title: string
+): Promise<Vote | null> {
+  const { data, error } = await supabaseAdmin
+    .from('votes')
+    .select('*')
+    .eq('municipality_id', municipalityId)
+    .eq('title', title)
+    .in('status', ['pending', 'active'])
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Failed to find vote by title:', error);
+    return null;
+  }
+  return data;
+}
+
+/** Upsert the consolidated FB engagement for a vote (unique per vote_id). */
+export async function upsertVoteSource(
+  source: InsertTables<'vote_sources'>
+): Promise<VoteSource | null> {
+  const { data, error } = await supabaseAdmin
+    .from('vote_sources')
+    .upsert(
+      { ...source, updated_at: new Date().toISOString() },
+      { onConflict: 'vote_id' }
+    )
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Failed to upsert vote source:', error);
+    return null;
+  }
+  return data;
+}
+
+/** Find a Knesset day-order item by its upstream OData ItemID (sync dedup). */
+export async function getKnessetItemByItemId(
+  itemId: number
+): Promise<KnessetItem | null> {
+  const { data, error } = await supabaseAdmin
+    .from('knesset_items')
+    .select('*')
+    .eq('item_id', itemId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Failed to find knesset item:', error);
+    return null;
+  }
+  return data;
+}
+
+/** Upsert a Knesset day-order item (unique per upstream item_id). */
+export async function upsertKnessetItem(
+  item: InsertTables<'knesset_items'>
+): Promise<KnessetItem | null> {
+  const { data, error } = await supabaseAdmin
+    .from('knesset_items')
+    .upsert(
+      { ...item, updated_at: new Date().toISOString() },
+      { onConflict: 'item_id' }
+    )
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Failed to upsert knesset item:', error);
+    return null;
+  }
+  return data;
+}
+
+/**
+ * Day-order metadata for a set of votes. Fetched separately (mirroring
+ * vote_sources) so a missing/errored knesset_items table degrades to
+ * "no agenda metadata", never to an empty desk.
+ */
+export async function getKnessetItemsByVoteIds(
+  voteIds: string[]
+): Promise<KnessetItem[]> {
+  if (voteIds.length === 0) return [];
+
+  const { data, error } = await supabaseAdmin
+    .from('knesset_items')
+    .select('*')
+    .in('vote_id', voteIds);
+
+  if (error) {
+    console.error('Failed to get knesset items (continuing without):', error);
+    return [];
+  }
+  return data || [];
 }
 
 export async function createVote(
@@ -2062,24 +2185,7 @@ export async function getMerchOrderById(
   return data;
 }
 
-/** Look up a merch order by its POD partner order id (for fulfilment webhooks). */
-export async function getMerchOrderByPodOrderId(
-  podOrderId: string
-): Promise<MerchOrderRow | null> {
-  const { data, error } = await supabaseAdmin
-    .from('merch_orders')
-    .select('*')
-    .eq('pod_order_id', podOrderId)
-    .maybeSingle();
-
-  if (error) {
-    console.error('Failed to fetch merch order by pod id:', error);
-    return null;
-  }
-  return data;
-}
-
-/** Patch a merch order (webhook status flips, payment/POD ids). */
+/** Patch a merch order (webhook status flips, payment ids). */
 export async function updateMerchOrder(
   id: string,
   updates: UpdateTables<'merch_orders'>
@@ -2130,4 +2236,143 @@ export async function markMerchOrderPaid(
     return { kind: 'error' };
   }
   return data ? { kind: 'updated', row: data } : { kind: 'noop' };
+}
+
+// ============================================
+// MUNICIPALITY PROFILE OPERATIONS
+// ============================================
+
+export interface MunicipalityMetrics {
+  residents: number;
+  participants: number;
+  /** Distinct voters / registered residents, 0-1 (null when no residents) */
+  engagementRate: number | null;
+  /** Average hours between a vote opening and a resident casting their ballot */
+  avgTimeToEngageHours: number | null;
+  /** Average onboarding satisfaction rating, 1-5 */
+  satisfactionAvg: number | null;
+  satisfactionCount: number;
+}
+
+export interface MunicipalityVoteSummary {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  startDate: string | null;
+  endDate: string | null;
+  participantCount: number;
+  createdAt: string;
+  options: { id: string; text: string; votes: number; pct: number }[];
+  totalBallots: number;
+  winningOption: string | null;
+}
+
+export interface MunicipalityProfile {
+  metrics: MunicipalityMetrics;
+  openVotes: MunicipalityVoteSummary[];
+  closedVotes: MunicipalityVoteSummary[];
+}
+
+function summarizeVote(
+  vote: Vote & { vote_options: VoteOption[] }
+): MunicipalityVoteSummary {
+  const options = vote.vote_options ?? [];
+  const totalBallots = options.reduce((sum, o) => sum + (o.votes ?? 0), 0);
+  const withPct = options.map((o) => ({
+    id: o.id,
+    text: o.text,
+    votes: o.votes ?? 0,
+    pct: totalBallots > 0 ? Math.round(((o.votes ?? 0) / totalBallots) * 100) : 0,
+  }));
+  const winner =
+    vote.status === 'ended' && withPct.length > 0
+      ? withPct.reduce((a, b) => (b.votes > a.votes ? b : a)).text
+      : null;
+  return {
+    id: vote.id,
+    title: vote.title,
+    description: vote.description,
+    status: vote.status,
+    startDate: vote.start_date,
+    endDate: vote.end_date,
+    participantCount: vote.participant_count ?? 0,
+    createdAt: vote.created_at,
+    options: withPct,
+    totalBallots,
+    winningOption: winner,
+  };
+}
+
+/**
+ * Aggregate a municipality's civic profile: satisfaction (onboarding
+ * ratings), engagement (distinct voters vs residents), time-to-engagement
+ * (vote open -> ballot cast), and its open + closed votes with results.
+ */
+export async function getMunicipalityProfile(
+  municipalityId: string,
+  voteLimit = 20
+): Promise<MunicipalityProfile> {
+  // Metrics aggregate in SQL (municipality_profile_metrics RPC); only the
+  // vote lists are fetched as rows.
+  const [metricsRes, votesRes] = await Promise.all([
+    supabaseAdmin.rpc('municipality_profile_metrics', { m: municipalityId }),
+    supabaseAdmin
+      .from('votes')
+      .select('*, vote_options (*)')
+      .eq('municipality_id', municipalityId)
+      .in('status', ['active', 'ended'])
+      .order('created_at', { ascending: false })
+      .limit(voteLimit * 2),
+  ]);
+
+  if (metricsRes.error) {
+    throw new Error(
+      `municipality_profile_metrics failed: ${metricsRes.error.message}`
+    );
+  }
+
+  const row = (Array.isArray(metricsRes.data)
+    ? metricsRes.data[0]
+    : metricsRes.data) as {
+    residents: number | null;
+    participants: number | null;
+    avg_time_hours: number | null;
+    satisfaction_avg: number | null;
+    satisfaction_count: number | null;
+  } | undefined;
+
+  const residents = Number(row?.residents ?? 0);
+  const participants = Number(row?.participants ?? 0);
+
+  const votes = (votesRes.data ?? []) as unknown as (Vote & {
+    vote_options: VoteOption[];
+  })[];
+  const openVotes = votes
+    .filter((v) => v.status === 'active')
+    .slice(0, voteLimit)
+    .map(summarizeVote);
+  const closedVotes = votes
+    .filter((v) => v.status === 'ended')
+    .slice(0, voteLimit)
+    .map(summarizeVote);
+
+  return {
+    metrics: {
+      residents,
+      participants,
+      engagementRate: residents > 0 ? participants / residents : null,
+      avgTimeToEngageHours:
+        row?.avg_time_hours !== null && row?.avg_time_hours !== undefined
+          ? Number(row.avg_time_hours)
+          : null,
+      satisfactionAvg:
+        row?.satisfaction_avg !== null && row?.satisfaction_avg !== undefined
+          ? Number(row.satisfaction_avg)
+          : null,
+      satisfactionCount: Number(row?.satisfaction_count ?? 0),
+    },
+    openVotes,
+    closedVotes,
+  };
 }

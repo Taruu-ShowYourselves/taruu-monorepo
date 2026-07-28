@@ -24,6 +24,8 @@ export interface Database {
           phone: string | null;
           municipality_id: string | null;
           city: string | null;
+          municipality_rating: number | null;
+          municipality_rated_at: string | null;
           notification_settings: Record<string, boolean> | null;
           did: string | null;
           did_public_key: string | null;
@@ -33,6 +35,7 @@ export interface Database {
           identity_score: number;
           verification_status: 'none' | 'pending' | 'verified' | 'failed';
           qubik_wallet_address: string | null;
+          identity_verified_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -44,6 +47,8 @@ export interface Database {
           phone?: string | null;
           municipality_id?: string | null;
           city?: string | null;
+          municipality_rating?: number | null;
+          municipality_rated_at?: string | null;
           notification_settings?: Record<string, boolean> | null;
           did?: string | null;
           did_public_key?: string | null;
@@ -53,6 +58,7 @@ export interface Database {
           identity_score?: number;
           verification_status?: 'none' | 'pending' | 'verified' | 'failed';
           qubik_wallet_address?: string | null;
+          identity_verified_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -64,6 +70,8 @@ export interface Database {
           phone?: string | null;
           municipality_id?: string | null;
           city?: string | null;
+          municipality_rating?: number | null;
+          municipality_rated_at?: string | null;
           notification_settings?: Record<string, boolean> | null;
           did?: string | null;
           did_public_key?: string | null;
@@ -73,6 +81,7 @@ export interface Database {
           identity_score?: number;
           verification_status?: 'none' | 'pending' | 'verified' | 'failed';
           qubik_wallet_address?: string | null;
+          identity_verified_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -90,10 +99,6 @@ export interface Database {
           status: 'pending' | 'paid' | 'fulfilling' | 'shipped' | 'cancelled' | 'failed';
           shipping: Record<string, unknown>;
           payment_id: string | null;
-          pod_order_id: string | null;
-          tracking_number: string | null;
-          tracking_url: string | null;
-          carrier: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -108,20 +113,12 @@ export interface Database {
           status?: 'pending' | 'paid' | 'fulfilling' | 'shipped' | 'cancelled' | 'failed';
           shipping: Record<string, unknown>;
           payment_id?: string | null;
-          pod_order_id?: string | null;
-          tracking_number?: string | null;
-          tracking_url?: string | null;
-          carrier?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           status?: 'pending' | 'paid' | 'fulfilling' | 'shipped' | 'cancelled' | 'failed';
           payment_id?: string | null;
-          pod_order_id?: string | null;
-          tracking_number?: string | null;
-          tracking_url?: string | null;
-          carrier?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -525,6 +522,96 @@ export interface Database {
         };
         Relationships: [];
       };
+      knesset_items: {
+        Row: {
+          id: string;
+          vote_id: string;
+          item_id: number;
+          plenum_session_id: number;
+          session_date: string | null;
+          session_number: number | null;
+          knesset_num: number | null;
+          item_type: string | null;
+          ordinal: number | null;
+          status_id: number | null;
+          is_discussion: boolean;
+          source_updated_at: string | null;
+          fetched_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          vote_id: string;
+          item_id: number;
+          plenum_session_id: number;
+          session_date?: string | null;
+          session_number?: number | null;
+          knesset_num?: number | null;
+          item_type?: string | null;
+          ordinal?: number | null;
+          status_id?: number | null;
+          is_discussion?: boolean;
+          source_updated_at?: string | null;
+          fetched_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          vote_id?: string;
+          item_id?: number;
+          plenum_session_id?: number;
+          session_date?: string | null;
+          session_number?: number | null;
+          knesset_num?: number | null;
+          item_type?: string | null;
+          ordinal?: number | null;
+          status_id?: number | null;
+          is_discussion?: boolean;
+          source_updated_at?: string | null;
+          fetched_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      vote_sources: {
+        Row: {
+          id: string;
+          vote_id: string;
+          post_count: number;
+          comments_count: number;
+          reactions: Record<string, number>;
+          source_url: string | null;
+          fetched_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          vote_id: string;
+          post_count?: number;
+          comments_count?: number;
+          reactions?: Record<string, number>;
+          source_url?: string | null;
+          fetched_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          vote_id?: string;
+          post_count?: number;
+          comments_count?: number;
+          reactions?: Record<string, number>;
+          source_url?: string | null;
+          fetched_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       user_votes: {
         Row: {
           id: string;
@@ -795,6 +882,111 @@ export interface Database {
         };
         Relationships: [];
       };
+      identity_documents: {
+        Row: {
+          id: string;
+          user_id: string;
+          document_type: 'id_card' | 'drivers_license';
+          id_number_hash: string;
+          id_number_last2: string;
+          first_name: string;
+          last_name: string;
+          date_of_birth: string;
+          document_expiry: string;
+          ocr_id_number_matched: boolean;
+          ocr_confidence: number;
+          ocr_fields_edited: boolean;
+          face_checked: boolean;
+          face_doc_found: boolean;
+          face_match_score: number | null;
+          face_liveness_passed: boolean;
+          face_antispoof_score: number | null;
+          status: 'verified' | 'pending_review' | 'rejected';
+          consent_version: string;
+          consent_at: string;
+          verified_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          document_type: 'id_card' | 'drivers_license';
+          id_number_hash: string;
+          id_number_last2: string;
+          first_name: string;
+          last_name: string;
+          date_of_birth: string;
+          document_expiry: string;
+          ocr_id_number_matched?: boolean;
+          ocr_confidence?: number;
+          ocr_fields_edited?: boolean;
+          face_checked?: boolean;
+          face_doc_found?: boolean;
+          face_match_score?: number | null;
+          face_liveness_passed?: boolean;
+          face_antispoof_score?: number | null;
+          status?: 'verified' | 'pending_review' | 'rejected';
+          consent_version: string;
+          consent_at?: string;
+          verified_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          document_type?: 'id_card' | 'drivers_license';
+          id_number_hash?: string;
+          id_number_last2?: string;
+          first_name?: string;
+          last_name?: string;
+          date_of_birth?: string;
+          document_expiry?: string;
+          ocr_id_number_matched?: boolean;
+          ocr_confidence?: number;
+          ocr_fields_edited?: boolean;
+          face_checked?: boolean;
+          face_doc_found?: boolean;
+          face_match_score?: number | null;
+          face_liveness_passed?: boolean;
+          face_antispoof_score?: number | null;
+          status?: 'verified' | 'pending_review' | 'rejected';
+          consent_version?: string;
+          consent_at?: string;
+          verified_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      identity_document_events: {
+        Row: {
+          id: string;
+          user_id: string;
+          event:
+            | 'submitted'
+            | 'auto_verified'
+            | 'queued_review'
+            | 'approved'
+            | 'rejected'
+            | 'deleted';
+          detail: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          event:
+            | 'submitted'
+            | 'auto_verified'
+            | 'queued_review'
+            | 'approved'
+            | 'rejected'
+            | 'deleted';
+          detail?: Json | null;
+          created_at?: string;
+        };
+        Update: Record<string, never>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -827,6 +1019,18 @@ export interface Database {
           p_description?: string;
         };
         Returns: string;
+      };
+      municipality_profile_metrics: {
+        Args: {
+          m: string;
+        };
+        Returns: {
+          residents: number;
+          participants: number;
+          avg_time_hours: number | null;
+          satisfaction_avg: number | null;
+          satisfaction_count: number;
+        }[];
       };
     };
     Enums: {
@@ -866,3 +1070,7 @@ export type PushToken = Tables<'push_tokens'>;
 export type WebhookEvent = Tables<'webhook_events'>;
 export type VoteNft = Tables<'vote_nfts'>;
 export type MerchOrderRow = Tables<'merch_orders'>;
+export type VoteSource = Tables<'vote_sources'>;
+export type IdentityDocument = Tables<'identity_documents'>;
+export type IdentityDocumentEvent = Tables<'identity_document_events'>;
+export type KnessetItem = Tables<'knesset_items'>;

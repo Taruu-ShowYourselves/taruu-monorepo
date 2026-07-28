@@ -21,7 +21,7 @@ type Phase = 'finalising' | 'created' | 'processing' | 'received' | 'error';
 const SLEEP = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
- * Paddle returns the buyer here after checkout. For a vote-creation payment we
+ * Green Invoice returns the buyer here after checkout. For a vote-creation payment we
  * finalise the vote (the draft was stashed in sessionStorage before redirect);
  * the server re-verifies the payment, so a stale draft can never publish for
  * free. Any other payment that lands here gets a plain acknowledgement.

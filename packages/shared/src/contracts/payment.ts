@@ -72,7 +72,7 @@ export const GetPricingResponseSchema = z.object({
     rate: z.number(),
     description: z.string(),
   }),
-  paymentProvider: z.literal('paddle'),
+  paymentProvider: z.literal('green_invoice'),
 });
 
 export type GetPricingResponse = z.infer<typeof GetPricingResponseSchema>;

@@ -26,7 +26,7 @@ export function CTASection(_props: CTASectionProps) {
         <div className={styles.content}>
           <span className={styles.kicker}>
             <span aria-hidden className={styles.kickerTick} />
-            פיילוט חי · קריית טבעון
+            נפתחים בכל הארץ · 04.08.26
           </span>
 
           <h2 id="cta-title" className={styles.headline}>

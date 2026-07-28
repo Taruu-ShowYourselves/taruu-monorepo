@@ -72,7 +72,7 @@ function mockHash(): string {
  * (/verification), so there is no per-vote GPS step. The auth + verified-resident
  * gate sits at payment: guests pick freely, and the selected option is persisted
  * across the sign-in / verification round-trip so nothing is lost. Drives the
- * real payment API (Paddle redirect) when configured, and falls back gracefully
+ * real payment API (Green Invoice redirect) when configured, and falls back gracefully
  * to an in-page mock seal when the provider/session is unavailable.
  */
 export function ParticipationFlow({
@@ -194,7 +194,7 @@ export function ParticipationFlow({
       if (response.ok) {
         const data = await response.json();
         if (data.payment?.paymentUrl) {
-          // Real Paddle checkout — leaves the page; returns with ?payment=success.
+          // Real Green Invoice checkout — leaves the page; returns with ?payment=success.
           window.location.href = data.payment.paymentUrl;
           return;
         }
