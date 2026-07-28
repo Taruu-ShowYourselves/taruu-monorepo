@@ -145,8 +145,6 @@ describe('Treasury Transactions API Routes', () => {
         id: 'tx-1',
         type: 'deposit',
         voteId: 'vote-1',
-        userId: 'user-1',
-        paymentId: 'payment-1',
         amountILS: 1000,
         amountSOL: null,
         description: 'Vote participation',
@@ -154,6 +152,164 @@ describe('Treasury Transactions API Routes', () => {
         status: 'completed',
         metadata: null,
         createdAt: '2025-01-15T10:00:00Z',
+      });
+    });
+
+    it('must not leak per-user identifiers on the municipality ledger', async () => {
+      (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
+      (getTreasuryByMunicipality as Mock).mockResolvedValue(mockTreasury);
+      // Rows initiated by OTHER users — the ledger is municipality-wide.
+      (getTreasuryTransactions as Mock).mockResolvedValue(mockTransactions);
+
+      const request = new NextRequest('http://localhost:3000/api/treasury/tel-aviv/transactions');
+      const response = await GET(request, { params: Promise.resolve({ municipality: 'tel-aviv' }) });
+      const data = await response.json();
+
+      expect(data.transactions).toHaveLength(2);
+      for (const tx of data.transactions) {
+        expect(tx).not.toHaveProperty('userId');
+        expect(tx).not.toHaveProperty('paymentId');
+      }
+
+      // Belt and braces: no other user's id appears anywhere in the payload.
+      const body = JSON.stringify(data);
+      expect(body).not.toContain('user-1');
+      expect(body).not.toContain('user-2');
+      expect(body).not.toContain('payment-1');
+      expect(body).not.toContain('payment-2');
+    });
+
+    describe('metadata whitelisting', () => {
+      const withMetadata = (metadata: unknown) => [
+        { ...mockTransactions[0], metadata },
+      ];
+
+      it('publishes whitelisted keys', async () => {
+        (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
+        (getTreasuryByMunicipality as Mock).mockResolvedValue(mockTreasury);
+        (getTreasuryTransactions as Mock).mockResolvedValue(
+          withMetadata({ tokenMint: 'MintAddr123', ilsPerSol: 850 })
+        );
+
+        const request = new NextRequest('http://localhost:3000/api/treasury/tel-aviv/transactions');
+        const data = await (
+          await GET(request, { params: Promise.resolve({ municipality: 'tel-aviv' }) })
+        ).json();
+
+        expect(data.transactions[0].metadata).toEqual({
+          tokenMint: 'MintAddr123',
+          ilsPerSol: 850,
+        });
+      });
+
+      it('drops sensitive keys a future writer might add', async () => {
+        (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
+        (getTreasuryByMunicipality as Mock).mockResolvedValue(mockTreasury);
+        (getTreasuryTransactions as Mock).mockResolvedValue(
+          withMetadata({
+            tokenMint: 'MintAddr123',
+            userId: 'user-999',
+            email: 'victim@example.com',
+            walletAddress: 'SoLWaLLet999',
+            paymentId: 'payment-999',
+            providerRef: 'green-invoice-42',
+            phone: '+972500000000',
+          })
+        );
+
+        const request = new NextRequest('http://localhost:3000/api/treasury/tel-aviv/transactions');
+        const data = await (
+          await GET(request, { params: Promise.resolve({ municipality: 'tel-aviv' }) })
+        ).json();
+
+        expect(data.transactions[0].metadata).toEqual({ tokenMint: 'MintAddr123' });
+
+        const body = JSON.stringify(data);
+        for (const secret of [
+          'user-999',
+          'victim@example.com',
+          'SoLWaLLet999',
+          'payment-999',
+          'green-invoice-42',
+          '+972500000000',
+        ]) {
+          expect(body).not.toContain(secret);
+        }
+      });
+
+      it('returns null when nothing is publishable', async () => {
+        (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
+        (getTreasuryByMunicipality as Mock).mockResolvedValue(mockTreasury);
+        (getTreasuryTransactions as Mock).mockResolvedValue(
+          withMetadata({ userId: 'user-999' })
+        );
+
+        const request = new NextRequest('http://localhost:3000/api/treasury/tel-aviv/transactions');
+        const data = await (
+          await GET(request, { params: Promise.resolve({ municipality: 'tel-aviv' }) })
+        ).json();
+
+        expect(data.transactions[0].metadata).toBeNull();
+      });
+
+      it('does not let a nested object smuggle secrets out under a whitelisted key', async () => {
+        (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
+        (getTreasuryByMunicipality as Mock).mockResolvedValue(mockTreasury);
+        (getTreasuryTransactions as Mock).mockResolvedValue(
+          withMetadata({
+            tokenMint: { mint: 'MintAddr123', ownerEmail: 'victim@example.com' },
+            ilsPerSol: [850, 'SoLWaLLet999'],
+          })
+        );
+
+        const request = new NextRequest('http://localhost:3000/api/treasury/tel-aviv/transactions');
+        const data = await (
+          await GET(request, { params: Promise.resolve({ municipality: 'tel-aviv' }) })
+        ).json();
+
+        // Non-primitive values are dropped wholesale, not published.
+        expect(data.transactions[0].metadata).toBeNull();
+        const body = JSON.stringify(data);
+        expect(body).not.toContain('victim@example.com');
+        expect(body).not.toContain('SoLWaLLet999');
+      });
+
+      it('ignores inherited and __proto__ keys without polluting the output', async () => {
+        (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
+        (getTreasuryByMunicipality as Mock).mockResolvedValue(mockTreasury);
+
+        // An object whose whitelisted key exists only on the prototype chain.
+        const hostile = Object.create({ tokenMint: 'InheritedMint' }) as Record<string, unknown>;
+        hostile.userId = 'user-999';
+        (getTreasuryTransactions as Mock).mockResolvedValue(withMetadata(hostile));
+
+        const request = new NextRequest('http://localhost:3000/api/treasury/tel-aviv/transactions');
+        const data = await (
+          await GET(request, { params: Promise.resolve({ municipality: 'tel-aviv' }) })
+        ).json();
+
+        expect(data.transactions[0].metadata).toBeNull();
+        expect(JSON.stringify(data)).not.toContain('InheritedMint');
+        // The global prototype is untouched.
+        expect(({} as Record<string, unknown>).tokenMint).toBeUndefined();
+      });
+
+      it('handles null and non-object metadata without throwing', async () => {
+        for (const value of [null, 'a string', 42, ['an', 'array']]) {
+          vi.clearAllMocks();
+          (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
+          (getTreasuryByMunicipality as Mock).mockResolvedValue(mockTreasury);
+          (getTreasuryTransactions as Mock).mockResolvedValue(withMetadata(value));
+
+          const request = new NextRequest('http://localhost:3000/api/treasury/tel-aviv/transactions');
+          const response = await GET(request, {
+            params: Promise.resolve({ municipality: 'tel-aviv' }),
+          });
+          const data = await response.json();
+
+          expect(response.status).toBe(200);
+          expect(data.transactions[0].metadata).toBeNull();
+        }
       });
     });
 

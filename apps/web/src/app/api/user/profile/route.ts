@@ -8,65 +8,10 @@ import {
   createSocialProof,
   updateUserIdentityScore,
 } from '@/lib/supabase/db';
-import type { User, SocialProof as DbSocialProof } from '@/lib/supabase/types';
 import { qubikService } from '@/services/qubik';
 import { emailService } from '@/services/email';
-import { calculateIdentityScore, IDENTITY_SCORE_WEIGHTS, MUNICIPALITIES } from '@sync/shared';
-import type { SocialProof, VerificationStatus, IdentityScore, NotificationSettings } from '@sync/shared';
-
-/**
- * Transform Supabase user + social proofs to API profile format
- */
-function transformToProfile(
-  user: User,
-  socialProofs: DbSocialProof[],
-  tokenBalance: number = 0
-) {
-  // Transform social proofs from DB format to API format
-  const transformedProofs: SocialProof[] = socialProofs.map((proof) => ({
-    platform: proof.provider,
-    providerId: proof.provider_id,
-    displayName: proof.provider_name || proof.provider_email || '',
-    email: proof.provider_email || undefined,
-    profileUrl: undefined,
-    profileImage: proof.provider_avatar || undefined,
-    connectedAt: new Date(proof.connected_at),
-    stampWeight: IDENTITY_SCORE_WEIGHTS[proof.provider] || 0,
-  }));
-
-  // Calculate identity score from social proofs
-  const identityScore = calculateIdentityScore(transformedProofs);
-
-  // Build verification status from DB enum
-  const verificationStatus: VerificationStatus = {
-    phase: user.verification_status === 'verified' ? 'completed' :
-           user.verification_status === 'pending' ? 'in_progress' :
-           user.verification_status === 'failed' ? 'failed' : 'not_started',
-    checkInsCompleted: 0,
-    checkInsTotal: 0,
-  };
-
-  return {
-    id: user.id,
-    googleId: user.google_id,
-    did: user.did,
-    qubikWalletAddress: user.qubik_wallet_address,
-    firstName: user.first_name || '',
-    lastName: user.last_name || '',
-    email: user.email,
-    phone: user.phone,
-    municipality: user.municipality_id,
-    city: user.city,
-    avatarUrl: user.avatar_url,
-    notificationSettings: (user.notification_settings as NotificationSettings | null) ?? undefined,
-    verificationStatus,
-    socialProofs: transformedProofs,
-    identityScore,
-    syncTokenBalance: tokenBalance,
-    createdAt: user.created_at,
-    updatedAt: user.updated_at,
-  };
-}
+import { IDENTITY_SCORE_WEIGHTS } from '@sync/shared';
+import { transformToProfile, getTokenBalanceSafe } from '@/services/user/profile';
 
 /**
  * GET /api/user/profile
@@ -90,17 +35,7 @@ export async function GET(request: NextRequest) {
     const socialProofs = await getSocialProofsByUserId(user.id);
 
     // Get token balance from blockchain
-    let tokenBalance = 0;
-    if (user.qubik_wallet_address) {
-      try {
-        tokenBalance = await qubikService.getTokenBalance(
-          user.qubik_wallet_address
-        );
-      } catch (e) {
-        // Qubik might not be configured in dev
-        console.warn('Could not fetch token balance:', e);
-      }
-    }
+    const tokenBalance = await getTokenBalanceSafe(user);
 
     const profile = transformToProfile(user, socialProofs, tokenBalance);
 
@@ -296,16 +231,7 @@ export async function PATCH(request: NextRequest) {
     const socialProofs = await getSocialProofsByUserId(updatedUser.id);
 
     // Get token balance for the response
-    let tokenBalance = 0;
-    if (updatedUser.qubik_wallet_address) {
-      try {
-        tokenBalance = await qubikService.getTokenBalance(
-          updatedUser.qubik_wallet_address
-        );
-      } catch (e) {
-        console.warn('Could not fetch token balance:', e);
-      }
-    }
+    const tokenBalance = await getTokenBalanceSafe(updatedUser);
 
     const profile = transformToProfile(updatedUser, socialProofs, tokenBalance);
 

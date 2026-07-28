@@ -6,29 +6,19 @@ import { useAuth } from '@/providers/AuthProvider';
 import { motion } from 'framer-motion';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import {
-  NewsButton,
-  Segmented,
-  TallyBar,
-  Receipt,
-  PressInput,
-} from '@/components/press';
+import { NewsButton, Segmented, TallyBar } from '@/components/press';
 import { useReducedMotion } from '@/hooks';
+import { resolveLocationState } from '@/lib/locationStatus';
 import { CertificateCard, type Certificate } from '@/components/certificate/CertificateCard';
-import { MetricBar } from '@/components/uikit/metric-bar';
 import {
   getIdentityLevelLabel,
   getIdentityLevelDescription,
-  CREATE_VOTE_COST,
-  VOTE_COST,
-  formatCurrency,
 } from '@sync/shared';
 import styles from './page.module.css';
 
 interface DashboardStats {
   totalVotes: number;
   activeVotes: number;
-  tokensEarned: number;
   votesCreated: number;
 }
 
@@ -40,42 +30,48 @@ interface RecentVote {
   option: string;
 }
 
-interface TokenTransaction {
-  id: string;
-  amount: number;
-  reason: 'vote_participation' | 'vote_creation';
-  txHash: string;
-  timestamp: string;
+interface RegistrationStats {
+  registeredTotal: number;
+  registeredInMunicipality: number | null;
+  municipalityWithheld: boolean;
 }
 
-interface TreasuryContribution {
-  id: string;
-  amountILS: number;
-  voteId?: string | null;
-  date: string;
-}
-
-interface CityMetrics {
-  residents: number;
-  participants: number;
-  engagementRate: number | null;
-  avgTimeToEngageHours: number | null;
-  satisfactionAvg: number | null;
-  satisfactionCount: number;
-}
-
-type DashboardTab = 'history' | 'certificates' | 'fund' | 'billing' | 'settings';
+type DashboardTab =
+  | 'history'
+  | 'certificates'
+  | 'fund'
+  | 'news'
+  | 'settings';
 
 const TABS: { value: DashboardTab; label: string }[] = [
   { value: 'history', label: 'הצבעות' },
   { value: 'certificates', label: 'תעודות' },
-  { value: 'fund', label: 'הקרן' },
-  { value: 'billing', label: 'חיובים' },
+  { value: 'fund', label: 'הקרן · בקרוב' },
+  { value: 'news', label: 'חדשות' },
   { value: 'settings', label: 'הגדרות' },
 ];
 
-/** Hebrew-formatted ₪ figure with grouping, tabular-safe. */
-const ils = (n: number) => `₪${n.toLocaleString('he-IL')}`;
+/**
+ * Placeholder for a statistic that does not exist yet.
+ *
+ * The community fund and the Issue Coin ("bags") valuation are not implemented
+ * in the MVP. Keeping the card in the layout preserves the information
+ * architecture, but it is deliberately UI-ONLY: it calls no endpoint and holds
+ * no number. Showing ₪0 here would be indistinguishable from a real empty fund,
+ * which is exactly the kind of fake figure this dashboard must never print.
+ */
+function ComingSoonStat({ label, note }: { label: string; note: string }) {
+  return (
+    <div className={`${styles.statCard} ${styles.statCardSoon}`}>
+      <span className={styles.statLabel}>{label}</span>
+      <span className={styles.statSoon}>
+        <span aria-hidden className={styles.statSoonMark}>●</span>
+        בקרוב
+      </span>
+      <span className={styles.statMeta}>{note}</span>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -83,18 +79,11 @@ export default function DashboardPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentVotes, setRecentVotes] = useState<RecentVote[]>([]);
-  const [tokenTxns, setTokenTxns] = useState<TokenTransaction[]>([]);
-  const [contributions, setContributions] = useState<TreasuryContribution[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [registrations, setRegistrations] = useState<RegistrationStats | null>(null);
   const [activeInCity, setActiveInCity] = useState<{ id: string; title: string }[]>([]);
-  const [cityMetrics, setCityMetrics] = useState<CityMetrics | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
   const [tab, setTab] = useState<DashboardTab>('history');
-
-  // Refund request sub-surface — posts to /api/payments/refund (request flow).
-  const [refundReason, setRefundReason] = useState('');
-  const [refundState, setRefundState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
-  const [refundError, setRefundError] = useState('');
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -102,62 +91,129 @@ export default function DashboardPage() {
       return;
     }
 
-    // One aggregate fetch — GET /api/dashboard composes stats,
-    // participations, billing, fund contributions, certificates, city votes
-    // and city metrics server-side (was six independent round-trips).
-    const fetchDashboard = async () => {
+    // Fetch dashboard data from API
+    const fetchData = async () => {
       try {
-        const res = await fetch('/api/dashboard');
-        if (!res.ok) throw new Error(`dashboard fetch failed: ${res.status}`);
-        const data = await res.json();
+        // Fetch stats and participations in parallel
+        const [statsResponse, participationsResponse] = await Promise.all([
+          fetch('/api/user/stats'),
+          fetch('/api/user/participations'),
+        ]);
 
-        setStats({
-          totalVotes: data.stats?.totalVotes ?? 0,
-          activeVotes: data.stats?.activeVotes ?? 0,
-          tokensEarned: user?.syncTokenBalance || 0,
-          votesCreated: data.stats?.votesCreated ?? 0,
-        });
-        setRecentVotes(
-          (data.recentVotes ?? []).slice(0, 5).map(
-            (p: { id: string; title: string; status: 'active' | 'ended'; votedAt: string; option: string }) => ({
-              id: p.id,
-              title: p.title || 'הצבעה',
-              status: p.status,
-              votedAt: new Date(p.votedAt).toLocaleDateString('he-IL'),
-              option: p.option || 'בעד',
-            })
-          )
-        );
-        setTokenTxns(
-          (data.tokenTransactions ?? []).map(
-            (t: { id: string; amount: number; reason: TokenTransaction['reason']; txHash: string; timestamp: string }) => ({
-              ...t,
-              timestamp: new Date(t.timestamp).toLocaleDateString('he-IL'),
-            })
-          )
-        );
-        setContributions(
-          (data.contributions ?? []).map(
-            (t: { id: string; amountILS: number; voteId: string | null; date: string }) => ({
-              ...t,
-              date: t.date ? new Date(t.date).toLocaleDateString('he-IL') : '',
-            })
-          )
-        );
-        setCertificates((data.certificates ?? []) as Certificate[]);
-        setActiveInCity(data.activeInCity ?? []);
-        setCityMetrics(data.cityMetrics ?? null);
+        // Parse stats
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          setStats({
+            totalVotes: statsData.votesParticipated || 0,
+            activeVotes: 0, // Will be calculated from participations
+            votesCreated: statsData.votesCreated || 0,
+          });
+        }
+
+        // Parse participations for recent votes
+        if (participationsResponse.ok) {
+          const participationsData = await participationsResponse.json();
+          const participations = participationsData.participations || [];
+
+          // Count active votes
+          const activeCount = participations.filter(
+            (p: any) => p.vote?.status === 'active'
+          ).length;
+
+          // Update stats with active count
+          setStats((prev) => prev ? { ...prev, activeVotes: activeCount } : null);
+
+          // Transform to RecentVote format (take last 5)
+          const recentVotesData: RecentVote[] = participations
+            .slice(0, 5)
+            .map((p: any) => ({
+              id: p.voteId,
+              title: p.vote?.title || 'הצבעה',
+              status: (p.vote?.status === 'active' ? 'active' : 'ended') as 'active' | 'ended',
+              votedAt: new Date(p.createdAt).toLocaleDateString('he-IL'),
+              option: p.option?.text || 'בעד',
+            }));
+
+          setRecentVotes(recentVotesData);
+        }
       } catch (error) {
-        console.error('Error fetching dashboard:', error);
-        setStats({ totalVotes: 0, activeVotes: 0, tokensEarned: 0, votesCreated: 0 });
+        console.error('Error fetching dashboard data:', error);
+        // Set empty data on error
+        setStats({ totalVotes: 0, activeVotes: 0, votesCreated: 0 });
         setRecentVotes([]);
       } finally {
         setDataLoading(false);
       }
     };
 
+    // NOTE: the MVP is free, so this dashboard deliberately fetches no billing,
+    // token or personal-contribution data. GET /api/user/treasury-contributions
+    // is intentionally retained server-side (with its SQL-enforced ownership)
+    // for when the fund opens — it is simply not called from here.
+
+    // Community registration figures — public aggregate counts, no per-user
+    // data. Left null on failure so the panel can say so instead of showing a
+    // zero that reads as "nobody registered".
+    const fetchRegistrations = async () => {
+      const municipality = user?.municipality;
+      const query = municipality
+        ? `?municipality=${encodeURIComponent(municipality)}`
+        : '';
+      try {
+        const res = await fetch(`/api/stats/registrations${query}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const s = data.stats;
+        if (!s || typeof s.registeredTotal !== 'number') return;
+        setRegistrations({
+          registeredTotal: s.registeredTotal,
+          registeredInMunicipality:
+            typeof s.registeredInMunicipality === 'number'
+              ? s.registeredInMunicipality
+              : null,
+          municipalityWithheld: Boolean(s.municipalityWithheld),
+        });
+      } catch (error) {
+        console.error('Error fetching registration stats:', error);
+      }
+    };
+
+    // Civic certificates (NFTs) — auto-issued on resolution, view-only.
+    const fetchCertificates = async () => {
+      try {
+        const res = await fetch('/api/user/nfts');
+        if (!res.ok) return;
+        const data = await res.json();
+        setCertificates((data.nfts || []) as Certificate[]);
+      } catch (error) {
+        console.error('Error fetching certificates:', error);
+      }
+    };
+
+    // Retention hook: open votes in the reader's own city, waiting for a ballot.
+    const fetchActiveInCity = async () => {
+      const municipality = user?.municipality;
+      if (!municipality) return;
+      try {
+        const res = await fetch(
+          `/api/votes?municipality=${encodeURIComponent(municipality)}&status=active`
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        const votes = ((data.votes || []) as { id: string; title: string }[]).map(
+          (v) => ({ id: v.id, title: v.title })
+        );
+        setActiveInCity(votes);
+      } catch (error) {
+        console.error('Error fetching active city votes:', error);
+      }
+    };
+
     if (isAuthenticated) {
-      fetchDashboard();
+      fetchData();
+      fetchCertificates();
+      fetchActiveInCity();
+      fetchRegistrations();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Intentionally omit user to prevent refetch on every user update; we only want to fetch once when authenticated
   }, [isLoading, isAuthenticated, router]);
@@ -176,8 +232,7 @@ export default function DashboardPage() {
   const identityTotal = user?.identityScore?.total || 0;
   const verificationPhase = user?.verificationStatus?.phase || 'not_started';
   const isVerified = verificationPhase === 'completed';
-  const tokenBalance = user?.syncTokenBalance || stats?.tokensEarned || 0;
-  const fundTotal = contributions.reduce((s, c) => s + (c.amountILS || 0), 0);
+  const locationState = resolveLocationState(user?.municipality, isVerified);
 
   const issueNo = (user?.id || 'GUEST').slice(0, 6).toUpperCase();
   const today = new Date().toLocaleDateString('he-IL');
@@ -190,37 +245,6 @@ export default function DashboardPage() {
           animate: { opacity: 1, y: 0 },
           transition: { duration: 0.22, ease: [0.2, 0, 0, 1] as const, delay },
         };
-
-  const submitRefund = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const reason = refundReason.trim();
-    if (reason.length === 0 || refundState === 'sending') return;
-    setRefundState('sending');
-    setRefundError('');
-    try {
-      const res = await fetch('/api/payments/refund', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason }),
-      });
-      if (res.ok) {
-        setRefundState('sent');
-        return;
-      }
-      const data = await res.json().catch(() => ({}));
-      setRefundError(
-        data.code === 'NOT_FOUND'
-          ? 'לא נמצא תשלום להחזר.'
-          : data.code === 'ALREADY_REQUESTED'
-            ? 'כבר נשלחה בקשת החזר לתשלום זה.'
-            : 'שליחת הבקשה נכשלה. נסו שוב.'
-      );
-      setRefundState('error');
-    } catch {
-      setRefundError('שליחת הבקשה נכשלה. נסו שוב.');
-      setRefundState('error');
-    }
-  };
 
   return (
     <>
@@ -237,15 +261,45 @@ export default function DashboardPage() {
               שלום, <span className={styles.red}>{user?.firstName || 'משתמש'}</span>.
             </h1>
             <div className={styles.editionMeta}>
-              <span>{user?.municipality || 'ישראל'}</span>
+              {/* Location. Never falls back to a default town — see
+                  resolveLocationState. Each state carries its own way forward. */}
+              {locationState === 'unset' ? (
+                <button
+                  type="button"
+                  className={styles.metaCta}
+                  onClick={() => router.push('/settings/municipality')}
+                >
+                  הגדר מיקום ←
+                </button>
+              ) : (
+                <span>{user?.municipality}</span>
+              )}
               <span className={styles.sep} aria-hidden>■</span>
               <span>מהדורה · {issueNo}</span>
               <span className={styles.sep} aria-hidden>■</span>
               <span>{today}</span>
-              <span className={styles.sep} aria-hidden>■</span>
-              <span className={isVerified ? styles.badgeOk : styles.badgeWait}>
-                {isVerified ? '✓ מאומת' : '○ לא מאומת'}
-              </span>
+              {/* Verification slot. Omitted while the town is unset, because
+                  residency cannot be verified before a town is chosen — the
+                  "הגדר מיקום" CTA above is the real next step, and a second
+                  competing CTA would only split it. */}
+              {locationState === 'verified' && (
+                <>
+                  <span className={styles.sep} aria-hidden>■</span>
+                  <span className={styles.badgeOk}>✓ מאומת</span>
+                </>
+              )}
+              {locationState === 'unverified' && (
+                <>
+                  <span className={styles.sep} aria-hidden>■</span>
+                  <button
+                    type="button"
+                    className={styles.metaCta}
+                    onClick={() => router.push('/verification')}
+                  >
+                    אמת את המיקום ←
+                  </button>
+                </>
+              )}
             </div>
           </motion.header>
 
@@ -322,96 +376,51 @@ export default function DashboardPage() {
                 <span className={styles.figureNum}>{stats?.votesCreated || 0}</span>
                 <span className={styles.figureLabel}>שיצרתם</span>
               </div>
-              <div className={`${styles.figureCell} ${styles.figureCellInk}`}>
-                <span className={styles.figureNumRed}>{tokenBalance}</span>
-                <span className={styles.figureLabelInverse}>טוקני SYNC</span>
-              </div>
             </div>
           </motion.section>
 
-          {/* ===== City civic pulse ===== */}
-          {user?.municipality && cityMetrics && (
-            <motion.section
-              className="border-2 border-ink bg-paper-box p-5"
-              aria-label="מדדי הרשות שלכם"
-              {...reveal(0.09)}
-            >
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <span className="flex items-center gap-2 font-mono text-sm font-extrabold uppercase tracking-widest text-red">
-                  <span aria-hidden className="inline-block size-[0.7em] bg-red" />
-                  הדופק האזרחי · {user.municipality}
-                </span>
-                <NewsButton
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    router.push(
-                      `/municipality/${encodeURIComponent(user.municipality!)}`
-                    )
-                  }
-                  trailing={<span aria-hidden>←</span>}
-                >
-                  לפרופיל הרשות המלא
-                </NewsButton>
+          {/* ===== Community statistics ===== */}
+          <motion.section className={styles.statsBand} {...reveal(0.09)}>
+            <span className={styles.boxKicker}>
+              <span aria-hidden className={styles.kickerTick} />
+              המספרים של הקהילה · COMMUNITY
+            </span>
+
+            <div className={styles.statsGrid}>
+              {/* Registered residents — real figures, never fabricated. */}
+              <div className={styles.statCard}>
+                <span className={styles.statLabel}>נרשמו לפלטפורמה</span>
+                {registrations ? (
+                  <>
+                    <span className={styles.statNum}>
+                      {registrations.registeredTotal.toLocaleString('he-IL')}
+                    </span>
+                    <span className={styles.statMeta}>
+                      {registrations.registeredInMunicipality !== null
+                        ? `מתוכם ${registrations.registeredInMunicipality.toLocaleString('he-IL')} ב${user?.municipality || 'עיר שלכם'}`
+                        : registrations.municipalityWithheld
+                          ? 'הפילוח העירוני ייחשף כשיצטרפו עוד תושבים'
+                          : 'סך כל הנרשמים'}
+                    </span>
+                  </>
+                ) : (
+                  <span className={styles.statMeta}>לא הצלחנו לטעון את הנתון כרגע.</span>
+                )}
               </div>
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-                <MetricBar
-                  label="מעורבות אזרחית"
-                  value={
-                    cityMetrics.engagementRate !== null
-                      ? Math.round(cityMetrics.engagementRate * 100)
-                      : 0
-                  }
-                  display={
-                    cityMetrics.engagementRate !== null
-                      ? `${Math.round(cityMetrics.engagementRate * 100)}%`
-                      : '—'
-                  }
-                  caption={`${cityMetrics.participants.toLocaleString('he-IL')} מצביעים מתוך ${cityMetrics.residents.toLocaleString('he-IL')} רשומים`}
-                />
-                <MetricBar
-                  label="זמן עד הצבעה"
-                  value={
-                    cityMetrics.avgTimeToEngageHours !== null
-                      ? Math.max(
-                          0,
-                          Math.min(
-                            100,
-                            100 - (cityMetrics.avgTimeToEngageHours / 72) * 100
-                          )
-                        )
-                      : 0
-                  }
-                  display={
-                    cityMetrics.avgTimeToEngageHours !== null
-                      ? cityMetrics.avgTimeToEngageHours < 48
-                        ? `${Math.round(cityMetrics.avgTimeToEngageHours)} שע׳`
-                        : `${Math.round(cityMetrics.avgTimeToEngageHours / 24)} ימים`
-                      : '—'
-                  }
-                  caption="ממוצע מפתיחת הצבעה ועד מתן הקול"
-                />
-                <MetricBar
-                  label="שביעות רצון"
-                  value={
-                    cityMetrics.satisfactionAvg !== null
-                      ? Math.round((cityMetrics.satisfactionAvg / 5) * 100)
-                      : 0
-                  }
-                  display={
-                    cityMetrics.satisfactionAvg !== null
-                      ? `${cityMetrics.satisfactionAvg.toFixed(1)} / 5`
-                      : '—'
-                  }
-                  caption={
-                    cityMetrics.satisfactionCount > 0
-                      ? `${cityMetrics.satisfactionCount.toLocaleString('he-IL')} תושבים דירגו`
-                      : 'אין עדיין דירוגים'
-                  }
-                />
-              </div>
-            </motion.section>
-          )}
+
+              {/* Community fund + Issue Coins are not live in the MVP. Render an
+                  honest placeholder rather than a zero or an invented figure —
+                  no endpoint is called for these cards on purpose. */}
+              <ComingSoonStat
+                label="הקרן הקהילתית"
+                note="תיפתח עם ההצבעה הראשונה."
+              />
+              <ComingSoonStat
+                label="שווי התיקים"
+                note="מדד ההשקעה הקהילתית יעלה בהמשך."
+              />
+            </div>
+          </motion.section>
 
           {/* ===== Quick actions strip ===== */}
           {activeInCity.length > 0 && (
@@ -455,7 +464,7 @@ export default function DashboardPage() {
               size="md"
               onClick={() => router.push('/votes/create')}
             >
-              יצירת הצבעה חדשה · {formatCurrency(CREATE_VOTE_COST)}
+              יצירת הצבעה חדשה
             </NewsButton>
           </motion.section>
 
@@ -550,122 +559,46 @@ export default function DashboardPage() {
             )}
 
             {/* --- COMMUNITY FUND --- */}
+            {/* UI-only. The fund is not live in the MVP, so the reader's
+                contribution ledger is deliberately NOT fetched or rendered
+                here — no totals, no rows, no zero balance. */}
             {tab === 'fund' && (
               <div className={styles.panel}>
                 <span className={styles.panelKicker}>
                   <span aria-hidden className={styles.kickerTick} />
-                  הקרן הקהילתית · TREASURY CONTRIBUTIONS
+                  הקרן הקהילתית · TREASURY
                 </span>
-                <div className={styles.fundTotalBox}>
-                  <span className={styles.fundTotalK}>סך תרומתכם לקרן</span>
-                  <span className={styles.fundTotalNum}>{ils(fundTotal)}</span>
-                  <span className={styles.fundTotalMeta}>
-                    כל ₪2 מדמי השתתפות מנותב לקרן הקהילתית
-                  </span>
-                </div>
-                {contributions.length === 0 ? (
-                  <p className={styles.emptyText}>
-                    הקרן הקהילתית תתחיל להיבנות עם ההצבעה הראשונה. כל שקל יופיע כאן.
+                <div className={styles.newsSoon}>
+                  <span aria-hidden className={styles.newsSoonMark}>●</span>
+                  <h3 className={styles.newsSoonTitle}>בקרוב</h3>
+                  <p className={styles.newsSoonText}>
+                    הקרן הקהילתית תיפתח עם ההצבעה הראשונה. עד אז אין מה להציג כאן.
                   </p>
-                ) : (
-                  <ul className={styles.ledgerRows}>
-                    {contributions.map((c) => (
-                      <li key={c.id} className={styles.ledgerRow}>
-                        <span className={styles.ledgerRowLabel}>
-                          ▍ ניתוב לקרן{c.voteId ? ` · הצבעה ${c.voteId.slice(0, 6)}` : ''}
-                        </span>
-                        <span className={styles.ledgerLeader} aria-hidden />
-                        <span className={styles.ledgerRowDate}>{c.date}</span>
-                        <span className={styles.ledgerRowValue}>{ils(c.amountILS)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-
-            {/* --- BILLING --- */}
-            {tab === 'billing' && (
-              <div className={styles.panel}>
-                <span className={styles.panelKicker}>
-                  <span aria-hidden className={styles.kickerTick} />
-                  היסטוריית חיובים · BILLING
-                </span>
-                {tokenTxns.length === 0 ? (
-                  <p className={styles.emptyText}>
-                    אין עדיין חיובים. החיוב הראשון יופיע כאן אחרי ההצבעה הראשונה.
-                  </p>
-                ) : (
-                  <div className={styles.receiptStack}>
-                    {tokenTxns.map((t) => {
-                      const isCreate = t.reason === 'vote_creation';
-                      const charge = isCreate ? CREATE_VOTE_COST : VOTE_COST;
-                      return (
-                        <Receipt
-                          key={t.id}
-                          kicker={`קבלה · ${t.timestamp}`}
-                          rows={[
-                            {
-                              label: isCreate ? 'יצירת הצבעה' : 'השתתפות בהצבעה',
-                              value: ils(charge),
-                            },
-                            { label: 'טוקני SYNC שהוטבעו', value: `${t.amount}` },
-                            {
-                              label: 'סטטוס',
-                              value: '✓ שולם',
-                            },
-                            { label: 'סה״כ חויב', value: ils(charge), strong: true },
-                          ]}
-                          footer={
-                            t.txHash
-                              ? `חתום בבלוקצ׳יין · ${t.txHash.slice(0, 18)}…`
-                              : 'חתום בבלוקצ׳יין'
-                          }
-                        />
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Refund request — posts to /api/payments/refund (request flow) */}
-                <div className={styles.refundBox}>
-                  <span className={styles.boxKicker}>
-                    <span aria-hidden className={styles.kickerTick} />
-                    בקשת החזר · REFUND REQUEST
-                  </span>
-                  {refundState === 'sent' ? (
-                    <p className={styles.refundOk}>
-                      <span aria-hidden>✓ </span>
-                      בקשת ההחזר נרשמה. נחזור אליכם במייל תוך 5 ימי עסקים.
-                    </p>
-                  ) : (
-                    <form className={styles.refundForm} onSubmit={submitRefund}>
-                      <PressInput
-                        multiline
-                        rows={3}
-                        label="סיבת ההחזר"
-                        placeholder="ספרו לנו מה קרה — נטפל בזה."
-                        value={refundReason}
-                        onChange={(e) => setRefundReason(e.target.value)}
-                      />
-                      {refundState === 'error' && (
-                        <p className={styles.refundOk} role="alert">{refundError}</p>
-                      )}
-                      <NewsButton
-                        type="submit"
-                        variant="ink"
-                        size="md"
-                        disabled={refundReason.trim().length === 0 || refundState === 'sending'}
-                      >
-                        {refundState === 'sending' ? 'שולח…' : 'בקשת החזר'}
-                      </NewsButton>
-                    </form>
-                  )}
                 </div>
               </div>
             )}
 
             {/* --- SETTINGS --- */}
+            {/* --- NEWS --- */}
+            {/* UI-only. There is deliberately no news backend, API, table or
+                sample article behind this: an empty promise is honest, an
+                invented headline is not. */}
+            {tab === 'news' && (
+              <div className={styles.panel}>
+                <span className={styles.panelKicker}>
+                  <span aria-hidden className={styles.kickerTick} />
+                  חדשות ועדכונים · NEWS
+                </span>
+                <div className={styles.newsSoon}>
+                  <span aria-hidden className={styles.newsSoonMark}>●</span>
+                  <h3 className={styles.newsSoonTitle}>בקרוב</h3>
+                  <p className={styles.newsSoonText}>
+                    עדכונים מהקהילה ומהפעילות המקומית יופיעו כאן בהמשך.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {tab === 'settings' && (
               <div className={styles.panel}>
                 <span className={styles.panelKicker}>
@@ -704,25 +637,6 @@ export default function DashboardPage() {
             )}
           </motion.section>
 
-          {/* ===== Token ledger footer ===== */}
-          <motion.section className={styles.tokenLedger} {...reveal(0.2)}>
-            <div className={styles.tokenLeft}>
-              <span className={styles.boxKickerInverse}>
-                <span aria-hidden className={styles.kickerTickPaper} />
-                יתרת טוקני SYNC
-              </span>
-              <span className={styles.tokenFigure}>{tokenBalance}</span>
-              <p className={styles.tokenNote}>
-                כל הצבעה מזכה בטוקנים לפי ההשקעה. ₪3 = 3 SYNC. טוקנים משמשים לפעולות
-                בפלטפורמה.
-              </p>
-            </div>
-            <div className={styles.tokenRight}>
-              <NewsButton variant="red" size="md" onClick={() => setTab('billing')}>
-                היסטוריית טוקנים
-              </NewsButton>
-            </div>
-          </motion.section>
         </div>
       </main>
       <Footer />

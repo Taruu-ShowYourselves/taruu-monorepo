@@ -141,6 +141,31 @@ describe('User Profile API Routes', () => {
       expect(data.profile.identityScore).toBeDefined();
     });
 
+    it('should use the canonical mapper shape shared with the auth routes', async () => {
+      (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
+      (getUserByGoogleId as Mock).mockResolvedValue({
+        ...mockUser,
+        verification_status: 'verified',
+      });
+      (getSocialProofsByUserId as Mock).mockResolvedValue(mockSocialProofs);
+      (qubikService.getTokenBalance as Mock).mockResolvedValue(100);
+
+      const request = new NextRequest('http://localhost:3000/api/user/profile');
+      const data = await (await GET(request)).json();
+
+      expect(typeof data.profile.verificationStatus).toBe('object');
+      expect(data.profile.verificationStatus.phase).toBe('completed');
+      // Check-in counts belong to /api/verification/status; this route must not
+      // fabricate zeros for them.
+      expect(data.profile.verificationStatus.checkInsCompleted).toBeUndefined();
+      expect(data.profile.verificationStatus.checkInsTotal).toBeUndefined();
+
+      expect(typeof data.profile.identityScore).toBe('object');
+      expect(data.profile.identityScore.total).toBe(40); // google only
+      expect(data.profile.identityScore.level).toBe('basic');
+      expect(data.profile.socialProofs[0].platform).toBe('google');
+    });
+
     it('should handle Qubik service failure gracefully', async () => {
       (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
       (getUserByGoogleId as Mock).mockResolvedValue(mockUser);

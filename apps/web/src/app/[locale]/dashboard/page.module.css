@@ -72,26 +72,7 @@
   color: var(--np-red);
 }
 
-.boxKickerInverse {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-family: var(--np-font-mono);
-  font-size: var(--text-sm);
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--np-red);
-}
-
 .kickerTick {
-  inline-size: 0.7em;
-  block-size: 0.7em;
-  background: var(--np-red);
-  flex-shrink: 0;
-}
-
-.kickerTickPaper {
   inline-size: 0.7em;
   block-size: 0.7em;
   background: var(--np-red);
@@ -138,6 +119,25 @@
   font-weight: 800;
   color: var(--np-red);
 }
+
+/* Actionable slot inside the masthead meta line. Sits on the same mono
+   baseline as the surrounding text so the line still reads as one strip,
+   but is a real button: location state is never a dead end. */
+.metaCta {
+  font-family: inherit;
+  font-size: inherit;
+  letter-spacing: inherit;
+  font-weight: 800;
+  color: var(--np-red);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+
+.metaCta:hover { color: var(--np-ink); }
 
 /* ---------- Verification box ---------- */
 .verifyBox {
@@ -257,7 +257,7 @@
 }
 
 @media (min-width: 480px) {
-  .figuresGrid { grid-template-columns: repeat(4, 1fr); }
+  .figuresGrid { grid-template-columns: repeat(3, 1fr); }
 }
 
 .figureCell {
@@ -269,23 +269,12 @@
   align-items: flex-start;
 }
 
-.figureCellInk { background: var(--np-ink); }
-
 .figureNum {
   font-family: var(--np-font-mono);
   font-weight: 800;
   font-size: var(--text-4xl);
   line-height: 0.9;
   color: var(--np-ink);
-  font-variant-numeric: tabular-nums;
-}
-
-.figureNumRed {
-  font-family: var(--np-font-mono);
-  font-weight: 800;
-  font-size: var(--text-4xl);
-  line-height: 0.9;
-  color: var(--np-red);
   font-variant-numeric: tabular-nums;
 }
 
@@ -296,11 +285,119 @@
   color: var(--np-ink-faint);
 }
 
-.figureLabelInverse {
+/* ---------- News (coming soon, UI-only) ---------- */
+.newsSoon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-3);
+  padding-block: clamp(var(--space-8), 6vw, var(--space-12));
+  padding-inline: var(--space-6);
+  border: var(--np-rule-hair) dashed var(--np-paper-edge);
+}
+
+.newsSoonMark {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-2xl);
+  color: var(--np-red);
+}
+
+.newsSoonTitle {
+  font-family: var(--np-font-display);
+  font-weight: 900;
+  font-size: var(--text-2xl);
+  letter-spacing: -0.02em;
+  color: var(--np-ink);
+}
+
+.newsSoonText {
+  font-family: var(--np-font-body);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--np-ink-soft);
+  max-width: 42ch;
+}
+
+/* ---------- Community statistics ---------- */
+.statsBand {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  border: var(--np-rule) solid var(--np-ink);
+  background: var(--np-ink);
+  gap: var(--np-rule);
+}
+
+@media (min-width: 560px) {
+  .statsGrid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.statCard {
+  background: var(--np-paper-box);
+  padding: var(--space-5) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  align-items: flex-start;
+  min-height: 7.5rem;
+}
+
+/* Placeholder cards read as deliberately empty, not as a failed load. */
+.statCardSoon {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--np-paper-box),
+    var(--np-paper-box) 10px,
+    var(--np-paper) 10px,
+    var(--np-paper) 20px
+  );
+}
+
+.statLabel {
   font-family: var(--np-font-mono);
   font-size: var(--text-xs);
   letter-spacing: 0.08em;
-  color: rgba(244, 241, 232, 0.7);
+  color: var(--np-ink-faint);
+}
+
+.statNum {
+  font-family: var(--np-font-mono);
+  font-weight: 800;
+  font-size: var(--text-4xl);
+  line-height: 0.9;
+  color: var(--np-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.statSoon {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--np-font-display);
+  font-weight: 900;
+  font-size: var(--text-2xl);
+  line-height: 1;
+  color: var(--np-ink);
+}
+
+.statSoonMark {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-base);
+  color: var(--np-red);
+}
+
+.statMeta {
+  font-family: var(--np-font-body);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  color: var(--np-ink-soft);
+  margin-block-start: var(--space-1);
 }
 
 /* ---------- Actions strip ---------- */
@@ -405,117 +502,8 @@
 }
 
 /* ---------- Fund ---------- */
-.fundTotalBox {
-  background: var(--np-ink);
-  color: var(--np-paper);
-  padding: var(--space-4) var(--space-5);
-  display: grid;
-  gap: var(--space-1);
-}
-
-.fundTotalK {
-  font-family: var(--np-font-mono);
-  font-size: var(--text-xs);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--np-red);
-}
-
-.fundTotalNum {
-  font-family: var(--np-font-mono);
-  font-weight: 800;
-  font-size: var(--text-5xl);
-  line-height: 0.9;
-  font-variant-numeric: tabular-nums;
-}
-
-.fundTotalMeta {
-  font-family: var(--np-font-mono);
-  font-size: var(--text-xs);
-  color: rgba(244, 241, 232, 0.7);
-}
-
-.ledgerRows { list-style: none; display: flex; flex-direction: column; }
-
-.ledgerRow {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  padding-block: var(--space-3);
-  border-block-start: var(--np-rule-hair) dotted var(--np-paper-edge);
-}
-.ledgerRow:first-child { border-block-start: 0; }
-
-.ledgerRowLabel {
-  font-family: var(--np-font-mono);
-  font-size: var(--text-sm);
-  color: var(--np-ink-soft);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.ledgerLeader {
-  flex: 1 1 auto;
-  align-self: stretch;
-  border-block-end: var(--np-rule-hair) dotted var(--np-paper-edge);
-  transform: translateY(-0.25rem);
-}
-
-.ledgerRowDate {
-  font-family: var(--np-font-mono);
-  font-size: var(--text-xs);
-  color: var(--np-ink-faint);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.ledgerRowValue {
-  font-family: var(--np-font-mono);
-  font-size: var(--text-sm);
-  font-weight: 700;
-  color: var(--np-ink);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
 
 /* ---------- Billing ---------- */
-.receiptStack {
-  display: grid;
-  gap: var(--space-4);
-}
-
-@media (min-width: 768px) {
-  .receiptStack { grid-template-columns: repeat(2, 1fr); }
-}
-
-.refundBox {
-  margin-block-start: var(--space-2);
-  padding: var(--space-5);
-  border: var(--np-rule) solid var(--np-ink);
-  background: var(--np-paper);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.refundForm {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  align-items: stretch;
-}
-
-@media (min-width: 560px) {
-  .refundForm { align-items: flex-start; }
-}
-
-.refundOk {
-  font-family: var(--np-font-mono);
-  font-size: var(--text-sm);
-  font-weight: 700;
-  color: var(--np-ink);
-}
 
 /* ---------- Settings ---------- */
 .settingsList { list-style: none; display: flex; flex-direction: column; }
@@ -557,43 +545,6 @@
 }
 
 /* ---------- Token ledger footer ---------- */
-.tokenLedger {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-5);
-  padding: clamp(var(--space-5), 2vw, var(--space-8));
-  background: var(--np-ink);
-  color: var(--np-paper);
-  border: var(--np-rule) solid var(--np-ink);
-}
-
-.tokenLeft { min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
-
-.tokenFigure {
-  font-family: var(--np-font-mono);
-  font-weight: 800;
-  font-size: clamp(var(--text-5xl), 6vw, var(--text-7xl));
-  line-height: 0.9;
-  color: var(--np-paper);
-  font-variant-numeric: tabular-nums;
-}
-
-.tokenNote {
-  font-family: var(--np-font-body);
-  font-size: var(--text-sm);
-  line-height: 1.5;
-  color: rgba(244, 241, 232, 0.75);
-  max-width: 42ch;
-}
-
-.tokenRight { flex-shrink: 0; }
-
-@media (max-width: 559px) {
-  .tokenLedger { flex-direction: column; align-items: flex-start; }
-  .tokenRight { width: 100%; }
-}
 
 /* Civic certificates grid (NFTs) */
 .certGrid {
