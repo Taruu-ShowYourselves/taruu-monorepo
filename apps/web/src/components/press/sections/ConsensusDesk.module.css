@@ -407,6 +407,8 @@
 
 .deskFooter {
   display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
   justify-content: flex-start;
   margin-block-start: clamp(var(--space-4), 2vw, var(--space-6));
 }

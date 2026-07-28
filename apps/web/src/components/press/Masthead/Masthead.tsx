@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { NewsButton } from '@/components/press/NewsButton';
+import { MunicipalityLink } from '@/components/uikit/municipality-link';
 import { useAuth } from '@/providers/AuthProvider';
 import type { Locale } from '@/lib/i18n';
 import styles from './Masthead.module.css';
@@ -124,7 +125,7 @@ function AccountCluster({ locale }: AccountClusterProps) {
           <span className={styles.cityGlyph} aria-hidden>
             ●
           </span>
-          {cityLabel}
+          <MunicipalityLink name={cityLabel} />
         </span>
       ) : null}
 

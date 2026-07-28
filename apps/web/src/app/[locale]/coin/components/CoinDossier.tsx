@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { NewsButton, SealCard } from '@/components/press';
+import { MunicipalityLink } from '@/components/uikit/municipality-link';
 import type { Locale } from '@/lib/i18n';
 import { WHATSAPP_LINK, formatCurrency, formatNumber } from './format';
 import styles from '../[id]/page.module.css';
@@ -179,7 +180,7 @@ export function CoinDossier({ voteId, locale = 'he' }: CoinDossierProps) {
         <div className={styles.subline}>
           <span className={styles.subTitle}>{vote?.title ?? '—'}</span>
           <span className={styles.subMeta}>
-            <span>{vote?.municipality ?? '—'}</span>
+            <MunicipalityLink name={vote?.municipality} fallback="—" />
             <span className={styles.sep} aria-hidden>
               ■
             </span>

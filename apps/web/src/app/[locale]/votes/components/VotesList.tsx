@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { NewsButton, VoteWidget, TallyBar } from '@/components/press';
+import { MunicipalityLink } from '@/components/uikit/municipality-link';
 import { useLiveTallies } from '@/hooks';
 import type { VoteFilter } from './types';
 import styles from './VotesList.module.css';
@@ -173,7 +174,7 @@ function RecordCard({ vote }: { vote: Vote }) {
         <span className={styles.recordKicker}>
           {ended ? 'רשומה סגורה' : 'ממתינה לפתיחה'}
         </span>
-        <span className={styles.recordPlace}>{vote.municipality}</span>
+        <MunicipalityLink name={vote.municipality} className={styles.recordPlace} />
       </header>
 
       <h3 className={styles.recordTitle}>{vote.title}</h3>
@@ -339,7 +340,7 @@ export function VotesList({ filter }: VotesListProps) {
                 <div key={vote.id} className={styles.ballot}>
                   <VoteWidget
                     kicker="הצבעה חיה"
-                    place={vote.municipality}
+                    place={<MunicipalityLink name={vote.municipality} />}
                     question={vote.title}
                     options={toWidgetOptions(vote)}
                     totalLabel={`${vote.participantCount.toLocaleString('he-IL')} קולות`}

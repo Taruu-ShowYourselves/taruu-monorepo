@@ -2,6 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { NewsButton } from '@/components/press/NewsButton';
+import {
+  isMunicipality,
+  municipalityHref,
+} from '@/components/uikit/municipality-link';
 import { getStoredMunicipality, LOCALITY_EVENT } from '@/lib/locality';
 import { DeskTopicRow, type DeskTopic } from './DeskTopicRow';
 import { DeskCarousel } from './DeskCarousel';
@@ -127,6 +131,16 @@ export function ConsensusDeskClient({ desks, locale }: ConsensusDeskClientProps)
             )}
 
             <div className={styles.deskFooter}>
+              {activeDesk && isMunicipality(activeDesk.municipality) ? (
+                <NewsButton
+                  href={municipalityHref(activeDesk.municipality)}
+                  variant="outline"
+                  size="md"
+                  trailing={<span aria-hidden>←</span>}
+                >
+                  פרופיל {activeDesk.municipality}
+                </NewsButton>
+              ) : null}
               <NewsButton
                 href={`/${locale}/votes`}
                 variant="outline"

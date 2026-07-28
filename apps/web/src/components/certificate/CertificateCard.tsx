@@ -1,5 +1,6 @@
 'use client';
 
+import { MunicipalityLink } from '@/components/uikit/municipality-link';
 import styles from './CertificateCard.module.css';
 
 export type CertificateType = 'verified_voter' | 'civic_patron';
@@ -59,7 +60,7 @@ export function CertificateCard({ cert }: { cert: Certificate }) {
         <dl className={styles.meta}>
           <div className={styles.metaRow}>
             <dt>רשות</dt>
-            <dd>{cert.municipality}</dd>
+            <dd><MunicipalityLink name={cert.municipality} /></dd>
           </div>
           <div className={styles.metaRow}>
             <dt>הונפק</dt>
