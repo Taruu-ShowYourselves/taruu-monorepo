@@ -16,6 +16,18 @@ interface KnessetDeskProps {
 }
 
 /**
+ * Distinct verified outlets behind a ranking's media score, from the
+ * ranker's stored evidence. Rows written before the ranker counted its
+ * coverage carry no evidence — they report null and the strip falls back
+ * to the opaque sub-score.
+ */
+function outletsCountedOf(evidence: unknown): number | null {
+  if (!evidence || typeof evidence !== 'object') return null;
+  const count = (evidence as { outletsCounted?: unknown }).outletsCounted;
+  return typeof count === 'number' && Number.isFinite(count) ? count : null;
+}
+
+/**
  * KnessetDesk — the national desk on the front page. Knesset-agenda topics
  * (votes scoped to KNESSET_SCOPE) with the same meters and engagement heat
  * as the municipal desk. Server component; shares the desk furniture.
@@ -48,6 +60,7 @@ export async function KnessetDesk({ locale = 'he' }: KnessetDeskProps) {
       hotness: row.hotness,
       relevance: row.relevance,
       media: row.media,
+      outletsCounted: outletsCountedOf(row.media_evidence),
       rationale: row.rationale,
       mediaRefs: Array.isArray(row.media_refs) ? row.media_refs : [],
       rankedAt: row.ranked_at,

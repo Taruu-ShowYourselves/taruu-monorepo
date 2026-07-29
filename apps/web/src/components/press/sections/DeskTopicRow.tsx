@@ -42,8 +42,14 @@ export interface DeskRanking {
   hotness: number;
   /** Public relevance/pressingness sub-score (0–100). */
   relevance: number | null;
-  /** Media-coverage sub-score (0–100). */
+  /** Media-coverage sub-score (0–100), computed from `outletsCounted`. */
   media: number | null;
+  /**
+   * Distinct Israeli outlets with live coverage from the last two weeks —
+   * the counted fact the media sub-score is derived from. Null for rows
+   * ranked before the ranker counted its evidence (judgment-only scores).
+   */
+  outletsCounted: number | null;
   /** One-sentence Hebrew rationale. */
   rationale: string | null;
   /** Israeli press coverage the ranker verified. */
@@ -195,7 +201,17 @@ export function RankingMetrics({
               ציבור {ranking.relevance}
             </span>
           ) : null}
-          {ranking.media !== null ? (
+          {ranking.outletsCounted !== null ? (
+            <span
+              className={styles.reaction}
+              title="כלי תקשורת ישראליים שסיקרו את הנושא בשבועיים האחרונים — נספרו ואומתו"
+            >
+              <span aria-hidden>▤</span>
+              {ranking.outletsCounted === 0
+                ? 'ללא סיקור'
+                : `${ranking.outletsCounted} כלי תקשורת`}
+            </span>
+          ) : ranking.media !== null ? (
             <span className={styles.reaction} title="היקף סיקור תקשורתי עכשווי">
               <span aria-hidden>▤</span>
               תקשורת {ranking.media}
