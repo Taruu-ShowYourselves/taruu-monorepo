@@ -39,6 +39,28 @@ Unlike discovery ingest (`docs/INGEST.md`), day-order votes are **born
 `active`** — they are system-published from the official record, so there is
 no editorial pending gate.
 
+## Enrichment (off-platform agents)
+
+The Worker only mirrors the day order. Everything that needs a model runs in
+`agents/knesset-ranker` on the agents box, on the Claude Agent SDK with local
+Claude Code credentials — **no `ANTHROPIC_API_KEY` anywhere**:
+
+```
+cron */30 → npx tsx src/docs.ts    document summaries → knesset_items.summary
+cron 17 */6 → npx tsx src/rank.ts  editorial hotness  → knesset_rankings
+```
+
+`docs` attaches each item's official document from `fs.knesset.gov.il`
+(KNS_DocumentBill / KNS_DocumentAgenda → docx → extracted text) and writes a
+short neutral Hebrew summary; `rank` reads those summaries, judges public
+relevance and counts HTTP-validated Israeli press coverage. Both are
+idempotent work queues, so a missed run just catches up.
+
+Document summaries ran on the Worker as `/api/cron/knesset-docs` until
+2026-07-29. The Agent SDK cannot run in a Worker isolate (it spawns the
+`claude` CLI and reads credentials from disk), which is why that version
+needed a raw API key; moving the job to the agents box removed it.
+
 ## Storage
 
 `supabase/migrations/20260727000001_knesset_items.sql` — `knesset_items`:

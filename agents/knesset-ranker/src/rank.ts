@@ -2,7 +2,7 @@
  * Knesset ranker — scores every active Knesset vote for editorial hotness.
  *
  * Pipeline: pull active votes scoped to the Knesset desk (title + the AI
- * document summary produced by /api/cron/knesset-docs) → hand batches to a
+ * document summary produced by the sibling docs job) → hand batches to a
  * Claude agent that judges how relevant/pressing each item is to the
  * Israeli public and hunts live press coverage with WebSearch → the CODE
  * (src/media.ts) HTTP-validates every ref, counts distinct fresh Israeli
@@ -15,11 +15,8 @@
  * --stale-hours are skipped.
  */
 
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
-import { config as loadEnv } from 'dotenv';
-import { createClient } from '@supabase/supabase-js';
 import { query } from '@anthropic-ai/claude-agent-sdk';
+import { createSupabase, isEntryPoint, loadAgentEnv } from './env.js';
 import {
   FRESH_DAYS,
   MAX_COVERAGE_PER_VOTE,
@@ -31,27 +28,7 @@ import {
   refsForDisplay,
 } from './media.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-// Own env first, then the web app's — never overriding what's already set.
-// (.dev.vars carries the real local Supabase creds; .env.local is a placeholder.)
-// Empty values (a copied .env.example) must not shadow the fallback files,
-// and dotenv never overrides an existing key — so drop empties between loads.
-const dropEmptyEnv = () => {
-  for (const key of [
-    'NEXT_PUBLIC_SUPABASE_URL',
-    'SUPABASE_URL',
-    'SUPABASE_SERVICE_ROLE_KEY',
-  ]) {
-    if (process.env[key] === '') delete process.env[key];
-  }
-};
-loadEnv({ path: resolve(__dirname, '../.env') });
-dropEmptyEnv();
-loadEnv({ path: resolve(__dirname, '../../../apps/web/.dev.vars') });
-dropEmptyEnv();
-loadEnv({ path: resolve(__dirname, '../../../apps/web/.env.local') });
-dropEmptyEnv();
+loadAgentEnv();
 
 const KNESSET_SCOPE = 'כנסת ישראל';
 const BATCH_SIZE = 6;
@@ -118,19 +95,6 @@ function parseArgs(argv: string[]): CliOptions {
   return options;
 }
 
-function requireEnv(): { url: string; serviceKey: string } {
-  // NEXT_PUBLIC_ first: apps/web/.env.local carries a placeholder SUPABASE_URL.
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceKey) {
-    console.error(
-      'Missing NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY (set in env or apps/web/.env.local)'
-    );
-    process.exit(1);
-  }
-  return { url, serviceKey };
-}
-
 const clamp = (n: unknown): number =>
   Math.max(0, Math.min(100, Math.round(Number(n) || 0)));
 
@@ -154,6 +118,8 @@ function buildPrompt(votes: RankableVote[]): string {
 2. איסוף סיקור: חפש באמצעות WebSearch סיקור עיתונאי ישראלי מה־${FRESH_DAYS} הימים האחרונים (חפש בעברית: מילות מפתח מהכותרת, עם "חדשות" או שם אתר). לפחות חיפוש אחד לכל סעיף. החזר אך ורק כתובות URL אמיתיות שהופיעו בתוצאות החיפוש — לעולם אל תמציא ואל תשחזר כתובת מהזיכרון. לכל כתובת צרף תאריך פרסום בפורמט YYYY-MM-DD אם הוא מופיע בתוצאה (אחרת null). עד ${MAX_COVERAGE_PER_VOTE} כתובות לסעיף, מאתרי חדשות ישראליים בלבד. כלול גם את שאילתות החיפוש שהרצת (עד ${MAX_QUERIES}).
 
 אל תחשב ציון תקשורת ואל תחשב hotness — המערכת סופרת את הסיקור המאומת ומחשבת בעצמה.
+
+חשוב: המענה האחרון שלך חייב להיות ה-JSON המלא. אל תחזיר הודעת ביניים כמו "החיפושים רצים ברקע" או "ממתין לתוצאות" — סיים את כל החיפושים ורק אז ענה. אין דרך להשלים תשובה אחר כך.
 
 החזר JSON בלבד — מערך, בלי טקסט נוסף ובלי גדרות קוד:
 [{"voteId": "...", "relevance": 0, "rationale": "משפט אחד בעברית", "queries": ["..."], "coverage": [{"url": "https://...", "publishedAt": "YYYY-MM-DD או null"}]}]
@@ -240,8 +206,7 @@ function chunk<T>(items: T[], size: number): T[][] {
 
 async function main(): Promise<void> {
   const options = parseArgs(process.argv.slice(2));
-  const { url, serviceKey } = requireEnv();
-  const supabase = createClient(url, serviceKey);
+  const supabase = createSupabase();
 
   // Active Knesset votes with their document summaries.
   const { data: votes, error: votesError } = await supabase
@@ -354,9 +319,7 @@ async function main(): Promise<void> {
   );
 }
 
-const isDirectRun =
-  process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
-if (isDirectRun) {
+if (isEntryPoint(import.meta.url)) {
   main().catch((error) => {
     console.error('knesset-ranker failed:', error);
     process.exit(1);

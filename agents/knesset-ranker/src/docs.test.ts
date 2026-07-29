@@ -1,11 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
 import { zipSync, strToU8 } from 'fflate';
-import {
-  pickDocument,
-  extractDocxText,
-  normalizeDocUrl,
-} from '@/services/knesset/docs';
-import type { KnsDocument } from '@/services/knesset/odata';
+import { buildSummaryPrompt, extractDocxText, normalizeDocUrl, pickDocument } from './docs.js';
+import type { KnsDocument } from './knesset-odata.js';
 
 function doc(partial: Partial<KnsDocument>): KnsDocument {
   return {
@@ -20,8 +17,8 @@ function doc(partial: Partial<KnsDocument>): KnsDocument {
 
 describe('pickDocument', () => {
   it('returns nulls when nothing is attached', () => {
-    expect(pickDocument([])).toEqual({ extractable: null, linkable: null });
-    expect(pickDocument([doc({ FilePath: '  ' })])).toEqual({
+    assert.deepEqual(pickDocument([]), { extractable: null, linkable: null });
+    assert.deepEqual(pickDocument([doc({ FilePath: '  ' })]), {
       extractable: null,
       linkable: null,
     });
@@ -39,8 +36,8 @@ describe('pickDocument', () => {
       FilePath: 'https://fs.knesset.gov.il/x/final.docx',
     });
     const { extractable, linkable } = pickDocument([background, finalText]);
-    expect(extractable?.FilePath).toBe('https://fs.knesset.gov.il/x/final.docx');
-    expect(linkable).toBe(extractable);
+    assert.equal(extractable?.FilePath, 'https://fs.knesset.gov.il/x/final.docx');
+    assert.equal(linkable, extractable);
   });
 
   it('falls back to the best-ranked PDF as linkable when no docx exists', () => {
@@ -54,8 +51,8 @@ describe('pickDocument', () => {
       FilePath: 'https://fs.knesset.gov.il/x/bk.pdf',
     });
     const { extractable, linkable } = pickDocument([backgroundPdf, firstReadingPdf]);
-    expect(extractable).toBeNull();
-    expect(linkable?.FilePath).toBe('https://fs.knesset.gov.il/x/ls1.pdf');
+    assert.equal(extractable, null);
+    assert.equal(linkable?.FilePath, 'https://fs.knesset.gov.il/x/ls1.pdf');
   });
 });
 
@@ -67,19 +64,34 @@ describe('extractDocxText', () => {
       '<w:p><w:r><w:t>סעיף 1: יום</w:t></w:r><w:r><w:t> הזיכרון</w:t></w:r></w:p>' +
       '</w:body></w:document>';
     const docx = zipSync({ 'word/document.xml': strToU8(xml) });
-    expect(extractDocxText(docx)).toBe('חוק זיכרון הטבח\nסעיף 1: יום הזיכרון');
+    assert.equal(extractDocxText(docx), 'חוק זיכרון הטבח\nסעיף 1: יום הזיכרון');
   });
 
   it('returns empty string when document.xml is missing', () => {
     const zip = zipSync({ 'nothing.txt': strToU8('x') });
-    expect(extractDocxText(zip)).toBe('');
+    assert.equal(extractDocxText(zip), '');
   });
 });
 
 describe('normalizeDocUrl', () => {
   it('converts upstream backslash separators to slashes', () => {
-    expect(normalizeDocUrl('https://fs.knesset.gov.il/25\\agendasuggestion\\a.docx')).toBe(
+    assert.equal(
+      normalizeDocUrl('https://fs.knesset.gov.il/25\\agendasuggestion\\a.docx'),
       'https://fs.knesset.gov.il/25/agendasuggestion/a.docx'
     );
+  });
+});
+
+describe('buildSummaryPrompt', () => {
+  it('carries the title, group and document text', () => {
+    const prompt = buildSummaryPrompt('חוק הנכים', 'חוק - נוסח לא רשמי', 'תוכן המסמך');
+    assert.ok(prompt.includes('כותרת הסעיף: חוק הנכים'));
+    assert.ok(prompt.includes('סוג המסמך: חוק - נוסח לא רשמי'));
+    assert.ok(prompt.includes('תוכן המסמך'));
+  });
+
+  it('truncates oversized documents', () => {
+    const prompt = buildSummaryPrompt('t', 'g', 'א'.repeat(50_000));
+    assert.ok(prompt.length < 20_000);
   });
 });
