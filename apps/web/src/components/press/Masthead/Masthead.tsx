@@ -18,6 +18,7 @@ interface MastheadProps {
 
 const NAV = [
   { label: 'הצבעות', href: 'votes' },
+  { label: 'סדר היום', href: 'explore' },
   { label: 'כנסת ישראל', href: 'knesset' },
   { label: 'איך זה עובד', href: 'how-it-works' },
 ];
@@ -207,6 +208,16 @@ function formatDateline(date: Date): string {
 export function Masthead({ locale = 'he' }: MastheadProps) {
   const { isAuthenticated } = useAuth();
 
+  // The auth store rehydrates from localStorage before the first client
+  // render, so an authenticated client would disagree with the guest SSR
+  // tree and break hydration (Radix useId depends on tree position). Render
+  // the guest branch until after mount, matching the server.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  const showAccount = mounted && isAuthenticated;
+
   return (
     <header className={styles.masthead}>
       {/* Edition ears */}
@@ -214,7 +225,7 @@ export function Masthead({ locale = 'he' }: MastheadProps) {
         {/* suppressHydrationWarning: server and client may straddle midnight */}
         <span suppressHydrationWarning>{formatDateline(new Date())}</span>
         <span>מהדורת הפיילוט · גיליון 04</span>
-        <span>כל הארץ · ₪3 / הצבעה</span>
+        <span>כל הארץ</span>
       </div>
 
       <div className={styles.ruleHair} />
@@ -232,7 +243,7 @@ export function Masthead({ locale = 'he' }: MastheadProps) {
 
       {/* Nav + participate / account */}
       <nav className={styles.nav} aria-label="ניווט ראשי">
-        {isAuthenticated ? (
+        {showAccount ? (
           <AccountCluster locale={locale} />
         ) : (
           <div className={styles.guestActions}>

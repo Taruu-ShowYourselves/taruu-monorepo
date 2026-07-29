@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Receipt } from '@/components/press';
 import { MunicipalityLink } from '@/components/uikit/municipality-link';
 import { useReducedMotion } from '@/hooks';
 import styles from './LiveDashboard.module.css';
@@ -101,26 +100,12 @@ export function LiveDashboard() {
             הדשבורד החי · LIVE
           </span>
           <h2 id="dashboard-title" className={styles.headline}>
-            כל שקל בקרן — <span className={styles.red}>גלוי בזמן אמת.</span>
+            כל שקל בקרן <span className={styles.red}>גלוי בזמן אמת.</span>
           </h2>
           <p className={styles.standfirst}>
             נתונים חיים מכל הרשויות המקומיות ברשת. שקיפות מלאה, בלי חדרים סגורים.
           </p>
         </header>
-
-        {/* The ₪3 split — Receipt-style ledger, always visible */}
-        <div className={styles.splitWrap}>
-          <Receipt
-            kicker="פירוק ה-₪3 · SPLIT"
-            title="לאן הולך כל שקל"
-            rows={[
-              { label: 'לקרן הקהילתית', value: '₪2' },
-              { label: 'לתפעול הפלטפורמה', value: '₪1' },
-              { label: 'סה״כ דמי השתתפות', value: '₪3', strong: true },
-            ]}
-            footer="₪2 לקרן הקהילתית · ₪1 לתפעול. הכל מתועד."
-          />
-        </div>
 
         {loading ? (
           <div className={styles.skeletonGrid} aria-hidden>
@@ -139,7 +124,7 @@ export function LiveDashboard() {
             <div className={styles.noticeBody}>
               <p className={styles.noticeTitle}>הדשבורד החי ייפתח עם ההצבעה הראשונה.</p>
               <p className={styles.noticeText}>
-                ברגע שהקרן הקהילתית הראשונה תיפתח — כל גיוס, כל עסקה וכל מגמה יופיעו כאן בזמן אמת.
+                כשהקרן הקהילתית הראשונה תיפתח, כל גיוס, עסקה ומגמה יופיעו כאן בזמן אמת.
               </p>
             </div>
           </div>

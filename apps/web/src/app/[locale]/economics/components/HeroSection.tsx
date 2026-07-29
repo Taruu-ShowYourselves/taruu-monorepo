@@ -71,7 +71,7 @@ function Arrow() {
 }
 
 const FLOW = [
-  { kind: 'vote' as const, amount: '₪3', label: 'הצבעה' },
+  { kind: 'vote' as const, label: 'הצבעה' },
   { kind: 'fund' as const, label: 'קרן קהילתית' },
   { kind: 'impact' as const, label: 'השפעה אמיתית' },
 ];
@@ -95,14 +95,14 @@ export function HeroSection() {
         <div className={styles.grid}>
           <div className={styles.story}>
             <h1 id="econ-hero-title" className={styles.headline}>
-              איך 3 שקלים בונים קהילה <span className={styles.red}>שמשפיעה.</span>
+              איך הצבעה אחת בונה קהילה <span className={styles.red}>שמשפיעה.</span>
             </h1>
 
             <p className={styles.standfirst}>
-              כל הצבעה מקבלת BAG משלה ב-bags.fm — מטבע ממים מבוסס בלוקצ׳יין שמאפשר
+              כל הצבעה מקבלת BAG משלה ב-bags.fm: מטבע ממים מבוסס בלוקצ׳יין שמאפשר
               לאנשים מבחוץ להשקיע בתנועה הכלכלית של ההצבעה, בדיוק כמו במניה, ולתמוך
-              בביצוע ההחלטה של הרוב. ככל שה-BAG גדל — כך לנושא יותר משאבים אמיתיים
-              מאחוריו. שקיפות מלאה, כל עסקה גלויה.
+              בביצוע ההחלטה של הרוב. ככל שה-BAG גדל, כך לנושא יותר משאבים אמיתיים
+              מאחוריו. כל עסקה גלויה.
             </p>
 
             <div className={styles.actions}>
@@ -123,10 +123,10 @@ export function HeroSection() {
 
           {/* Mechanical money-flow press diagram */}
           <aside className={styles.colFlow}>
-            <span className={styles.flowHead}>מסלול ה-₪3 · THE FLOW</span>
+            <span className={styles.flowHead}>מסלול ההשפעה · THE FLOW</span>
             <ol
               className={styles.flow}
-              aria-label="שלושה שקלים זורמים אל קרן קהילתית ואל השפעה אמיתית"
+              aria-label="הצבעה זורמת אל קרן קהילתית ואל השפעה אמיתית"
             >
               {FLOW.map((n, i) => (
                 <li key={n.label} className={styles.flowItem}>
@@ -137,9 +137,6 @@ export function HeroSection() {
                     <span className={styles.nodeGlyphWrap}>
                       <FlowGlyph kind={n.kind} />
                     </span>
-                    {n.amount ? (
-                      <span className={styles.nodeAmount}>{n.amount}</span>
-                    ) : null}
                     <span className={styles.nodeLabel}>{n.label}</span>
                   </div>
                   {i < FLOW.length - 1 ? (

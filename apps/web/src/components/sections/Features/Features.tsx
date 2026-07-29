@@ -20,7 +20,7 @@ const getFeatures = (locale: Locale) => [
     title: locale === 'en' ? 'Real Local Issues' : 'נושאים מקומיים מהשטח',
     description: locale === 'en'
       ? 'What concerns the street and neighborhood. You decide what goes to vote and propose topics for consensus.'
-      : 'מה שמעסיק את הרחוב והשכונה. אתם קובעים מה יעלה להצבעה ומציעים נושאים לקונצנזוס.',
+      : 'מה שמעסיק את הרחוב והעיר. אתם קובעים מה יעלה להצבעה ומציעים נושאים לקונצנזוס.',
   },
   {
     icon: (
@@ -67,8 +67,8 @@ const getFeatures = (locale: Locale) => [
     ),
     title: locale === 'en' ? 'Full Financial Transparency' : 'שקיפות כספית מלאה',
     description: locale === 'en'
-      ? 'Every ₪3 participation fee accrues in the vote\'s own community pool, recorded in an open ledger. When the vote resolves, the pool seeds the vote\'s BAG — its bags.fm memecoin — every shekel traceable from payment to impact.'
-      : 'כל ₪3 של דמי השתתפות נצברים בקופה הייעודית של ההצבעה, ברישום פתוח ושקוף. בסיום ההצבעה הקופה זורעת את ה-BAG של ההצבעה — המטבע ב-bags.fm — כל שקל ניתן למעקב מהתשלום ועד ההשפעה.',
+      ? 'Every vote has its own community pool, recorded in an open ledger and funded by outside investment in the vote\'s BAG, its bags.fm memecoin. Every shekel is traceable from investment to impact.'
+      : 'לכל הצבעה קופה קהילתית משלה, ברישום פתוח ושקוף, שממומנת מהשקעות חיצוניות ב-BAG של ההצבעה, המטבע ב-bags.fm. כל שקל ניתן למעקב מההשקעה ועד ההשפעה.',
   },
 ];
 
