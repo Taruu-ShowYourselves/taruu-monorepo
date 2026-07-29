@@ -11,8 +11,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# An explicitly passed DEPLOY_SSH must win: `set -a; . ./.env` would otherwise
+# overwrite it with the file's value and silently deploy to the wrong box.
+DEPLOY_SSH_ARG="${DEPLOY_SSH:-}"
 if [ -f .env ]; then set -a; . ./.env; set +a; fi
-TARGET="${DEPLOY_SSH:-dolev-box}"
+TARGET="${DEPLOY_SSH_ARG:-${DEPLOY_SSH:-dolev-box}}"
 WEB_ENV="../../apps/web/.env.local"
 # Non-interactive ssh skips .bashrc — source nvm explicitly on every hop.
 NVM='export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh";'
@@ -47,17 +50,29 @@ echo "==> installing deps on $TARGET"
 ssh "$TARGET" "$NVM"'cd ~/knesset-ranker && npm install --no-fund --no-audit --loglevel=error'
 
 echo "==> ensuring Claude Code CLI"
+# A box with a system-wide node (apt) has an unwritable global prefix, so the
+# install must be user-scoped — never sudo. ~/.npm-global/bin then has to be on
+# PATH for both interactive logins and cron.
 ssh "$TARGET" "$NVM"'
-  command -v claude >/dev/null 2>&1 || npm install -g --loglevel=error @anthropic-ai/claude-code
+  export PATH="$HOME/.npm-global/bin:$PATH"
+  if ! command -v claude >/dev/null 2>&1; then
+    npm config get prefix | grep -q "^$HOME" || npm config set prefix "$HOME/.npm-global"
+    npm install -g --loglevel=error @anthropic-ai/claude-code
+  fi
+  grep -q ".npm-global/bin" "$HOME/.profile" 2>/dev/null \
+    || echo "export PATH=\"\$HOME/.npm-global/bin:\$PATH\"" >> "$HOME/.profile"
   claude --version || true
 '
 
 echo "==> installing crontab entries (docs every 30m, ranker every 6h)"
 # Docs runs first and more often: the ranker reads the summaries it writes.
+# The prelude must tolerate a box WITHOUT nvm (system node): sourcing a missing
+# nvm.sh with `&&` would abort the whole entry and the job would never run.
 ssh "$TARGET" '
-  DOCS="*/30 * * * * . \$HOME/.nvm/nvm.sh && cd \$HOME/knesset-ranker && npx tsx src/docs.ts --limit 8 >> \$HOME/knesset-ranker/docs.log 2>&1"
-  RANK="17 */6 * * * . \$HOME/.nvm/nvm.sh && cd \$HOME/knesset-ranker && npx tsx src/rank.ts --limit 60 >> \$HOME/knesset-ranker/rank.log 2>&1"
-  ( crontab -l 2>/dev/null | grep -v "knesset-ranker && " ; echo "$DOCS"; echo "$RANK" ) | crontab -
+  PRELUDE="export PATH=\$HOME/.npm-global/bin:\$PATH; [ -s \$HOME/.nvm/nvm.sh ] && . \$HOME/.nvm/nvm.sh; cd \$HOME/knesset-ranker"
+  DOCS="*/30 * * * * $PRELUDE && npx tsx src/docs.ts --limit 8 >> \$HOME/knesset-ranker/docs.log 2>&1"
+  RANK="17 */6 * * * $PRELUDE && npx tsx src/rank.ts --limit 60 >> \$HOME/knesset-ranker/rank.log 2>&1"
+  ( crontab -l 2>/dev/null | grep -v "knesset-ranker" ; echo "$DOCS"; echo "$RANK" ) | crontab -
   crontab -l | tail -2
 '
 
