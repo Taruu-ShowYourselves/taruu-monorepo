@@ -225,7 +225,6 @@ sudo -u taruu-agent -H bash -lc '
   if [[ -d /srv/taruu-agent/repo/.git ]]; then
     git -C /srv/taruu-agent/repo fetch origin main --prune
   else
-    rmdir /srv/taruu-agent/repo
     git clone https://github.com/Taruu-ShowYourselves/taruu-monorepo.git /srv/taruu-agent/repo
   fi
   git -C /srv/taruu-agent/repo config user.name "Taruu Delivery Agent"
