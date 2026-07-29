@@ -1,8 +1,34 @@
 # HANDOVER — Taruu Redesign → Full Build
 
-_Updated 2026-07-24. Launch-prep session: geo-first homepage v2 + discovery ingest pipeline shipped on `rebuild/launch-site` (pushed, NOT deployed); agents numeric-engagement work MERGED+DEPLOYED (taruu-agents PR #14 → fleet auto-pull). Resume via "RESUME HERE" below._
+_Updated 2026-07-29. Session 4: free-participation sweep, live contested front-page ballot, Knesset document summaries + editorial hotness ranker (Claude Agent SDK) shipped as 4 commits on `rebuild/launch-site` (NOT pushed). A large unrelated restyle wave (~100 files) remains deliberately uncommitted. Resume below._
 
-## ▶ RESUME HERE (2026-07-24, session 3 — launch prep)
+## ▶ RESUME HERE (2026-07-29, session 4 — free votes + knesset intelligence)
+
+**Branch:** `rebuild/launch-site`, 4 new commits (`cfa5d25`…`cee63c0`), **NOT pushed / NOT deployed**. Tree still dirty on purpose: ~100 files of an in-progress restyle wave (about/, coin/, settings/, store/, sign-in/up, uikit/, styles/, explore/, PressMachine/PressAtmosphere/PressForm/SubscribeForm, GeoGate, Ticker, `.github/workflows/*`, `infra/`, `scripts/`, `docs/SITE-OVERVIEW-2026-07.md`) that predates/parallels this session — NOT reviewed, NOT committed here. `apps/web/package.json`+lockfile were committed (fflate) and carry that wave's mui/emotion + turbopack additions, flagged in the commit message.
+
+**Shipped this session (all verified: web `tsc` clean, lint clean on touched files, 13/13 votes-API + 6/6 knesset-docs tests):**
+- **Free participation (`cfa5d25`):** ₪3 fee removed everywhere — flow is now בחירה→אישור→חתימה (no payment call; seals client-side, see gap below), FAQ/terms/refund/pricing/economics/dictionaries retold around free voting + BAG-funded community pools; ₪50 create-vote stays. Masthead ear price gone.
+- **Live ballot + declutter (`b04a0be`):** `/api/votes?include=options` (active only); `LiveVoteWidget` rotates the most **contested** active vote per municipality (consensus-gap ranking, 8s, pauses on tap, demo fallback); `VoteWidget demo=false` for real votes. Removed: countdown date line, floating WhatsApp button, BackedBy section.
+- **Knesset intelligence (`0a1b7be`):**
+  - *Docs:* cron `/api/cron/knesset-docs` (`*/30 * * * *` in `worker.ts`+`wrangler.jsonc`) → KNS_DocumentBill/KNS_DocumentAgenda discovery → fs.knesset.gov.il docx → fflate extract → Haiku Hebrew summary → `knesset_items.{doc_url,doc_group,summary,…}`. Vote page: "מה על השולחן" block + plenum fact sheet + context section. **Aborts without `ANTHROPIC_API_KEY` (queue preserved).**
+  - *Ranker:* `agents/knesset-ranker` — Claude Agent SDK (**local Claude Code login, no API key**), scores relevance + WebSearch-verified media coverage → `knesset_rankings`; KnessetDesk sorts by it + shows evidence strip (heat°, rationale, ציבור/תקשורת sub-scores, Israeli press links). 6 votes seeded live (top: חוק היועמ"ש 91°). Honesty note: scores are grounded **judgment** (real searched refs, spot-checked), not counted metrics — hardening plan (counted outlet hits → computed media score) was pitched and user said "handoff first"; that's the next task.
+- **DB (LIVE, applied via Management API + `Supabase CLI` keychain token):** migrations `20260729000001_knesset_item_docs` + `20260729000002_knesset_rankings` — columns/tables verified.
+
+**VM agents space:**
+- **dolev-box** (159.69.249.191, alias `dolev-box`): ranker deployed to `~/knesset-ranker` — nvm node 22, Claude Code CLI 2.1.220, remote `.env` (Supabase creds), cron `17 */6 * * *` → `rank.log`. **Blocked on `claude login` — must be DOLEV'S account (user instruction); don't touch his box further.**
+- **hermes** (91.98.75.154, alias `hermes-admin`, Sahar's box): Hetzner shows RUNNING; unreachable only because firewall `openclaw-fw` (id 10780408) allows SSH solely from old IP 79.177.149.120 (current: 79.177.147.0; no ICMP rule at all). Agent is classifier-blocked from editing the firewall — **user must run:** `unset HCLOUD_TOKEN && hcloud firewall add-rule 10780408 --direction in --protocol tcp --port 22 --source-ips <current-ip>/32 --description "sahar admin"` (`.zshrc` exports a stale HCLOUD_TOKEN that shadows the working `taruu-admin-20260721` hcloud context). Then: `DEPLOY_SSH=hermes-admin agents/knesset-ranker/scripts/deploy.sh` + Sahar logs in with HIS account. SSH targets documented in `agents/knesset-ranker/.env{,.example}`.
+
+**⚠️ OPEN GAPS / NEXT:**
+1. **Ranker data-hardening (user-approved direction, not started):** compute the media sub-score from counted verified hits (distinct Israeli outlets, ≤14 days), store queries+hit counts as evidence, HTTP-validate refs before writing, zero media score when refs die; hotness = fixed blend with editorial relevance.
+2. **Vote recording is client-side only:** `/api/votes/[id]/participate` still demands `paymentTxId` — free flow mock-seals and never records. Backend contract change required before 04.08.
+3. `wrangler secret put ANTHROPIC_API_KEY` + site deploy (new cron routes inactive until then; `*/30` trigger may need dashboard add — account cron gate).
+4. Rank the backlog: 52/58 votes unranked — `pnpm --filter @sync/knesset-ranker rank -- --limit 60` (needs logged-in box or local run).
+5. Legacy `MoneyTransparency` component is dead code w/ ₪3 copy — delete or leave.
+6. Decide the fate of the uncommitted restyle wave (~100 files) — separate session.
+
+---
+
+## ▶ (older) RESUME HERE (2026-07-24, session 3 — launch prep)
 
 **Branches:** taro `rebuild/launch-site` — pushed, 32 commits ahead of `origin/main`, working tree clean. **Site deliberately NOT deployed** (user instruction). taruu-agents: PR #14 **merged to main 2026-07-24 07:03Z** → fleet workers auto-pull within minutes (`taruu-update.timer`, ff-only from main) — that IS the agents deploy, done.
 
