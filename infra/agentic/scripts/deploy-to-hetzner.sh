@@ -6,6 +6,8 @@ ssh_target="${1:-hermes-admin}"
 
 gh_agent_token="${GH_AGENT_TOKEN:-$(gh auth token)}"
 anthropic_api_key="${ANTHROPIC_API_KEY:-}"
+telegram_bot_token="${TELEGRAM_BOT_TOKEN:-}"
+telegram_allowed_user_id="${TELEGRAM_ALLOWED_USER_ID:-}"
 
 if [[ -z "$gh_agent_token" ]]; then
   echo "Authenticate gh or set GH_AGENT_TOKEN." >&2
@@ -39,8 +41,15 @@ echo "Running the idempotent remote bootstrap"
   encode_line "$gh_agent_token"
   encode_line "$anthropic_api_key"
   encode_line "$runner_registration_token"
+  encode_line "$telegram_bot_token"
+  encode_line "$telegram_allowed_user_id"
 } | ssh "$ssh_target" \
   "chmod 0700 '$remote_bundle/infra/agentic/scripts/bootstrap-remote.sh' && sudo -n '$remote_bundle/infra/agentic/scripts/bootstrap-remote.sh' '$remote_bundle'"
 
-unset gh_agent_token anthropic_api_key runner_registration_token
+unset \
+  gh_agent_token \
+  anthropic_api_key \
+  runner_registration_token \
+  telegram_bot_token \
+  telegram_allowed_user_id
 echo "Remote bootstrap completed"

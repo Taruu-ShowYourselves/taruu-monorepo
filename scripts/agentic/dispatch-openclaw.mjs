@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { readFileSync } from 'node:fs';
+import { telegramHookDelivery } from './telegram.mjs';
 
 function readEnvFile(path) {
   const values = {};
@@ -133,7 +134,7 @@ async function main() {
         '-',
       )}:issue-${dispatch.issueNumber}`,
       wakeMode: 'now',
-      deliver: false,
+      ...telegramHookDelivery(settings),
       timeoutSeconds: 30,
     }),
     signal: AbortSignal.timeout(35_000),

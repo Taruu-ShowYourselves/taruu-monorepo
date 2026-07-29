@@ -12,5 +12,7 @@
   `node /opt/taruu-agent/scripts/validate-prd.mjs --file <path>`.
 - Evidence validation (inside the issue worktree):
   `node scripts/agentic/check-evidence.mjs`.
+- Owner notification:
+  `node /opt/taruu-agent/scripts/notify-telegram.mjs --text "<concise update>"`.
 - Browser: use the managed `openclaw` profile. Capture only application UI;
   never browse credential, cloud-console, or identity-document pages.

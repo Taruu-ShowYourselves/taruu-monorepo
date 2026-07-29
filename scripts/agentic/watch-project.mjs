@@ -9,6 +9,10 @@ import {
 } from 'node:fs';
 import { dirname } from 'node:path';
 import { validatePrd } from './lib.mjs';
+import {
+  sendTelegramMessage,
+  telegramHookDelivery,
+} from './telegram.mjs';
 
 const IN_PROGRESS = 'In Progress';
 const API_VERSION = '2022-11-28';
@@ -325,7 +329,7 @@ async function dispatchToOpenClaw(item, message, settings) {
           '-',
         )}:issue-${item.number}`,
         wakeMode: 'now',
-        deliver: false,
+        ...telegramHookDelivery(settings),
         timeoutSeconds: 30,
       }),
       signal: AbortSignal.timeout(35_000),
@@ -333,6 +337,18 @@ async function dispatchToOpenClaw(item, message, settings) {
   );
   if (!response.ok) {
     throw new Error(`OpenClaw hook failed with HTTP ${response.status}.`);
+  }
+}
+
+async function notifyTelegram(settings, text) {
+  try {
+    await sendTelegramMessage({
+      token: settings.TELEGRAM_BOT_TOKEN,
+      chatId: settings.TELEGRAM_CHAT_ID,
+      text,
+    });
+  } catch (error) {
+    process.stderr.write(`${error.message}\n`);
   }
 }
 
@@ -388,6 +404,8 @@ async function main() {
     AGENT_ASSIGNEE: process.env.AGENT_ASSIGNEE,
     OPENCLAW_GATEWAY_PORT: process.env.OPENCLAW_GATEWAY_PORT ?? '18790',
     OPENCLAW_HOOK_TOKEN: process.env.OPENCLAW_HOOK_TOKEN,
+    TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
+    TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID,
   };
   for (const key of [
     'GH_TOKEN',
@@ -454,6 +472,14 @@ async function main() {
           ].join('\n'),
           settings,
         );
+        await notifyTelegram(
+          settings,
+          [
+            `⛔ OpenClaw לא התחיל לעבוד על issue #${item.number}.`,
+            'ה-PRD אינו מלא. פירוט נוסף נוסף ל-issue ב-GitHub.',
+            item.url,
+          ].join('\n'),
+        );
         process.stdout.write(
           `Rejected issue #${item.number}: incomplete PRD.\n`,
         );
@@ -475,6 +501,14 @@ async function main() {
         '🦞 **In Progress** detected on Project #2. The issue is assigned and queued in OpenClaw.',
         settings,
       );
+      await notifyTelegram(
+        settings,
+        [
+          `🦞 OpenClaw התחיל לעבוד על issue #${item.number}: ${item.title}`,
+          'הכרטיס עבר ל-In Progress, הוקצה לסוכן ונכנס לביצוע.',
+          item.url,
+        ].join('\n'),
+      );
       process.stdout.write(`Dispatched issue #${item.number}.\n`);
     } catch (error) {
       failures += 1;
@@ -484,6 +518,14 @@ async function main() {
         issueNumber: item.number,
       };
       process.stderr.write(`Issue #${item.number}: ${error.message}\n`);
+      await notifyTelegram(
+        settings,
+        [
+          `⚠️ OpenClaw לא הצליח להפעיל את issue #${item.number}.`,
+          'ה-watcher ינסה שוב אוטומטית. פרטים נשמרו בלוגים.',
+          item.url,
+        ].join('\n'),
+      );
     }
   }
 

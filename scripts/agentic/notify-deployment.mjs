@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { parseArgs, runGh } from './lib.mjs';
+import { sendTelegramMessage } from './telegram.mjs';
 
 const MARKER = '<!-- taruu-agent-deployment -->';
 
@@ -118,6 +119,25 @@ if (issueNumber) {
     );
   }
   runGh(labelArgs);
+}
+
+try {
+  await sendTelegramMessage({
+    token: process.env.TELEGRAM_BOT_TOKEN,
+    chatId: process.env.TELEGRAM_CHAT_ID,
+    text: [
+      success
+        ? `✅ Taruu עלה לפרודקשן בהצלחה (PR #${pr.number}).`
+        : `❌ פריסת Taruu הסתיימה בסטטוס ${outcome} (PR #${pr.number}).`,
+      issueNumber ? `Issue #${issueNumber}` : null,
+      success ? productionUrl : null,
+      runUrl,
+    ]
+      .filter(Boolean)
+      .join('\n'),
+  });
+} catch (error) {
+  process.stderr.write(`${error.message}\n`);
 }
 
 process.stdout.write(

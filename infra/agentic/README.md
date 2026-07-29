@@ -12,7 +12,8 @@ evidence, a human-approved pull request, and a GitHub Actions deployment.
 3. A maintainer manually moves the card to **In Progress**. The isolated
    Hetzner watcher detects the transition within about 15 seconds, verifies the
    actor and full PRD, and calls the loopback OpenClaw hook. This board move is
-   the only initial implementation dispatch signal.
+   the only initial implementation dispatch signal. The owner immediately
+   receives a Telegram start notification.
 4. OpenClaw assigns the configured owner and keeps the item **In Progress**.
    The orchestrator prepares `agent/issue-<n>-<slug>` in a dedicated worktree.
 5. An implementer agent edits and tests. A separate verifier re-reads the PRD,
@@ -20,10 +21,25 @@ evidence, a human-approved pull request, and a GitHub Actions deployment.
    documented non-visual exception.
 6. The orchestrator opens one PR, requests human review, and enables auto-merge.
    GitHub waits for `Agent verification`, resolved conversations, and one fresh
-   approval.
+   approval. Implementation, verification, blocker, PR, review, and merge
+   updates return to the owner's Telegram chat.
 7. Merge closes the issue and moves it to **Done**. The existing Cloudflare
    workflow deploys from `main`, then updates the PR and issue with success or
-   failure so GitHub mobile/app notifications carry the result.
+   failure. The result is sent to both GitHub and Telegram.
+
+## Telegram control surface
+
+The allowlisted owner talks to the existing `@Heremeionemama_bot`. Telegram
+messages route to a dedicated concierge agent that can:
+
+- answer current project, issue, pull-request, check, and deployment questions;
+- turn a conversation into a complete PRD;
+- create an explicitly requested issue and place it in **Todo**;
+- link the exact GitHub item that needs human action.
+
+The concierge cannot edit application code, merge, deploy, or move a card to
+**In Progress**. Even if asked to "start" in Telegram, it links the card and
+asks the owner to make the one authorized board transition.
 
 The VM never owns Cloudflare or production application credentials. It cannot
 deploy directly.
@@ -35,6 +51,8 @@ deploy directly.
 - Only a manual **In Progress** transition by an allowlisted maintainer can
   dispatch initial work. Automated status changes and lifecycle labels cannot
   start implementation.
+- Telegram DMs use a one-owner numeric allowlist. Groups are disabled. The bot
+  token is injected through an OpenClaw `SecretRef`, never committed.
 - The watcher keeps a durable status snapshot, baselines existing cards during
   first installation, and retries transient GitHub or OpenClaw failures.
 - Dispatch workflows never check out untrusted branches.
@@ -84,15 +102,23 @@ From this repository:
 ```bash
 export GH_AGENT_TOKEN='...'
 export ANTHROPIC_API_KEY='...'
+export TELEGRAM_BOT_TOKEN='...'
+export TELEGRAM_ALLOWED_USER_ID='...'
 infra/agentic/scripts/deploy-to-hetzner.sh hermes-admin
 ```
 
 The deploy script mints a short-lived runner registration token, streams all
-three credentials over SSH without printing them, installs pinned OpenClaw and
+credentials over SSH without printing them, installs pinned OpenClaw and
 Context7 versions, installs Chrome, creates the agent workspaces, starts the
 Gateway, starts the Project #2 watcher, and registers the `taruu-agents` runner.
-Bootstrap fails closed unless the OpenClaw identity can write the repository,
-update Project #2, read Actions, and access issues.
+On Hermes, blank Telegram variables reuse the one existing bot and paired owner
+and safely move polling from the legacy gateway. Bootstrap rolls that move back
+if the new Telegram channel fails its probe. Bootstrap also fails closed unless
+the OpenClaw identity can write the repository, update Project #2, read Actions,
+and access issues.
+
+Store `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` as GitHub Actions secrets so
+the production workflow can report its final outcome in the same chat.
 
 ### 4. Enable GitHub controls
 
@@ -129,6 +155,7 @@ ssh hetzner-root 'systemctl status taruu-openclaw --no-pager'
 ssh hetzner-root 'systemctl status taruu-project-watcher.timer --no-pager'
 ssh hetzner-root 'systemctl status actions.runner.* --no-pager'
 ssh hetzner-root 'sudo -u taruu-agent openclaw gateway status --deep'
+ssh hetzner-root 'sudo -u taruu-agent openclaw channels status --probe'
 ssh hetzner-root 'sudo -u taruu-agent openclaw security audit --deep'
 ```
 

@@ -16,11 +16,24 @@ echo "Reading bootstrap credentials from stdin"
 IFS= read -r gh_token_b64
 IFS= read -r anthropic_key_b64
 IFS= read -r runner_token_b64
+IFS= read -r telegram_bot_token_b64
+IFS= read -r telegram_allowed_user_id_b64
 
 gh_agent_token="$(printf '%s' "$gh_token_b64" | base64 --decode)"
 anthropic_api_key="$(printf '%s' "$anthropic_key_b64" | base64 --decode)"
 runner_registration_token="$(printf '%s' "$runner_token_b64" | base64 --decode)"
-unset gh_token_b64 anthropic_key_b64 runner_token_b64
+telegram_bot_token="$(
+  printf '%s' "$telegram_bot_token_b64" | base64 --decode
+)"
+telegram_allowed_user_id="$(
+  printf '%s' "$telegram_allowed_user_id_b64" | base64 --decode
+)"
+unset \
+  gh_token_b64 \
+  anthropic_key_b64 \
+  runner_token_b64 \
+  telegram_bot_token_b64 \
+  telegram_allowed_user_id_b64
 
 if [[ -z "$gh_agent_token" || -z "$runner_registration_token" ]]; then
   echo "A GitHub agent token and runner registration token are required" >&2
@@ -134,6 +147,54 @@ upsert_env() {
   rm -f "$temporary"
 }
 
+existing_telegram_bot_token="$(
+  awk -F= '$1 == "TELEGRAM_BOT_TOKEN" {
+    print substr($0, index($0, "=") + 1)
+  }' "$env_file" | tail -n 1
+)"
+existing_telegram_allowed_user_id="$(
+  awk -F= '$1 == "TELEGRAM_ALLOWED_USER_ID" {
+    print substr($0, index($0, "=") + 1)
+  }' "$env_file" | tail -n 1
+)"
+telegram_bot_token="${telegram_bot_token:-$existing_telegram_bot_token}"
+telegram_allowed_user_id="${telegram_allowed_user_id:-$existing_telegram_allowed_user_id}"
+
+legacy_openclaw_config="/home/openclaw/.openclaw/openclaw.json"
+legacy_telegram_allowlist="$(
+  find /home/openclaw/.openclaw/credentials \
+    -maxdepth 1 \
+    -type f \
+    -name 'telegram-*-allowFrom.json' \
+    -print \
+    -quit \
+    2>/dev/null || true
+)"
+if [[ -z "$telegram_bot_token" && -f "$legacy_openclaw_config" ]]; then
+  telegram_bot_token="$(
+    jq -r '
+      .channels.telegram.botToken |
+      if type == "string" then . else empty end
+    ' "$legacy_openclaw_config"
+  )"
+fi
+if [[ -z "$telegram_allowed_user_id" && -f "$legacy_telegram_allowlist" ]]; then
+  telegram_allowed_user_id="$(
+    jq -r '.allowFrom | if length == 1 then .[0] else empty end' \
+      "$legacy_telegram_allowlist"
+  )"
+fi
+telegram_allowed_user_id="${telegram_allowed_user_id#telegram:}"
+telegram_allowed_user_id="${telegram_allowed_user_id#tg:}"
+if [[ -z "$telegram_bot_token" ]]; then
+  echo "TELEGRAM_BOT_TOKEN is required (no reusable bot was found)." >&2
+  exit 2
+fi
+if [[ ! "$telegram_allowed_user_id" =~ ^[0-9]+$ ]]; then
+  echo "Exactly one numeric Telegram owner ID is required." >&2
+  exit 2
+fi
+
 existing_gateway_token="$(awk -F= '$1 == "OPENCLAW_GATEWAY_TOKEN" {print substr($0, index($0, "=") + 1)}' "$env_file" | tail -n 1)"
 existing_hook_token="$(awk -F= '$1 == "OPENCLAW_HOOK_TOKEN" {print substr($0, index($0, "=") + 1)}' "$env_file" | tail -n 1)"
 gateway_token="${existing_gateway_token:-$(openssl rand -hex 32)}"
@@ -152,6 +213,9 @@ upsert_env OPENCLAW_GATEWAY_PORT "18790"
 upsert_env OPENCLAW_CONFIG_PATH "/etc/taruu-agent/openclaw.json"
 upsert_env OPENCLAW_STATE_DIR "/srv/taruu-agent/openclaw-state"
 upsert_env OPENCLAW_MODEL "$openclaw_model"
+upsert_env TELEGRAM_BOT_TOKEN "$telegram_bot_token"
+upsert_env TELEGRAM_ALLOWED_USER_ID "$telegram_allowed_user_id"
+upsert_env TELEGRAM_CHAT_ID "$telegram_allowed_user_id"
 if [[ -n "$anthropic_api_key" ]]; then
   upsert_env ANTHROPIC_API_KEY "$anthropic_api_key"
 fi
@@ -228,6 +292,7 @@ dispatcher_temporary="$(mktemp /tmp/taruu-dispatcher-env.XXXXXX)"
   printf 'OPENCLAW_GATEWAY_PORT=18790\n'
   printf 'AGENT_REPOSITORY=Taruu-ShowYourselves/taruu-monorepo\n'
   printf 'AGENT_AUTHORIZED_ACTORS=SaharBarak,DolevSeren,%s\n' "$agent_login"
+  printf 'TELEGRAM_CHAT_ID=%s\n' "$telegram_allowed_user_id"
 } >"$dispatcher_temporary"
 install -o root -g taruu-runner -m 0640 \
   "$dispatcher_temporary" \
@@ -242,7 +307,7 @@ if [[ -z "$anthropic_api_key" ]]; then
   fi
 
   echo "Copying only the existing OpenAI auth profile into isolated agent stores"
-  for agent_id in orchestrator implementer verifier; do
+  for agent_id in orchestrator implementer verifier concierge; do
     agent_store_dir="/srv/taruu-agent/openclaw-state/agents/$agent_id/agent"
     agent_store="$agent_store_dir/openclaw-agent.sqlite"
     install -d -o taruu-agent -g taruu-agent -m 0750 "$agent_store_dir"
@@ -366,6 +431,51 @@ sudo -u taruu-agent -H bash -lc '
     --probe-timeout 30000 \
     --json > /srv/taruu-agent/logs/model-probe.json
 '
+
+legacy_telegram_backup=""
+legacy_telegram_migration_pending=false
+
+restart_legacy_openclaw() {
+  local legacy_uid
+  legacy_uid="$(id -u openclaw)"
+  sudo -u openclaw env \
+    XDG_RUNTIME_DIR="/run/user/$legacy_uid" \
+    DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$legacy_uid/bus" \
+    systemctl --user restart openclaw-gateway.service
+}
+
+rollback_legacy_telegram() {
+  if [[ "$legacy_telegram_migration_pending" != true ]]; then
+    return
+  fi
+  legacy_telegram_migration_pending=false
+  echo "Restoring the legacy Telegram gateway after bootstrap failure" >&2
+  systemctl stop taruu-openclaw.service >/dev/null 2>&1 || true
+  if [[ -n "$legacy_telegram_backup" && -f "$legacy_telegram_backup" ]]; then
+    install -o openclaw -g openclaw -m 0600 \
+      "$legacy_telegram_backup" \
+      "$legacy_openclaw_config"
+    restart_legacy_openclaw >/dev/null 2>&1 || true
+  fi
+}
+trap rollback_legacy_telegram ERR
+
+if [[ -f "$legacy_openclaw_config" ]] &&
+  jq -e '.channels.telegram.enabled == true' \
+    "$legacy_openclaw_config" >/dev/null; then
+  echo "Migrating the existing Telegram bot to the delivery gateway"
+  legacy_telegram_backup="${legacy_openclaw_config}.pre-taruu-telegram-migration"
+  if [[ ! -f "$legacy_telegram_backup" ]]; then
+    install -o openclaw -g openclaw -m 0600 \
+      "$legacy_openclaw_config" \
+      "$legacy_telegram_backup"
+  fi
+  sudo -u openclaw -H /usr/local/bin/openclaw \
+    config set channels.telegram.enabled false >/dev/null
+  legacy_telegram_migration_pending=true
+  restart_legacy_openclaw
+fi
+
 systemctl restart taruu-openclaw.service
 
 ready=false
@@ -384,6 +494,39 @@ if [[ "$ready" != true ]]; then
 fi
 
 sudo -u taruu-agent -H bash -lc '
+  set -euo pipefail
+  export PATH=/usr/bin:/usr/local/bin:/bin
+  set -a
+  source /etc/taruu-agent/agent.env
+  set +a
+  openclaw channels status \
+    --probe \
+    --json > /srv/taruu-agent/logs/channels-status.json
+  jq -e '"'"'
+    .channels.telegram.configured == true and
+    .channels.telegram.running == true and
+    .channels.telegram.probe.ok == true
+  '"'"' /srv/taruu-agent/logs/channels-status.json >/dev/null
+'
+
+if [[ "$legacy_telegram_migration_pending" == true ]]; then
+  sudo -u taruu-agent -H bash -lc '
+    set -euo pipefail
+    export PATH=/usr/bin:/usr/local/bin:/bin
+    set -a
+    source /etc/taruu-agent/agent.env
+    set +a
+    openclaw message send \
+      --channel telegram \
+      --target "$TELEGRAM_CHAT_ID" \
+      --message "✅ OpenClaw מחובר עכשיו ל-Taruu. אפשר לדבר איתי כאן ולקבל עדכונים על issues, PRs, אישורים ופריסות." \
+      --json > /srv/taruu-agent/logs/telegram-migration-message.json
+  '
+fi
+legacy_telegram_migration_pending=false
+trap - ERR
+
+sudo -u taruu-agent -H bash -lc '
   export PATH=/usr/bin:/usr/local/bin:/bin
   set -a
   source /etc/taruu-agent/agent.env
@@ -397,9 +540,15 @@ echo "Starting the GitHub Project In Progress watcher"
 systemctl start taruu-project-watcher.service
 systemctl enable --now taruu-project-watcher.timer
 
-unset gh_agent_token anthropic_api_key runner_registration_token
+unset \
+  gh_agent_token \
+  anthropic_api_key \
+  runner_registration_token \
+  telegram_bot_token \
+  telegram_allowed_user_id
 echo "Taruu agent host is ready"
 echo "OpenClaw: loopback port 18790"
+echo "Telegram: allowlisted owner routed to the concierge agent"
 echo "Project watcher: Project #2 In Progress (approximately 15 seconds)"
 echo "Runner label: taruu-agents"
 echo "Agent GitHub login: $agent_login"
