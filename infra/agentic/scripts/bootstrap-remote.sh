@@ -337,7 +337,8 @@ sudo -u taruu-agent -H bash -lc '
   source /etc/taruu-agent/agent.env
   set +a
   openclaw security audit --deep > /srv/taruu-agent/logs/security-audit.txt || true
-  openclaw browser doctor --json > /srv/taruu-agent/logs/browser-doctor.json || true
+  openclaw browser start --json > /srv/taruu-agent/logs/browser-start.json
+  openclaw browser doctor --json > /srv/taruu-agent/logs/browser-doctor.json
 '
 
 unset gh_agent_token anthropic_api_key runner_registration_token
