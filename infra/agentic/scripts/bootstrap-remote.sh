@@ -317,7 +317,7 @@ sudo -u taruu-agent -H bash -lc '
 systemctl restart taruu-openclaw.service
 
 ready=false
-for _ in {1..20}; do
+for _ in {1..90}; do
   if curl -fsS http://127.0.0.1:18790/readyz >/dev/null; then
     ready=true
     break

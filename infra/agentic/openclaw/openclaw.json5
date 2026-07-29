@@ -26,6 +26,10 @@
     restart: false,
   },
 
+  plugins: {
+    allow: ["codex"],
+  },
+
   skills: {
     // The delivery workflow uses only the audited workspace skill. Bundled
     // personal/integration skills are unnecessary on this dedicated host.
