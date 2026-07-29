@@ -213,6 +213,8 @@ if [[ -z "$anthropic_api_key" ]]; then
     chown taruu-agent:taruu-agent "$agent_store"
     chmod 0600 "$agent_store"
   done
+  chown -R taruu-agent:taruu-agent \
+    /srv/taruu-agent/openclaw-state/agents
 fi
 
 echo "Configuring Git and the canonical repository clone"
