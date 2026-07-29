@@ -61,12 +61,6 @@
   max-width: 44ch;
 }
 
-/* ---------- ₪3 split receipt ---------- */
-.splitWrap {
-  max-width: 32rem;
-  margin-block-end: clamp(var(--space-6), 3vw, var(--space-10));
-}
-
 /* ---------- Skeleton ---------- */
 .skeletonGrid {
   display: grid;

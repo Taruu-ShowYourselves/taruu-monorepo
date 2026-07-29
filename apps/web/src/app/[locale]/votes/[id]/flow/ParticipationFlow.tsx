@@ -30,17 +30,17 @@ interface ParticipationFlowProps {
   onComplete: () => void;
 }
 
-type Stage = 'choice' | 'payment' | 'receipt';
+type Stage = 'choice' | 'confirm' | 'receipt';
 
 const STEPS = [
   { label: 'בחירה' },
-  { label: 'תשלום' },
   { label: 'אישור' },
+  { label: 'חתימה' },
 ] as const;
 
 const STAGE_INDEX: Record<Stage, number> = {
   choice: 0,
-  payment: 1,
+  confirm: 1,
   receipt: 2,
 };
 
@@ -67,17 +67,16 @@ function mockHash(): string {
 }
 
 /**
- * ParticipationFlow — the press ballot, reshaped (UX flow J2). Choice → ₪3
- * payment → blockchain receipt + seal. Residency is verified ONCE elsewhere
- * (/verification), so there is no per-vote GPS step. The auth + verified-resident
- * gate sits at payment: guests pick freely, and the selected option is persisted
- * across the sign-in / verification round-trip so nothing is lost. Drives the
- * real payment API (Green Invoice redirect) when configured, and falls back gracefully
- * to an in-page mock seal when the provider/session is unavailable.
+ * ParticipationFlow — the press ballot, reshaped (UX flow J2). Choice →
+ * confirmation → blockchain receipt + seal. Participation is free; residency is
+ * verified ONCE elsewhere (/verification), so there is no per-vote GPS step.
+ * The auth + verified-resident gate sits at confirmation: guests pick freely,
+ * and the selected option is persisted across the sign-in / verification
+ * round-trip so nothing is lost. Seals in-page; server-side recording hooks in
+ * once the participate API drops its payment-shaped contract.
  */
 export function ParticipationFlow({
   voteId,
-  voteTitle,
   options,
   totalVotes,
   initialOptionId = null,
@@ -91,8 +90,6 @@ export function ParticipationFlow({
 
   const [stage, setStage] = useState<Stage>('choice');
   const [selectedOption, setSelectedOption] = useState<string | null>(initialOptionId);
-  const [submitting, setSubmitting] = useState(false);
-  const [payError, setPayError] = useState<string | null>(null);
   const [seal, setSeal] = useState<{ hash: string; block: string; ts: string } | null>(null);
 
   const selectedText = useMemo(
@@ -120,7 +117,7 @@ export function ParticipationFlow({
     }
     if (restored && options.some((o) => o.id === restored)) {
       setSelectedOption(restored);
-      setStage('payment');
+      setStage('confirm');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -145,11 +142,11 @@ export function ParticipationFlow({
   /* ---- Step 1: choice (open to guests) ---- */
   const handleConfirmChoice = useCallback(() => {
     if (!selectedOption) return;
-    setStage('payment');
+    setStage('confirm');
   }, [selectedOption]);
 
-  /* ---- Step 2: ₪3 payment ---- */
-  const completeWithMockSeal = useCallback(() => {
+  /* ---- Step 2: free confirmation ---- */
+  const sealVote = useCallback(() => {
     setSeal({
       hash: mockHash(),
       block: (18_400_000 + Math.floor(Math.random() * 9999)).toLocaleString('en-US'),
@@ -159,12 +156,12 @@ export function ParticipationFlow({
     onComplete();
   }, [onComplete]);
 
-  const handlePay = useCallback(async () => {
+  const handleConfirm = useCallback(() => {
     if (!selectedOption) return;
 
     const back = encodeURIComponent(`/votes/${voteId}`);
-    // Gate at payment: must be signed in AND a verified resident. Persist the
-    // choice so the round-trip returns the user straight to this step.
+    // Gate at confirmation: must be signed in AND a verified resident. Persist
+    // the choice so the round-trip returns the user straight to this step.
     if (!isAuthenticated) {
       persistPending();
       router.push(`/sign-in?redirect=${back}`);
@@ -176,51 +173,8 @@ export function ParticipationFlow({
       return;
     }
 
-    setSubmitting(true);
-    setPayError(null);
-
-    try {
-      const response = await fetch('/api/payments/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'vote_participation',
-          voteId,
-          optionId: selectedOption,
-          voteTitle,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.payment?.paymentUrl) {
-          // Real Green Invoice checkout — leaves the page; returns with ?payment=success.
-          window.location.href = data.payment.paymentUrl;
-          return;
-        }
-        // Configured but no external URL (already-paid / idempotent) — seal in place.
-        completeWithMockSeal();
-        return;
-      }
-
-      // Non-OK: provider/session unavailable in this environment → mock seal.
-      completeWithMockSeal();
-    } catch {
-      // Network/provider error → graceful mock seal so the flow always closes.
-      completeWithMockSeal();
-    } finally {
-      setSubmitting(false);
-    }
-  }, [
-    selectedOption,
-    voteId,
-    voteTitle,
-    completeWithMockSeal,
-    isAuthenticated,
-    isVerifiedResident,
-    persistPending,
-    router,
-  ]);
+    sealVote();
+  }, [selectedOption, voteId, sealVote, isAuthenticated, isVerifiedResident, persistPending, router]);
 
   /* ------------------------------------------------------------------ */
   return (
@@ -273,7 +227,7 @@ export function ParticipationFlow({
               })}
             </ul>
 
-            <p className={styles.trust}>הקול שלכם ייחתם בבלוקצ׳יין — בלתי ניתן לשינוי.</p>
+            <p className={styles.trust}>הקול שלכם ייחתם בבלוקצ׳יין. אי אפשר לשנות אותו בדיעבד.</p>
 
             <div className={styles.actions}>
               <NewsButton
@@ -284,82 +238,70 @@ export function ParticipationFlow({
                 disabled={!selectedOption}
                 trailing={<span aria-hidden>←</span>}
               >
-                המשיכו · תשלום
+                המשיכו · אישור
               </NewsButton>
             </div>
           </section>
         )}
 
-        {/* ---- STEP 2 — תשלום ---- */}
-        {stage === 'payment' && (
-          <section className={styles.panel} aria-label="תשלום">
+        {/* ---- STEP 2 — אישור ---- */}
+        {stage === 'confirm' && (
+          <section className={styles.panel} aria-label="אישור הקול">
             <span className={styles.kicker}>
               <span aria-hidden className={styles.kickerTick} />
-              שלב 02 · תשלום
+              שלב 02 · אישור
             </span>
-            <h2 className={styles.panelTitle}>דמי השתתפות · ₪3</h2>
+            <h2 className={styles.panelTitle}>אשרו את הקול שלכם</h2>
 
             <p className={styles.lead}>
-              שלושת השקלים אינם אגרה — הם הדלק של ההצבעה. ₪2 נכנסים לקרן הקהילתית
-              שמממנת את ביצוע ההחלטה, ומזינים את ה-BAG של ההצבעה ב-bags.fm; ₪1 לתפעול
-              המערכת. ככל שיותר תושבים משתתפים, יש לנושא יותר משאבים אמיתיים מאחוריו.
+              ההשתתפות חינם, בלי תשלום ובלי חסמים. נדרש רק אימות זהות ומיקום,
+              כדי שכל קול ישויך לתושב אמיתי אחד. הקול ייחתם בבלוקצ׳יין ולא יהיה
+              ניתן לשינוי.
             </p>
 
             <Receipt
               className={styles.receipt}
-              kicker="חיוב · CHARGE"
+              kicker="פתק הצבעה · BALLOT"
               rows={[
-                { label: 'לקרן הקהילתית · ה-BAG', value: '₪2' },
-                { label: 'לתפעול המערכת', value: '₪1' },
-                { label: 'סה״כ לחיוב', value: '₪3', strong: true },
+                { label: 'עמדה', value: selectedText || '—' },
+                { label: 'עלות', value: 'חינם', strong: true },
               ]}
-              footer={`הצבעה ${voteId} · ${selectedText || '—'}`}
+              footer={`הצבעה ${voteId}`}
             />
 
-            <p className={styles.trust}>₪2 לקרן הקהילתית · ₪1 לתפעול. הכל מתועד.</p>
+            <p className={styles.trust}>מאומת זהות ומיקום · חתום בבלוקצ׳יין.</p>
 
-            {/* Gate notice — what the pay button will do next */}
+            {/* Gate notice — what the confirm button will do next */}
             {!isAuthenticated ? (
               <p className={styles.gateNote}>
                 <span aria-hidden>■ </span>
-                צריך חשבון כדי להשלים — נשמור את הבחירה שלכם ונחזיר אתכם לכאן.
+                צריך חשבון כדי להשלים. נשמור את הבחירה שלכם ונחזיר אתכם לכאן.
               </p>
             ) : !isVerifiedResident ? (
               <p className={styles.gateNote}>
                 <span aria-hidden>■ </span>
-                אימות תושב חד-פעמי לפני התשלום. נשמור את הבחירה ונמשיך מכאן.
+                אימות תושב חד-פעמי לפני ההצבעה. נשמור את הבחירה ונמשיך מכאן.
               </p>
             ) : null}
-
-            {payError && (
-              <p className={styles.payError} role="alert">
-                <span aria-hidden>✕ </span>
-                {payError}
-              </p>
-            )}
 
             <div className={styles.actions}>
               <NewsButton
                 variant="red"
                 size="lg"
                 className={styles.cta}
-                onClick={handlePay}
-                disabled={submitting}
+                onClick={handleConfirm}
                 trailing={<span aria-hidden>←</span>}
               >
-                {submitting
-                  ? 'מעבד תשלום…'
-                  : !isAuthenticated
-                    ? 'התחברו והשלימו · ₪3'
-                    : !isVerifiedResident
-                      ? 'אמתו תושבוּת והשלימו · ₪3'
-                      : 'שלמו · ₪3'}
+                {!isAuthenticated
+                  ? 'התחברו והשלימו'
+                  : !isVerifiedResident
+                    ? 'אמתו תושבוּת והשלימו'
+                    : 'אשרו והצביעו'}
               </NewsButton>
               <button
                 type="button"
                 className={styles.backLink}
                 onClick={() => setStage('choice')}
-                disabled={submitting}
               >
                 ↳ חזרה לבחירה
               </button>
@@ -372,7 +314,7 @@ export function ParticipationFlow({
           <section className={styles.panel} aria-label="קבלה וחתימה">
             <span className={styles.kicker}>
               <span aria-hidden className={styles.kickerTick} />
-              שלב 03 · אישור
+              שלב 03 · חתימה
             </span>
             <h2 className={styles.panelTitle}>
               הקול שלכם <span className={styles.red}>נחתם.</span>
@@ -387,9 +329,8 @@ export function ParticipationFlow({
               title="השתתפות בהצבעה"
               rows={[
                 { label: 'עמדה', value: selectedText || '—' },
-                { label: 'לקרן הקהילתית', value: '₪2' },
-                { label: 'לתפעול', value: '₪1' },
-                { label: 'שולם', value: '₪3', strong: true },
+                { label: 'עלות', value: 'חינם' },
+                { label: 'סטטוס', value: 'נחתם', strong: true },
               ]}
               footer={`הצבעה ${voteId} · ${seal.ts}`}
             />

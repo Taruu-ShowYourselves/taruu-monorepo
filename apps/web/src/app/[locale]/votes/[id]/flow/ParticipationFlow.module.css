@@ -234,13 +234,6 @@
 .seal {
   margin-block-start: var(--space-4);
 }
-.payError {
-  font-family: var(--np-font-mono);
-  font-size: var(--text-sm);
-  color: var(--np-red);
-  margin-block: var(--space-3) 0;
-}
-
 /* ------------------------------------------------------------------ */
 /* Actions                                                            */
 /* ------------------------------------------------------------------ */
