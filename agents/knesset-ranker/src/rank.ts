@@ -57,10 +57,31 @@ const KNESSET_SCOPE = 'כנסת ישראל';
 const BATCH_SIZE = 6;
 const MODEL_TAG = 'claude-agent-sdk+counted-media/v2';
 
+/**
+ * Account-level failures (spend cap, expired login) hit every remaining
+ * batch identically — retrying just burns the schedule. Anything else is
+ * treated as a batch-local hiccup and the run carries on.
+ */
+const FATAL_AGENT_PATTERNS = [
+  /spend limit/i,
+  /usage limit/i,
+  /rate limit/i,
+  /not logged in/i,
+  /please run .?\/login/i,
+  /invalid api key/i,
+  /credit balance/i,
+];
+
+export function isFatalAgentFailure(message: string): boolean {
+  return FATAL_AGENT_PATTERNS.some((pattern) => pattern.test(message));
+}
+
 interface CliOptions {
   limit: number;
   staleHours: number;
   dryRun: boolean;
+  /** Passed to the Agent SDK; undefined = the CLI's configured default. */
+  model?: string;
 }
 
 interface RankableVote {
@@ -80,13 +101,19 @@ export interface AgentFinding {
 }
 
 function parseArgs(argv: string[]): CliOptions {
-  const options: CliOptions = { limit: 12, staleHours: 24, dryRun: false };
+  const options: CliOptions = {
+    limit: 12,
+    staleHours: 24,
+    dryRun: false,
+    model: process.env.RANKER_MODEL,
+  };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--limit') options.limit = Number(argv[++i]) || options.limit;
     else if (arg === '--stale-hours')
       options.staleHours = Number(argv[++i]) || options.staleHours;
     else if (arg === '--dry-run') options.dryRun = true;
+    else if (arg === '--model') options.model = argv[++i] || options.model;
   }
   return options;
 }
@@ -137,13 +164,14 @@ ${items}`;
 }
 
 /** One agent session per batch; returns the agent's final text. */
-async function runAgent(prompt: string): Promise<string> {
+async function runAgent(prompt: string, model?: string): Promise<string> {
   const stream = query({
     prompt,
     options: {
       allowedTools: ['WebSearch'],
       permissionMode: 'bypassPermissions',
       maxTurns: 40,
+      ...(model ? { model } : {}),
     },
   });
 
@@ -255,10 +283,30 @@ async function main(): Promise<void> {
   if (rankable.length === 0) return;
 
   let written = 0;
-  for (const batch of chunk(rankable, BATCH_SIZE)) {
-    console.log(`ranking batch of ${batch.length}…`);
-    const output = await runAgent(buildPrompt(batch));
-    const findings = parseFindings(output, batch);
+  let skipped = 0;
+  const batches = chunk(rankable, BATCH_SIZE);
+  for (const [index, batch] of batches.entries()) {
+    console.log(`ranking batch ${index + 1}/${batches.length} (${batch.length} items)…`);
+
+    // A batch that fails on its own — a malformed reply, one bad search —
+    // must not cost the batches behind it. Account-level failures do stop
+    // the run: every remaining batch would hit the same wall.
+    let findings: AgentFinding[];
+    try {
+      findings = parseFindings(await runAgent(buildPrompt(batch), options.model), batch);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (isFatalAgentFailure(message)) {
+        skipped += batches
+          .slice(index)
+          .reduce((total, pending) => total + pending.length, 0);
+        console.error(`  fatal — stopping run: ${message}`);
+        break;
+      }
+      skipped += batch.length;
+      console.error(`  batch failed, continuing: ${message}`);
+      continue;
+    }
     console.log(`  agent returned ${findings.length}/${batch.length} findings`);
 
     for (const finding of findings) {
@@ -298,10 +346,11 @@ async function main(): Promise<void> {
     }
   }
 
+  const remainder = skipped ? `, ${skipped} left unranked` : '';
   console.log(
     options.dryRun
-      ? 'dry run — nothing written'
-      : `done — ${written} rankings written`
+      ? `dry run — nothing written${remainder}`
+      : `done — ${written} rankings written${remainder}`
   );
 }
 

@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseFindings } from './rank.js';
+import { isFatalAgentFailure, parseFindings } from './rank.js';
 
 const BATCH = [
   { id: 'aaaa', title: 'חוק א', itemType: 'הצעת חוק', summary: null },
@@ -63,5 +63,24 @@ describe('parseFindings', () => {
       () => parseFindings('Not logged in', BATCH),
       /no JSON array in agent output/
     );
+  });
+});
+
+describe('isFatalAgentFailure', () => {
+  it('treats account-level failures as fatal', () => {
+    assert.ok(
+      isFatalAgentFailure(
+        "no JSON array in agent output: \"You've hit your monthly spend limit. Run /usage-credits\""
+      )
+    );
+    assert.ok(isFatalAgentFailure('Not logged in'));
+    assert.ok(isFatalAgentFailure('Your credit balance is too low'));
+    assert.ok(isFatalAgentFailure('rate limit exceeded'));
+  });
+
+  it('treats batch-local failures as recoverable', () => {
+    assert.equal(isFatalAgentFailure('Unexpected token < in JSON at position 0'), false);
+    assert.equal(isFatalAgentFailure('agent stream ended without a result message'), false);
+    assert.equal(isFatalAgentFailure('agent output is not an array'), false);
   });
 });
