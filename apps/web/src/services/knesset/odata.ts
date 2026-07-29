@@ -86,3 +86,29 @@ export function parseOrdinal(ordinal: string | number | null): number | null {
   const n = typeof ordinal === 'number' ? ordinal : parseInt(ordinal, 10);
   return Number.isFinite(n) ? n : null;
 }
+
+/** One attached document row (KNS_DocumentBill / KNS_DocumentAgenda). */
+export interface KnsDocument {
+  /** Document class, e.g. 'הצעת חוק לקריאה הראשונה', 'נוסח הצעה לסדר היום'. */
+  GroupTypeID: number | null;
+  GroupTypeDesc: string | null;
+  /** File format as reported upstream: 'DOC' (covers .doc/.docx) or 'PDF'. */
+  ApplicationDesc: string | null;
+  /** fs.knesset.gov.il URL — sometimes with backslash separators. */
+  FilePath: string | null;
+  LastUpdatedDate: string | null;
+}
+
+/** Documents attached to a bill (an ItemID of type הצעת חוק IS a BillID). */
+export async function fetchBillDocuments(billId: number): Promise<KnsDocument[]> {
+  return fetchODataCollection<KnsDocument>(
+    `KNS_DocumentBill?$filter=BillID%20eq%20${Math.trunc(billId)}&$format=json`
+  );
+}
+
+/** Documents attached to a day-order proposal (ItemID IS an AgendaID). */
+export async function fetchAgendaDocuments(agendaId: number): Promise<KnsDocument[]> {
+  return fetchODataCollection<KnsDocument>(
+    `KNS_DocumentAgenda?$filter=AgendaID%20eq%20${Math.trunc(agendaId)}&$format=json`
+  );
+}
