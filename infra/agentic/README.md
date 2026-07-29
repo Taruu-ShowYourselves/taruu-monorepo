@@ -91,6 +91,8 @@ The deploy script mints a short-lived runner registration token, streams all
 three credentials over SSH without printing them, installs pinned OpenClaw and
 Context7 versions, installs Chrome, creates the agent workspaces, starts the
 Gateway, starts the Project #2 watcher, and registers the `taruu-agents` runner.
+Bootstrap fails closed unless the OpenClaw identity can write the repository,
+update Project #2, read Actions, and access issues.
 
 ### 4. Enable GitHub controls
 

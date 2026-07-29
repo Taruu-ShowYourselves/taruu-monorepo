@@ -182,6 +182,45 @@ else
 fi
 upsert_env AGENT_REVIEWERS "$agent_reviewers"
 
+echo "Validating the OpenClaw GitHub control-plane access"
+sudo -u taruu-agent -H bash -lc '
+  set -euo pipefail
+  export PATH=/usr/bin:/usr/local/bin:/bin
+  set -a
+  source /etc/taruu-agent/agent.env
+  set +a
+  gh api graphql -f query='"'"'
+    query {
+      viewer {
+        login
+      }
+      repository(owner: "Taruu-ShowYourselves", name: "taruu-monorepo") {
+        viewerPermission
+        hasIssuesEnabled
+      }
+      organization(login: "Taruu-ShowYourselves") {
+        viewerIsAMember
+        projectV2(number: 2) {
+          id
+          title
+          viewerCanUpdate
+        }
+      }
+    }
+  '"'"' > /srv/taruu-agent/logs/github-access.json
+  jq -e '"'"'
+    .data.viewer.login != null and
+    (.data.repository.viewerPermission |
+      IN("ADMIN", "MAINTAIN", "WRITE")) and
+    .data.repository.hasIssuesEnabled == true and
+    .data.organization.viewerIsAMember == true and
+    .data.organization.projectV2.viewerCanUpdate == true
+  '"'"' /srv/taruu-agent/logs/github-access.json >/dev/null
+  gh api \
+    "repos/Taruu-ShowYourselves/taruu-monorepo/actions/runs?per_page=1" \
+    >/dev/null
+'
+
 dispatcher_env="/etc/taruu-agent/dispatcher.env"
 dispatcher_temporary="$(mktemp /tmp/taruu-dispatcher-env.XXXXXX)"
 {
