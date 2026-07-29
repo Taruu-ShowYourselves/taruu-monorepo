@@ -20,6 +20,11 @@ concurrency:
   group: deploy-web
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -57,3 +62,15 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm exec opennextjs-cloudflare deploy
+
+      - name: Notify the linked PR and issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          node scripts/agentic/notify-deployment.mjs
+          --repository "$GITHUB_REPOSITORY"
+          --sha "$GITHUB_SHA"
+          --outcome "${{ job.status }}"
+          --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          --url "https://taruu.co.il"

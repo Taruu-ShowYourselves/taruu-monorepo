@@ -1,0 +1,91 @@
+name: Agent implementation PRD
+description: A complete, approval-gated task for the OpenClaw delivery agents
+title: "[Agent] "
+labels:
+  - agents
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Complete every section. Add `agent:ready` only when the PRD is ready to run.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Who is affected, what is wrong or missing, and why it matters.
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome
+      description: The observable result and primary user story.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Existing behavior, code paths, decisions, references, and constraints.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: State what is in scope and explicitly out of scope.
+      placeholder: |
+        **In scope**
+        -
+
+        **Out of scope**
+        -
+    validations:
+      required: true
+
+  - type: textarea
+    id: requirements
+    attributes:
+      label: Requirements
+      description: Functional, UX, data, API, security, and failure-state requirements.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Use objective task-list items.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification plan
+      description: Commands, manual flows, expected results, and negative cases.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Visual evidence
+      description: Routes/screens, viewports, locale, auth, and UI states to capture, or a specific N/A reason.
+    validations:
+      required: true
+
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks and rollback
+      description: Security, privacy, migration, rollout, rollback, and monitoring notes.
+    validations:
+      required: true

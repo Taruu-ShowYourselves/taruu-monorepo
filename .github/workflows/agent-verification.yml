@@ -1,0 +1,53 @@
+name: Pull request verification
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: verification-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Agent verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify agent evidence
+        run: node scripts/agentic/check-evidence.mjs
+
+      - name: Test
+        run: pnpm test
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build
+        env:
+          # The build imports the browser Supabase client while prerendering.
+          # Verification must not expose production credentials to PR code.
+          NEXT_PUBLIC_SUPABASE_URL: https://verification.invalid
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: agent-verification-placeholder
+        run: pnpm build

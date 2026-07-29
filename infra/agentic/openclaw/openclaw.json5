@@ -1,0 +1,144 @@
+{
+  gateway: {
+    mode: "local",
+    bind: "loopback",
+    port: 18790,
+    auth: {
+      mode: "token",
+      token: {
+        source: "env",
+        provider: "default",
+        id: "OPENCLAW_GATEWAY_TOKEN",
+      },
+      rateLimit: {
+        maxAttempts: 10,
+        windowMs: 60000,
+        lockoutMs: 300000,
+        exemptLoopback: false,
+      },
+    },
+    controlUi: {
+      enabled: false,
+    },
+  },
+
+  commands: {
+    restart: false,
+  },
+
+  plugins: {
+    allow: ["browser", "codex"],
+  },
+
+  skills: {
+    // The delivery workflow uses only the audited workspace skill. Bundled
+    // personal/integration skills are unnecessary on this dedicated host.
+    // OpenClaw treats an empty list as "unrestricted", so naming the workspace
+    // skill here intentionally prevents every bundled skill from matching.
+    allowBundled: ["issue-delivery"],
+  },
+
+  hooks: {
+    enabled: true,
+    token: "${OPENCLAW_HOOK_TOKEN}",
+    path: "/hooks",
+    defaultSessionKey: "hook:github:default",
+    allowRequestSessionKey: true,
+    allowedSessionKeyPrefixes: ["hook:github:"],
+    allowedAgentIds: ["orchestrator"],
+  },
+
+  agents: {
+    defaults: {
+      model: {
+        primary: "${OPENCLAW_MODEL}",
+      },
+      thinkingDefault: "high",
+      subagents: {
+        maxSpawnDepth: 1,
+        maxChildrenPerAgent: 2,
+        maxConcurrent: 3,
+        runTimeoutSeconds: 3600,
+        announceTimeoutMs: 120000,
+        archiveAfterMinutes: 120,
+        requireAgentId: true,
+      },
+    },
+    list: [
+      {
+        id: "orchestrator",
+        default: true,
+        name: "Taruu Delivery Orchestrator",
+        workspace: "/srv/taruu-agent/workspaces/orchestrator",
+        subagents: {
+          allowAgents: ["implementer", "verifier"],
+          requireAgentId: true,
+        },
+        tools: {
+          profile: "coding",
+          alsoAllow: ["browser"],
+          elevated: { enabled: false },
+        },
+      },
+      {
+        id: "implementer",
+        name: "Taruu Implementer",
+        workspace: "/srv/taruu-agent/workspaces/implementer",
+        tools: {
+          profile: "coding",
+          elevated: { enabled: false },
+        },
+      },
+      {
+        id: "verifier",
+        name: "Taruu Verifier",
+        workspace: "/srv/taruu-agent/workspaces/verifier",
+        tools: {
+          profile: "coding",
+          alsoAllow: ["browser"],
+          elevated: { enabled: false },
+        },
+      },
+    ],
+  },
+
+  tools: {
+    exec: {
+      mode: "full",
+      host: "gateway",
+      timeoutSec: 3600,
+      strictInlineEval: true,
+    },
+    elevated: {
+      enabled: false,
+    },
+    sessions: {
+      visibility: "tree",
+    },
+    agentToAgent: {
+      enabled: false,
+    },
+  },
+
+  browser: {
+    enabled: true,
+    defaultProfile: "openclaw",
+    headless: true,
+    noSandbox: false,
+    attachOnly: false,
+    executablePath: "/usr/bin/google-chrome",
+    tabCleanup: {
+      enabled: true,
+    },
+    profiles: {
+      openclaw: {
+        // Gateway 18790 reserves 18800 for the extension relay; managed
+        // Chrome starts at the derived CDP range on 18801.
+        cdpPort: 18801,
+        color: "#5319E7",
+        headless: true,
+        executablePath: "/usr/bin/google-chrome",
+      },
+    },
+  },
+}

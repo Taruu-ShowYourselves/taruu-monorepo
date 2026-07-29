@@ -1,0 +1,42 @@
+[Unit]
+Description=Taruu OpenClaw delivery gateway
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=taruu-agent
+Group=taruu-agent
+WorkingDirectory=/srv/taruu-agent/workspaces/orchestrator
+Environment=HOME=/home/taruu-agent
+Environment=PATH=/usr/bin:/usr/local/bin:/bin
+EnvironmentFile=/etc/taruu-agent/agent.env
+ExecStart=/usr/local/bin/openclaw gateway --port 18790
+Restart=always
+RestartSec=5
+RestartPreventExitStatus=78
+TimeoutStartSec=30
+TimeoutStopSec=30
+SuccessExitStatus=0 143
+KillMode=control-group
+OOMPolicy=continue
+UMask=0077
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=false
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/home/taruu-agent /srv/taruu-agent
+
+[Install]
+WantedBy=multi-user.target
