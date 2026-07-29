@@ -1,12 +1,7 @@
 #!/usr/bin/env node
 
 import { readFileSync } from 'node:fs';
-import {
-  parseArgs,
-  runGh,
-  setProjectStatus,
-  validatePrd,
-} from './lib.mjs';
+import { parseArgs, runGh, setProjectStatus, validatePrd } from './lib.mjs';
 
 const args = parseArgs(process.argv.slice(2));
 const title = args.title;
@@ -22,7 +17,6 @@ const projectOwner =
 const projectNumber = Number(
   args['project-number'] ?? process.env.AGENT_PROJECT_NUMBER ?? 2,
 );
-const assignee = args.assignee ?? process.env.AGENT_ASSIGNEE;
 
 if (!title || !bodyFile) {
   process.stderr.write(
@@ -53,19 +47,6 @@ runGh([
   'Work handled by the delivery agent workflow',
   '--force',
 ]);
-runGh([
-  'label',
-  'create',
-  'agent:ready',
-  '--repo',
-  repository,
-  '--color',
-  '0e8a16',
-  '--description',
-  'Approved PRD waiting for an agent',
-  '--force',
-]);
-
 const issueUrl = runGh([
   'issue',
   'create',
@@ -90,9 +71,7 @@ try {
     projectOwner,
     projectNumber,
     status: 'Todo',
-    assignee,
   });
-  runGh(['issue', 'edit', issueUrl, '--add-label', 'agent:ready']);
 } catch (error) {
   runGh([
     'issue',
@@ -106,4 +85,6 @@ try {
   throw error;
 }
 
-process.stdout.write(`${issueUrl}\n`);
+process.stdout.write(
+  `${issueUrl}\nMove the Project #${projectNumber} card from Todo to In Progress when OpenClaw should start.\n`,
+);

@@ -85,12 +85,17 @@ if ! id taruu-runner >/dev/null 2>&1; then
   useradd --create-home --shell /bin/bash taruu-runner
 fi
 
+systemctl stop taruu-project-watcher.timer taruu-project-watcher.service \
+  >/dev/null 2>&1 || true
+
 install -d -o root -g root -m 0755 /opt/taruu-agent
 install -d -o root -g root -m 0755 /opt/taruu-agent/scripts
 install -d -o root -g root -m 0755 /etc/taruu-agent
 install -d -o root -g root -m 0755 /srv/taruu-agent
-install -d -o taruu-agent -g taruu-agent -m 0750 \
+install -d -o taruu-agent -g taruu-agent -m 0700 \
   /srv/taruu-agent/openclaw-state \
+  /srv/taruu-agent/project-watcher
+install -d -o taruu-agent -g taruu-agent -m 0750 \
   /srv/taruu-agent/repo \
   /srv/taruu-agent/worktrees \
   /srv/taruu-agent/workspaces \
@@ -154,6 +159,8 @@ upsert_env GH_TOKEN "$gh_agent_token"
 upsert_env AGENT_REPOSITORY "Taruu-ShowYourselves/taruu-monorepo"
 upsert_env AGENT_PROJECT_OWNER "Taruu-ShowYourselves"
 upsert_env AGENT_PROJECT_NUMBER "2"
+upsert_env AGENT_PROJECT_WATCHER_STATE \
+  "/srv/taruu-agent/project-watcher/state.json"
 upsert_env AGENT_REPOSITORY_ROOT "/srv/taruu-agent/repo"
 upsert_env AGENT_WORKTREES_ROOT "/srv/taruu-agent/worktrees"
 
@@ -174,6 +181,45 @@ else
   agent_reviewers="SaharBarak"
 fi
 upsert_env AGENT_REVIEWERS "$agent_reviewers"
+
+echo "Validating the OpenClaw GitHub control-plane access"
+sudo -u taruu-agent -H bash -lc '
+  set -euo pipefail
+  export PATH=/usr/bin:/usr/local/bin:/bin
+  set -a
+  source /etc/taruu-agent/agent.env
+  set +a
+  gh api graphql -f query='"'"'
+    query {
+      viewer {
+        login
+      }
+      repository(owner: "Taruu-ShowYourselves", name: "taruu-monorepo") {
+        viewerPermission
+        hasIssuesEnabled
+      }
+      organization(login: "Taruu-ShowYourselves") {
+        viewerIsAMember
+        projectV2(number: 2) {
+          id
+          title
+          viewerCanUpdate
+        }
+      }
+    }
+  '"'"' > /srv/taruu-agent/logs/github-access.json
+  jq -e '"'"'
+    .data.viewer.login != null and
+    (.data.repository.viewerPermission |
+      IN("ADMIN", "MAINTAIN", "WRITE")) and
+    .data.repository.hasIssuesEnabled == true and
+    .data.organization.viewerIsAMember == true and
+    .data.organization.projectV2.viewerCanUpdate == true
+  '"'"' /srv/taruu-agent/logs/github-access.json >/dev/null
+  gh api \
+    "repos/Taruu-ShowYourselves/taruu-monorepo/actions/runs?per_page=1" \
+    >/dev/null
+'
 
 dispatcher_env="/etc/taruu-agent/dispatcher.env"
 dispatcher_temporary="$(mktemp /tmp/taruu-dispatcher-env.XXXXXX)"
@@ -238,6 +284,12 @@ echo "Installing the OpenClaw system service"
 install -o root -g root -m 0644 \
   "$bundle_root/infra/agentic/systemd/taruu-openclaw.service" \
   /etc/systemd/system/taruu-openclaw.service
+install -o root -g root -m 0644 \
+  "$bundle_root/infra/agentic/systemd/taruu-project-watcher.service" \
+  /etc/systemd/system/taruu-project-watcher.service
+install -o root -g root -m 0644 \
+  "$bundle_root/infra/agentic/systemd/taruu-project-watcher.timer" \
+  /etc/systemd/system/taruu-project-watcher.timer
 systemctl daemon-reload
 systemctl enable taruu-openclaw.service
 
@@ -341,8 +393,13 @@ sudo -u taruu-agent -H bash -lc '
   openclaw browser doctor --json > /srv/taruu-agent/logs/browser-doctor.json
 '
 
+echo "Starting the GitHub Project In Progress watcher"
+systemctl start taruu-project-watcher.service
+systemctl enable --now taruu-project-watcher.timer
+
 unset gh_agent_token anthropic_api_key runner_registration_token
 echo "Taruu agent host is ready"
 echo "OpenClaw: loopback port 18790"
+echo "Project watcher: Project #2 In Progress (approximately 15 seconds)"
 echo "Runner label: taruu-agents"
 echo "Agent GitHub login: $agent_login"

@@ -8,11 +8,12 @@ evidence, a human-approved pull request, and a GitHub Actions deployment.
 
 1. In a Claude Code session, run `/dispatch-prd <title>`.
 2. The project skill writes and validates a full PRD, creates the issue, adds it
-   to organization Project #2 as **Todo**, and adds `agent:ready`.
-3. GitHub sends the trusted event to the self-hosted Hetzner runner. The runner
-   does not check out or execute issue code; its root-owned dispatcher calls the
-   loopback OpenClaw hook.
-4. OpenClaw assigns the configured owner and moves the item to **In Progress**.
+   to organization Project #2 as **Todo**, and waits.
+3. A maintainer manually moves the card to **In Progress**. The isolated
+   Hetzner watcher detects the transition within about 15 seconds, verifies the
+   actor and full PRD, and calls the loopback OpenClaw hook. This board move is
+   the only initial implementation dispatch signal.
+4. OpenClaw assigns the configured owner and keeps the item **In Progress**.
    The orchestrator prepares `agent/issue-<n>-<slug>` in a dedicated worktree.
 5. An implementer agent edits and tests. A separate verifier re-reads the PRD,
    runs acceptance/regression checks, and adds focused screenshots or a
@@ -31,8 +32,11 @@ deploy directly.
 
 - OpenClaw binds only to `127.0.0.1:18790`; the GitHub runner reaches it locally.
 - Hook auth and Gateway auth use separate random tokens.
-- Only allowlisted maintainers can add `agent:ready`, request retry, review, or
-  trigger a merge transition.
+- Only a manual **In Progress** transition by an allowlisted maintainer can
+  dispatch initial work. Automated status changes and lifecycle labels cannot
+  start implementation.
+- The watcher keeps a durable status snapshot, baselines existing cards during
+  first installation, and retries transient GitHub or OpenClaw failures.
 - Dispatch workflows never check out untrusted branches.
 - OpenClaw and the Actions runner use separate unprivileged Linux users
   (`taruu-agent` and `taruu-runner`). The runner can read only a minimal hook
@@ -86,7 +90,9 @@ infra/agentic/scripts/deploy-to-hetzner.sh hermes-admin
 The deploy script mints a short-lived runner registration token, streams all
 three credentials over SSH without printing them, installs pinned OpenClaw and
 Context7 versions, installs Chrome, creates the agent workspaces, starts the
-Gateway, and registers the `taruu-agents` runner.
+Gateway, starts the Project #2 watcher, and registers the `taruu-agents` runner.
+Bootstrap fails closed unless the OpenClaw identity can write the repository,
+update Project #2, read Actions, and access issues.
 
 ### 4. Enable GitHub controls
 
@@ -120,6 +126,7 @@ node --test scripts/agentic/__tests__/*.test.mjs
 
 # VM
 ssh hetzner-root 'systemctl status taruu-openclaw --no-pager'
+ssh hetzner-root 'systemctl status taruu-project-watcher.timer --no-pager'
 ssh hetzner-root 'systemctl status actions.runner.* --no-pager'
 ssh hetzner-root 'sudo -u taruu-agent openclaw gateway status --deep'
 ssh hetzner-root 'sudo -u taruu-agent openclaw security audit --deep'
@@ -133,8 +140,10 @@ auto-merge, and the deploy result appears on both the PR and issue.
 
 ```bash
 ssh hetzner-root 'systemctl stop taruu-openclaw'
+ssh hetzner-root 'systemctl stop taruu-project-watcher.timer'
 ssh hetzner-root 'systemctl stop actions.runner.*'
 ```
 
-Then remove `agent:ready` from queued issues. Stopping these services does not
-affect the production website.
+Stopping these services does not affect the production website. To pause only
+new task starts while leaving OpenClaw available for active work, stop
+`taruu-project-watcher.timer`.

@@ -8,6 +8,10 @@ import { inspectEvidence } from '../check-evidence.mjs';
 import { buildDispatch } from '../dispatch-openclaw.mjs';
 import { extractPrdSections, validatePrd } from '../lib.mjs';
 import { branchSlug } from '../prepare-worktree.mjs';
+import {
+  classifyProjectTransition,
+  findInProgressTransitions,
+} from '../watch-project.mjs';
 
 const completePrd = `
 ## Problem
@@ -61,7 +65,9 @@ test('validatePrd rejects missing sections and secrets', () => {
     `${completePrd.replace(/## Risks and rollback[\s\S]*/, '')}\nghp_abcdefghijklmnopqrstuvwxyz`,
   );
   assert.equal(result.valid, false);
-  assert.ok(result.errors.some((error) => error.includes('risks and rollback')));
+  assert.ok(
+    result.errors.some((error) => error.includes('risks and rollback')),
+  );
   assert.ok(result.errors.some((error) => error.includes('secret')));
 });
 
@@ -94,40 +100,68 @@ test('inspectEvidence requires screenshots or a specific N/A reason', () => {
   );
 });
 
-test('buildDispatch accepts only authorized ready issues with valid PRDs', () => {
+test('project watcher detects only transitions into In Progress', () => {
+  const previous = {
+    item1: { status: 'Todo' },
+    item2: { status: 'In Progress' },
+  };
+  const transitions = findInProgressTransitions(previous, [
+    { id: 'item1', status: 'In Progress' },
+    { id: 'item2', status: 'In Progress' },
+    { id: 'item3', status: 'Done' },
+  ]);
+  assert.deepEqual(
+    transitions.map((item) => item.id),
+    ['item1'],
+  );
+});
+
+test('project watcher requires an authorized manual move and a full PRD', () => {
   const settings = {
     AGENT_REPOSITORY: 'Taruu-ShowYourselves/taruu-monorepo',
+    AGENT_PROJECT_NUMBER: '2',
     AGENT_AUTHORIZED_ACTORS: 'SaharBarak,DolevSeren',
   };
-  const dispatch = buildDispatch(
-    {
-      action: 'labeled',
-      sender: { login: 'SaharBarak' },
-      repository: { full_name: settings.AGENT_REPOSITORY },
-      label: { name: 'agent:ready' },
-      issue: {
-        number: 99,
-        title: 'Record votes',
-        body: completePrd,
-        html_url: 'https://github.com/example/repo/issues/99',
-      },
-    },
-    settings,
-  );
-  assert.equal(dispatch.issueNumber, 99);
-  assert.match(dispatch.message, /untrusted task content/);
+  const item = {
+    number: 99,
+    title: 'Record votes',
+    body: completePrd,
+    url: 'https://github.com/example/repo/issues/99',
+    repository: settings.AGENT_REPOSITORY,
+    state: 'OPEN',
+  };
+  const event = {
+    actor: 'SaharBarak',
+    projectNumber: 2,
+    status: 'In Progress',
+    wasAutomated: false,
+  };
+  const dispatch = classifyProjectTransition(item, event, settings);
+  assert.match(dispatch.message, /sole implementation dispatch signal/);
 
-  const ignored = buildDispatch(
-    {
-      action: 'labeled',
-      sender: { login: 'outsider' },
-      repository: { full_name: settings.AGENT_REPOSITORY },
-      label: { name: 'agent:ready' },
-      issue: { number: 99, body: completePrd },
-    },
+  const automated = classifyProjectTransition(
+    item,
+    { ...event, wasAutomated: true },
     settings,
   );
-  assert.match(ignored.ignored, /not allowlisted/);
+  assert.match(automated.ignored, /automated/);
+
+  const unauthorized = classifyProjectTransition(
+    item,
+    { ...event, actor: 'outsider' },
+    settings,
+  );
+  assert.match(unauthorized.ignored, /not allowlisted/);
+
+  const incomplete = classifyProjectTransition(
+    {
+      ...item,
+      body: '## Problem\nNot a full PRD.',
+    },
+    event,
+    settings,
+  );
+  assert.equal(incomplete.invalidPrd, true);
 });
 
 test('buildDispatch routes merged agent pull requests back to the issue session', () => {

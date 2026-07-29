@@ -1,6 +1,6 @@
 ---
 name: dispatch-prd
-description: Turn the current Claude session into a complete implementation PRD, create a GitHub issue, add it to the delivery project, and dispatch it to the OpenClaw agent queue.
+description: Turn the current Claude session into a complete implementation PRD, create a GitHub issue, and add it to the delivery project for manual In Progress dispatch.
 argument-hint: "[short issue title]"
 disable-model-invocation: true
 allowed-tools:
@@ -33,8 +33,9 @@ hint, not a replacement for the requirements discussed in the session.
      --body-file "<temporary PRD path>"
    ```
 
-7. Report the issue URL. The `agent:ready` label is the dispatch boundary; do
-   not separately call OpenClaw or mark the issue In Progress.
+7. Report the issue URL and tell the user that the card is waiting in **Todo**.
+   Moving the Project #2 card to **In Progress** is the only implementation
+   dispatch signal. Do not call OpenClaw or move the card yourself.
 
 Never include API keys, tokens, private credentials, raw production data, or
 personal identity documents in the PRD.

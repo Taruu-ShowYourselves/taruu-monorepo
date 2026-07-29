@@ -16,6 +16,7 @@ fi
 if [[ "$apply" != true ]]; then
   echo "Dry run only. This will:"
   echo "- create agent lifecycle labels"
+  echo "- remove the legacy agent:ready dispatch label"
   echo "- enable repository auto-merge and merged-branch deletion"
   echo "- set non-secret agent repository variables"
   echo "- protect main with one fresh human approval and Agent verification"
@@ -41,7 +42,6 @@ while IFS='|' read -r name color description; do
     --description "$description" \
     --force
 done <<'LABELS'
-agent:ready|0e8a16|Approved PRD waiting for OpenClaw
 agent:running|1d76db|Agent implementation or correction is in progress
 agent:blocked|b60205|Agent needs human input or an external fix
 agent:review|5319e7|Verified agent PR is waiting for human review
@@ -49,6 +49,7 @@ agent:merged|8250df|Approved agent PR merged; deployment is owned by Actions
 agent:deployed|0e8a16|Production deployment completed
 agent:deploy-failed|b60205|Production deployment failed
 LABELS
+gh label delete agent:ready --repo "$repository" --yes 2>/dev/null || true
 
 echo "Setting non-secret repository variables"
 gh variable set AGENT_PROJECT_OWNER --repo "$repository" --body "$project_owner"
