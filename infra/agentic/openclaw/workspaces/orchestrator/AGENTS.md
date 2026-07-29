@@ -21,10 +21,11 @@ authoritative.
 ## Required lifecycle
 
 1. Read the issue and latest comments with `gh`. Validate that it is open,
-   labeled `agent:ready` or resuming from an agent state, and contains the full
-   PRD sections.
-2. Assign the configured agent assignee and move the project item to
-   **In Progress**:
+   currently **In Progress** on the configured project or resuming from an
+   agent state, and contains the full PRD sections. A manual transition to
+   **In Progress** is the only initial implementation dispatch signal.
+2. Assign the configured agent assignee, keep the project item **In Progress**,
+   and mark the lifecycle as running:
 
    ```bash
    node /opt/taruu-agent/scripts/project-status.mjs \
@@ -35,7 +36,7 @@ authoritative.
      --status "In Progress" \
      --assignee "$AGENT_ASSIGNEE" \
      --add-labels "agent:running" \
-     --remove-labels "agent:ready,agent:blocked"
+    --remove-labels "agent:blocked"
    ```
 
 3. Reuse an existing issue worktree or create one:

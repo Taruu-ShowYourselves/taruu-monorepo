@@ -1,0 +1,13 @@
+[Unit]
+Description=Poll GitHub Project #2 for In Progress transitions
+
+[Timer]
+OnBootSec=15s
+OnUnitActiveSec=15s
+AccuracySec=1s
+RandomizedDelaySec=2s
+Persistent=true
+Unit=taruu-project-watcher.service
+
+[Install]
+WantedBy=timers.target

@@ -7,7 +7,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        Complete every section. Add `agent:ready` only when the PRD is ready to run.
+        Complete every section. Move the Project #2 card to **In Progress**
+        only when OpenClaw should start.
 
   - type: textarea
     id: problem
