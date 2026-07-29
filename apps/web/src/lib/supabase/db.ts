@@ -932,54 +932,6 @@ export async function upsertKnessetItem(
   return data;
 }
 
-/** Items whose attached document was never processed (work queue, oldest first). */
-export async function getKnessetItemsPendingSummary(
-  limit: number
-): Promise<(KnessetItem & { votes: { title: string } | null })[]> {
-  const { data, error } = await supabaseAdmin
-    .from('knesset_items')
-    .select('*, votes(title)')
-    .is('summarized_at', null)
-    .order('created_at', { ascending: true })
-    .limit(limit);
-
-  if (error) {
-    console.error('Failed to get knesset items pending summary:', error);
-    return [];
-  }
-  // Generated types carry no FK relationships, so the embedded `votes` join
-  // can't be inferred — cast through unknown.
-  return (data || []) as unknown as (KnessetItem & {
-    votes: { title: string } | null;
-  })[];
-}
-
-/** Record a document-summary attempt (also marks doc-less items as done). */
-export async function updateKnessetItemDocSummary(
-  id: string,
-  patch: {
-    doc_url?: string | null;
-    doc_group?: string | null;
-    summary?: string | null;
-    summary_model?: string | null;
-  }
-): Promise<boolean> {
-  const { error } = await supabaseAdmin
-    .from('knesset_items')
-    .update({
-      ...patch,
-      summarized_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', id);
-
-  if (error) {
-    console.error('Failed to update knesset item summary:', error);
-    return false;
-  }
-  return true;
-}
-
 /**
  * Day-order metadata for a set of votes. Fetched separately (mirroring
  * vote_sources) so a missing/errored knesset_items table degrades to

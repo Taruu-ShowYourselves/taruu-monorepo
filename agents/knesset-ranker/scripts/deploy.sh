@@ -52,11 +52,13 @@ ssh "$TARGET" "$NVM"'
   claude --version || true
 '
 
-echo "==> installing crontab entry (every 6h)"
+echo "==> installing crontab entries (docs every 30m, ranker every 6h)"
+# Docs runs first and more often: the ranker reads the summaries it writes.
 ssh "$TARGET" '
-  ENTRY="17 */6 * * * . \$HOME/.nvm/nvm.sh && cd \$HOME/knesset-ranker && npx tsx src/rank.ts --limit 60 >> \$HOME/knesset-ranker/rank.log 2>&1"
-  ( crontab -l 2>/dev/null | grep -v "knesset-ranker && " ; echo "$ENTRY" ) | crontab -
-  crontab -l | tail -1
+  DOCS="*/30 * * * * . \$HOME/.nvm/nvm.sh && cd \$HOME/knesset-ranker && npx tsx src/docs.ts --limit 8 >> \$HOME/knesset-ranker/docs.log 2>&1"
+  RANK="17 */6 * * * . \$HOME/.nvm/nvm.sh && cd \$HOME/knesset-ranker && npx tsx src/rank.ts --limit 60 >> \$HOME/knesset-ranker/rank.log 2>&1"
+  ( crontab -l 2>/dev/null | grep -v "knesset-ranker && " ; echo "$DOCS"; echo "$RANK" ) | crontab -
+  crontab -l | tail -2
 '
 
 echo "==> done. If the box is not logged in yet, run:  ssh -tt $TARGET 'bash -lc \"claude login\"'"
