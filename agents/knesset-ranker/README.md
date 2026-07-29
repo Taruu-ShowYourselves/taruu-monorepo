@@ -2,10 +2,23 @@
 
 Editorial hotness ranker for the Knesset desk. Reads active Knesset votes
 (title + AI document summary from `knesset_items`), asks a Claude agent to
-judge how relevant and pressing each item is to the Israeli public and how
-much media coverage it currently draws (the agent verifies with live web
-search), and writes a 0–100 hotness score per vote into `knesset_rankings`.
-The web app's Knesset desk orders its topics by this score.
+judge how relevant and pressing each item is to the Israeli public
+(`relevance`, 0–100) and to hunt live Israeli press coverage with WebSearch.
+The agent never scores media coverage — the code does (`src/media.ts`):
+
+- every coverage URL is HTTP-validated (HEAD, GET fallback; 404/410/network
+  failure = dead — dead refs never count and never render);
+- hits are filtered to Israeli press outlets (`.il` domains minus
+  institutions, plus known Israeli outlets on foreign TLDs) published within
+  the last 14 days;
+- the media sub-score is a fixed table over the count of **distinct** live
+  outlets (0→0, 1→35, 3→68, 6→90 …);
+- `hotness = round(0.6·relevance + 0.4·media)`.
+
+Each row carries the full audit trail in `knesset_rankings.media_evidence`:
+search queries, every hit with HTTP status / freshness / classification /
+whether it counted, the outlet count and validation time. `media_refs` keeps
+only validated counted refs (one per outlet) for the desk's evidence strip.
 
 Built on the **Claude Agent SDK** — authenticates with your local Claude Code
 session, so no `ANTHROPIC_API_KEY` is needed.

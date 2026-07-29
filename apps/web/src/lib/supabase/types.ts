@@ -600,6 +600,7 @@ export interface Database {
           media: number | null;
           rationale: string | null;
           media_refs: string[];
+          media_evidence: Record<string, unknown>;
           model: string | null;
           ranked_at: string;
           created_at: string;
@@ -613,6 +614,7 @@ export interface Database {
           media?: number | null;
           rationale?: string | null;
           media_refs?: string[];
+          media_evidence?: Record<string, unknown>;
           model?: string | null;
           ranked_at?: string;
           created_at?: string;
@@ -626,6 +628,7 @@ export interface Database {
           media?: number | null;
           rationale?: string | null;
           media_refs?: string[];
+          media_evidence?: Record<string, unknown>;
           model?: string | null;
           ranked_at?: string;
           created_at?: string;

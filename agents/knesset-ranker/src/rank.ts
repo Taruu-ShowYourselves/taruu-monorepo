@@ -3,10 +3,12 @@
  *
  * Pipeline: pull active votes scoped to the Knesset desk (title + the AI
  * document summary produced by /api/cron/knesset-docs) → hand batches to a
- * Claude agent that judges (a) how relevant/pressing each item is to the
- * Israeli public and (b) how much media coverage it currently draws,
- * verifying coverage with live WebSearch → upsert 0–100 hotness (plus
- * sub-scores, rationale and press links) into knesset_rankings.
+ * Claude agent that judges how relevant/pressing each item is to the
+ * Israeli public and hunts live press coverage with WebSearch → the CODE
+ * (src/media.ts) HTTP-validates every ref, counts distinct fresh Israeli
+ * outlets, computes the media sub-score from that count and blends hotness
+ * 60/40 with relevance → upsert into knesset_rankings with the full
+ * search-and-count evidence in media_evidence.
  *
  * Runs on the Claude Agent SDK with local Claude Code credentials — no
  * ANTHROPIC_API_KEY required. Safe to re-run: votes ranked within
@@ -18,16 +20,42 @@ import { dirname, resolve } from 'node:path';
 import { config as loadEnv } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { query } from '@anthropic-ai/claude-agent-sdk';
+import {
+  FRESH_DAYS,
+  MAX_COVERAGE_PER_VOTE,
+  MAX_QUERIES,
+  type CoverageClaim,
+  blendHotness,
+  buildEvidence,
+  mediaScoreFromOutletCount,
+  refsForDisplay,
+} from './media.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Own env first, then the web app's — never overriding what's already set.
+// (.dev.vars carries the real local Supabase creds; .env.local is a placeholder.)
+// Empty values (a copied .env.example) must not shadow the fallback files,
+// and dotenv never overrides an existing key — so drop empties between loads.
+const dropEmptyEnv = () => {
+  for (const key of [
+    'NEXT_PUBLIC_SUPABASE_URL',
+    'SUPABASE_URL',
+    'SUPABASE_SERVICE_ROLE_KEY',
+  ]) {
+    if (process.env[key] === '') delete process.env[key];
+  }
+};
 loadEnv({ path: resolve(__dirname, '../.env') });
+dropEmptyEnv();
+loadEnv({ path: resolve(__dirname, '../../../apps/web/.dev.vars') });
+dropEmptyEnv();
 loadEnv({ path: resolve(__dirname, '../../../apps/web/.env.local') });
+dropEmptyEnv();
 
 const KNESSET_SCOPE = 'כנסת ישראל';
 const BATCH_SIZE = 6;
-const MAX_MEDIA_REFS = 5;
+const MODEL_TAG = 'claude-agent-sdk+counted-media/v2';
 
 interface CliOptions {
   limit: number;
@@ -42,13 +70,13 @@ interface RankableVote {
   summary: string | null;
 }
 
-interface RankingRow {
+/** The agent's judgment + evidence for one vote — scores come later. */
+export interface AgentFinding {
   voteId: string;
-  hotness: number;
   relevance: number;
-  media: number;
   rationale: string;
-  mediaRefs: string[];
+  queries: string[];
+  coverage: CoverageClaim[];
 }
 
 function parseArgs(argv: string[]): CliOptions {
@@ -92,16 +120,16 @@ function buildPrompt(votes: RankableVote[]): string {
     })
     .join('\n\n');
 
-  return `אתה עורך ראשי בדסק פרלמנטרי של עיתון אזרחי ישראלי. לפניך סעיפים מסדר היום של מליאת הכנסת. דרג כל סעיף לפי "חום מערכת" (hotness, 0–100):
+  return `אתה עורך ראשי בדסק פרלמנטרי של עיתון אזרחי ישראלי. לפניך סעיפים מסדר היום של מליאת הכנסת. לכל סעיף בצע שתי משימות:
 
-- relevance (0–100): עד כמה הנושא רלוונטי ודוחק לציבור הישראלי הרחב — השפעה ישירה על חיי היומיום, היקף האוכלוסייה המושפעת, דחיפות בזמן.
-- media (0–100): עד כמה הנושא מסוקר עכשיו בתקשורת הישראלית. חובה לבדוק באמצעות WebSearch (חפש בעברית: מילות מפתח מהכותרת, עם "חדשות" או שם אתר חדשות). אין לנחש — סקור לפחות חיפוש אחד לכל סעיף.
-- hotness: שקלול — בערך 60% relevance ו-40% media.
+1. relevance (0–100): שפוט עד כמה הנושא רלוונטי ודוחק לציבור הישראלי הרחב — השפעה ישירה על חיי היומיום, היקף האוכלוסייה המושפעת, דחיפות בזמן. נושאים טכניים/פרוצדורליים (הצהרות אמונים, הארכות תוקף שגרתיות) נמוכים אלא אם יש סערה ציבורית סביבם.
 
-כללים: נושאים טכניים/פרוצדורליים (הצהרות אמונים, הארכות תוקף שגרתיות) נמוכים אלא אם יש סערה ציבורית סביבם. אל תיתן לשני סעיפים אותו ציון hotness אלא אם באמת שקולים.
+2. איסוף סיקור: חפש באמצעות WebSearch סיקור עיתונאי ישראלי מה־${FRESH_DAYS} הימים האחרונים (חפש בעברית: מילות מפתח מהכותרת, עם "חדשות" או שם אתר). לפחות חיפוש אחד לכל סעיף. החזר אך ורק כתובות URL אמיתיות שהופיעו בתוצאות החיפוש — לעולם אל תמציא ואל תשחזר כתובת מהזיכרון. לכל כתובת צרף תאריך פרסום בפורמט YYYY-MM-DD אם הוא מופיע בתוצאה (אחרת null). עד ${MAX_COVERAGE_PER_VOTE} כתובות לסעיף, מאתרי חדשות ישראליים בלבד. כלול גם את שאילתות החיפוש שהרצת (עד ${MAX_QUERIES}).
+
+אל תחשב ציון תקשורת ואל תחשב hotness — המערכת סופרת את הסיקור המאומת ומחשבת בעצמה.
 
 החזר JSON בלבד — מערך, בלי טקסט נוסף ובלי גדרות קוד:
-[{"voteId": "...", "hotness": 0, "relevance": 0, "media": 0, "rationale": "משפט אחד בעברית", "mediaRefs": ["url", "..."]}]
+[{"voteId": "...", "relevance": 0, "rationale": "משפט אחד בעברית", "queries": ["..."], "coverage": [{"url": "https://...", "publishedAt": "YYYY-MM-DD או null"}]}]
 
 הסעיפים:
 
@@ -129,10 +157,7 @@ async function runAgent(prompt: string): Promise<string> {
 }
 
 /** Strip optional code fences and validate the agent's JSON against the batch. */
-export function parseRankings(
-  raw: string,
-  batch: RankableVote[]
-): RankingRow[] {
+export function parseFindings(raw: string, batch: RankableVote[]): AgentFinding[] {
   const cleaned = raw
     .trim()
     .replace(/^```(?:json)?\s*/i, '')
@@ -148,24 +173,35 @@ export function parseRankings(
   if (!Array.isArray(parsed)) throw new Error('agent output is not an array');
 
   const validIds = new Set(batch.map((v) => v.id));
-  const rows: RankingRow[] = [];
+  const findings: AgentFinding[] = [];
   for (const entry of parsed) {
     const e = entry as Record<string, unknown>;
     const voteId = String(e.voteId ?? '');
     if (!validIds.has(voteId)) continue;
-    rows.push({
+    findings.push({
       voteId,
-      hotness: clamp(e.hotness),
       relevance: clamp(e.relevance),
-      media: clamp(e.media),
       rationale: String(e.rationale ?? '').slice(0, 500),
-      mediaRefs: (Array.isArray(e.mediaRefs) ? e.mediaRefs : [])
-        .map((u) => String(u))
-        .filter((u) => /^https?:\/\//.test(u))
-        .slice(0, MAX_MEDIA_REFS),
+      queries: (Array.isArray(e.queries) ? e.queries : [])
+        .map((q) => String(q).trim())
+        .filter(Boolean)
+        .slice(0, MAX_QUERIES),
+      coverage: (Array.isArray(e.coverage) ? e.coverage : [])
+        .map((c) => {
+          const item = c as Record<string, unknown>;
+          const url = String(item.url ?? '');
+          const publishedAt =
+            typeof item.publishedAt === 'string' &&
+            /^\d{4}-\d{2}-\d{2}/.test(item.publishedAt)
+              ? item.publishedAt
+              : null;
+          return { url, publishedAt };
+        })
+        .filter((c) => /^https?:\/\//.test(c.url))
+        .slice(0, MAX_COVERAGE_PER_VOTE),
     });
   }
-  return rows;
+  return findings;
 }
 
 function chunk<T>(items: T[], size: number): T[][] {
@@ -222,31 +258,42 @@ async function main(): Promise<void> {
   for (const batch of chunk(rankable, BATCH_SIZE)) {
     console.log(`ranking batch of ${batch.length}…`);
     const output = await runAgent(buildPrompt(batch));
-    const rows = parseRankings(output, batch);
-    console.log(`  agent returned ${rows.length}/${batch.length} rankings`);
+    const findings = parseFindings(output, batch);
+    console.log(`  agent returned ${findings.length}/${batch.length} findings`);
 
-    for (const row of rows) {
-      const title = batch.find((v) => v.id === row.voteId)?.title ?? '';
+    for (const finding of findings) {
+      const title = batch.find((v) => v.id === finding.voteId)?.title ?? '';
+      const evidence = await buildEvidence(
+        finding.queries,
+        finding.coverage,
+        new Date()
+      );
+      const media = mediaScoreFromOutletCount(evidence.outletsCounted);
+      const hotness = blendHotness(finding.relevance, media);
+      const dead = evidence.hits.filter((h) => !h.ok).length;
+
       console.log(
-        `  ${String(row.hotness).padStart(3)}° (rel ${row.relevance}, media ${row.media}) ${title.slice(0, 60)}`
+        `  ${String(hotness).padStart(3)}° (rel ${finding.relevance}, media ${media} ← ${evidence.outletsCounted} outlets, ${evidence.hits.length} refs${dead ? `, ${dead} dead` : ''}) ${title.slice(0, 60)}`
       );
       if (options.dryRun) continue;
 
       const { error } = await supabase.from('knesset_rankings').upsert(
         {
-          vote_id: row.voteId,
-          hotness: row.hotness,
-          relevance: row.relevance,
-          media: row.media,
-          rationale: row.rationale,
-          media_refs: row.mediaRefs,
-          model: 'claude-agent-sdk',
+          vote_id: finding.voteId,
+          hotness,
+          relevance: finding.relevance,
+          media,
+          rationale: finding.rationale,
+          media_refs: refsForDisplay(evidence),
+          media_evidence: evidence,
+          model: MODEL_TAG,
           ranked_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'vote_id' }
       );
-      if (error) console.error(`  upsert failed for ${row.voteId}: ${error.message}`);
+      if (error)
+        console.error(`  upsert failed for ${finding.voteId}: ${error.message}`);
       else written += 1;
     }
   }
