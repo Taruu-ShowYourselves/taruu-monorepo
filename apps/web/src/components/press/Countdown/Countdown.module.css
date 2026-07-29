@@ -44,13 +44,6 @@
   50% { opacity: 0.2; }
 }
 
-.date {
-  font-family: var(--np-font-mono);
-  font-size: var(--text-sm);
-  color: var(--np-ink-soft);
-  letter-spacing: 0.04em;
-}
-
 .clock {
   display: flex;
   align-items: flex-start;

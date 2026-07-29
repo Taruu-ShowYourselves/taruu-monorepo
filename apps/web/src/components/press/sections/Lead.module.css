@@ -19,6 +19,7 @@
     grid-template-columns: 0.92fr 1.45fr 0.8fr;
     gap: 0;
   }
+  .colBallot { padding-inline-end: clamp(var(--space-4), 1.5vw, var(--space-8)); }
   .colStory {
     padding-inline: clamp(var(--space-6), 2.5vw, var(--space-12));
     border-inline: var(--np-rule) solid var(--np-ink);

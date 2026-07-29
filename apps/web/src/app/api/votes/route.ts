@@ -13,17 +13,20 @@ import { normalizeStatusFilter } from '@/server/domain/votes/vote';
 const ListQuerySchema = z.object({
   municipality: z.string().min(1).optional(),
   status: z.enum(['pending', 'active', 'ended']).optional(),
+  includeOptions: z.boolean().optional(),
 });
 
 /**
  * GET /api/votes
  * List votes, optionally filtered by municipality and status.
+ * `include=options` adds option tallies (active votes only).
  */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const query = parse(ListQuerySchema, {
     municipality: params.get('municipality') ?? undefined,
     status: normalizeStatusFilter(params.get('status')) ?? undefined,
+    includeOptions: params.get('include') === 'options' || undefined,
   });
   return respond(query.asyncAndThen(listVotes));
 }
