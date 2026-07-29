@@ -263,17 +263,35 @@ if [[ ! -f "$runner_dir/.runner" ]]; then
   tar -xzf "$runner_archive" -C "$runner_dir"
   chown -R taruu-runner:taruu-runner "$runner_dir"
 
-  sudo -u taruu-runner -H "$runner_dir/config.sh" \
-    --unattended \
-    --replace \
-    --url https://github.com/Taruu-ShowYourselves/taruu-monorepo \
-    --token "$runner_registration_token" \
-    --name "taruu-hetzner-$(hostname)" \
-    --labels "taruu-agents" \
-    --work _work
-  "$runner_dir/svc.sh" install taruu-runner
+  (
+    cd "$runner_dir"
+    sudo -u taruu-runner -H ./config.sh \
+      --unattended \
+      --replace \
+      --url https://github.com/Taruu-ShowYourselves/taruu-monorepo \
+      --token "$runner_registration_token" \
+      --name "taruu-hetzner-$(hostname)" \
+      --labels "taruu-agents" \
+      --work _work
+  )
 fi
-"$runner_dir/svc.sh" start
+runner_service="$(
+  find /etc/systemd/system \
+    -maxdepth 1 \
+    -name 'actions.runner.Taruu-ShowYourselves-taruu-monorepo.*.service' \
+    -print \
+    -quit
+)"
+if [[ -z "$runner_service" ]]; then
+  (
+    cd "$runner_dir"
+    ./svc.sh install taruu-runner
+  )
+fi
+(
+  cd "$runner_dir"
+  ./svc.sh start
+)
 
 echo "Validating and starting OpenClaw"
 sudo -u taruu-agent -H bash -lc '
