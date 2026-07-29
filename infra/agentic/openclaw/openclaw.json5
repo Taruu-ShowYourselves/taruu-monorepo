@@ -24,10 +24,11 @@
 
   commands: {
     restart: false,
+    ownerAllowFrom: ["telegram:${TELEGRAM_ALLOWED_USER_ID}"],
   },
 
   plugins: {
-    allow: ["browser", "codex"],
+    allow: ["browser", "codex", "telegram"],
   },
 
   skills: {
@@ -46,6 +47,32 @@
     allowRequestSessionKey: true,
     allowedSessionKeyPrefixes: ["hook:github:"],
     allowedAgentIds: ["orchestrator"],
+  },
+
+  channels: {
+    telegram: {
+      enabled: true,
+      botToken: {
+        source: "env",
+        provider: "default",
+        id: "TELEGRAM_BOT_TOKEN",
+      },
+      dmPolicy: "allowlist",
+      allowFrom: ["${TELEGRAM_ALLOWED_USER_ID}"],
+      groupPolicy: "disabled",
+      streaming: {
+        mode: "progress",
+        progress: {
+          toolProgress: true,
+          commandText: "status",
+          commentary: true,
+        },
+      },
+      actions: {
+        reactions: true,
+        sendMessage: true,
+      },
+    },
   },
 
   agents: {
@@ -76,7 +103,7 @@
         },
         tools: {
           profile: "coding",
-          alsoAllow: ["browser"],
+          alsoAllow: ["browser", "message"],
           elevated: { enabled: false },
         },
       },
@@ -99,8 +126,28 @@
           elevated: { enabled: false },
         },
       },
+      {
+        id: "concierge",
+        name: "Taruu Telegram Concierge",
+        workspace: "/srv/taruu-agent/workspaces/concierge",
+        tools: {
+          profile: "coding",
+          alsoAllow: ["message"],
+          elevated: { enabled: false },
+        },
+      },
     ],
   },
+
+  bindings: [
+    {
+      agentId: "concierge",
+      match: {
+        channel: "telegram",
+        accountId: "*",
+      },
+    },
+  ],
 
   tools: {
     exec: {

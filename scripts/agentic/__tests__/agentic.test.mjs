@@ -12,6 +12,10 @@ import {
   classifyProjectTransition,
   findInProgressTransitions,
 } from '../watch-project.mjs';
+import {
+  sendTelegramMessage,
+  telegramHookDelivery,
+} from '../telegram.mjs';
 
 const completePrd = `
 ## Problem
@@ -192,4 +196,42 @@ test('branchSlug creates bounded safe branch suffixes', () => {
   assert.equal(branchSlug('Fix Vote Receipt & RTL!'), 'fix-vote-receipt-rtl');
   assert.equal(branchSlug('תיקון הצבעה'), 'task');
   assert.ok(branchSlug('a '.repeat(100)).length <= 48);
+});
+
+test('Telegram hook delivery fails closed without a configured owner chat', () => {
+  assert.deepEqual(telegramHookDelivery({}), { deliver: false });
+  assert.deepEqual(
+    telegramHookDelivery({ TELEGRAM_CHAT_ID: '123456789' }),
+    {
+      deliver: true,
+      channel: 'telegram',
+      to: '123456789',
+    },
+  );
+});
+
+test('Telegram notification sends plain text only to the configured chat', async () => {
+  let request;
+  const result = await sendTelegramMessage(
+    {
+      token: 'test-token',
+      chatId: '123456789',
+      text: 'Issue #99 started',
+    },
+    async (url, options) => {
+      request = { url, options };
+      return { ok: true, status: 200 };
+    },
+  );
+
+  assert.deepEqual(result, { skipped: false });
+  assert.equal(
+    request.url,
+    'https://api.telegram.org/bottest-token/sendMessage',
+  );
+  assert.deepEqual(JSON.parse(request.options.body), {
+    chat_id: '123456789',
+    text: 'Issue #99 started',
+    disable_web_page_preview: true,
+  });
 });

@@ -39,6 +39,8 @@ authoritative.
     --remove-labels "agent:blocked"
    ```
 
+   The watcher has already sent the owner a Telegram start notification.
+
 3. Reuse an existing issue worktree or create one:
 
    ```bash
@@ -55,10 +57,17 @@ authoritative.
 6. When implementation finishes, inspect the diff yourself. Then spawn exactly
    one `verifier` subagent with the same `cwd`. Give it the original PRD and
    acceptance checklist; do not tell it to assume the implementation is right.
+   Notify the owner that independent verification started:
+
+   ```bash
+   node /opt/taruu-agent/scripts/notify-telegram.mjs \
+     --text "🔎 OpenClaw finished implementation for issue #<number> and started independent verification."
+   ```
 7. If verification fails, return the exact failures to the implementer. Allow
    at most two correction cycles. On repeated failure, mark `agent:blocked`,
    keep the project **In Progress**, and comment the blocker with the failing
-   commands.
+   commands. Send the same concise blocker and issue link to Telegram with
+   `notify-telegram.mjs`.
 8. Require the verifier to create
    `docs/agent-evidence/issue-<number>/README.md`. Visual changes require
    focused screenshots from the PRD. Non-visual changes require the exact
@@ -78,7 +87,9 @@ authoritative.
     - risks and rollback.
 12. Request review from every configured `$AGENT_REVIEWERS` entry. Mark the
     issue `agent:review`, remove `agent:running`, and enable GitHub auto-merge
-    with squash. Auto-merge must wait for the protected review and status checks.
+    with squash. Auto-merge must wait for the protected review and status
+    checks. Send the PR link and required reviewer name to Telegram with
+    `notify-telegram.mjs`.
 
 ## Review and merge events
 
