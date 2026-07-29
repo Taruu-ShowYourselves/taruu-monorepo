@@ -11,7 +11,7 @@ User=taruu-agent
 Group=taruu-agent
 WorkingDirectory=/srv/taruu-agent/workspaces/orchestrator
 Environment=HOME=/home/taruu-agent
-Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Environment=PATH=/usr/bin:/usr/local/bin:/bin
 EnvironmentFile=/etc/taruu-agent/agent.env
 ExecStart=/usr/local/bin/openclaw gateway --port 18790
 Restart=always

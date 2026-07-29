@@ -51,8 +51,8 @@ if [[ "$machine_arch" != "x86_64" ]]; then
 fi
 
 node_supported=false
-if command -v node >/dev/null 2>&1; then
-  if node -e 'const [major,minor]=process.versions.node.split(".").map(Number); process.exit(major === 24 && minor >= 15 ? 0 : 1)'; then
+if [[ -x /usr/bin/node ]]; then
+  if /usr/bin/node -e 'const [major,minor]=process.versions.node.split(".").map(Number); process.exit(major === 24 && minor >= 15 ? 0 : 1)'; then
     node_supported=true
   fi
 fi
@@ -64,7 +64,7 @@ if [[ "$node_supported" != true ]]; then
 fi
 
 echo "Installing pinned agent CLIs"
-npm install --global \
+/usr/bin/npm install --global \
   openclaw@2026.7.1-2 \
   ctx7@0.5.6 \
   pnpm@9.15.9
@@ -220,6 +220,7 @@ fi
 echo "Configuring Git and the canonical repository clone"
 sudo -u taruu-agent -H bash -lc '
   set -euo pipefail
+  export PATH=/usr/bin:/usr/local/bin:/bin
   set -a
   source /etc/taruu-agent/agent.env
   set +a
@@ -298,6 +299,7 @@ fi
 echo "Validating and starting OpenClaw"
 sudo -u taruu-agent -H bash -lc '
   set -euo pipefail
+  export PATH=/usr/bin:/usr/local/bin:/bin
   set -a
   source /etc/taruu-agent/agent.env
   set +a
@@ -330,6 +332,7 @@ if [[ "$ready" != true ]]; then
 fi
 
 sudo -u taruu-agent -H bash -lc '
+  export PATH=/usr/bin:/usr/local/bin:/bin
   set -a
   source /etc/taruu-agent/agent.env
   set +a
