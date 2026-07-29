@@ -20,7 +20,14 @@ _Updated 2026-07-29. Session 5: ranker data-hardening (counted media evidence), 
 **⚠️ NEXT (session 5 state):**
 1. **Commit or revert the restyle wave** — production currently runs unversioned code. Highest priority.
 2. **Ranker backlog unfinished.** A run appeared to die mid-batch-3 and was restarted — it had NOT died; `pgrep -f "tsx src/rank.ts"` does not match the real argv (`tsx` runs it through a loader, so match on `src/rank.ts` instead). Two rankers then ran concurrently for ~18 minutes; the wedged original was killed. Harmless — the upsert is keyed on `vote_id` — but check for a live process before starting a run. Individual batches can also wedge for 20+ minutes with no output; there is no per-batch timeout yet (worth adding). Re-run: `cd agents/knesset-ranker && set -a && source ../../apps/web/.dev.vars && set +a && npm run rank -- --limit 60 --model claude-sonnet-4-6`. Note `.dev.vars` must be sourced — `.env.local`'s values now work too, but the package's own `.env` has empty keys.
-3. **Schedule the agents box.** Both jobs now run there, and the box still has no `claude login` (dolev-box needs Dolev's account; hermes needs the firewall one-liner above). Until then docs+rank only run when someone runs them locally: `cd agents/knesset-ranker && set -a && source ../../apps/web/.dev.vars && set +a && npm run docs -- --limit 55 --model claude-sonnet-4-6` (and `rank` likewise).
+3. **Both boxes are provisioned; only `claude login` is left (needs a browser — a human must run it).**
+   - `ssh -tt hermes-admin 'bash -lc "claude login"'` — Sahar's box, Sahar's account.
+   - `ssh -tt dolev-box 'bash -lc "claude login"'` — **whose account is still Sahar's call**; the standing instruction was that this box uses DOLEV's account.
+   - **hermes is reachable again** — firewall `openclaw-fw` (10780408) already carries a rule for 79.177.147.0/32 ("sahar admin 2026-07-29"); the old 79.177.149.120 rule is stale and could be pruned.
+   - State on BOTH: agent package current (docs+rank), deps installed, Claude Code CLI 2.1.220, crontab `*/30` docs + `17 */6` rank, `~/knesset-ranker/.env` with Supabase creds. hermes runs a system node v24 with the CLI under `~/.npm-global`; dolev runs nvm node v22.
+   - dolev-box **was** updated this session (its code predated the docs job and its cron only ran the ranker) — code and schedule only, no credentials touched.
+   - After login, confirm with `ssh <box> 'tail ~/knesset-ranker/docs.log'` on the next half-hour tick.
+   - `deploy.sh` bugs found and fixed while doing this (`9e0c087`): `.env` overwrote an explicit `DEPLOY_SSH` (deployed to the wrong box silently), `npm install -g` hit an unwritable system prefix, and the cron prelude aborted on boxes without nvm.
 4. **Vote recording is still client-side only** — `/api/votes/[id]/participate` demands `paymentTxId`; the free flow mock-seals and never records. Blocking 04.08.
 5. Legacy `MoneyTransparency` dead code with ₪3 copy — delete or leave.
 
