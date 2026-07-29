@@ -107,7 +107,6 @@ export function Countdown() {
             <span aria-hidden className={styles.tick} />
             הפתיחה הארצית · LAUNCH
           </span>
-          <span className={styles.date}>04.08.26 · כל הארץ, בבת אחת</span>
         </div>
 
         {live ? (

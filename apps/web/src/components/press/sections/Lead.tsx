@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { NewsButton } from '@/components/press/NewsButton';
-import { VoteWidget } from '@/components/press/VoteWidget';
+import { LiveVoteWidget } from '@/components/press/VoteWidget';
 import type { Locale } from '@/lib/i18n';
 import styles from './Lead.module.css';
 import { WHATSAPP_FOUNDERS_LINK } from '@sync/shared';
@@ -14,7 +14,7 @@ interface LeadProps {
 }
 
 const BRIEFS = [
-  { k: 'מודדים', t: 'כמה באמת תומכים, כמה מתנגדים — מספר מדויק, לא תחושת בטן.' },
+  { k: 'מודדים', t: 'כמה באמת תומכים, כמה מתנגדים: מספר מדויק, לא תחושת בטן.' },
   { k: 'מאמתים', t: 'כל קול הוא תושב אמיתי אחד. זהות ו-GPS, חתום בבלוקצ׳יין.' },
   { k: 'מנגישים', t: 'התמונה המלאה פתוחה לכולם. שקיפות מלאה, בלי חדרים סגורים.' },
 ];
@@ -25,7 +25,7 @@ export function Lead({ locale = 'he' }: LeadProps) {
       <div className={styles.grid}>
         {/* Live ballot — participation control surface */}
         <aside className={styles.colBallot}>
-          <VoteWidget issueNo="04" />
+          <LiveVoteWidget issueNo="04" />
         </aside>
 
         {/* Lead story */}
@@ -36,19 +36,19 @@ export function Lead({ locale = 'he' }: LeadProps) {
           </span>
 
           <h1 className={styles.headline}>
-            הקול של העיר. האנשים עכשיו <span className={styles.red}>במספרים.</span>
+            הקול של האנשים, האזרחים, עכשיו <span className={styles.red}>במספרים.</span>
           </h1>
 
           <p className={styles.standfirst}>
-            תַּרְאוּ מודד את עמדת רוב התושבים בנושאים המקומיים — מאומת, שקוף, ובלתי
-            ניתן לזיוף. לא עוד צעקות בקבוצת הפייסבוק: תמונת מצב אחת שהמועצה לא יכולה
-            להתעלם ממנה. כאן לא רק קוראים את העיתון — מצביעים בתוכו.
+            תַּרְאוּ מודד את עמדת רוב התושבים בנושאים המקומיים: כל קול מאומת,
+            הספירה גלויה. תמונת מצב אחת שהמועצה לא יכולה להתעלם ממנה.
+            כאן לא רק קוראים את העיתון. מצביעים בתוכו.
           </p>
 
           <figure className={styles.figure}>
             <Image
               src="/images/civic-engraving.png"
-              alt="תושבים מרימים את קולם ואת פתקי ההצבעה — איור קונצנזוס ציבורי"
+              alt="תושבים מרימים את קולם ואת פתקי ההצבעה, איור קונצנזוס ציבורי"
               width={1400}
               height={930}
               className={styles.figImg}
@@ -92,14 +92,15 @@ export function Lead({ locale = 'he' }: LeadProps) {
           </ul>
 
           <div className={styles.priceBox}>
-            <span className={styles.priceK}>דמי השתתפות</span>
-            <span className={styles.priceNum}>₪3</span>
-            <span className={styles.priceMeta}>₪2 לקרן הקהילתית · ₪1 לתפעול</span>
+            <span className={styles.priceK}>השתתפות</span>
+            <span className={styles.priceNum}>חינם</span>
+            <span className={styles.priceMeta}>בלי תשלום · זהות מאומתת · תוצאות שקופות</span>
           </div>
 
           <a href={`/${locale}/how-it-works`} className={styles.briefMore}>לכל הכלים ←</a>
         </aside>
       </div>
+
     </section>
   );
 }
