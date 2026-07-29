@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+set -eu
+
+export TARUU_AGENT_ENV=/etc/taruu-agent/dispatcher.env
+exec /usr/bin/node /opt/taruu-agent/scripts/dispatch-openclaw.mjs "$@"

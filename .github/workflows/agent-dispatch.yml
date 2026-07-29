@@ -1,0 +1,39 @@
+name: Agent dispatch
+
+on:
+  issues:
+    types: [labeled]
+  issue_comment:
+    types: [created]
+  pull_request:
+    types: [closed]
+  pull_request_review:
+    types: [submitted]
+  workflow_dispatch:
+
+concurrency:
+  group: >-
+    agent-dispatch-${{
+      github.event.issue.number ||
+      github.event.pull_request.number ||
+      github.run_id
+    }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  dispatch:
+    name: Dispatch to OpenClaw
+    runs-on: [self-hosted, linux, x64, taruu-agents]
+    timeout-minutes: 5
+    steps:
+      # This intentionally does not check out or execute repository code. The
+      # root-owned dispatcher is installed on the runner by the VM bootstrap.
+      - name: Validate event and call the loopback OpenClaw hook
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: /usr/local/bin/taruu-agent-dispatch "$GITHUB_EVENT_PATH"
