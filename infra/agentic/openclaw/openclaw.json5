@@ -27,7 +27,7 @@
   },
 
   plugins: {
-    allow: ["codex"],
+    allow: ["browser", "codex"],
   },
 
   skills: {
