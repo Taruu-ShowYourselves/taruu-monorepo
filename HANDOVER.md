@@ -1,8 +1,29 @@
 # HANDOVER — Taruu Redesign → Full Build
 
-_Updated 2026-07-29. Session 4: free-participation sweep, live contested front-page ballot, Knesset document summaries + editorial hotness ranker (Claude Agent SDK) shipped as 4 commits on `rebuild/launch-site` (NOT pushed). A large unrelated restyle wave (~100 files) remains deliberately uncommitted. Resume below._
+_Updated 2026-07-29. Session 5: ranker data-hardening (counted media evidence), batch resilience, vote-detail test repair, **and a production deploy of the whole working tree — including the ~100-file restyle wave, which is therefore LIVE but still uncommitted.** Resume below._
 
-## ▶ RESUME HERE (2026-07-29, session 4 — free votes + knesset intelligence)
+## ▶ RESUME HERE (2026-07-29, session 5 — ranker hardening + deploy)
+
+**Branch:** `rebuild/launch-site`, 4 new commits (`61be8ff`, `7ff22fa`, `f28d840`, `618d620`) on top of session 4. **Live site redeployed from this tree** — worker `taruu-web`, version `2c56a3b3-3608-4c80-b65c-333a68d1fc51`, all three custom domains + both cron triggers (`0 */6` and `*/30`) active.
+
+**⚠️ The restyle wave shipped.** The deploy builds the working tree, and ~100 restyle files were (and still are) uncommitted, so they are now serving on taruu.co.il while existing only on this machine. **The live site corresponds to no commit.** Either commit that wave or revert it and redeploy — until then a fresh clone cannot reproduce production. Gates it passed on the way out: web `tsc` clean, 689/689 tests, OpenNext build clean, live smoke `/he`, `/he/knesset`, `/api/votes` all 200.
+
+**Shipped this session:**
+- **Ranker data-hardening (`61be8ff`)** — the media sub-score is computed, not judged. The agent now only scores `relevance` and collects coverage (real URLs + publish dates + the queries it ran); `agents/knesset-ranker/src/media.ts` HTTP-validates every ref (HEAD→GET fallback; 404/410/network failure = dead), classifies Israeli press (`.il` minus institutions + known Israeli outlets on foreign TLDs) and freshness (≤14 days), derives `media` from the count of **distinct live outlets** via a fixed table (0→0, 1→35, 3→68, 6→90), and blends `hotness = round(0.6·relevance + 0.4·media)`. Full audit trail per row in the new `knesset_rankings.media_evidence` JSONB (queries, per-hit status/freshness/classification/counted, outlet count, checkedAt). Migration `20260729000003_knesset_rankings_evidence.sql` — **applied live**. 17 unit tests (`npm test` in the package).
+- **Batch resilience + model flag (`7ff22fa`)** — a live run died on batch 2/9 when the account hit its monthly spend limit, abandoning 40 untried votes. The loop now survives per-batch failures and only stops on account-level ones (`isFatalAgentFailure`: spend/usage/rate limit, logged out, credit balance). Proven in the wild: a later batch got a non-JSON reply and the run carried on. `--model` / `RANKER_MODEL` added — **runs currently use `--model claude-sonnet-4-6` because Fable is capped.**
+- **Desk shows the counted fact (`f28d840`)** — the evidence strip reads "6 כלי תקשורת" (or "ללא סיקור") instead of the uncheckable "תקשורת 85". Legacy rows without evidence fall back to the old sub-score line. Verified live: 47 strips render, 4 read ללא סיקור, zero legacy fallbacks.
+- **Vote-detail test repair (`618d620`)** — all 8 `GET /api/votes/[id]` cases had been failing with 500s since `27adbb5`: the route began calling `getKnessetItemsByVoteIds`/`getUserVote`/`getSessionFromRequest` but the test mocked only `getVoteWithOptions`. Mocks fixed and coverage added for Knesset context, `userVote`, and session-failure degradation. **Product was never broken — only the test.**
+
+**⚠️ NEXT (session 5 state):**
+1. **Commit or revert the restyle wave** — production currently runs unversioned code. Highest priority.
+2. **Ranker backlog unfinished:** 18/58 ranked (12 hardened + 6 legacy judgment-only). A run died mid-batch-3 with no error (process vanished, likely resource contention with the concurrent build) and was restarted. Re-run: `cd agents/knesset-ranker && set -a && source ../../apps/web/.dev.vars && set +a && npm run rank -- --limit 60 --model claude-sonnet-4-6`. Note `.dev.vars` must be sourced — `.env.local`'s values now work too, but the package's own `.env` has empty keys.
+3. **`ANTHROPIC_API_KEY` is still NOT a worker secret** (21 secrets present, not this one) — and the `*/30` knesset-docs cron is now **live**, so it fires and aborts every 30 minutes (queue preserved by design, but it is doing nothing).
+4. **Vote recording is still client-side only** — `/api/votes/[id]/participate` demands `paymentTxId`; the free flow mock-seals and never records. Blocking 04.08.
+5. Legacy `MoneyTransparency` dead code with ₪3 copy — delete or leave.
+
+---
+
+## ▶ (older) RESUME HERE (2026-07-29, session 4 — free votes + knesset intelligence)
 
 **Branch:** `rebuild/launch-site`, 4 new commits (`cfa5d25`…`cee63c0`), **NOT pushed / NOT deployed**. Tree still dirty on purpose: ~100 files of an in-progress restyle wave (about/, coin/, settings/, store/, sign-in/up, uikit/, styles/, explore/, PressMachine/PressAtmosphere/PressForm/SubscribeForm, GeoGate, Ticker, `.github/workflows/*`, `infra/`, `scripts/`, `docs/SITE-OVERVIEW-2026-07.md`) that predates/parallels this session — NOT reviewed, NOT committed here. `apps/web/package.json`+lockfile were committed (fflate) and carry that wave's mui/emotion + turbopack additions, flagged in the commit message.
 
