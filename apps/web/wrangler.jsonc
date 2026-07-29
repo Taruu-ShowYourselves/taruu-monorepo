@@ -54,6 +54,7 @@
   //   0 * * * *     → /api/cron/resolve-votes
   //   */10 * * * *  → /api/cron/mint-nfts
   //   0 */6 * * *   → /api/cron/knesset-agenda
+  //   */30 * * * *  → /api/cron/knesset-docs
   // Requires the CRON_SECRET secret to be set (wrangler secret put CRON_SECRET).
   // NOTE: the schedules API rejected these at deploy (account-level cron gate on
   // this account). worker.ts's scheduled handler IS deployed — add the four
@@ -65,7 +66,7 @@
   // TEMP: only the knesset cron is registered pre-go-live (no-op on the old
   // worker build; the other three activate with the full deploy).
   "triggers": {
-    "crons": ["0 */6 * * *"]
+    "crons": ["0 */6 * * *", "*/30 * * * *"]
   },
 
   // Secrets are NOT stored here. Set them with `wrangler secret put <NAME>`

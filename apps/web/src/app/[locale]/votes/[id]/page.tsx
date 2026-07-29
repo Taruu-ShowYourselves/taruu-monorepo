@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Header } from '@/components/layout/Header';
@@ -18,6 +19,21 @@ interface VoteOption {
   votes: number;
 }
 
+interface KnessetContext {
+  knessetNum: number | null;
+  sessionNumber: number | null;
+  sessionDate: string | null;
+  ordinal: number | null;
+  itemType: string | null;
+  isDiscussion: boolean;
+  /** AI summary of the attached official document (bill / proposal text). */
+  summary?: string | null;
+  /** fs.knesset.gov.il link to the original document. */
+  docUrl?: string | null;
+  /** Document class, e.g. 'הצעת חוק לקריאה הראשונה'. */
+  docGroup?: string | null;
+}
+
 interface Vote {
   id: string;
   title: string;
@@ -31,6 +47,20 @@ interface Vote {
   creator: {
     name: string;
   };
+  /** Present on Knesset-agenda votes — plenum background for the fact sheet. */
+  knesset?: KnessetContext;
+}
+
+function formatDate(iso: string | null): string {
+  if (!iso) return '';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('he-IL', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+    timeZone: 'Asia/Jerusalem',
+  }).format(date);
 }
 
 function getTimeRemaining(endDate: string): string {
@@ -292,6 +322,131 @@ export default function VoteDetailPage() {
                 ) : null}
                 <MunicipalityLink name={vote.municipality} />
               </div>
+
+              {/* Document summary — what the attached bill/proposal says */}
+              {vote.knesset?.summary ? (
+                <section className={styles.docSummary} aria-label="תקציר המסמך">
+                  <span className={styles.colKicker}>
+                    מה על השולחן · THE DOCUMENT
+                  </span>
+                  <p className={styles.docSummaryText}>{vote.knesset.summary}</p>
+                  <div className={styles.docSummaryMeta}>
+                    {vote.knesset.docGroup ? (
+                      <span>{vote.knesset.docGroup}</span>
+                    ) : null}
+                    {vote.knesset.docUrl ? (
+                      <a
+                        href={vote.knesset.docUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={styles.factLink}
+                      >
+                        למסמך הרשמי המלא ↗
+                      </a>
+                    ) : null}
+                  </div>
+                  <p className={styles.docSummaryNote}>
+                    תקציר אוטומטי מתוך המסמך הרשמי — הנוסח המחייב הוא המקור.
+                  </p>
+                </section>
+              ) : null}
+
+              {/* Background fact sheet — plenum context for Knesset votes */}
+              {vote.knesset ? (
+                <section className={styles.factSheet} aria-label="רקע">
+                  <span className={styles.colKicker}>רקע · BACKGROUND</span>
+                  <dl className={styles.facts}>
+                    <div className={styles.fact}>
+                      <dt>מקור</dt>
+                      <dd>סדר היום של מליאת הכנסת</dd>
+                    </div>
+                    {vote.knesset.itemType ? (
+                      <div className={styles.fact}>
+                        <dt>סוג הסעיף</dt>
+                        <dd>
+                          {vote.knesset.itemType}
+                          {vote.knesset.isDiscussion ? ' · דיון' : ''}
+                        </dd>
+                      </div>
+                    ) : null}
+                    {vote.knesset.knessetNum ? (
+                      <div className={styles.fact}>
+                        <dt>כנסת</dt>
+                        <dd>ה-{vote.knesset.knessetNum}</dd>
+                      </div>
+                    ) : null}
+                    {vote.knesset.sessionNumber ? (
+                      <div className={styles.fact}>
+                        <dt>ישיבת מליאה</dt>
+                        <dd>
+                          {'מס׳ '}
+                          {vote.knesset.sessionNumber}
+                          {vote.knesset.sessionDate
+                            ? ` · ${formatDate(vote.knesset.sessionDate)}`
+                            : ''}
+                        </dd>
+                      </div>
+                    ) : null}
+                    {vote.knesset.ordinal ? (
+                      <div className={styles.fact}>
+                        <dt>מיקום בסדר היום</dt>
+                        <dd>סעיף {vote.knesset.ordinal}</dd>
+                      </div>
+                    ) : null}
+                    {!vote.knesset.summary && vote.knesset.docUrl ? (
+                      <div className={styles.fact}>
+                        <dt>מסמך רשמי</dt>
+                        <dd>
+                          <a
+                            href={vote.knesset.docUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.factLink}
+                          >
+                            {vote.knesset.docGroup ?? 'למסמך המלא'} ↗
+                          </a>
+                        </dd>
+                      </div>
+                    ) : null}
+                  </dl>
+                  <Link href="/knesset" className={styles.factLink}>
+                    לסדר היום המלא של הכנסת ←
+                  </Link>
+                </section>
+              ) : null}
+
+              {/* Context — what this civic vote measures */}
+              <section className={styles.contextBox} aria-label="ההקשר">
+                <span className={styles.colKicker}>מה מודדים כאן · CONTEXT</span>
+                <p className={styles.contextLead}>
+                  {vote.knesset
+                    ? 'הנושא עומד על סדר יומה של מליאת הכנסת. ההצבעה כאן רצה במקביל להליך הרשמי ומודדת דבר אחד: איפה עומד הרוב האזרחי — כדי שעמדת הציבור תעמוד, שקופה ומאומתת, מול עמדת הבית.'
+                    : `הנושא עלה מהשטח. ההצבעה מודדת את עמדת הרוב של התושבים המאומתים, ומייצרת תמונת מצב אחת ברורה שמוגשת לרשות — קשה להתעלם ממספר.`}
+                </p>
+                <ul className={styles.contextList}>
+                  <li>
+                    כל קול מאומת בזהות ובמיקום, נספר פעם אחת ונחתם בבלוקצ׳יין —
+                    בלתי ניתן לשינוי או לזיוף.
+                  </li>
+                  <li>
+                    התוצאות פתוחות לכולם בזמן אמת; בסיום ההצבעה התמונה המלאה
+                    נשמרת כרשומה ציבורית קבועה.
+                  </li>
+                  <li>
+                    ההצבעה אינה מחייבת משפטית — היא עמדה אזרחית מדודה, שנועדה
+                    לעמוד מול מקבלי ההחלטות.
+                  </li>
+                </ul>
+                <div className={styles.timelineRow}>
+                  <span>נפתחה {formatDate(vote.startDate)}</span>
+                  <span className={styles.sep} aria-hidden>■</span>
+                  <span>
+                    {isActive
+                      ? `נסגרת ${formatDate(vote.endDate)}`
+                      : `נסגרה ${formatDate(vote.endDate)}`}
+                  </span>
+                </div>
+              </section>
 
               <div className={styles.shareRow}>
                 <button className={styles.shareButton} onClick={handleShare}>
