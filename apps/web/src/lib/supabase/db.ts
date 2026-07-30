@@ -26,10 +26,30 @@ import type {
   InsertTables,
   UpdateTables,
 } from './types';
+import type { PublicCouncilAggregateRow } from '@/server/domain/council/public-profile';
 
 // ============================================
 // USER OPERATIONS
 // ============================================
+
+/**
+ * Fetch one council through the aggregate-only database boundary. The RPC has
+ * a fixed scalar return type and never returns user, assignment, or payment
+ * rows even though it counts those protected tables.
+ */
+export async function getPublicCouncilAggregate(
+  identifier: string
+): Promise<PublicCouncilAggregateRow | null> {
+  const { data, error } = await supabaseAdmin.rpc('public_council_metrics', {
+    council_identifier: identifier,
+  });
+
+  if (error) {
+    throw new Error(`public_council_metrics failed: ${error.message}`);
+  }
+
+  return (data?.[0] as PublicCouncilAggregateRow | undefined) ?? null;
+}
 
 export async function getUserById(userId: string): Promise<User | null> {
   const { data, error } = await supabaseAdmin

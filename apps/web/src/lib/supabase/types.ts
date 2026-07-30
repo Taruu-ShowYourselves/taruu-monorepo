@@ -1032,6 +1032,28 @@ export interface Database {
           satisfaction_count: number;
         }[];
       };
+      public_council_metrics: {
+        Args: {
+          council_identifier: string;
+        };
+        Returns: {
+          council_id: string;
+          council_code: string;
+          council_name_he: string;
+          council_slug_he: string;
+          official_population: number | null;
+          population_source_name: string | null;
+          population_source_url: string | null;
+          population_as_of: string | null;
+          population_updated_at: string | null;
+          registered_users: number;
+          community_managers: number;
+          paying_users: number;
+          relevant_votes: number;
+          active_votes: number;
+          aggregates_updated_at: string;
+        }[];
+      };
     };
     Enums: {
       verification_status: 'none' | 'pending' | 'verified' | 'failed';

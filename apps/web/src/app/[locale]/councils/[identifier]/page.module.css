@@ -1,0 +1,274 @@
+.shell {
+  --council-red: #d4251b;
+  --council-ink: #171717;
+  --council-paper: #f4f0e7;
+  min-height: 100vh;
+  padding: clamp(2rem, 6vw, 5rem) max(1.25rem, calc((100vw - 1180px) / 2));
+  color: var(--council-ink);
+  background:
+    linear-gradient(rgba(23, 23, 23, 0.045) 1px, transparent 1px),
+    var(--council-paper);
+  background-size: 100% 2rem;
+}
+
+.hero {
+  max-width: 850px;
+  padding-block-end: clamp(2rem, 5vw, 4rem);
+  border-block-end: 4px solid var(--council-ink);
+}
+
+.eyebrow {
+  margin: 0 0 1rem;
+  color: var(--council-red);
+  font-family: var(--font-mono), monospace;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.hero h1,
+.message h1 {
+  margin: 0;
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(3.5rem, 10vw, 8rem);
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+}
+
+.intro {
+  max-width: 690px;
+  margin: 1.5rem 0 0;
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  line-height: 1.65;
+}
+
+.generated {
+  margin: 1rem 0 0;
+  color: #5c5a54;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8rem;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1rem;
+  margin-block: 2rem;
+}
+
+.metricCard {
+  grid-column: span 4;
+  display: flex;
+  min-height: 19rem;
+  flex-direction: column;
+  padding: 1.25rem;
+  border: 2px solid var(--council-ink);
+  background: #fffdf7;
+  box-shadow: 5px 5px 0 var(--council-ink);
+}
+
+.metricTopline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.metricTopline h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.available,
+.stale,
+.unavailable {
+  flex: none;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid currentColor;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.67rem;
+  font-weight: 800;
+}
+
+.available {
+  color: #17652f;
+}
+
+.stale {
+  color: #8a4c00;
+  background: #fff0c9;
+}
+
+.unavailable {
+  color: #6b6860;
+  background: #ebe7de;
+}
+
+.metricValue {
+  margin: 1.35rem 0;
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(3rem, 7vw, 5rem);
+  font-weight: 900;
+  line-height: 1;
+}
+
+.unavailableCopy,
+.source {
+  color: #5c5a54;
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.source {
+  margin: auto 0 0;
+  padding-block-start: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.source a {
+  color: inherit;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.definition {
+  margin-block: 0 1rem;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.definition summary {
+  cursor: pointer;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.definition summary:focus-visible,
+.actions a:focus-visible,
+.message a:focus-visible,
+.source a:focus-visible {
+  outline: 3px solid var(--council-red);
+  outline-offset: 3px;
+}
+
+.empty,
+.privacy {
+  margin-block: 2rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border-inline-start: 8px solid var(--council-red);
+  background: #fffdf7;
+}
+
+.empty h2 {
+  margin-block-start: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-block: 2rem;
+}
+
+.actions a,
+.message a {
+  padding: 0.85rem 1rem;
+  border: 2px solid var(--council-ink);
+  color: #fff;
+  background: var(--council-ink);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.actions a:last-child {
+  color: var(--council-ink);
+  background: transparent;
+}
+
+.privacy {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+}
+
+.message {
+  max-width: 760px;
+  margin-block: 10vh;
+}
+
+.message h1 {
+  font-size: clamp(3rem, 8vw, 6rem);
+}
+
+.message p {
+  margin-block: 1.5rem 2rem;
+  font-size: 1.2rem;
+}
+
+.loadingTitle,
+.loadingCard {
+  background: linear-gradient(90deg, #ddd7cb 25%, #f6f2e9 50%, #ddd7cb 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+.loadingTitle {
+  width: min(38rem, 80vw);
+  height: 6rem;
+}
+
+.loadingCard {
+  grid-column: span 4;
+  height: 19rem;
+  border: 2px solid #aaa49a;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (max-width: 850px) {
+  .metricCard,
+  .loadingCard {
+    grid-column: span 6;
+  }
+}
+
+@media (max-width: 560px) {
+  .shell {
+    padding-inline: 1rem;
+  }
+
+  .metricCard,
+  .loadingCard {
+    grid-column: 1 / -1;
+    min-height: 16rem;
+  }
+
+  .metricCard {
+    box-shadow: 3px 3px 0 var(--council-ink);
+  }
+
+  .privacy {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+
+  .actions a {
+    text-align: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loadingTitle,
+  .loadingCard {
+    animation: none;
+  }
+}
