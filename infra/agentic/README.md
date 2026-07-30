@@ -9,17 +9,20 @@ evidence, a human-approved pull request, and a GitHub Actions deployment.
 1. In a Claude Code session, run `/dispatch-prd <title>`.
 2. The project skill writes and validates a full PRD, creates the issue, adds it
    to organization Project #2 as **Todo**, and waits.
-3. A maintainer manually moves the card to **In Progress**. The isolated
-   Hetzner watcher detects the transition within about 15 seconds, verifies the
-   actor and full PRD, and calls the loopback OpenClaw hook. This board move is
-   the only initial implementation dispatch signal. The owner immediately
-   receives a Telegram start notification.
-4. OpenClaw assigns the configured owner and keeps the item **In Progress**.
+3. The issue must already be assigned to the host owner. A maintainer manually
+   moves the card to **In Progress**. That owner's isolated watcher detects the
+   transition within about 15 seconds, verifies the actor, issue assignee, and
+   full PRD, and calls the loopback OpenClaw hook. Unassigned issues and issues
+   owned by someone else are ignored. This board move is the only initial
+   implementation dispatch signal. The owner immediately receives a Telegram
+   start notification.
+4. OpenClaw keeps the pre-assigned item **In Progress**.
    The orchestrator prepares `agent/issue-<n>-<slug>` in a dedicated worktree.
 5. An implementer agent edits and tests. A separate verifier re-reads the PRD,
    runs acceptance/regression checks, and adds focused screenshots or a
    documented non-visual exception.
-6. The orchestrator opens one PR, requests human review, and enables auto-merge.
+6. The orchestrator opens one PR, assigns it to the same host owner, requests
+   human review, and enables auto-merge.
    GitHub waits for `Agent verification`, resolved conversations, and one fresh
    approval. Implementation, verification, blocker, PR, review, and merge
    updates return to the owner's Telegram chat.
@@ -48,9 +51,13 @@ deploy directly.
 
 - OpenClaw binds only to `127.0.0.1:18790`; the GitHub runner reaches it locally.
 - Hook auth and Gateway auth use separate random tokens.
-- Only a manual **In Progress** transition by an allowlisted maintainer can
-  dispatch initial work. Automated status changes and lifecycle labels cannot
-  start implementation.
+- Only a manual **In Progress** transition by an allowlisted maintainer for an
+  issue already assigned to the configured host owner can dispatch initial
+  work. Automated status changes and lifecycle labels cannot start
+  implementation.
+- PR events are routed by PR assignee to a dedicated owner runner label and
+  checked again by the local dispatcher. Missing or mismatched ownership fails
+  closed.
 - Telegram DMs use a one-owner numeric allowlist. Groups are disabled. The bot
   token is injected through an OpenClaw `SecretRef`, never committed.
 - The watcher keeps a durable status snapshot, baselines existing cards during
@@ -104,13 +111,15 @@ export GH_AGENT_TOKEN='...'
 export ANTHROPIC_API_KEY='...'
 export TELEGRAM_BOT_TOKEN='...'
 export TELEGRAM_ALLOWED_USER_ID='...'
-infra/agentic/scripts/deploy-to-hetzner.sh hermes-admin
+export AGENT_OWNER_LOGIN='DolevSeren'
+infra/agentic/scripts/deploy-to-hetzner.sh dolev-box
 ```
 
 The deploy script mints a short-lived runner registration token, streams all
 credentials over SSH without printing them, installs pinned OpenClaw and
 Context7 versions, installs Chrome, creates the agent workspaces, starts the
-Gateway, starts the Project #2 watcher, and registers the `taruu-agents` runner.
+Gateway, starts the Project #2 watcher, and registers a dedicated
+`taruu-owner-<github-login>` runner.
 On Hermes, blank Telegram variables reuse the one existing bot and paired owner
 and safely move polling from the legacy gateway. Bootstrap rolls that move back
 if the new Telegram channel fails its probe. Bootstrap also fails closed unless
@@ -131,6 +140,10 @@ infra/agentic/scripts/configure-github.sh --apply
 
 Add the machine-user login to `AGENT_AUTHORIZED_ACTORS` if it differs from the
 login discovered during VM bootstrap.
+
+Ownership must be assigned before the board transition. If an issue is assigned
+after it entered **In Progress**, move it out of **In Progress** and back again
+to create a fresh dispatch transition.
 
 ### 5. Restore production deployment credentials
 
@@ -159,9 +172,11 @@ ssh hetzner-root 'sudo -u taruu-agent openclaw channels status --probe'
 ssh hetzner-root 'sudo -u taruu-agent openclaw security audit --deep'
 ```
 
-Canary with a small documentation-only PRD first. Confirm the issue moves
-Todo → In Progress → Done, the PR includes evidence, approval unlocks
-auto-merge, and the deploy result appears on both the PR and issue.
+Canary with small documentation-only PRDs first. Confirm unassigned and
+other-owner issues do not execute, then confirm an issue assigned to this
+host's owner moves Todo → In Progress → Done, the PR is assigned to the same
+owner and includes evidence, approval unlocks auto-merge, and the deploy result
+appears on both the PR and issue.
 
 ## Emergency stop
 

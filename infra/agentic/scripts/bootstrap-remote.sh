@@ -18,6 +18,7 @@ IFS= read -r anthropic_key_b64
 IFS= read -r runner_token_b64
 IFS= read -r telegram_bot_token_b64
 IFS= read -r telegram_allowed_user_id_b64
+IFS= read -r agent_owner_login_b64
 
 gh_agent_token="$(printf '%s' "$gh_token_b64" | base64 --decode)"
 anthropic_api_key="$(printf '%s' "$anthropic_key_b64" | base64 --decode)"
@@ -28,15 +29,19 @@ telegram_bot_token="$(
 telegram_allowed_user_id="$(
   printf '%s' "$telegram_allowed_user_id_b64" | base64 --decode
 )"
+agent_owner_login="$(
+  printf '%s' "$agent_owner_login_b64" | base64 --decode
+)"
 unset \
   gh_token_b64 \
   anthropic_key_b64 \
   runner_token_b64 \
   telegram_bot_token_b64 \
-  telegram_allowed_user_id_b64
+  telegram_allowed_user_id_b64 \
+  agent_owner_login_b64
 
-if [[ -z "$gh_agent_token" || -z "$runner_registration_token" ]]; then
-  echo "A GitHub agent token and runner registration token are required" >&2
+if [[ -z "$gh_agent_token" || -z "$runner_registration_token" || -z "$agent_owner_login" ]]; then
+  echo "GitHub agent, runner registration, and owner login are required" >&2
   exit 2
 fi
 
@@ -237,7 +242,12 @@ agent_login="$(
   '
 )"
 upsert_env AGENT_GITHUB_LOGIN "$agent_login"
-upsert_env AGENT_ASSIGNEE "$agent_login"
+if [[ "$agent_login" != "$agent_owner_login" ]]; then
+  echo "GitHub token belongs to $agent_login, expected $agent_owner_login" >&2
+  exit 2
+fi
+upsert_env AGENT_OWNER_LOGIN "$agent_owner_login"
+upsert_env AGENT_ASSIGNEE "$agent_owner_login"
 upsert_env AGENT_AUTHORIZED_ACTORS "SaharBarak,DolevSeren,$agent_login"
 if [[ "${agent_login,,}" == "saharbarak" ]]; then
   agent_reviewers="DolevSeren"
@@ -292,6 +302,7 @@ dispatcher_temporary="$(mktemp /tmp/taruu-dispatcher-env.XXXXXX)"
   printf 'OPENCLAW_GATEWAY_PORT=18790\n'
   printf 'AGENT_REPOSITORY=Taruu-ShowYourselves/taruu-monorepo\n'
   printf 'AGENT_AUTHORIZED_ACTORS=SaharBarak,DolevSeren,%s\n' "$agent_login"
+  printf 'AGENT_OWNER_LOGIN=%s\n' "$agent_owner_login"
   printf 'TELEGRAM_CHAT_ID=%s\n' "$telegram_allowed_user_id"
 } >"$dispatcher_temporary"
 install -o root -g taruu-runner -m 0640 \
@@ -360,6 +371,8 @@ systemctl enable taruu-openclaw.service
 
 echo "Installing or reusing the self-hosted GitHub Actions runner"
 runner_dir="/srv/taruu-agent/runner"
+runner_label="taruu-owner-${agent_owner_login,,}"
+runner_name="taruu-${agent_owner_login,,}-$(hostname)"
 if [[ ! -f "$runner_dir/.runner" ]]; then
   runner_arch="x64"
 
@@ -390,11 +403,32 @@ if [[ ! -f "$runner_dir/.runner" ]]; then
       --replace \
       --url https://github.com/Taruu-ShowYourselves/taruu-monorepo \
       --token "$runner_registration_token" \
-      --name "taruu-hetzner-$(hostname)" \
-      --labels "taruu-agents" \
+      --name "$runner_name" \
+      --labels "$runner_label" \
       --work _work
   )
 fi
+registered_runner_name="$(jq -r '.agentName' "$runner_dir/.runner")"
+runner_id="$(
+  GH_TOKEN="$gh_agent_token" gh api \
+    repos/Taruu-ShowYourselves/taruu-monorepo/actions/runners \
+    --paginate \
+    --jq ".runners[] | select(.name == \"$registered_runner_name\") | .id" \
+    | head -n 1
+)"
+if [[ -z "$runner_id" ]]; then
+  echo "Registered runner $registered_runner_name was not found" >&2
+  exit 1
+fi
+runner_labels_payload="$(mktemp /tmp/taruu-runner-labels.XXXXXX.json)"
+jq -n --arg label "$runner_label" '{labels: [$label]}' \
+  >"$runner_labels_payload"
+GH_TOKEN="$gh_agent_token" gh api \
+  --method PUT \
+  "repos/Taruu-ShowYourselves/taruu-monorepo/actions/runners/$runner_id/labels" \
+  --input "$runner_labels_payload" \
+  --silent
+rm -f "$runner_labels_payload"
 runner_service="$(
   find /etc/systemd/system \
     -maxdepth 1 \
@@ -545,10 +579,11 @@ unset \
   anthropic_api_key \
   runner_registration_token \
   telegram_bot_token \
-  telegram_allowed_user_id
+  telegram_allowed_user_id \
+  agent_owner_login
 echo "Taruu agent host is ready"
 echo "OpenClaw: loopback port 18790"
 echo "Telegram: allowlisted owner routed to the concierge agent"
 echo "Project watcher: Project #2 In Progress (approximately 15 seconds)"
-echo "Runner label: taruu-agents"
+echo "Runner label: $runner_label"
 echo "Agent GitHub login: $agent_login"

@@ -9,10 +9,7 @@ import {
 } from 'node:fs';
 import { dirname } from 'node:path';
 import { validatePrd } from './lib.mjs';
-import {
-  sendTelegramMessage,
-  telegramHookDelivery,
-} from './telegram.mjs';
+import { sendTelegramMessage, telegramHookDelivery } from './telegram.mjs';
 
 const IN_PROGRESS = 'In Progress';
 const API_VERSION = '2022-11-28';
@@ -60,6 +57,16 @@ export function classifyProjectTransition(item, event, settings) {
     return {
       ignored: `actor ${event.actor ?? 'unknown'} is not allowlisted`,
     };
+  }
+  const owner = String(settings.AGENT_OWNER_LOGIN ?? '').trim();
+  if (!owner) {
+    return { ignored: 'AGENT_OWNER_LOGIN is not configured' };
+  }
+  const assignees = (item.assignees ?? []).map((login) =>
+    String(login).toLowerCase(),
+  );
+  if (assignees.length !== 1 || assignees[0] !== owner.toLowerCase()) {
+    return { ignored: `issue is not assigned exclusively to ${owner}` };
   }
 
   const validation = validatePrd(item.body ?? '');
@@ -141,6 +148,11 @@ async function listProjectItems(settings) {
                   body
                   url
                   state
+                  assignees(first: 20) {
+                    nodes {
+                      login
+                    }
+                  }
                   repository {
                     nameWithOwner
                   }
@@ -185,6 +197,9 @@ async function listProjectItems(settings) {
         body: node.content.body,
         url: node.content.url,
         state: node.content.state,
+        assignees: node.content.assignees.nodes.map(
+          (assignee) => assignee.login,
+        ),
         repository: node.content.repository.nameWithOwner,
         status: node.fieldValueByName?.name ?? null,
       });
@@ -263,21 +278,7 @@ async function addComment(item, body, settings) {
   );
 }
 
-async function setLifecycle(
-  item,
-  { addLabels, removeLabels, assign = false },
-  settings,
-) {
-  if (assign && settings.AGENT_ASSIGNEE) {
-    await githubRequest(
-      `/repos/${item.repository}/issues/${item.number}/assignees`,
-      {
-        method: 'POST',
-        body: { assignees: [settings.AGENT_ASSIGNEE] },
-        token: settings.GH_TOKEN,
-      },
-    );
-  }
+async function setLifecycle(item, { addLabels, removeLabels }, settings) {
   if (addLabels.length) {
     await githubRequest(
       `/repos/${item.repository}/issues/${item.number}/labels`,
@@ -401,7 +402,7 @@ async function main() {
     AGENT_PROJECT_OWNER: process.env.AGENT_PROJECT_OWNER,
     AGENT_PROJECT_NUMBER: process.env.AGENT_PROJECT_NUMBER,
     AGENT_AUTHORIZED_ACTORS: process.env.AGENT_AUTHORIZED_ACTORS,
-    AGENT_ASSIGNEE: process.env.AGENT_ASSIGNEE,
+    AGENT_OWNER_LOGIN: process.env.AGENT_OWNER_LOGIN,
     OPENCLAW_GATEWAY_PORT: process.env.OPENCLAW_GATEWAY_PORT ?? '18790',
     OPENCLAW_HOOK_TOKEN: process.env.OPENCLAW_HOOK_TOKEN,
     TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
@@ -413,6 +414,7 @@ async function main() {
     'AGENT_PROJECT_OWNER',
     'AGENT_PROJECT_NUMBER',
     'AGENT_AUTHORIZED_ACTORS',
+    'AGENT_OWNER_LOGIN',
     'OPENCLAW_HOOK_TOKEN',
   ]) {
     if (!settings[key]) throw new Error(`${key} is required.`);
@@ -490,7 +492,6 @@ async function main() {
       await setLifecycle(
         item,
         {
-          assign: true,
           addLabels: ['agent:running'],
           removeLabels: ['agent:ready', 'agent:blocked'],
         },
@@ -498,7 +499,7 @@ async function main() {
       );
       await addComment(
         item,
-        '🦞 **In Progress** detected on Project #2. The issue is assigned and queued in OpenClaw.',
+        '🦞 **In Progress** detected on Project #2. The pre-assigned issue is queued in OpenClaw.',
         settings,
       );
       await notifyTelegram(
