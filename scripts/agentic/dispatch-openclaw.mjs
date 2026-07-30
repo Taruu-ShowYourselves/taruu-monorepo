@@ -24,12 +24,43 @@ function readEnvFile(path) {
   return values;
 }
 
-function authorized(login, configuredActors) {
-  const actors = configuredActors
-    .split(',')
-    .map((actor) => actor.trim().toLowerCase())
+function normalizedLogins(values) {
+  return values
+    .map((value) => value?.login ?? value)
+    .map((login) =>
+      String(login ?? '')
+        .trim()
+        .toLowerCase(),
+    )
     .filter(Boolean);
-  return actors.includes(String(login).toLowerCase());
+}
+
+function authorized(login, configuredActors) {
+  const actors = normalizedLogins(configuredActors.split(','));
+  return actors.includes(String(login ?? '').toLowerCase());
+}
+
+function assignedToOwner(pullRequest, ownerLogin) {
+  if (!ownerLogin) return false;
+  const assignees = normalizedLogins(pullRequest?.assignees ?? []);
+  return (
+    assignees.length === 1 && assignees[0] === String(ownerLogin).toLowerCase()
+  );
+}
+
+function ownerAssignment(settings) {
+  return String(settings.AGENT_OWNER_LOGIN ?? '').trim();
+}
+
+function assignmentError(event, settings) {
+  const owner = ownerAssignment(settings);
+  if (!owner) {
+    return 'AGENT_OWNER_LOGIN is not configured';
+  }
+  if (!assignedToOwner(event.pull_request, owner)) {
+    return `pull request is not assigned exclusively to ${owner}`;
+  }
+  return null;
 }
 
 function issueNumberFromBranch(branch) {
@@ -47,6 +78,8 @@ export function buildDispatch(event, settings) {
   }
 
   if (event.review && event.pull_request && event.action === 'submitted') {
+    const assignment = assignmentError(event, settings);
+    if (assignment) return { ignored: assignment };
     const state = String(event.review.state).toLowerCase();
     if (!['approved', 'changes_requested'].includes(state)) {
       return { ignored: `review state ${state} does not require an agent` };
@@ -80,6 +113,8 @@ export function buildDispatch(event, settings) {
     event.action === 'closed' &&
     event.pull_request.merged
   ) {
+    const assignment = assignmentError(event, settings);
+    if (assignment) return { ignored: assignment };
     const issueNumber = issueNumberFromBranch(event.pull_request.head?.ref);
     if (!issueNumber) {
       return { ignored: 'merged pull request is not an agent issue branch' };

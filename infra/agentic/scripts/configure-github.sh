@@ -54,7 +54,14 @@ gh label delete agent:ready --repo "$repository" --yes 2>/dev/null || true
 echo "Setting non-secret repository variables"
 gh variable set AGENT_PROJECT_OWNER --repo "$repository" --body "$project_owner"
 gh variable set AGENT_PROJECT_NUMBER --repo "$repository" --body "$project_number"
-gh variable set AGENT_ASSIGNEE --repo "$repository" --body "SaharBarak"
+gh variable set AGENT_OWNER_DOLEV --repo "$repository" --body "DolevSeren"
+gh variable set AGENT_OWNER_SAHAR --repo "$repository" --body "SaharBarak"
+gh variable set AGENT_RUNNER_LABEL_DOLEV \
+  --repo "$repository" \
+  --body "taruu-owner-dolevseren"
+gh variable set AGENT_RUNNER_LABEL_SAHAR \
+  --repo "$repository" \
+  --body "taruu-owner-saharbarak"
 gh variable set AGENT_REVIEWERS --repo "$repository" --body "DolevSeren"
 gh variable set AGENT_AUTHORIZED_ACTORS \
   --repo "$repository" \

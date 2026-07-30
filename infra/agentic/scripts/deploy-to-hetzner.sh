@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "$0")/../../.." && pwd)"
 ssh_target="${1:-hermes-admin}"
+agent_owner_login="${AGENT_OWNER_LOGIN:-}"
 
 gh_agent_token="${GH_AGENT_TOKEN:-$(gh auth token)}"
 anthropic_api_key="${ANTHROPIC_API_KEY:-}"
@@ -11,6 +12,10 @@ telegram_allowed_user_id="${TELEGRAM_ALLOWED_USER_ID:-}"
 
 if [[ -z "$gh_agent_token" ]]; then
   echo "Authenticate gh or set GH_AGENT_TOKEN." >&2
+  exit 2
+fi
+if [[ -z "$agent_owner_login" ]]; then
+  echo "Set AGENT_OWNER_LOGIN to the GitHub account owned by this host." >&2
   exit 2
 fi
 
@@ -43,6 +48,7 @@ echo "Running the idempotent remote bootstrap"
   encode_line "$runner_registration_token"
   encode_line "$telegram_bot_token"
   encode_line "$telegram_allowed_user_id"
+  encode_line "$agent_owner_login"
 } | ssh "$ssh_target" \
   "chmod 0700 '$remote_bundle/infra/agentic/scripts/bootstrap-remote.sh' && sudo -n '$remote_bundle/infra/agentic/scripts/bootstrap-remote.sh' '$remote_bundle'"
 
@@ -51,5 +57,6 @@ unset \
   anthropic_api_key \
   runner_registration_token \
   telegram_bot_token \
-  telegram_allowed_user_id
+  telegram_allowed_user_id \
+  agent_owner_login
 echo "Remote bootstrap completed"

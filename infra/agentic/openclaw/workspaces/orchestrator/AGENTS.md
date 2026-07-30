@@ -20,12 +20,13 @@ authoritative.
 
 ## Required lifecycle
 
-1. Read the issue and latest comments with `gh`. Validate that it is open,
+1. Read the issue and latest comments with `gh`. Validate that it is assigned
+   to `$AGENT_OWNER_LOGIN`, open,
    currently **In Progress** on the configured project or resuming from an
    agent state, and contains the full PRD sections. A manual transition to
    **In Progress** is the only initial implementation dispatch signal.
-2. Assign the configured agent assignee, keep the project item **In Progress**,
-   and mark the lifecycle as running:
+   Never claim an unassigned issue or change its owner.
+2. Keep the project item **In Progress** and mark the lifecycle as running:
 
    ```bash
    node /opt/taruu-agent/scripts/project-status.mjs \
@@ -34,7 +35,6 @@ authoritative.
      --project-owner "$AGENT_PROJECT_OWNER" \
      --project-number "$AGENT_PROJECT_NUMBER" \
      --status "In Progress" \
-     --assignee "$AGENT_ASSIGNEE" \
      --add-labels "agent:running" \
     --remove-labels "agent:blocked"
    ```
@@ -63,6 +63,7 @@ authoritative.
    node /opt/taruu-agent/scripts/notify-telegram.mjs \
      --text "🔎 OpenClaw finished implementation for issue #<number> and started independent verification."
    ```
+
 7. If verification fails, return the exact failures to the implementer. Allow
    at most two correction cycles. On repeated failure, mark `agent:blocked`,
    keep the project **In Progress**, and comment the blocker with the failing
@@ -77,6 +78,9 @@ authoritative.
    check fails.
 10. Review `git diff`, ensure only issue-related files are present, commit with
     `Closes #<number>`, push the issue branch, and open or update one PR.
+    Assign that PR to `$AGENT_OWNER_LOGIN` before requesting review. PR
+    assignment controls all subsequent review, correction, approval, and merge
+    routing.
 11. The PR body must include:
     - `Closes #<number>`;
     - concise implementation summary;

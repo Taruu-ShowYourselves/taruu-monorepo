@@ -12,10 +12,7 @@ import {
   classifyProjectTransition,
   findInProgressTransitions,
 } from '../watch-project.mjs';
-import {
-  sendTelegramMessage,
-  telegramHookDelivery,
-} from '../telegram.mjs';
+import { sendTelegramMessage, telegramHookDelivery } from '../telegram.mjs';
 
 const completePrd = `
 ## Problem
@@ -125,6 +122,7 @@ test('project watcher requires an authorized manual move and a full PRD', () => 
     AGENT_REPOSITORY: 'Taruu-ShowYourselves/taruu-monorepo',
     AGENT_PROJECT_NUMBER: '2',
     AGENT_AUTHORIZED_ACTORS: 'SaharBarak,DolevSeren',
+    AGENT_OWNER_LOGIN: 'DolevSeren',
   };
   const item = {
     number: 99,
@@ -133,6 +131,7 @@ test('project watcher requires an authorized manual move and a full PRD', () => 
     url: 'https://github.com/example/repo/issues/99',
     repository: settings.AGENT_REPOSITORY,
     state: 'OPEN',
+    assignees: ['DolevSeren'],
   };
   const event = {
     actor: 'SaharBarak',
@@ -168,10 +167,86 @@ test('project watcher requires an authorized manual move and a full PRD', () => 
   assert.equal(incomplete.invalidPrd, true);
 });
 
-test('buildDispatch routes merged agent pull requests back to the issue session', () => {
+test('Dolev watcher dispatches a Dolev-assigned issue case-insensitively', () => {
+  const settings = {
+    AGENT_REPOSITORY: 'Taruu-ShowYourselves/taruu-monorepo',
+    AGENT_PROJECT_NUMBER: '2',
+    AGENT_AUTHORIZED_ACTORS: 'SaharBarak,DolevSeren',
+    AGENT_OWNER_LOGIN: 'dolevseren',
+  };
+  const dispatch = classifyProjectTransition(
+    {
+      number: 99,
+      title: 'Record votes',
+      body: completePrd,
+      url: 'https://github.com/example/repo/issues/99',
+      repository: settings.AGENT_REPOSITORY,
+      state: 'OPEN',
+      assignees: ['DOLEVSEREN'],
+    },
+    {
+      actor: 'saharbarak',
+      projectNumber: 2,
+      status: 'In Progress',
+      wasAutomated: false,
+    },
+    settings,
+  );
+  assert.match(dispatch.message, /sole implementation dispatch signal/);
+});
+
+test('Dolev watcher ignores Sahar-assigned and unassigned issues', () => {
+  const settings = {
+    AGENT_REPOSITORY: 'Taruu-ShowYourselves/taruu-monorepo',
+    AGENT_PROJECT_NUMBER: '2',
+    AGENT_AUTHORIZED_ACTORS: 'SaharBarak,DolevSeren',
+    AGENT_OWNER_LOGIN: 'DolevSeren',
+  };
+  const baseItem = {
+    number: 99,
+    title: 'Record votes',
+    body: completePrd,
+    url: 'https://github.com/example/repo/issues/99',
+    repository: settings.AGENT_REPOSITORY,
+    state: 'OPEN',
+  };
+  const event = {
+    actor: 'SaharBarak',
+    projectNumber: 2,
+    status: 'In Progress',
+    wasAutomated: false,
+  };
+  assert.match(
+    classifyProjectTransition(
+      { ...baseItem, assignees: ['SaharBarak'] },
+      event,
+      settings,
+    ).ignored,
+    /not assigned/,
+  );
+  assert.match(
+    classifyProjectTransition({ ...baseItem, assignees: [] }, event, settings)
+      .ignored,
+    /not assigned/,
+  );
+});
+
+test('first-install baseline has no In Progress transitions', () => {
+  const currentItems = [
+    { id: 'item1', status: 'In Progress' },
+    { id: 'item2', status: 'Todo' },
+  ];
+  const baseline = Object.fromEntries(
+    currentItems.map((item) => [item.id, { status: item.status }]),
+  );
+  assert.deepEqual(findInProgressTransitions(baseline, currentItems), []);
+});
+
+test('buildDispatch routes Dolev-assigned merged pull requests', () => {
   const settings = {
     AGENT_REPOSITORY: 'Taruu-ShowYourselves/taruu-monorepo',
     AGENT_AUTHORIZED_ACTORS: 'SaharBarak,DolevSeren',
+    AGENT_OWNER_LOGIN: 'DolevSeren',
   };
   const dispatch = buildDispatch(
     {
@@ -183,6 +258,7 @@ test('buildDispatch routes merged agent pull requests back to the issue session'
         merged: true,
         html_url: 'https://github.com/example/repo/pull/120',
         head: { ref: 'agent/issue-99-record-vote' },
+        assignees: [{ login: 'dOlEvSeReN' }],
       },
     },
     settings,
@@ -190,6 +266,55 @@ test('buildDispatch routes merged agent pull requests back to the issue session'
 
   assert.equal(dispatch.issueNumber, 99);
   assert.match(dispatch.message, /Mark the project item Done/);
+});
+
+test('buildDispatch routes Dolev-assigned PR review events', () => {
+  const settings = {
+    AGENT_REPOSITORY: 'Taruu-ShowYourselves/taruu-monorepo',
+    AGENT_AUTHORIZED_ACTORS: 'SaharBarak,DolevSeren',
+    AGENT_OWNER_LOGIN: 'DolevSeren',
+  };
+  const dispatch = buildDispatch(
+    {
+      action: 'submitted',
+      sender: { login: 'SaharBarak' },
+      repository: { full_name: settings.AGENT_REPOSITORY },
+      review: { state: 'approved', body: 'Looks good' },
+      pull_request: {
+        number: 120,
+        html_url: 'https://github.com/example/repo/pull/120',
+        head: { ref: 'agent/issue-99-record-vote' },
+        assignees: [{ login: 'DolevSeren' }],
+      },
+    },
+    settings,
+  );
+  assert.equal(dispatch.issueNumber, 99);
+  assert.match(dispatch.message, /approved review/);
+});
+
+test('local PR dispatcher ignores PRs not assigned to its owner', () => {
+  const settings = {
+    AGENT_REPOSITORY: 'Taruu-ShowYourselves/taruu-monorepo',
+    AGENT_AUTHORIZED_ACTORS: 'SaharBarak,DolevSeren',
+    AGENT_OWNER_LOGIN: 'DolevSeren',
+  };
+  const dispatch = buildDispatch(
+    {
+      action: 'submitted',
+      sender: { login: 'SaharBarak' },
+      repository: { full_name: settings.AGENT_REPOSITORY },
+      review: { state: 'approved', body: '' },
+      pull_request: {
+        number: 120,
+        html_url: 'https://github.com/example/repo/pull/120',
+        head: { ref: 'agent/issue-99-record-vote' },
+        assignees: [{ login: 'SaharBarak' }],
+      },
+    },
+    settings,
+  );
+  assert.match(dispatch.ignored, /not assigned exclusively to DolevSeren/);
 });
 
 test('branchSlug creates bounded safe branch suffixes', () => {
@@ -200,14 +325,11 @@ test('branchSlug creates bounded safe branch suffixes', () => {
 
 test('Telegram hook delivery fails closed without a configured owner chat', () => {
   assert.deepEqual(telegramHookDelivery({}), { deliver: false });
-  assert.deepEqual(
-    telegramHookDelivery({ TELEGRAM_CHAT_ID: '123456789' }),
-    {
-      deliver: true,
-      channel: 'telegram',
-      to: '123456789',
-    },
-  );
+  assert.deepEqual(telegramHookDelivery({ TELEGRAM_CHAT_ID: '123456789' }), {
+    deliver: true,
+    channel: 'telegram',
+    to: '123456789',
+  });
 });
 
 test('Telegram notification sends plain text only to the configured chat', async () => {

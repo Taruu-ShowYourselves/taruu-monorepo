@@ -5,7 +5,6 @@ on:
     types: [closed]
   pull_request_review:
     types: [submitted]
-  workflow_dispatch:
 
 concurrency:
   group: >-
@@ -22,13 +21,31 @@ permissions:
   pull-requests: read
 
 jobs:
-  dispatch:
-    name: Dispatch to OpenClaw
-    runs-on: [self-hosted, linux, x64, taruu-agents]
+  dispatch-dolev:
+    name: Dispatch to Dolev's OpenClaw
+    if: >-
+      github.event.pull_request.assignees[0].login == vars.AGENT_OWNER_DOLEV &&
+      github.event.pull_request.assignees[1] == null
+    runs-on: [self-hosted, linux, x64, "${{ vars.AGENT_RUNNER_LABEL_DOLEV }}"]
     timeout-minutes: 5
     steps:
       # This intentionally does not check out or execute repository code. The
       # root-owned dispatcher is installed on the runner by the VM bootstrap.
+      - name: Validate event and call the loopback OpenClaw hook
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: /usr/local/bin/taruu-agent-dispatch "$GITHUB_EVENT_PATH"
+
+  dispatch-sahar:
+    name: Dispatch to Sahar's OpenClaw
+    if: >-
+      github.event.pull_request.assignees[0].login == vars.AGENT_OWNER_SAHAR &&
+      github.event.pull_request.assignees[1] == null
+    runs-on: [self-hosted, linux, x64, "${{ vars.AGENT_RUNNER_LABEL_SAHAR }}"]
+    timeout-minutes: 5
+    steps:
+      # Each owner runner has a local fail-closed dispatcher configured for
+      # exactly that owner. Repository code is never checked out here.
       - name: Validate event and call the loopback OpenClaw hook
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
