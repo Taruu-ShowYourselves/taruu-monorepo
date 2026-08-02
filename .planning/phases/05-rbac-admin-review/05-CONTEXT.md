@@ -73,7 +73,31 @@ This phase owns the application/grant states only — at minimum: submitted/pend
 - RLS denies anon-key reads of applications and audit rows.
 - Follow the project's established RLS convention: policies use `public.user_id()`, **never** `auth.uid()` — the built-in helper returns NULL under this project's custom JWT. This was a corrective migration in Phase 1 (`20260628000002_fix_rls_user_id_helper.sql`) and repeating the mistake would silently break every per-user policy.
 
-> **Correction from `05-RESEARCH.md` (2026-08-02) — read the research before acting on the paragraph above.** RLS is not currently a real enforcement layer in this codebase. `public.user_id()` reads a session config key that nothing ever sets, `withUserContext()` sets a differently-named key and has zero call sites, and all real traffic goes through the service-role client, which bypasses RLS entirely. Consequences for this phase: RBAC-02's authorization helper **must be application code**, not RLS; and RBAC-04's RLS requirement means anon-key **deny-by-default** on the new tables (enable RLS, define no policies — the `merch_orders` pattern), not per-user policies that would silently never match.
+> **Correction from `05-RESEARCH.md` (2026-08-02) — read the research before acting on the paragraph above.** RLS is not currently a real enforcement layer in this codebase. `public.user_id()` reads a session config key that nothing ever sets, `withUserContext()` sets a differently-named key and has zero call sites, and all real traffic goes through the service-role client, which bypasses RLS entirely.
+>
+> **Decision (2026-08-02, user): fix the transport in this phase rather than work around it.** This supersedes the deny-all approach the first planning pass took. Requirements RLS-01..05 are now part of Phase 5. See the RLS Foundation section below.
+
+### RLS Foundation (added 2026-08-02 — requirements RLS-01..05)
+
+The user chose to make RLS genuinely work in this phase instead of shipping deny-all policies and inheriting a broken security layer. These are locked decisions.
+
+**The diagnosis, verified against the code:**
+- `public.user_id()` (`supabase/migrations/20240101000001_rls_policies.sql:10-21`) resolves `COALESCE(current_setting('request.jwt.claims', true)::json->>'sub', current_setting('app.current_user_id', true))::UUID`. The JWT branch is the correct design and was simply never fed.
+- `withUserContext()` (`apps/web/src/lib/supabase/server.ts:67`) calls `set_claim('user_id', …)`, and `set_claim` does `set_config('app.' || claim, value, true)` → it writes `app.user_id`, but the function reads `app.current_user_id`. Name mismatch, and zero call sites.
+- Even with the name corrected it cannot work: the third argument `true` makes the setting transaction-local, and PostgREST is stateless HTTP, so the RPC's transaction closes before the next query runs.
+- `supabaseAdmin` uses the service-role key, which bypasses RLS regardless of any of the above.
+
+**The fix:**
+- Mint a **short-lived** Supabase access token server-side from an already-verified session: HS256 over the Supabase project JWT secret (a new env var, distinct from the existing `JWT_SECRET`), `sub` = the user's UUID, `role` and `aud` = `authenticated`, expiry in minutes. The long-lived `sync-session` cookie is never sent to PostgREST — it is not a database credential.
+- Build the user-scoped client on the **anon/publishable** key using supabase-js's `accessToken` callback. Verified present in the installed version: `accessToken?: () => Promise<string | null>` in `@supabase/supabase-js@2.90.1` (note the lockfile is far ahead of `package.json`'s `^2.39.0`). Confirmed against Supabase's own docs as the canonical third-party-JWT pattern.
+- Delete `withUserContext()` and the `set_claim` SQL function. Leaving dead security plumbing in place is worse than not having it, because the next reader assumes it works.
+- Phase 5's three tables get **real** policies, not deny-all.
+
+**Two traps that must be designed around:**
+1. A policy on a role table that queries the role table recurses infinitely. Any role lookup inside a policy must go through a `SECURITY DEFINER` helper function.
+2. Switching a route off `supabaseAdmin` before its policies exist silently returns zero rows rather than erroring. Policies land first, in the same migration.
+
+**Scope boundary:** this phase builds the transport and applies it to its own three tables. Migrating the existing 25 tables and 112 `db.ts` exports is **Phase 7** and must not be attempted here.
 
 ### Claude's Discretion
 
