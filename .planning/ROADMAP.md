@@ -160,7 +160,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Clean Foundation | 2/2 | Done (audit: partial — see AUDIT) | 2026-06-29 |
 | 2. Spike + Gate | 2/2 | Complete (audit: gate NOT passed) | 2026-06-30 |
-| 02.1 Participation Persistence | 4/5 | In Progress|  |
+| 02.1 Participation Persistence | 5/5 | Complete   | 2026-08-02 |
 | 3. Payment Rails + Hardening | 0/TBD | Blocked — requirements contradicted, needs re-scope | - |
 | 4. Go-Live | 0/TBD | Not started (audit: GO-01 de-facto partial) | - |
 | 5. RBAC + Admin Review | 0/9 | Planned — RLS foundation folded in (RLS-01..05); carries issue #76 | - |

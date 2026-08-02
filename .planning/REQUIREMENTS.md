@@ -47,9 +47,9 @@ This milestone: move vote payments to a Green Invoice card-on-file **membership*
 Free participation shipped in `cfa5d25` without resolving the participate API's payment-shaped contract; the UI bypassed the server entirely. These requirements exist because the live site currently shows residents a signed-and-sealed receipt for votes it never records.
 
 - [x] **VOTE-01**: `/api/votes/[id]/participate` accepts a free-participation request with no `paymentTxId` and never returns 402 for it, while remaining gated on session and residency — the payment-shaped contract is removed, not bypassed. (Complete: contract layer in plan 02.1-01, server eligibility check in plan 02.1-02, route rewrite in plan 02.1-04.)
-- [ ] **VOTE-02**: The participation flow calls the server and reaches the receipt only on a confirmed write; a rejected or failed write shows a Hebrew/RTL error and no seal. A repeated submission records exactly one vote. (Server-side idempotency landed in plan 02.1-04; the client flow itself is plan 02.1-05.)
+- [x] **VOTE-02**: The participation flow calls the server and reaches the receipt only on a confirmed write; a rejected or failed write shows a Hebrew/RTL error and no seal. A repeated submission records exactly one vote. (Server-side idempotency landed in plan 02.1-04; the client flow itself is plan 02.1-05.)
 - [x] **VOTE-03**: A recorded free vote produces a `user_votes` row, an `incrementVoteOption` bump, and an updated `participant_count` — the same persistence the paid path got via `recordUserVote`. (Complete: idempotent insert primitive `recordUserVoteOnce` in plan 02.1-02, route wiring in plan 02.1-04.)
-- [ ] **VOTE-04**: `mockHash()` is removed and no user-facing copy claims a blockchain seal unless an actual chain write backs it; the receipt states only verifiable facts about the recorded ballot. (Client-side work, plan 02.1-05.)
+- [x] **VOTE-04**: `mockHash()` is removed and no user-facing copy claims a blockchain seal unless an actual chain write backs it; the receipt states only verifiable facts about the recorded ballot. (Client-side work, plan 02.1-05.)
 - [x] **VOTE-05**: The ₪3 legacy is reconciled — the participate route stops minting 3 tokens and emailing `amount: 3` for a free vote, and `packages/shared/src/constants/index.ts` no longer leaves mobile charging ₪3 for what web gives free. (Complete: contract layer in plan 02.1-01, mobile copy in plan 02.1-03, route mint/email removal in plan 02.1-04.)
 
 ### RBAC + Admin Review (Phase 5 — issue #79a, post-launch)
@@ -119,9 +119,9 @@ Free participation shipped in `cfa5d25` without resolving the participate API's 
 | SPIKE-02 | Phase 2 | Complete |
 | SPIKE-03 | Phase 2 | Complete |
 | VOTE-01 | Phase 02.1 | Complete (plans 01, 02, 04) |
-| VOTE-02 | Phase 02.1 | Pending (server-side idempotency done plan 04; client flow pending plan 05) |
+| VOTE-02 | Phase 02.1 | Complete (server-side idempotency plan 04; client flow plan 05) |
 | VOTE-03 | Phase 02.1 | Complete (plans 02, 04) |
-| VOTE-04 | Phase 02.1 | Pending (client-side, plan 05) |
+| VOTE-04 | Phase 02.1 | Complete (client-side, plan 05) |
 | VOTE-05 | Phase 02.1 | Complete (plans 01, 03, 04) |
 | SEC-02 | Phase 3 | Pending |
 | SEC-03 | Phase 3 | Pending |
