@@ -14,6 +14,7 @@ This milestone: move vote payments to a Green Invoice card-on-file **membership*
 ### Security Prerequisites
 
 - [x] **SEC-01**: Corrective migration replaces `auth.uid()` with `public.user_id()` on `treasury_transactions`, `issue_coin_holdings`, and `phone_verifications` policies, so per-user reads work and tables aren't anon-readable — before any card-on-file write to `treasury_transactions`. *(Done: 20260628000002_fix_rls_user_id_helper.sql — commit 31d6860)*
+  > **Necessary but not sufficient — superseded by RLS-01..05 (Phase 5) and MIG-01..04 (Phase 7).** Discovered 2026-08-02 while researching Phase 5: SEC-01 corrected the *policies*, which were genuinely wrong, but the *transport* that would make any policy match was never wired up. `public.user_id()` (`20240101000001_rls_policies.sql:10-21`) reads `request.jwt.claims->>'sub'` first and falls back to `app.current_user_id`; nothing ever sets either. `withUserContext()` (`apps/web/src/lib/supabase/server.ts:67`) calls `set_claim('user_id', …)`, which writes `app.user_id` — a different key — and has zero call sites; even with the name fixed, `set_config(…, true)` is transaction-local and PostgREST is stateless HTTP, so the value would not survive to the next query. All real traffic uses the service-role client, which bypasses RLS entirely. SEC-01's policies are correct and remain correct; they simply never evaluate. Do not re-open SEC-01 — the corrective work is tracked below.
 - [ ] **SEC-02**: Treasury transactions endpoint (`api/treasury/[municipality]/transactions`) scopes results to the caller's `user_id` for non-admin requests (or strips `userId` and exposes only anonymized aggregates) — no full-ledger enumeration.
 - [ ] **SEC-03**: The vote-payment webhook verifies its secret via an HTTP header or payload HMAC (never a `?token=` URL param) and fails closed in production with constant-time comparison.
 - [ ] **SEC-04**: The payment idempotency key is generated server-side and deterministically (`{userId}:{type}:{voteId|optionId}`), never using `Date.now()`, so retries dedupe.
@@ -57,6 +58,21 @@ Free participation shipped in `cfa5d25` without resolving the participate API's 
 - [ ] **RBAC-02**: A single server-side authorization helper is the only enforcement point for privileged routes; authorization is never inferred client-side and never derived from payment state.
 - [ ] **RBAC-03**: A community-manager application can be submitted and reviewed in an admin console — approve, reject, and suspend each record an actor, a timestamp, and a reason. Approval alone changes no authorization outcome.
 - [ ] **RBAC-04**: Every grant, revocation, and suspension writes an append-only audit row that outlives the role change, and RLS denies anon-key reads of applications and audit rows.
+
+### RLS Foundation (Phase 5 — corrective, supersedes SEC-01's transport gap)
+
+- [ ] **RLS-01**: A server-side minter issues a short-lived Supabase access token from an already-verified session — HS256 over the Supabase project JWT secret, `sub` = the user's UUID, `role` and `aud` = `authenticated`, expiry measured in minutes not days. The long-lived `sync-session` cookie is never itself sent to PostgREST.
+- [ ] **RLS-02**: A user-scoped Supabase client factory builds a client on the **anon/publishable** key with supabase-js's `accessToken` callback (confirmed available in the installed 2.90.1), so `request.jwt.claims->>'sub'` populates and `public.user_id()` returns the real user id with RLS enforced. `supabaseAdmin` remains available but is renamed or documented as explicitly privileged.
+- [ ] **RLS-03**: The dead transport is removed, not left to mislead — `withUserContext()` (`apps/web/src/lib/supabase/server.ts:67`) and the `set_claim` SQL function are deleted, and `public.user_id()`'s `app.current_user_id` fallback is either removed or documented as unreachable under PostgREST.
+- [ ] **RLS-04**: An automated RLS test harness exists: mint a token for user A, read through the user-scoped client, and assert that user B's rows are invisible and that anon-key reads return zero rows. This replaces the manual-only anon-key check and establishes the repo's first RLS test precedent.
+- [ ] **RLS-05**: Phase 5's three new tables (`role_grants`, `community_manager_applications`, `role_grant_events`) carry real working policies rather than deny-all, and any policy that must consult a role table does so through a `SECURITY DEFINER` helper so policy evaluation cannot recurse.
+
+### Service-Role Migration (Phase 7 — full migration off unguarded service-role access)
+
+- [ ] **MIG-01**: Every one of the 25 RLS-enabled tables has its policies audited and corrected against the now-working transport; each of the 15 existing `USING (true)` policies is either confirmed as deliberately public with a written reason or replaced.
+- [ ] **MIG-02**: All 112 exports of `apps/web/src/lib/supabase/db.ts` are classified user-initiated vs system, and every user-initiated path runs through the RLS-enforced user-scoped client.
+- [ ] **MIG-03**: Remaining privileged access is legitimate and visible — webhooks, cron routes, NFT minting, and notification fan-out keep an explicitly-named privileged client with a per-call-site justification; no route reaches for service-role merely by habit.
+- [ ] **MIG-04**: Migration is proven, not asserted — each migrated table has an RLS test in the RLS-04 harness showing cross-user reads are denied, and the full suite is green.
 
 ### Manager Billing + Subscription (Phase 6 — issue #79c, post-launch)
 
@@ -125,13 +141,22 @@ Free participation shipped in `cfa5d25` without resolving the participate API's 
 | RBAC-02 | Phase 5 | Pending |
 | RBAC-03 | Phase 5 | Pending |
 | RBAC-04 | Phase 5 | Pending |
+| RLS-01 | Phase 5 | Pending |
+| RLS-02 | Phase 5 | Pending |
+| RLS-03 | Phase 5 | Pending |
+| RLS-04 | Phase 5 | Pending |
+| RLS-05 | Phase 5 | Pending |
 | MGR-01 | Phase 6 | Pending |
 | MGR-02 | Phase 6 | Pending |
 | MGR-03 | Phase 6 | Pending |
 | MGR-04 | Phase 6 | Pending |
 | MGR-05 | Phase 6 | Pending |
+| MIG-01 | Phase 7 | Pending |
+| MIG-02 | Phase 7 | Pending |
+| MIG-03 | Phase 7 | Pending |
+| MIG-04 | Phase 7 | Pending |
 
-**Coverage:** 33/33 v1 requirements mapped — 0 orphaned
+**Coverage:** 42/42 v1 requirements mapped — 0 orphaned
 
 > **Audit note (2026-08-02):** the checkbox and Status columns above predate `.planning/v1.0-MILESTONE-AUDIT.md` and overstate progress. SPIKE-01/02/03 are marked Complete but their artifacts are unfilled templates. SEC-02 reads Pending but shipped out of phase in `35b0709`. PAY-02/03/04/08 and GO-02 are contradicted by shipped free participation and need rewriting rather than building. Audit-verified coverage is 2/28 of the pre-02.1 set.
 
