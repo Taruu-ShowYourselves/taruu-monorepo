@@ -10,7 +10,7 @@ Starting from a brownfield Next.js codebase with Paddle vote payments and a work
 - [x] **Phase 2: Spike + Gate** - Validate GI card-on-file in sandbox (hard technical gate); initiate parallel external tracks (legal sign-off, Prime plan) (completed 2026-06-30)
 - [ ] **Phase 3: Payment Rails + Hardening** - Build complete GI card-on-file vote payment loop with full security hardening
 - [ ] **Phase 4: Go-Live** - Deploy with real credentials, run end-to-end money check, reconcile treasury
-- [ ] **Phase 5: RBAC + Admin Review** - Role model, server-side authorization helper, and the human approval console for community-manager applicants (issue #79a) — no billing
+- [ ] **Phase 5: RBAC + Admin Review** - Working RLS transport, role model, server-side authorization helper, and the human approval console for community-manager applicants (issue #79a + RLS corrective) — no billing
 - [ ] **Phase 6: Manager Billing + Subscription** - ₪50/month community-manager subscription on the GI token rail, with a full billing state machine gating role activation (issue #79c)
 - [ ] **Phase 7: Service-Role Migration** - Move every user-initiated database path off unguarded service-role access onto the RLS transport built in Phase 5; audit all 25 tables' policies
 
@@ -163,7 +163,7 @@ Plans:
 | 02.1 Participation Persistence | 0/5 | **Planned — P0, URGENT, ready to execute** | - |
 | 3. Payment Rails + Hardening | 0/TBD | Blocked — requirements contradicted, needs re-scope | - |
 | 4. Go-Live | 0/TBD | Not started (audit: GO-01 de-facto partial) | - |
-| 5. RBAC + Admin Review | 0/7 | **Re-planning** — RLS foundation folded in (RLS-01..05); carries issue #76 | - |
+| 5. RBAC + Admin Review | 0/9 | Planned — RLS foundation folded in (RLS-01..05); carries issue #76 | - |
 | 6. Manager Billing + Subscription | 0/TBD | Not started | - |
 | 7. Service-Role Migration | 0/TBD | Not started — blocked on Phase 5 RLS foundation | - |
 
