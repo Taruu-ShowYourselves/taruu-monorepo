@@ -148,5 +148,5 @@ Plans:
 | 02.1 Participation Persistence | 0/TBD | **Not started — P0, URGENT** | - |
 | 3. Payment Rails + Hardening | 0/TBD | Blocked — requirements contradicted, needs re-scope | - |
 | 4. Go-Live | 0/TBD | Not started (audit: GO-01 de-facto partial) | - |
-| 5. RBAC + Admin Review | 0/TBD | Not started — unblocked; carries issue #76 | - |
+| 5. RBAC + Admin Review | 0/7 | Planned — unblocked; carries issue #76 | - |
 | 6. Manager Billing + Subscription | 0/TBD | Not started | - |
