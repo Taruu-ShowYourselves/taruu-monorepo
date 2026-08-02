@@ -81,3 +81,14 @@ Plans:
 | 2. Spike + Gate | 2/2 | Complete   | 2026-06-30 |
 | 3. Payment Rails + Hardening | 0/TBD | Not started | - |
 | 4. Go-Live | 0/TBD | Not started | - |
+
+### Phase 5: Space governance substrate and space-admin operations dashboard
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Nothing — independent of the v1.0 payments track (phases 1–4). Appended scope from issue #75.
+**Canonical refs:** `.planning/phases/05-space-governance-substrate-and-space-admin-operations-dashboard/05-CONTEXT.md`, issue #75
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 5 to break down)

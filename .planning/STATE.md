@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 02-spike-gate plan 01 (02-01-PLAN.md)
-last_updated: "2026-06-30T07:22:13.014Z"
+stopped_at: Phase 5 context gathered
+last_updated: "2026-08-02T08:01:25.006Z"
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 2
   total_plans: 4
   completed_plans: 4
@@ -88,6 +88,10 @@ Recent decisions affecting current work:
 - [Phase 02-spike-gate]: type:320 reused in chargeToken() — same GI document-issuance type as createPaymentForm
 - [Phase 02-spike-gate]: Spike harness uses plain console.log only (no @/lib/logger) — tsx-clean, no Next.js path-alias deps
 
+### Roadmap Evolution
+
+- Phase 5 added: Space governance substrate and space-admin operations dashboard (issue #75) — out-of-milestone scope from the Grand Release Crunchtime board, appended rather than opened as a new milestone so the incomplete v1.0 payments phases are not archived
+
 ### Pending Todos
 
 None yet.
@@ -101,6 +105,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-30T07:22:13.010Z
-Stopped at: Completed 02-spike-gate plan 01 (02-01-PLAN.md)
-Resume file: None
+Last session: 2026-08-02T08:01:25.001Z
+Stopped at: Phase 5 context gathered
+Resume file: .planning/phases/05-space-governance-substrate-and-space-admin-operations-dashboard/05-CONTEXT.md
