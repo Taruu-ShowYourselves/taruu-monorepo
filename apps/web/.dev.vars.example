@@ -73,6 +73,9 @@ UPSTASH_REDIS_REST_TOKEN=
 # Cron auth (guards /api/cron/* — see DNS-SETUP.md "Cron")
 CRON_SECRET=
 
+# Optional — set to false to remove the space-admin dashboard routes and pages (issue #75). Defaults to on.
+SPACE_ADMIN_ENABLED=true
+
 # Public app URLs
 NEXT_PUBLIC_APP_URL=https://taruu.co.il
 EXPO_PUBLIC_API_URL=https://api.taruu.co.il
