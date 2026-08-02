@@ -116,16 +116,18 @@ Plans:
   6. A user-scoped Supabase client exists that carries a short-lived Supabase-signed token minted from the verified session, so `public.user_id()` returns the real user id and RLS actually enforces; the dead `withUserContext()`/`set_claim` transport is deleted rather than left to mislead.
   7. Phase 5's three new tables carry real working policies rather than deny-all, with any role-table lookup inside a policy routed through a `SECURITY DEFINER` helper so evaluation cannot recurse.
   8. An automated test proves it: a token minted for user A cannot read user B's rows, and anon-key reads return zero rows. This replaces the manual-only check and is the harness Phase 7 extends.
-**Plans**: 7 plans in 5 waves
+**Plans**: 9 plans in 6 waves
 
 Plans:
-- [ ] 05-01-PLAN.md — Schema: role_grants + community_manager_applications + append-only role_grant_events, DB types, shared Zod contracts (wave 1)
-- [ ] 05-02-PLAN.md — Authorization core: pure policy, role repository, and `requireRole` — the single enforcement point (wave 2)
-- [ ] 05-03-PLAN.md — Applicant API: POST/GET /api/manager-applications (wave 3)
-- [ ] 05-04-PLAN.md — Admin review API: scoped queue, approve/reject, suspend/reinstate/revoke, audit on every transition (wave 3)
-- [ ] 05-05-PLAN.md — Applicant screen /he/settings/community-manager + UX-only roles on the profile (wave 4)
-- [ ] 05-06-PLAN.md — Admin review console /he/admin/manager-applications (wave 4)
-- [ ] 05-07-PLAN.md — Manual gate: apply migration, anon-key RLS + append-only proof, super_admin bootstrap, visual evidence (wave 5, checkpoints)
+- [ ] 05-01-PLAN.md — RLS transport: short-lived Supabase token minter, anon-key user-scoped client, delete `withUserContext`/`set_claim` (wave 1)
+- [ ] 05-02-PLAN.md — Schema: role_grants + community_manager_applications + append-only role_grant_events, SECURITY DEFINER scope helpers, real RLS policies, DB types, shared Zod contracts (wave 2)
+- [ ] 05-03-PLAN.md — Authorization core: pure policy, role repository, and `requireRole` — the single enforcement point (wave 3)
+- [ ] 05-04-PLAN.md — RLS test harness: cross-user and anon denial proven automatically; the repo's first RLS test, extended by Phase 7 (wave 3)
+- [ ] 05-05-PLAN.md — Applicant API: POST/GET /api/manager-applications (wave 4)
+- [ ] 05-06-PLAN.md — Admin review API: scoped queue, approve/reject, suspend/reinstate/revoke, audit on every transition (wave 4)
+- [ ] 05-07-PLAN.md — Applicant screen /he/settings/community-manager + UX-only roles on the profile (wave 5)
+- [ ] 05-08-PLAN.md — Admin review console /he/admin/manager-applications (wave 5)
+- [ ] 05-09-PLAN.md — Manual gate: apply both migrations, set the Worker JWT secret, run the RLS harness live, append-only proof, super_admin bootstrap, visual evidence (wave 6, checkpoints)
 
 ### Phase 6: Manager Billing + Subscription
 
