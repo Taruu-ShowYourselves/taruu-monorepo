@@ -255,18 +255,14 @@ export function ParticipationFlow({
             <h2 className={styles.panelTitle}>אשרו את הקול שלכם</h2>
 
             <p className={styles.lead}>
-              ההשתתפות חינם, בלי תשלום ובלי חסמים. נדרש אימות זהות ותושבוּת חד-פעמי,
-              כדי שכל קול ישויך לתושב אמיתי אחד. הקול נרשם פעם אחת ואי אפשר לשנות
-              אותו.
+              נדרש אימות זהות ותושבוּת חד-פעמי, כדי שכל קול ישויך לתושב אמיתי אחד.
+              הקול נרשם פעם אחת ואי אפשר לשנות אותו.
             </p>
 
             <Receipt
               className={styles.receipt}
               kicker="פתק הצבעה · BALLOT"
-              rows={[
-                { label: 'עמדה', value: selectedText || '-' },
-                { label: 'עלות', value: 'חינם', strong: true },
-              ]}
+              rows={[{ label: 'עמדה', value: selectedText || '-', strong: true }]}
               footer={`הצבעה ${voteId}`}
             />
 
@@ -349,7 +345,6 @@ export function ParticipationFlow({
               title="רישום השתתפות"
               rows={[
                 { label: 'עמדה', value: selectedText || '-' },
-                { label: 'עלות', value: 'חינם' },
                 { label: 'סטטוס', value: 'נרשם', strong: true },
                 { label: 'מספר רישום', value: ballot.id },
               ]}

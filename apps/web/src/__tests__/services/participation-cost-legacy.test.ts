@@ -9,8 +9,8 @@
  * constant. This suite fails if any of those three surfaces regress.
  *
  * This repo has no component-test setup (vitest runs `environment: 'node'`,
- * @testing-library is not installed), so — same pattern as
- * dashboard-free-mvp.test.ts — these assert against SOURCE. Every requirement
+ * @testing-library is not installed), so - same pattern as
+ * dashboard-free-mvp.test.ts - these assert against SOURCE. Every requirement
  * here is "this string / this export must (not) exist", which is exactly
  * what a regression would reintroduce.
  *
@@ -75,7 +75,7 @@ describe('shared constants', () => {
     expect(sharedConstantsCode).not.toMatch(BARE_VOTE_COST);
   });
 
-  it('leaves CREATE_VOTE_COST untouched — vote creation is still paid', () => {
+  it('leaves CREATE_VOTE_COST untouched - vote creation is still paid', () => {
     expect(sharedConstantsCode).toContain('export const CREATE_VOTE_COST = 50');
   });
 
@@ -98,8 +98,12 @@ describe('mobile vote screen', () => {
     expect(mobileVoteScreenCode).not.toMatch(/בבלוקצ'יין|בבלוקצ׳יין/);
   });
 
-  it('states that participation is free', () => {
-    expect(mobileVoteScreenCode).toContain('ההשתתפות חינם');
+  it('says nothing about money at all — not even that it is free', () => {
+    // Same rule as the web flow: a resident casting a vote should never be
+    // prompted to think about money, and "free" is still a claim about price.
+    for (const moneyWord of ['חינם', 'עלות', 'תשלום', '₪']) {
+      expect(mobileVoteScreenCode).not.toContain(moneyWord);
+    }
   });
 });
 
