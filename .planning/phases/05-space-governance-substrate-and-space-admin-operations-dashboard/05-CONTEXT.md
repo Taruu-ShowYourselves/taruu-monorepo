@@ -44,6 +44,28 @@ The substrate (typed `spaces`, membership, explicit capability grants, immutable
 - No email for v1. Resend is wired but email needs unsubscribe handling plus bounce/complaint tracking before an admin-authored surface can safely use it.
 - Audience preview, quota, and opt-out are all enforced **server-side before any send** — the delivery log must prove that delivered recipients equal the previewed authorized audience.
 
+### Super-admin bootstrap — minimal `users.is_platform_admin`
+
+- Added 2026-08-02, after research found there is **no super-admin concept anywhere in this repo**, so nothing can mint the first capability grant.
+- A single boolean on `users`, used for exactly two things: `grant.manage` and suspension. It confers **no space capabilities and no data access** — it is not a general admin boolean and must never be read as one.
+- Rejected: platform-scope grants expressed as `space_id IS NULL`. Null-as-wildcard is precisely the shape that becomes a cross-space leak the first time a scoping predicate forgets the null case, and SPACE-03 is the phase's headline criterion.
+- #68 can widen this deliberately later. It must not widen by accident.
+
+### Vote creation — charge on approval, not on submission
+
+- Added 2026-08-02. `POST /api/votes` charges ₪50 up front today; putting creation behind review would mean charging for something that can then be rejected.
+- Submission is **free** and creates a proposal in `in_review`. The ₪50 charges when an admin approves and the vote publishes.
+- No refund path, no credit-note (זיכוי) mechanics, no money held during review — which also keeps this phase out of the consumer-protection question that phases 3–4 have not yet answered.
+- **This reorders live payment code.** `apps/web/src/server/app/votes/create-vote.ts` currently charges then creates; planning must treat the reordering as a first-class task with its own tests, not a side effect of the review gate.
+- Note for the planner: the payment rails themselves (phases 3–4) have not shipped. Plan against the create-vote flow as it exists on `main` today.
+
+### Permitted-content controls — folded into proposal review
+
+- Added 2026-08-02, resolving the gap between SPACE-06 and the UI contract's six surfaces.
+- Content moderation actions (hide, unhide, flag) attach to the existing proposal/vote detail surface. No seventh route, no seventh screenshot.
+- Every such action is still audited under SPACE-04 with a required reason, identical to the other authority-changing actions.
+- This gives the `לנהל תוכן מותר` capability an actual home — an admin holding it must have somewhere to act.
+
 ### Claude's Discretion
 
 - Capability vocabulary (the concrete list of action names) and which bundles constitute the shipped role presets.
