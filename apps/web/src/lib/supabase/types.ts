@@ -36,6 +36,11 @@ export interface Database {
           verification_status: 'none' | 'pending' | 'verified' | 'failed';
           qubik_wallet_address: string | null;
           identity_verified_at: string | null;
+          /**
+           * Bootstrap marker for cross-space grant management and grant
+           * suspension only. Confers no space capability and no data access.
+           */
+          is_platform_admin: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -59,6 +64,7 @@ export interface Database {
           verification_status?: 'none' | 'pending' | 'verified' | 'failed';
           qubik_wallet_address?: string | null;
           identity_verified_at?: string | null;
+          is_platform_admin?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -82,6 +88,7 @@ export interface Database {
           verification_status?: 'none' | 'pending' | 'verified' | 'failed';
           qubik_wallet_address?: string | null;
           identity_verified_at?: string | null;
+          is_platform_admin?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -403,12 +410,26 @@ export interface Database {
           title: string;
           description: string;
           municipality_id: string;
-          status: 'pending' | 'active' | 'ended' | 'resolving' | 'resolved' | 'failed';
+          status:
+            | 'draft'
+            | 'in_review'
+            | 'changes_requested'
+            | 'rejected'
+            | 'pending'
+            | 'active'
+            | 'ended'
+            | 'resolving'
+            | 'resolved'
+            | 'failed';
           start_date: string;
           end_date: string;
           participant_count: number;
           resolved_at: string | null;
           resolution_status: 'pending' | 'resolving' | 'resolved' | 'failed' | null;
+          hidden_at: string | null;
+          hidden_by: string | null;
+          flagged_at: string | null;
+          flagged_by: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -418,12 +439,26 @@ export interface Database {
           title: string;
           description: string;
           municipality_id: string;
-          status?: 'pending' | 'active' | 'ended' | 'resolving' | 'resolved' | 'failed';
+          status?:
+            | 'draft'
+            | 'in_review'
+            | 'changes_requested'
+            | 'rejected'
+            | 'pending'
+            | 'active'
+            | 'ended'
+            | 'resolving'
+            | 'resolved'
+            | 'failed';
           start_date?: string;
           end_date: string;
           participant_count?: number;
           resolved_at?: string | null;
           resolution_status?: 'pending' | 'resolving' | 'resolved' | 'failed' | null;
+          hidden_at?: string | null;
+          hidden_by?: string | null;
+          flagged_at?: string | null;
+          flagged_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -433,12 +468,26 @@ export interface Database {
           title?: string;
           description?: string;
           municipality_id?: string;
-          status?: 'pending' | 'active' | 'ended' | 'resolving' | 'resolved' | 'failed';
+          status?:
+            | 'draft'
+            | 'in_review'
+            | 'changes_requested'
+            | 'rejected'
+            | 'pending'
+            | 'active'
+            | 'ended'
+            | 'resolving'
+            | 'resolved'
+            | 'failed';
           start_date?: string;
           end_date?: string;
           participant_count?: number;
           resolved_at?: string | null;
           resolution_status?: 'pending' | 'resolving' | 'resolved' | 'failed' | null;
+          hidden_at?: string | null;
+          hidden_by?: string | null;
+          flagged_at?: string | null;
+          flagged_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -987,6 +1036,232 @@ export interface Database {
         Update: Record<string, never>;
         Relationships: [];
       };
+      spaces: {
+        Row: {
+          id: string;
+          type: 'municipality' | 'national' | 'organization' | 'urban_area' | 'nationwide_civic';
+          slug: string;
+          name_he: string;
+          municipality_code: string | null;
+          geography: Json | null;
+          owner_user_id: string | null;
+          verification_state: 'unverified' | 'pending' | 'verified';
+          notification_monthly_quota: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          type?: 'municipality' | 'national' | 'organization' | 'urban_area' | 'nationwide_civic';
+          slug: string;
+          name_he: string;
+          municipality_code?: string | null;
+          geography?: Json | null;
+          owner_user_id?: string | null;
+          verification_state?: 'unverified' | 'pending' | 'verified';
+          notification_monthly_quota?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          type?: 'municipality' | 'national' | 'organization' | 'urban_area' | 'nationwide_civic';
+          slug?: string;
+          name_he?: string;
+          municipality_code?: string | null;
+          geography?: Json | null;
+          owner_user_id?: string | null;
+          verification_state?: 'unverified' | 'pending' | 'verified';
+          notification_monthly_quota?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      space_capability_grants: {
+        Row: {
+          id: string;
+          space_id: string;
+          user_id: string;
+          capability:
+            | 'proposal.read'
+            | 'proposal.approve'
+            | 'proposal.reject'
+            | 'member.read'
+            | 'member.suspend'
+            | 'grant.create'
+            | 'grant.revoke'
+            | 'content.moderate'
+            | 'metrics.read'
+            | 'notification.send'
+            | 'audit.read';
+          /**
+           * Provenance for the UI preset picker only. Never consulted at
+           * authorization time.
+           */
+          granted_via_role: string | null;
+          granted_by: string;
+          granted_at: string;
+          suspended_at: string | null;
+          suspended_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          space_id: string;
+          user_id: string;
+          capability:
+            | 'proposal.read'
+            | 'proposal.approve'
+            | 'proposal.reject'
+            | 'member.read'
+            | 'member.suspend'
+            | 'grant.create'
+            | 'grant.revoke'
+            | 'content.moderate'
+            | 'metrics.read'
+            | 'notification.send'
+            | 'audit.read';
+          granted_via_role?: string | null;
+          granted_by: string;
+          granted_at?: string;
+          suspended_at?: string | null;
+          suspended_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          space_id?: string;
+          user_id?: string;
+          capability?:
+            | 'proposal.read'
+            | 'proposal.approve'
+            | 'proposal.reject'
+            | 'member.read'
+            | 'member.suspend'
+            | 'grant.create'
+            | 'grant.revoke'
+            | 'content.moderate'
+            | 'metrics.read'
+            | 'notification.send'
+            | 'audit.read';
+          granted_via_role?: string | null;
+          granted_by?: string;
+          granted_at?: string;
+          suspended_at?: string | null;
+          suspended_by?: string | null;
+        };
+        Relationships: [];
+      };
+      space_member_suspensions: {
+        Row: {
+          id: string;
+          space_id: string;
+          user_id: string;
+          suspended_at: string;
+          suspended_by: string;
+          lifted_at: string | null;
+          lifted_by: string | null;
+          reason: string;
+        };
+        Insert: {
+          id?: string;
+          space_id: string;
+          user_id: string;
+          suspended_at?: string;
+          suspended_by: string;
+          lifted_at?: string | null;
+          lifted_by?: string | null;
+          reason: string;
+        };
+        Update: {
+          id?: string;
+          space_id?: string;
+          user_id?: string;
+          suspended_at?: string;
+          suspended_by?: string;
+          lifted_at?: string | null;
+          lifted_by?: string | null;
+          reason?: string;
+        };
+        Relationships: [];
+      };
+      space_audit_log: {
+        Row: {
+          id: string;
+          space_id: string;
+          actor_user_id: string;
+          action: string;
+          object_type:
+            | 'vote'
+            | 'grant'
+            | 'space'
+            | 'member'
+            | 'notification_campaign'
+            | 'content'
+            | 'escalation';
+          object_id: string | null;
+          prior_state: Json | null;
+          new_state: Json | null;
+          reason: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          space_id: string;
+          actor_user_id: string;
+          action: string;
+          object_type:
+            | 'vote'
+            | 'grant'
+            | 'space'
+            | 'member'
+            | 'notification_campaign'
+            | 'content'
+            | 'escalation';
+          object_id?: string | null;
+          prior_state?: Json | null;
+          new_state?: Json | null;
+          reason: string;
+          created_at?: string;
+        };
+        /**
+         * The table is append-only, enforced by trigger and REVOKE. No
+         * application path may produce an update payload, so there is no
+         * legal shape for one.
+         */
+        Update: Record<string, never>;
+        Relationships: [];
+      };
+      platform_escalations: {
+        Row: {
+          id: string;
+          /** NULL when the caller's target space did not resolve; see raw_space_id. */
+          space_id: string | null;
+          raw_space_id: string;
+          raised_by: string;
+          body: string;
+          status: 'open' | 'acknowledged' | 'closed';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          space_id?: string | null;
+          raw_space_id: string;
+          raised_by: string;
+          body: string;
+          status?: 'open' | 'acknowledged' | 'closed';
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          space_id?: string | null;
+          raw_space_id?: string;
+          raised_by?: string;
+          body?: string;
+          status?: 'open' | 'acknowledged' | 'closed';
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -1054,13 +1329,39 @@ export interface Database {
           aggregates_updated_at: string;
         }[];
       };
+      // SQL lands in plan 05-07 (20260802000004_space_admin_metrics.sql); typed
+      // here so a parallel-wave plan never has to reopen this hand-maintained file.
+      space_admin_metrics: {
+        Args: { space_uuid: string };
+        Returns: {
+          registered_residents: number | null;
+          registered_residents_status: 'available' | 'suppressed' | 'unavailable';
+          active_participants_30d: number | null;
+          active_participants_30d_status: 'available' | 'suppressed' | 'unavailable';
+          proposals_submitted: number | null;
+          proposals_submitted_status: 'available' | 'suppressed' | 'unavailable';
+          participation_rate_pct: number | null;
+          participation_rate_pct_status: 'available' | 'suppressed' | 'unavailable';
+          generated_at: string;
+        }[];
+      };
     };
     Enums: {
       verification_status: 'none' | 'pending' | 'verified' | 'failed';
       payment_status: 'pending' | 'completed' | 'failed' | 'refunded';
       payment_type: 'vote_participation' | 'vote_creation';
       social_provider: 'google' | 'facebook' | 'instagram';
-      vote_status: 'pending' | 'active' | 'ended' | 'resolving' | 'resolved' | 'failed';
+      vote_status:
+        | 'draft'
+        | 'in_review'
+        | 'changes_requested'
+        | 'rejected'
+        | 'pending'
+        | 'active'
+        | 'ended'
+        | 'resolving'
+        | 'resolved'
+        | 'failed';
       entitlement_type: 'vote' | 'create_vote' | 'tokens';
       nft_type: 'verified_voter' | 'civic_patron';
     };
@@ -1096,3 +1397,8 @@ export type VoteSource = Tables<'vote_sources'>;
 export type IdentityDocument = Tables<'identity_documents'>;
 export type IdentityDocumentEvent = Tables<'identity_document_events'>;
 export type KnessetItem = Tables<'knesset_items'>;
+export type Space = Tables<'spaces'>;
+export type SpaceCapabilityGrant = Tables<'space_capability_grants'>;
+export type SpaceMemberSuspension = Tables<'space_member_suspensions'>;
+export type SpaceAuditRow = Tables<'space_audit_log'>;
+export type PlatformEscalation = Tables<'platform_escalations'>;
