@@ -47,7 +47,7 @@ interface Vote {
   creator: {
     name: string;
   };
-  /** Present on Knesset-agenda votes — plenum background for the fact sheet. */
+  /** Present on Knesset-agenda votes - plenum background for the fact sheet. */
   knesset?: KnessetContext;
 }
 
@@ -96,7 +96,7 @@ export default function VoteDetailPage() {
       if (response.ok) {
         const data = await response.json();
         // Contract shape: { vote: { ..., options: [{label/voteCount + text/votes
-        // aliases}], userVote?: optionId } } — normalize defensively so a
+        // aliases}], userVote?: optionId } } - normalize defensively so a
         // missing alias can never crash the render again.
         const raw = data.vote ?? data;
         setVote({
@@ -277,7 +277,7 @@ export default function VoteDetailPage() {
 
           <div className={styles.ruleHeavy} aria-hidden />
 
-          {/* Article masthead — kicker + headline + standfirst */}
+          {/* Article masthead - kicker + headline + standfirst */}
           <header className={styles.head}>
             <span className={styles.kicker}>
               <span aria-hidden className={styles.kickerTick} />
@@ -288,7 +288,7 @@ export default function VoteDetailPage() {
               {vote.title}
             </motion.h1>
 
-            {/* Stats — mono figures */}
+            {/* Stats - mono figures */}
             <div className={styles.stats}>
               <div className={styles.stat}>
                 <span className={styles.statValue}>{totalVotes.toLocaleString('he-IL')}</span>
@@ -309,7 +309,7 @@ export default function VoteDetailPage() {
 
           {/* Broadsheet spread: editorial column + participation panel */}
           <div className={styles.spread}>
-            {/* Editorial column — description */}
+            {/* Editorial column - description */}
             <article className={styles.story}>
               <span className={styles.colKicker}>ההצעה</span>
               <p className={styles.description}>{vote.description}</p>
@@ -323,7 +323,7 @@ export default function VoteDetailPage() {
                 <MunicipalityLink name={vote.municipality} />
               </div>
 
-              {/* Document summary — what the attached bill/proposal says */}
+              {/* Document summary - what the attached bill/proposal says */}
               {vote.knesset?.summary ? (
                 <section className={styles.docSummary} aria-label="תקציר המסמך">
                   <span className={styles.colKicker}>
@@ -346,12 +346,12 @@ export default function VoteDetailPage() {
                     ) : null}
                   </div>
                   <p className={styles.docSummaryNote}>
-                    תקציר אוטומטי מתוך המסמך הרשמי — הנוסח המחייב הוא המקור.
+                    תקציר אוטומטי מתוך המסמך הרשמי - הנוסח המחייב הוא המקור.
                   </p>
                 </section>
               ) : null}
 
-              {/* Background fact sheet — plenum context for Knesset votes */}
+              {/* Background fact sheet - plenum context for Knesset votes */}
               {vote.knesset ? (
                 <section className={styles.factSheet} aria-label="רקע">
                   <span className={styles.colKicker}>רקע · BACKGROUND</span>
@@ -415,25 +415,25 @@ export default function VoteDetailPage() {
                 </section>
               ) : null}
 
-              {/* Context — what this civic vote measures */}
+              {/* Context - what this civic vote measures */}
               <section className={styles.contextBox} aria-label="ההקשר">
                 <span className={styles.colKicker}>מה מודדים כאן · CONTEXT</span>
                 <p className={styles.contextLead}>
                   {vote.knesset
-                    ? 'הנושא עומד על סדר יומה של מליאת הכנסת. ההצבעה כאן רצה במקביל להליך הרשמי ומודדת דבר אחד: איפה עומד הרוב האזרחי — כדי שעמדת הציבור תעמוד, שקופה ומאומתת, מול עמדת הבית.'
-                    : `הנושא עלה מהשטח. ההצבעה מודדת את עמדת הרוב של התושבים המאומתים, ומייצרת תמונת מצב אחת ברורה שמוגשת לרשות — קשה להתעלם ממספר.`}
+                    ? 'הנושא עומד על סדר יומה של מליאת הכנסת. ההצבעה כאן רצה במקביל להליך הרשמי ומודדת דבר אחד: איפה עומד הרוב האזרחי - כדי שעמדת הציבור תעמוד, שקופה ומאומתת, מול עמדת הבית.'
+                    : `הנושא עלה מהשטח. ההצבעה מודדת את עמדת הרוב של התושבים המאומתים, ומייצרת תמונת מצב אחת ברורה שמוגשת לרשות - קשה להתעלם ממספר.`}
                 </p>
                 <ul className={styles.contextList}>
                   <li>
-                    כל קול מאומת בזהות ובמיקום, נספר פעם אחת ונחתם בבלוקצ׳יין —
-                    בלתי ניתן לשינוי או לזיוף.
+                    כל קול מאומת בזהות ובמיקום ונספר פעם אחת בלבד — קול אחד
+                    לתושב, בלי כפילויות.
                   </li>
                   <li>
                     התוצאות פתוחות לכולם בזמן אמת; בסיום ההצבעה התמונה המלאה
                     נשמרת כרשומה ציבורית קבועה.
                   </li>
                   <li>
-                    ההצבעה אינה מחייבת משפטית — היא עמדה אזרחית מדודה, שנועדה
+                    ההצבעה אינה מחייבת משפטית - היא עמדה אזרחית מדודה, שנועדה
                     לעמוד מול מקבלי ההחלטות.
                   </li>
                 </ul>
@@ -456,7 +456,7 @@ export default function VoteDetailPage() {
               </div>
             </article>
 
-            {/* Participation panel — flow when active, results otherwise */}
+            {/* Participation panel - flow when active, results otherwise */}
             <aside className={styles.panelCol}>
               {showFlow && (
                 <ParticipationFlow
@@ -465,7 +465,10 @@ export default function VoteDetailPage() {
                   options={flowOptions}
                   totalVotes={totalVotes}
                   initialOptionId={selectedOption}
-                  onComplete={() => setHasVoted(true)}
+                  onComplete={(optionId: string) => {
+                    setSelectedOption(optionId);
+                    setHasVoted(true);
+                  }}
                 />
               )}
 
@@ -521,14 +524,14 @@ export default function VoteDetailPage() {
                   {hasVoted && (
                     <div className={styles.votedMessage}>
                       <span className={styles.votedGlyph} aria-hidden>✓</span>
-                      הצבעתכם נקלטה ונחתמה בבלוקצ׳יין
+                      הצבעתכם נרשמה ונספרה
                     </div>
                   )}
 
                   <footer className={styles.resultsMeta}>
                     <span>מאומת · זהות + GPS</span>
                     <span className={styles.sep} aria-hidden>■</span>
-                    <span>חתום בבלוקצ׳יין</span>
+                    <span>קול אחד לתושב מאומת</span>
                   </footer>
 
                   {myCert && (
