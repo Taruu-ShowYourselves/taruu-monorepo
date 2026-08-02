@@ -4,10 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { NewsButton } from '@/components/press/NewsButton';
-import { Stepper, Receipt, SealCard } from '@/components/press';
+import { Stepper, Receipt } from '@/components/press';
 import { useReducedMotion } from '@/hooks';
 import { useAuthStore } from '@/stores/authStore';
 import { isEligibleToVote } from '@/lib/verification';
+import { submitParticipation, type RecordedBallot } from './submitParticipation';
 import styles from './ParticipationFlow.module.css';
 
 /* ------------------------------------------------------------------ */
@@ -26,8 +27,8 @@ interface ParticipationFlowProps {
   totalVotes: number;
   /** Pre-selected option (e.g. restored from a deep-link). */
   initialOptionId?: string | null;
-  /** Fired when the flow completes so the page can flip to results. */
-  onComplete: () => void;
+  /** Fired when the receipt is dismissed, with the recorded option id, so the page can flip to results. */
+  onComplete: (optionId: string) => void;
 }
 
 type Stage = 'choice' | 'confirm' | 'receipt';
@@ -35,7 +36,7 @@ type Stage = 'choice' | 'confirm' | 'receipt';
 const STEPS = [
   { label: 'בחירה' },
   { label: 'אישור' },
-  { label: 'חתימה' },
+  { label: 'רישום' },
 ] as const;
 
 const STAGE_INDEX: Record<Stage, number> = {
@@ -47,33 +48,15 @@ const STAGE_INDEX: Record<Stage, number> = {
 /** sessionStorage key for restoring a choice across an auth/verify round-trip. */
 const PENDING_KEY = 'taruu-pending-vote';
 
-/* ------------------------------------------------------------------ */
-/* Helpers                                                            */
-/* ------------------------------------------------------------------ */
-/** Synthesise a plausible blockchain-style hash for the mock seal. */
-function mockHash(): string {
-  const bytes = new Uint8Array(32);
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    crypto.getRandomValues(bytes);
-  } else {
-    for (let i = 0; i < bytes.length; i += 1) bytes[i] = Math.floor(Math.random() * 256);
-  }
-  return (
-    '0x' +
-    Array.from(bytes)
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('')
-  );
-}
-
 /**
- * ParticipationFlow — the press ballot, reshaped (UX flow J2). Choice →
- * confirmation → blockchain receipt + seal. Participation is free; residency is
+ * ParticipationFlow - the press ballot, reshaped (UX flow J2). Choice →
+ * confirmation → server-recorded receipt. Participation is free; residency is
  * verified ONCE elsewhere (/verification), so there is no per-vote GPS step.
  * The auth + verified-resident gate sits at confirmation: guests pick freely,
  * and the selected option is persisted across the sign-in / verification
- * round-trip so nothing is lost. Seals in-page; server-side recording hooks in
- * once the participate API drops its payment-shaped contract.
+ * round-trip so nothing is lost. The ballot is persisted by
+ * `POST /api/votes/[id]/participate` - via `submitParticipation` - before the
+ * receipt is shown; nothing here is chain-anchored.
  */
 export function ParticipationFlow({
   voteId,
@@ -90,11 +73,22 @@ export function ParticipationFlow({
 
   const [stage, setStage] = useState<Stage>('choice');
   const [selectedOption, setSelectedOption] = useState<string | null>(initialOptionId);
-  const [seal, setSeal] = useState<{ hash: string; block: string; ts: string } | null>(null);
+  const [ballot, setBallot] = useState<RecordedBallot | null>(null);
+  const [alreadyRecorded, setAlreadyRecorded] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const selectedText = useMemo(
     () => options.find((o) => o.id === selectedOption)?.text ?? '',
     [options, selectedOption]
+  );
+
+  const recordedAt = useMemo(
+    () =>
+      ballot
+        ? new Date(ballot.createdAt).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' })
+        : '',
+    [ballot]
   );
 
   // Restore a choice persisted before an auth/verify redirect (or ?option=…),
@@ -127,7 +121,7 @@ export function ParticipationFlow({
     try {
       sessionStorage.setItem(PENDING_KEY, JSON.stringify({ voteId, optionId: selectedOption }));
     } catch {
-      /* storage unavailable — non-fatal */
+      /* storage unavailable - non-fatal */
     }
   }, [voteId, selectedOption]);
 
@@ -145,18 +139,23 @@ export function ParticipationFlow({
     setStage('confirm');
   }, [selectedOption]);
 
-  /* ---- Step 2: free confirmation ---- */
-  const sealVote = useCallback(() => {
-    setSeal({
-      hash: mockHash(),
-      block: (18_400_000 + Math.floor(Math.random() * 9999)).toLocaleString('en-US'),
-      ts: new Date().toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' }),
-    });
+  /* ---- Step 2: server-confirmed recording ---- */
+  const recordVote = useCallback(async () => {
+    if (!selectedOption || submitting) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    const result = await submitParticipation({ voteId, optionId: selectedOption });
+    setSubmitting(false);
+    if (result.status === 'rejected') {
+      setSubmitError(result.message);
+      return; // stay on 'confirm'; no receipt, no onComplete
+    }
+    setBallot(result.ballot);
+    setAlreadyRecorded(result.alreadyRecorded);
     setStage('receipt');
-    onComplete();
-  }, [onComplete]);
+  }, [selectedOption, submitting, voteId]);
 
-  const handleConfirm = useCallback(() => {
+  const handleConfirm = useCallback(async () => {
     if (!selectedOption) return;
 
     const back = encodeURIComponent(`/votes/${voteId}`);
@@ -173,8 +172,8 @@ export function ParticipationFlow({
       return;
     }
 
-    sealVote();
-  }, [selectedOption, voteId, sealVote, isAuthenticated, isVerifiedResident, persistPending, router]);
+    await recordVote();
+  }, [selectedOption, voteId, recordVote, isAuthenticated, isVerifiedResident, persistPending, router]);
 
   /* ------------------------------------------------------------------ */
   return (
@@ -182,7 +181,7 @@ export function ParticipationFlow({
       <Stepper steps={STEPS as unknown as { label: string }[]} current={STAGE_INDEX[stage]} />
 
       <motion.div key={stage} className={styles.stage} {...stepAnim}>
-        {/* ---- STEP 1 — בחירה ---- */}
+        {/* ---- STEP 1 - בחירה ---- */}
         {stage === 'choice' && (
           <section className={styles.panel} aria-label="בחירת עמדה">
             <span className={styles.kicker}>
@@ -227,7 +226,9 @@ export function ParticipationFlow({
               })}
             </ul>
 
-            <p className={styles.trust}>הקול שלכם ייחתם בבלוקצ׳יין. אי אפשר לשנות אותו בדיעבד.</p>
+            <p className={styles.trust}>
+              הקול שלכם נרשם פעם אחת ומשויך לתושב מאומת. אי אפשר לשנות אותו בדיעבד.
+            </p>
 
             <div className={styles.actions}>
               <NewsButton
@@ -244,7 +245,7 @@ export function ParticipationFlow({
           </section>
         )}
 
-        {/* ---- STEP 2 — אישור ---- */}
+        {/* ---- STEP 2 - אישור ---- */}
         {stage === 'confirm' && (
           <section className={styles.panel} aria-label="אישור הקול">
             <span className={styles.kicker}>
@@ -254,24 +255,24 @@ export function ParticipationFlow({
             <h2 className={styles.panelTitle}>אשרו את הקול שלכם</h2>
 
             <p className={styles.lead}>
-              ההשתתפות חינם, בלי תשלום ובלי חסמים. נדרש רק אימות זהות ומיקום,
-              כדי שכל קול ישויך לתושב אמיתי אחד. הקול ייחתם בבלוקצ׳יין ולא יהיה
-              ניתן לשינוי.
+              ההשתתפות חינם, בלי תשלום ובלי חסמים. נדרש אימות זהות ותושבוּת חד-פעמי,
+              כדי שכל קול ישויך לתושב אמיתי אחד. הקול נרשם פעם אחת ואי אפשר לשנות
+              אותו.
             </p>
 
             <Receipt
               className={styles.receipt}
               kicker="פתק הצבעה · BALLOT"
               rows={[
-                { label: 'עמדה', value: selectedText || '—' },
+                { label: 'עמדה', value: selectedText || '-' },
                 { label: 'עלות', value: 'חינם', strong: true },
               ]}
               footer={`הצבעה ${voteId}`}
             />
 
-            <p className={styles.trust}>מאומת זהות ומיקום · חתום בבלוקצ׳יין.</p>
+            <p className={styles.trust}>מאומת זהות ותושבוּת · נרשם פעם אחת.</p>
 
-            {/* Gate notice — what the confirm button will do next */}
+            {/* Gate notice - what the confirm button will do next */}
             {!isAuthenticated ? (
               <p className={styles.gateNote}>
                 <span aria-hidden>■ </span>
@@ -284,24 +285,35 @@ export function ParticipationFlow({
               </p>
             ) : null}
 
+            {submitError && (
+              <p className={styles.errorNote} role="alert">
+                <span aria-hidden>■ </span>
+                {submitError}
+              </p>
+            )}
+
             <div className={styles.actions}>
               <NewsButton
                 variant="red"
                 size="lg"
                 className={styles.cta}
                 onClick={handleConfirm}
+                disabled={submitting}
                 trailing={<span aria-hidden>←</span>}
               >
                 {!isAuthenticated
                   ? 'התחברו והשלימו'
                   : !isVerifiedResident
                     ? 'אמתו תושבוּת והשלימו'
-                    : 'אשרו והצביעו'}
+                    : submitting
+                      ? 'רושמים את הקול…'
+                      : 'אשרו והצביעו'}
               </NewsButton>
               <button
                 type="button"
                 className={styles.backLink}
                 onClick={() => setStage('choice')}
+                disabled={submitting}
               >
                 ↳ חזרה לבחירה
               </button>
@@ -309,43 +321,54 @@ export function ParticipationFlow({
           </section>
         )}
 
-        {/* ---- STEP 3 — אישור + חתימה ---- */}
-        {stage === 'receipt' && seal && (
-          <section className={styles.panel} aria-label="קבלה וחתימה">
+        {/* ---- STEP 3 - רישום ---- */}
+        {stage === 'receipt' && ballot && (
+          <section className={styles.panel} aria-label="קבלה ורישום">
             <span className={styles.kicker}>
               <span aria-hidden className={styles.kickerTick} />
-              שלב 03 · חתימה
+              שלב 03 · רישום
             </span>
             <h2 className={styles.panelTitle}>
-              הקול שלכם <span className={styles.red}>נחתם.</span>
+              הקול שלכם <span className={styles.red}>נרשם.</span>
             </h2>
             <p className={styles.lead}>
-              ההצבעה נקלטה ונחתמה. בחרתם: <strong>{selectedText}</strong>.
+              {alreadyRecorded ? (
+                <>
+                  כבר הצבעתם בהצבעה הזו. זה הרישום הקיים שלכם: <strong>{selectedText}</strong>.
+                </>
+              ) : (
+                <>
+                  הרישום הושלם. בחרתם: <strong>{selectedText}</strong>.
+                </>
+              )}
             </p>
 
             <Receipt
               className={styles.receipt}
               kicker="קבלה · RECEIPT"
-              title="השתתפות בהצבעה"
+              title="רישום השתתפות"
               rows={[
-                { label: 'עמדה', value: selectedText || '—' },
+                { label: 'עמדה', value: selectedText || '-' },
                 { label: 'עלות', value: 'חינם' },
-                { label: 'סטטוס', value: 'נחתם', strong: true },
+                { label: 'סטטוס', value: 'נרשם', strong: true },
+                { label: 'מספר רישום', value: ballot.id },
               ]}
-              footer={`הצבעה ${voteId} · ${seal.ts}`}
+              footer={`הצבעה ${voteId} · ${recordedAt}`}
             />
 
-            <SealCard
-              className={styles.seal}
-              status="sealed"
-              hash={seal.hash}
-              meta={[
-                { label: 'BLOCK', value: seal.block },
-                { label: 'TIME', value: seal.ts },
-              ]}
-            />
+            <p className={styles.trust}>הרישום נשמר בשרת ומשויך לתושב מאומת אחד.</p>
 
-            <p className={styles.trust}>✓ חתום בבלוקצ׳יין · בלתי ניתן לשינוי.</p>
+            <div className={styles.actions}>
+              <NewsButton
+                variant="red"
+                size="lg"
+                className={styles.cta}
+                onClick={() => onComplete(ballot.optionId)}
+                trailing={<span aria-hidden>←</span>}
+              >
+                צפו בתוצאות
+              </NewsButton>
+            </div>
           </section>
         )}
       </motion.div>
