@@ -61,10 +61,14 @@ Plans:
   3. `ParticipationFlow.tsx` calls the endpoint and advances to the receipt only after a server-confirmed write; a failed or rejected write shows a Hebrew/RTL error and no seal, and never leaves the user believing an unrecorded vote was counted.
   4. `mockHash()` is gone and no user-facing copy claims a blockchain seal (`נחתם`, `✓ חתום בבלוקצ׳יין · בלתי ניתן לשינוי`) unless an actual chain write backs it — the receipt states only verifiable facts about the recorded ballot.
   5. The ₪3 legacy is reconciled across the monorepo: the participate route no longer mints 3 tokens or emails `amount: 3` on a free vote, and `packages/shared/src/constants/index.ts` no longer leaves mobile (`apps/mobile/app/vote/[id].tsx:340`) charging ₪3 for what web gives free.
-**Plans**: TBD
+**Plans**: 5 plans in 2 waves
 
 Plans:
-- [ ] TBD (run `/gsd:plan-phase 02.1` to break down)
+- [ ] 02.1-01-PLAN.md — Free-participation contract: shared Zod schema + types + api-client, and drop the fabricated chain/GPS fields from participation history [VOTE-01, VOTE-05] (wave 1)
+- [ ] 02.1-02-PLAN.md — Server persistence primitives: `recordUserVoteOnce` (UNIQUE-violation tolerant) + server-side voter eligibility mirroring the client rule [VOTE-01, VOTE-03] (wave 1)
+- [ ] 02.1-03-PLAN.md — ₪3 legacy: retire `VOTE_COST`, honest mobile cost copy, pin the legacy GI rail locally, guard test [VOTE-05] (wave 1)
+- [ ] 02.1-04-PLAN.md — Rewrite `/api/votes/[id]/participate` to the free contract; rewrite its 30-test suite in place [VOTE-01, VOTE-03, VOTE-05] (wave 2)
+- [ ] 02.1-05-PLAN.md — Client: extract `submitParticipation`, server-confirmed write, honest receipt, remove `mockHash`/`SealCard`/chain copy from the casting funnel [VOTE-02, VOTE-04] (wave 2)
 
 ### Phase 3: Payment Rails + Hardening
 **Goal**: A voter sets up their card once and votes freely all month after a single ₪6 first-vote-of-the-month charge — the full GI card-on-file membership loop (card setup, once-per-calendar-month token charge, charge-then-commit, monthly-pool accrual, receipt, Paddle cutover) is implemented, idempotent, and hardened against the security gaps identified in CONCERNS.md.
@@ -145,7 +149,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Clean Foundation | 2/2 | Done (audit: partial — see AUDIT) | 2026-06-29 |
 | 2. Spike + Gate | 2/2 | Complete (audit: gate NOT passed) | 2026-06-30 |
-| 02.1 Participation Persistence | 0/TBD | **Not started — P0, URGENT** | - |
+| 02.1 Participation Persistence | 0/5 | **Planned — P0, URGENT, ready to execute** | - |
 | 3. Payment Rails + Hardening | 0/TBD | Blocked — requirements contradicted, needs re-scope | - |
 | 4. Go-Live | 0/TBD | Not started (audit: GO-01 de-facto partial) | - |
 | 5. RBAC + Admin Review | 0/7 | Planned — unblocked; carries issue #76 | - |
