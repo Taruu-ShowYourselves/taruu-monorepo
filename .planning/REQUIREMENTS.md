@@ -41,6 +41,16 @@ This milestone: move vote payments to a Green Invoice card-on-file **membership*
 - [ ] **GO-01**: The app deploys to Cloudflare Workers with real credentials and GI Prime live.
 - [ ] **GO-02**: An end-to-end money check passes — one real ₪50 create + one real ₪5 participation, money lands, treasury ledger reconciles, webhook idempotent on replay.
 
+### Participation Persistence (Phase 02.1 — P0 from the v1.0 audit, URGENT)
+
+Free participation shipped in `cfa5d25` without resolving the participate API's payment-shaped contract; the UI bypassed the server entirely. These requirements exist because the live site currently shows residents a signed-and-sealed receipt for votes it never records.
+
+- [ ] **VOTE-01**: `/api/votes/[id]/participate` accepts a free-participation request with no `paymentTxId` and never returns 402 for it, while remaining gated on session and residency — the payment-shaped contract is removed, not bypassed.
+- [ ] **VOTE-02**: The participation flow calls the server and reaches the receipt only on a confirmed write; a rejected or failed write shows a Hebrew/RTL error and no seal. A repeated submission records exactly one vote.
+- [ ] **VOTE-03**: A recorded free vote produces a `user_votes` row, an `incrementVoteOption` bump, and an updated `participant_count` — the same persistence the paid path got via `recordUserVote`.
+- [ ] **VOTE-04**: `mockHash()` is removed and no user-facing copy claims a blockchain seal unless an actual chain write backs it; the receipt states only verifiable facts about the recorded ballot.
+- [ ] **VOTE-05**: The ₪3 legacy is reconciled — the participate route stops minting 3 tokens and emailing `amount: 3` for a free vote, and `packages/shared/src/constants/index.ts` no longer leaves mobile charging ₪3 for what web gives free.
+
 ### RBAC + Admin Review (Phase 5 — issue #79a, post-launch)
 
 - [ ] **RBAC-01**: A roles/role-grants schema exists with `super_admin`, `space_admin`, and `community_manager`, scoped per space where applicable — grants are rows with an explicit lifecycle, not a boolean column on `users`.
@@ -92,6 +102,11 @@ This milestone: move vote payments to a Green Invoice card-on-file **membership*
 | SPIKE-01 | Phase 2 | Complete |
 | SPIKE-02 | Phase 2 | Complete |
 | SPIKE-03 | Phase 2 | Complete |
+| VOTE-01 | Phase 02.1 | Pending |
+| VOTE-02 | Phase 02.1 | Pending |
+| VOTE-03 | Phase 02.1 | Pending |
+| VOTE-04 | Phase 02.1 | Pending |
+| VOTE-05 | Phase 02.1 | Pending |
 | SEC-02 | Phase 3 | Pending |
 | SEC-03 | Phase 3 | Pending |
 | SEC-04 | Phase 3 | Pending |
@@ -116,9 +131,12 @@ This milestone: move vote payments to a Green Invoice card-on-file **membership*
 | MGR-04 | Phase 6 | Pending |
 | MGR-05 | Phase 6 | Pending |
 
-**Coverage:** 28/28 v1 requirements mapped — 0 orphaned
+**Coverage:** 33/33 v1 requirements mapped — 0 orphaned
+
+> **Audit note (2026-08-02):** the checkbox and Status columns above predate `.planning/v1.0-MILESTONE-AUDIT.md` and overstate progress. SPIKE-01/02/03 are marked Complete but their artifacts are unfilled templates. SEC-02 reads Pending but shipped out of phase in `35b0709`. PAY-02/03/04/08 and GO-02 are contradicted by shipped free participation and need rewriting rather than building. Audit-verified coverage is 2/28 of the pre-02.1 set.
 
 ---
 *Requirements defined: 2026-06-28*
 *Traceability populated: 2026-06-28*
-*Last updated: 2026-08-02 — added Phase 5 (RBAC-01..04) and Phase 6 (MGR-01..05) from GitHub issue #79*
+*Updated: 2026-08-02 — added Phase 5 (RBAC-01..04) and Phase 6 (MGR-01..05) from GitHub issue #79*
+*Last updated: 2026-08-02 — added Phase 02.1 (VOTE-01..05) from the v1.0 milestone audit P0 finding*

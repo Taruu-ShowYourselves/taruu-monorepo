@@ -48,6 +48,24 @@ Plans:
 - [ ] 02-01-PLAN.md — GI card-on-file sandbox spike harness (chargeToken MIT call + guarded runner) + SPIKE-RESULT trace [SPIKE-01]
 - [ ] 02-02-PLAN.md — External-track checklists: legal/accountant merchant-of-record + GI Prime/creds/clearing terms [SPIKE-02, SPIKE-03]
 
+### Phase 02.1: Participation Persistence (INSERTED — URGENT)
+
+**Goal**: A resident's free vote is actually recorded. The participation flow reaches the server, the ballot lands in `user_votes`, the tally and participant count move, and the receipt states only what is true — no fabricated blockchain seal.
+**Depends on**: Nothing (P0 defect on live traffic; independent of the payment gate)
+**Source**: `.planning/v1.0-MILESTONE-AUDIT.md` — P0 finding, outside the original requirement set
+**Requirements**: VOTE-01, VOTE-02, VOTE-03, VOTE-04, VOTE-05
+**Context**: Commit `cfa5d25` (2026-07-29) made participation free but never resolved the payment-shaped contract on the participate API — the UI bypassed it instead. `apps/web/src/app/[locale]/votes/[id]/flow/ParticipationFlow.tsx:149-157` seals the vote with `mockHash()` (`crypto.getRandomValues` over 32 bytes) plus a fabricated block number, sets local React state, and stops; the file contains zero `fetch()` calls. `/api/votes/[id]/participate` is fully orphaned (zero client references) and still rejects any body without `paymentTxId` (`route.ts:52`, 402 at `:136-145`) while hardcoding ₪3 semantics (3 tokens at `:190-194`, `amount: 3` at `:224`, `tokensEarned: 3` at `:253`). `recordUserVote` has exactly two call sites — `payments/webhook/route.ts:191` (requires a completed GI payment) and the unreachable participate route (`:200`) — so no free vote can ever persist. This ships on taruu.co.il today.
+**Success Criteria** (what must be TRUE):
+  1. A signed-in, residency-verified resident casting a free vote produces a `user_votes` row, an `incrementVoteOption` bump, and an updated `participant_count` — verified by reading the row back after a real request, not by a client-state assertion.
+  2. `/api/votes/[id]/participate` accepts a free-participation body with no `paymentTxId` and never returns 402 for it; it remains gated on session and residency, and a double submission (double-click, retry, replay) records exactly one vote rather than a second row or a 500.
+  3. `ParticipationFlow.tsx` calls the endpoint and advances to the receipt only after a server-confirmed write; a failed or rejected write shows a Hebrew/RTL error and no seal, and never leaves the user believing an unrecorded vote was counted.
+  4. `mockHash()` is gone and no user-facing copy claims a blockchain seal (`נחתם`, `✓ חתום בבלוקצ׳יין · בלתי ניתן לשינוי`) unless an actual chain write backs it — the receipt states only verifiable facts about the recorded ballot.
+  5. The ₪3 legacy is reconciled across the monorepo: the participate route no longer mints 3 tokens or emails `amount: 3` on a free vote, and `packages/shared/src/constants/index.ts` no longer leaves mobile (`apps/mobile/app/vote/[id].tsx:340`) charging ₪3 for what web gives free.
+**Plans**: TBD
+
+Plans:
+- [ ] TBD (run `/gsd:plan-phase 02.1` to break down)
+
 ### Phase 3: Payment Rails + Hardening
 **Goal**: A voter sets up their card once and votes freely all month after a single ₪6 first-vote-of-the-month charge — the full GI card-on-file membership loop (card setup, once-per-calendar-month token charge, charge-then-commit, monthly-pool accrual, receipt, Paddle cutover) is implemented, idempotent, and hardened against the security gaps identified in CONCERNS.md.
 **Depends on**: Phase 1 (corrective RLS migration in place), Phase 2 SPIKE-01 cleared (sandbox verified)
@@ -107,15 +125,19 @@ Plans:
 
 ## Progress
 
-**Execution Order:** 1 → 2 → 3 → 4 → 5 → 6
+**Execution Order:** 1 → 2 → **02.1** → 3 → 4 → 5 → 6
 (SPIKE-02/03 run as parallel external tracks during Phase 2 and Phase 3; they gate Phase 4 only)
 (Phases 5 and 6 are the two halves of issue #79, deliberately sequenced **after** go-live so manager onboarding never delays the voter launch. Phase 5 carries no payment code and is unblocked by the GI sandbox gate; Phase 6 is blocked on it.)
+(Phase 02.1 is an urgent insertion from the v1.0 audit — a P0 on live traffic. It depends on nothing and should run before any further phase work, including Phase 5.)
+
+> **Post-audit status (2026-08-02):** `.planning/v1.0-MILESTONE-AUDIT.md` found 2/28 requirements satisfied. Phase 2's three requirement artifacts are unfilled templates, so its gate is **not** actually passed. Phase 3's requirements (PAY-02/03/04/08) and GO-02 are **contradicted** by shipped free participation, not merely unbuilt — they need re-scoping before Phase 3 can be planned. Statuses below reflect the roadmap as written, not the audit's findings.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Clean Foundation | 2/2 | Done | 2026-06-29 |
-| 2. Spike + Gate | 2/2 | Complete   | 2026-06-30 |
-| 3. Payment Rails + Hardening | 0/TBD | Not started | - |
-| 4. Go-Live | 0/TBD | Not started | - |
-| 5. RBAC + Admin Review | 0/TBD | Not started | - |
+| 1. Clean Foundation | 2/2 | Done (audit: partial — see AUDIT) | 2026-06-29 |
+| 2. Spike + Gate | 2/2 | Complete (audit: gate NOT passed) | 2026-06-30 |
+| 02.1 Participation Persistence | 0/TBD | **Not started — P0, URGENT** | - |
+| 3. Payment Rails + Hardening | 0/TBD | Blocked — requirements contradicted, needs re-scope | - |
+| 4. Go-Live | 0/TBD | Not started (audit: GO-01 de-facto partial) | - |
+| 5. RBAC + Admin Review | 0/TBD | Not started — unblocked; carries issue #76 | - |
 | 6. Manager Billing + Subscription | 0/TBD | Not started | - |
