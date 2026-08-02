@@ -12,6 +12,7 @@ Starting from a brownfield Next.js codebase with Paddle vote payments and a work
 - [ ] **Phase 4: Go-Live** - Deploy with real credentials, run end-to-end money check, reconcile treasury
 - [ ] **Phase 5: RBAC + Admin Review** - Role model, server-side authorization helper, and the human approval console for community-manager applicants (issue #79a) — no billing
 - [ ] **Phase 6: Manager Billing + Subscription** - ₪50/month community-manager subscription on the GI token rail, with a full billing state machine gating role activation (issue #79c)
+- [ ] **Phase 7: Service-Role Migration** - Move every user-initiated database path off unguarded service-role access onto the RLS transport built in Phase 5; audit all 25 tables' policies
 
 ## Phase Details
 
@@ -96,17 +97,25 @@ Plans:
 
 ### Phase 5: RBAC + Admin Review
 
-**Goal**: Taruu has a real authorization system — a role model, one server-side authorization helper enforced on every privileged route, and a human review console where an admin approves, rejects, or suspends a community-manager applicant with a recorded reason. Approval is modeled as a standalone prerequisite that by itself grants nothing.
+**Goal**: Taruu has a real authorization system — a working RLS transport, a role model, one server-side authorization helper enforced on every privileged route, and a human review console where an admin approves, rejects, or suspends a community-manager applicant with a recorded reason. Approval is modeled as a standalone prerequisite that by itself grants nothing.
 **Depends on**: Phase 4 (go-live ships first; this is post-launch work)
-**Source**: GitHub issue #79 (split — this is the role/approval half, "79a")
-**Requirements**: RBAC-01, RBAC-02, RBAC-03, RBAC-04
+**Source**: GitHub issue #79 (split — this is the role/approval half, "79a"), plus the RLS corrective track chosen 2026-08-02
+**Requirements**: RBAC-01, RBAC-02, RBAC-03, RBAC-04, RLS-01, RLS-02, RLS-03, RLS-04, RLS-05
 **Context**: The codebase currently has **no** role concept at all — `users` (`supabase/migrations/20240101000000_initial_schema.sql:24`) has no role column, and there is not a single `is_admin` / `super_admin` / `space_admin` check anywhere in `apps/web/src`. Everything in issue #79 that reads "platform or authorized space admins review applicants" and "super admins may suspend" presumes infrastructure that does not exist yet. This phase builds it, with no money involved, so it can proceed regardless of the Green Invoice sandbox gate.
+
+> **RLS foundation folded in (2026-08-02).** Phase 5 research found RLS is not a real enforcement layer anywhere in this app. `public.user_id()` (`20240101000001_rls_policies.sql:10-21`) reads `request.jwt.claims->>'sub'` first — the correct design — but nothing ever populates it. `withUserContext()` (`apps/web/src/lib/supabase/server.ts:67`) writes `app.user_id` while the function reads `app.current_user_id`, has zero call sites, and could not work regardless because `set_config(…, true)` is transaction-local and PostgREST is stateless HTTP. All traffic uses the service-role client, which bypasses RLS entirely.
+>
+> Rather than ship Phase 5's tables with deny-all policies and inherit the problem, this phase builds the transport: mint a short-lived Supabase-signed token from the verified session and pass it to an anon-key client via supabase-js's `accessToken` callback (confirmed present in the installed 2.90.1). `public.user_id()` then resolves and RLS enforces. This also converts the previously manual anon-key check into an automated test, giving the repo its first RLS test precedent. The full migration of existing tables and routes onto this foundation is **Phase 7**.
+
 **Success Criteria** (what must be TRUE):
   1. A roles/role-grants schema exists with `super_admin`, `space_admin`, and `community_manager`, scoped per space where applicable; grants are rows with an explicit lifecycle, not a boolean column on `users`.
   2. One server-side authorization helper is the single enforcement point, and every privileged route calls it — authorization is never inferred client-side and never derived from payment state.
   3. An applicant can submit a community-manager application; an admin sees it in a review console and can approve, reject, or suspend it, and every one of those transitions records an actor, a timestamp, and a reason.
   4. An **approved** applicant with no billing has **no** manager access — approval alone changes no authorization outcome (issue #79 acceptance criteria 1 and 2, role half).
-  5. Every grant, revocation, and suspension writes an append-only audit row that survives the role change itself; RLS denies anon-key reads of applications and audit rows.
+  5. Every grant, revocation, and suspension writes an append-only audit row that survives the role change itself.
+  6. A user-scoped Supabase client exists that carries a short-lived Supabase-signed token minted from the verified session, so `public.user_id()` returns the real user id and RLS actually enforces; the dead `withUserContext()`/`set_claim` transport is deleted rather than left to mislead.
+  7. Phase 5's three new tables carry real working policies rather than deny-all, with any role-table lookup inside a policy routed through a `SECURITY DEFINER` helper so evaluation cannot recurse.
+  8. An automated test proves it: a token minted for user A cannot read user B's rows, and anon-key reads return zero rows. This replaces the manual-only check and is the harness Phase 7 extends.
 **Plans**: 7 plans in 5 waves
 
 Plans:
@@ -138,7 +147,7 @@ Plans:
 
 ## Progress
 
-**Execution Order:** 1 → 2 → **02.1** → 3 → 4 → 5 → 6
+**Execution Order:** 1 → 2 → **02.1** → 3 → 4 → 5 → 6 → 7
 (SPIKE-02/03 run as parallel external tracks during Phase 2 and Phase 3; they gate Phase 4 only)
 (Phases 5 and 6 are the two halves of issue #79, deliberately sequenced **after** go-live so manager onboarding never delays the voter launch. Phase 5 carries no payment code and is unblocked by the GI sandbox gate; Phase 6 is blocked on it.)
 (Phase 02.1 is an urgent insertion from the v1.0 audit — a P0 on live traffic. It depends on nothing and should run before any further phase work, including Phase 5.)
@@ -152,5 +161,24 @@ Plans:
 | 02.1 Participation Persistence | 0/5 | **Planned — P0, URGENT, ready to execute** | - |
 | 3. Payment Rails + Hardening | 0/TBD | Blocked — requirements contradicted, needs re-scope | - |
 | 4. Go-Live | 0/TBD | Not started (audit: GO-01 de-facto partial) | - |
-| 5. RBAC + Admin Review | 0/7 | Planned — unblocked; carries issue #76 | - |
+| 5. RBAC + Admin Review | 0/7 | **Re-planning** — RLS foundation folded in (RLS-01..05); carries issue #76 | - |
 | 6. Manager Billing + Subscription | 0/TBD | Not started | - |
+| 7. Service-Role Migration | 0/TBD | Not started — blocked on Phase 5 RLS foundation | - |
+
+### Phase 7: Service-Role Migration
+
+**Goal**: Every user-initiated database path in the app runs RLS-enforced through the user-scoped client built in Phase 5, every remaining privileged access is deliberate and justified in writing, and every migrated table has a test proving cross-user reads are denied.
+**Depends on**: Phase 5 (the RLS foundation, RLS-01..05 — there is nothing to migrate onto until the transport works)
+**Source**: Chosen 2026-08-02 after Phase 5 research found RLS is not currently a real enforcement layer anywhere in the app
+**Requirements**: MIG-01, MIG-02, MIG-03, MIG-04
+**Measured scope** (counted 2026-08-02, not estimated):
+  - 25 tables with RLS enabled, 39 policies, of which **15 are `USING (true)`** — each needs a deliberate keep-or-replace decision
+  - 27 files reference `supabaseAdmin`, heavily concentrated: `apps/web/src/lib/supabase/db.ts` alone holds 111 references across **2404 lines and 112 exports**; the rest are ≤10 each
+  - 7 API routes use it directly
+**Framing**: This is explicitly **not** "delete `supabaseAdmin`". Webhooks, cron routes, NFT minting, and notification fan-out have no user session and legitimately require privileged access. The goal is that privileged access becomes a visible, justified exception rather than the default every path reaches for.
+**Success Criteria** (what must be TRUE):
+  1. All 25 RLS-enabled tables have policies audited against the working transport; each of the 15 `USING (true)` policies is either confirmed deliberately public with a written reason or replaced.
+  2. All 112 `db.ts` exports are classified user-initiated vs system, and every user-initiated path runs through the RLS-enforced user-scoped client.
+  3. Remaining privileged call sites each carry a written justification; no route uses service-role by habit.
+  4. Each migrated table has a test in the RLS-04 harness proving cross-user reads are denied, and the full suite is green.
+**Plans**: TBD
