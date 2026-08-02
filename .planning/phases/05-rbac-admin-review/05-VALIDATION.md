@@ -20,7 +20,7 @@ created: 2026-08-02
 |----------|-------|
 | **Framework** | Vitest ^1.0.0 (already configured — no install needed) |
 | **Config file** | `apps/web/vitest.config.ts` |
-| **Quick run command** | `cd apps/web && npx vitest run src/server/domain/authz src/__tests__/api/manager-applications.test.ts src/__tests__/api/admin-manager-applications.test.ts` |
+| **Quick run command** | `cd apps/web && npx vitest run src/server/domain/authz src/server/app/authz src/__tests__/api/manager-applications.test.ts src/__tests__/api/admin-manager-applications.test.ts` |
 | **Full suite command** | `pnpm --filter @sync/web test` |
 | **Estimated runtime** | ~15 seconds quick, ~60 seconds full |
 
