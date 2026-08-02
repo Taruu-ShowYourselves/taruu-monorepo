@@ -84,8 +84,8 @@ Plans:
 
 ### Phase 5: Space governance substrate and space-admin operations dashboard
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** An authorized space admin operates their own space end to end — reviewing and deciding proposals, managing members, roles, and permitted content, reading aggregate metrics, and sending governed notifications — while every decision is audited immutably, every read and mutation is capability-checked server-side against that one space, and a super admin can suspend that access without erasing history.
+**Requirements**: SPACE-01, SPACE-02, SPACE-03, SPACE-04, SPACE-05, SPACE-06, SPACE-07, SPACE-08, SPACE-09, SPACE-10
 **Depends on:** Nothing — independent of the v1.0 payments track (phases 1–4). Appended scope from issue #75.
 **Canonical refs:** `.planning/phases/05-space-governance-substrate-and-space-admin-operations-dashboard/05-CONTEXT.md`, issue #75
 **Plans:** 0 plans
