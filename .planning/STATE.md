@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: phase_planned
-stopped_at: Phase 02.1 planned and plan-checker verified (5 plans, 2 waves) — ready to execute
-last_updated: "2026-08-02T00:00:00.000Z"
+status: unknown
+stopped_at: Completed 02.1-03-PLAN.md (participation-persistence, plan 3 of 5)
+last_updated: "2026-08-02T14:13:58.818Z"
 progress:
-  total_phases: 7
-  completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
+  total_phases: 8
+  completed_phases: 2
+  total_plans: 18
+  completed_plans: 7
 ---
 
 # Project State
@@ -20,12 +20,12 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 
 **Core value:** A resident pays ₪6 once a month to vote freely on their city's affairs, and trusts that the civic pool funds the decisions that actually execute.
 **NOTE (2026-08-02):** that core-value statement no longer matches the product — `cfa5d25` made participation free. PROJECT.md needs re-stating before Phase 3 is re-scoped.
-**Current focus:** Phase 02.1 — participation persistence (P0)
+**Current focus:** Phase 02.1 — participation-persistence
 
 ## Current Position
 
-Phase: 02.1 (participation-persistence) — PLANNED, VERIFIED, NOT EXECUTED
-Plan: 0 of 5
+Phase: 02.1 (participation-persistence) — EXECUTING
+Plan: 1 of 5
 
 ## ▶ RESUME HERE (after /clear)
 
@@ -36,6 +36,7 @@ Plans: wave 1 = `02.1-01` (shared/api-client free contract), `02.1-02` (`recordU
 Plan-checker verdict: PASSED on iteration 2. One blocker was found and fixed — three tasks verified against test files created later in the same plan, which vitest reports as `No test files found, exit 1`; they now gate on `pnpm --filter @sync/web typecheck` plus a positive grep. `pnpm --filter @sync/web typecheck` was confirmed green on the current tree before being wired in as a gate.
 
 Three things the planner found that the audit missed, all verified against code:
+
 - A participate-route test already exists — `apps/web/src/__tests__/api/vote-participation.test.ts`, 693 lines, 30 passing tests — and its `participate` describe locks in the payment contract (402, 503, `tokensEarned: 3`). Plan 04 rewrites that block in place; the `verify-location` and `participated` describes must survive.
 - There is no component-test setup at all: `environment: 'node'`, no jsdom, no `@testing-library/react`, and the include glob never collects `.tsx`. Rather than add a DOM stack mid-P0, plan 05 extracts the network logic to `submitParticipation.ts` with an injected `fetch` and asserts component copy against source.
 - **The receipt stage is currently unreachable.** `sealVote()` calls `onComplete()` synchronously → `page.tsx:227` `showFlow = isActive && !hasVoted` flips false → the flow unmounts before the receipt renders. Users actually land on the results panel reading `הצבעתכם נקלטה ונחתמה בבלוקצ׳יין` (`page.tsx:524`). Plan 05 defers `onComplete(optionId)` to a receipt CTA and sweeps that copy too.
@@ -82,6 +83,8 @@ Open question, still unresolved and now less urgent: **monthly civic-pool alloca
 | Phase 01-clean-foundation P02 | 3 min | 2 tasks | 1 file |
 | Phase 02-spike-gate P02 | 2 | 2 tasks | 2 files |
 | Phase 02-spike-gate P01 | 4 | 3 tasks | 4 files |
+| Phase 02.1-participation-persistence P01 | 12min | 3 tasks | 6 files |
+| Phase 02.1 P03 | 6min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -106,6 +109,8 @@ Recent decisions affecting current work:
 - [Phase 02-spike-gate]: chargeToken() appended to greenInvoice service — extend, not rebuild; mirrors createPaymentForm auth pattern
 - [Phase 02-spike-gate]: type:320 reused in chargeToken() — same GI document-issuance type as createPaymentForm
 - [Phase 02-spike-gate]: Spike harness uses plain console.log only (no @/lib/logger) — tsx-clean, no Next.js path-alias deps
+- [Phase 02.1-participation-persistence]: [02.1-01] Participate contract/types stripped of paymentTxId/qubikTxHash/gpsCoordinates/tokensEarned; ParticipateResponseSchema gains alreadyRecorded for idempotent-duplicate success
+- [Phase 02.1]: [Phase 02.1-participation-persistence]: VOTE_COST retired from @sync/shared in favour of explicit VOTE_PARTICIPATION_COST=0; legacy GI vote_participation rail pinned to a local ₪3 literal (deliberately unchanged, deferred to Phase 3 re-scope) rather than importing the retired name
 
 ### Roadmap Evolution
 
@@ -137,6 +142,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-30T07:22:13.010Z
-Stopped at: Completed 02-spike-gate plan 01 (02-01-PLAN.md)
+Last session: 2026-08-02T14:13:50.128Z
+Stopped at: Completed 02.1-03-PLAN.md (participation-persistence, plan 3 of 5)
 Resume file: None
