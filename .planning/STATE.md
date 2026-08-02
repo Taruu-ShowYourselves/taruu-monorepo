@@ -2,8 +2,8 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: audited_gaps_found
-stopped_at: v1.0 milestone audit complete; Phase 02.1 inserted (P0) and awaiting planning
+status: phase_planned
+stopped_at: Phase 02.1 planned and plan-checker verified (5 plans, 2 waves) — ready to execute
 last_updated: "2026-08-02T00:00:00.000Z"
 progress:
   total_phases: 7
@@ -29,7 +29,18 @@ Plan: 0 of TBD
 
 ## ▶ RESUME HERE (after /clear)
 
-**Run `/gsd:plan-phase 02.1`.** This is a P0 on live traffic, and it depends on nothing.
+**Run `/gsd:execute-phase 02.1`.** Phase 02.1 is planned and verified — 5 plans in 2 waves, all autonomous. This is a P0 on live traffic, and it depends on nothing.
+
+Plans: wave 1 = `02.1-01` (shared/api-client free contract), `02.1-02` (`recordUserVoteOnce` + server eligibility), `02.1-03` (₪3 legacy retirement) — fully parallel, zero file overlap. Wave 2 = `02.1-04` (participate route rewrite, RED→GREEN over the existing 30-test suite), `02.1-05` (client `submitParticipation` + honest receipt).
+
+Plan-checker verdict: PASSED on iteration 2. One blocker was found and fixed — three tasks verified against test files created later in the same plan, which vitest reports as `No test files found, exit 1`; they now gate on `pnpm --filter @sync/web typecheck` plus a positive grep. `pnpm --filter @sync/web typecheck` was confirmed green on the current tree before being wired in as a gate.
+
+Three things the planner found that the audit missed, all verified against code:
+- A participate-route test already exists — `apps/web/src/__tests__/api/vote-participation.test.ts`, 693 lines, 30 passing tests — and its `participate` describe locks in the payment contract (402, 503, `tokensEarned: 3`). Plan 04 rewrites that block in place; the `verify-location` and `participated` describes must survive.
+- There is no component-test setup at all: `environment: 'node'`, no jsdom, no `@testing-library/react`, and the include glob never collects `.tsx`. Rather than add a DOM stack mid-P0, plan 05 extracts the network logic to `submitParticipation.ts` with an injected `fetch` and asserts component copy against source.
+- **The receipt stage is currently unreachable.** `sealVote()` calls `onComplete()` synchronously → `page.tsx:227` `showFlow = isActive && !hasVoted` flips false → the flow unmounts before the receipt renders. Users actually land on the results panel reading `הצבעתכם נקלטה ונחתמה בבלוקצ׳יין` (`page.tsx:524`). Plan 05 defers `onComplete(optionId)` to a receipt CTA and sweeps that copy too.
+
+Server eligibility is being tightened, not relaxed: `identity_score >= 40` AND (`verification_status === 'verified'` OR `completed_check_ins >= 1`) — an exact mirror of `isEligibleToVote`. Locks out nobody, since `auth/callback/route.ts:87` sets 40 for every Google sign-in.
 
 `.planning/v1.0-MILESTONE-AUDIT.md` (2026-08-02, commit 6c71835) audited the milestone at **2/28 requirements satisfied** and found a defect no requirement covered:
 
