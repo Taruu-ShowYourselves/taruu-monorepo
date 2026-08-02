@@ -81,6 +81,7 @@ Every value is an existing token; all are multiples of 4.
 | `--space-4` | 16px | Default element gap, table cell inline padding, box padding (mobile) |
 | `--space-6` | 24px | Box padding (desktop), gap between panels |
 | `--space-8` | 32px | Gap between surface sections, dialog plate padding |
+| `--space-10` | 40px | Shell-boot loading spinner, square |
 | `--space-12` | 48px | Major surface break (header→content) |
 | `--space-16` | 64px | Page block-end padding |
 
@@ -135,7 +136,7 @@ Two-colour print discipline: ink + one red on cream. **No third hue anywhere in 
 **Accent (`--np-red`) reserved for, exhaustively:**
 
 1. Kicker tick glyphs (`■` / `▍`) — decorative, `aria-hidden`.
-2. The single page-primary action per surface (`NewsButton variant="red" size="lg"`). One per surface, never two.
+2. **At most one** page-primary action per surface (`NewsButton variant="red" size="lg"`) — never two. Most surfaces here have none: this dashboard is a review console, and its decisions live in table rows and dialogs rather than in one hero action. In practice only dispatch (`שלחו התראה`) carries a page-primary. `אשרו ופרסמו` is the phase's headline *decision*, but it is a `variant="ink"` dialog confirm, not a page-primary — see the kind table.
 3. Focus rings — `outline: var(--np-rule) solid var(--np-red); outline-offset: 2px` (system default, unchanged).
 4. Invalid field border and the `role="alert"` rule (`PressInput` already does this).
 5. The `בלתי הפיך` confirmation-plate rule (`--np-rule-heavy` in red).
@@ -168,6 +169,13 @@ Contrast is symmetric — a pair has one ratio regardless of which colour is for
 | `--np-red-ink` on `--np-ink` | **1.74:1** | **Fails everything.** Never |
 | `--np-red` on `--np-ink` | **4.13:1** | Fails AA normal text. An 11.1px/700 kicker is normal text, not large — so this fails too |
 
+**On red fills — including hover states**, which are as binding as rest states:
+
+| Pair | Ratio | Verdict |
+|------|-------|---------|
+| `--np-paper` on `--np-red` | **4.03:1** | Fails AA normal text. Permitted **only** at ≥18.66px bold, i.e. `NewsButton variant="red" size="lg"` |
+| `--np-paper` on `--np-red-dark` `#B0220F` | **6.03:1** | AA normal text — the compliant red fill for anything below 18.66px |
+
 **Consequences, binding:**
 
 The red-text rule is **per background**, not global. Naming a token without naming its background is how the ink-block case slipped through:
@@ -176,7 +184,12 @@ The red-text rule is **per background**, not global. Naming a token without nami
 - **On ink** — kicker and banner **text** is `--np-paper` (16.66:1). Only the `■` / `▍` tick glyph stays `--np-red`; it is decorative, `aria-hidden`, and therefore exempt from the text-contrast threshold. There is no compliant red *text* on ink under either token, so do not attempt one.
 - **`.np-block-red`** (red fill with paper text, `globals.css:482`) is **used nowhere in this phase.** It would put 13.3px paper text at 4.03:1. It is a tempting utility; it is out of bounds here.
 - **The dispatch stale banner** is a `--np-red` rule (`--np-rule-heavy`, non-text, 3:1 threshold, passes) with `--np-red-ink` text on `--np-paper-2` — 8.73:1. It is **not** a red fill and **not** an ink block.
-- A red `NewsButton` is only used at `size="lg"` (`--text-lg` = 19.2px at weight 800 → WCAG large text → 3:1 threshold → passes). Dense controls (table rows, dialog footers, pagination) use `variant="ink"` (16.66:1) or `variant="outline"` (16.66:1). There is no red dense button in this phase.
+- A red `NewsButton` is only used at `size="lg"` (`--text-lg` = 19.2px at weight 800 → WCAG large text → 3:1 threshold → passes). Dense controls (table rows, dialog footers, pagination) use `variant="ink"` or `variant="outline"`.
+- **Hover states are held to the same threshold as rest states.** `NewsButton.module.css:44` reads `.ink:hover { background: var(--np-red); color: var(--np-paper); }` and `:51` does the same for `.outline` via ink — so a `variant="ink"` button at the default `.md` size (`--text-base`, 16px, weight 800) becomes **paper on red at 4.03:1 on hover**, below AA and below the 18.66px large-text threshold. That is the identical defect for which `.np-block-red` is banned above, and it reaches the `ConfirmDialog` confirm button and every approve/grant row trigger.
+
+  **Binding fix:** this phase ships a local `:hover` override on every dense `ink` / `outline` button — `background: var(--np-red-dark)` (`#B0220F`, 6.03:1 with paper), keeping the press inversion gesture while clearing AA. `--np-red-dark` is an existing token (`tokens.css:353`), not a new colour, and it is a hover-fill only — it does not join the accent reserved-for list and never paints text. The unmodified `.ink:hover` red is permitted only where the label is already ≥18.66px bold.
+
+- **`StatusChip` red is text-and-border, never a fill.** `בבדיקה` renders as `--np-red-ink` text (13.3px) with a `--np-red` hairline border on `--np-paper-box` — 10.32:1 for the text, and the border is non-text at 3:1. A red-filled chip with paper text would be 4.03:1 at 13.3px and is out of bounds. `מושעה` stays the inverted ink chip (16.66:1); everything else is ink-outline.
 
 ---
 
@@ -223,7 +236,16 @@ The red-text rule is **per background**, not global. Naming a token without nami
 | `:hover` | **no inversion** | The enabled press affordance is ink-inversion on hover; a disabled control must not respond |
 | `opacity` | **unset** | Do not dim. Opacity would drag paper-2 below its 0.03 AA margin |
 
-Applies to every `disabled` in Rule B's list and to the `ConfirmDialog` confirm button. Because it lands on `--np-paper-2` at 4.53:1, **nothing in this phase may darken that token** — see the contrast table.
+Applies to every `disabled` in Rule B's list (the `ConfirmDialog` confirm button is row 1 of that list, not a separate case). Because it lands on `--np-paper-2` at 4.53:1, **nothing in this phase may darken that token** — see the contrast table.
+
+**The override must be authored `:disabled`-qualified, or it silently loses.** A bare class from `className` is specificity (0,1,0), which cannot beat `.ink:hover` at (0,1,1) and only beats `.btn { cursor: pointer }` (0,1,0) on source order — so both "no hover inversion" and `cursor: not-allowed` would fail at runtime. `:hover` still fires on a disabled button. Author it as:
+
+```css
+.confirmBtn:disabled            { /* (0,2,0) — beats .btn */ }
+.confirmBtn:disabled:hover      { /* (0,2,1) — beats .ink:hover */ }
+```
+
+Any implementation that ships the unqualified form is wrong even though it looks correct in review.
 
 ### New dependency
 
@@ -270,7 +292,7 @@ Every authority-changing action goes through `ConfirmDialog`. The reason lives *
 │  ■ kicker (mono, --text-xs, --np-red-ink)      ← "פעולה מתועדת" | "פעולה בלתי הפיכה"
 │  h2  (Heebo 800, --text-base)                  ← the question
 │  p   (Heebo 400, --text-base, --np-ink-soft)   ← what happens
-│  p   (mono, --text-sm, --np-red-ink)           ← irreversible kind only: the consequence line
+│  p   (mono, --text-sm, --np-red-ink)           ← the consequence line: required on irreversible, optional on audited
 │  ─── --np-rule hairline ───
 │  PressInput multiline, label "נימוק ההחלטה (חובה)"
 │  mono counter --text-sm --np-ink-faint         ← "{n}/500"
@@ -282,8 +304,8 @@ Every authority-changing action goes through `ConfirmDialog`. The reason lives *
 | Property | Value |
 |----------|-------|
 | Backdrop | `--color-surface-overlay` (`rgba(0,0,0,0.5)`), `z-index: var(--z-modal-backdrop)`; plate at `var(--z-modal)` |
-| Plate rule — `kind="audited"` | `--np-rule-heavy` `--np-ink`, kicker `פעולה מתועדת · AUDITED` |
-| Plate rule — `kind="irreversible"` | `--np-rule-heavy` `--np-red`, kicker `פעולה בלתי הפיכה · IRREVERSIBLE`, plus the consequence line |
+| Plate rule — `kind="audited"` | `--np-rule-heavy` `--np-ink`, kicker `פעולה מתועדת · AUDITED`. A consequence line is **optional** and used where a permanent record is worth stating even though the action itself can be undone |
+| Plate rule — `kind="irreversible"` | `--np-rule-heavy` `--np-red`, kicker `פעולה בלתי הפיכה · IRREVERSIBLE`, consequence line **required** |
 | Initial focus | the **reason textarea** — never the confirm button |
 | Reason validation | required, trimmed length 10–500. Error: `נדרש נימוק — לפחות 10 תווים.` Live counter, no hard truncation on paste (block submit instead) |
 | Confirm button | `NewsButton variant="ink"`, `disabled` until reason valid, label = the action verb (never "אישור"/"OK") |
@@ -292,17 +314,27 @@ Every authority-changing action goes through `ConfirmDialog`. The reason lives *
 | On success | dialog closes, the affected row updates in place and receives a 1200ms `--np-paper-2` flash (skipped under reduced motion), and an `aria-live="polite"` node announces the result |
 | On failure | dialog **stays open**, reason preserved, error rendered inside the plate as `role="alert"` in `--np-red-ink`. Never lose typed text |
 
-**Which action gets which kind:**
+**Which action gets which kind — this table is the single source of truth.** Where any other passage in this document disagrees, this table wins.
 
-| Action | Kind | Trigger button in row |
-|--------|------|----------------------|
-| אישור ופרסום (approve + publish) | audited | `ink` |
-| החזרה לתיקון (request changes) | audited | `outline` |
-| הענקת הרשאה (grant capability) | audited | `ink` |
-| דחיית הצעה (reject) | **irreversible** | `outline` |
-| שלילת הרשאה (revoke capability) | **irreversible** | `outline` |
-| השעיית חבר במרחב (suspend member) | **irreversible** | `outline` |
-| שליחת התראה (send notification) | **irreversible** | page-primary `red` `lg` |
+The test is narrow and mechanical: **can the admin themselves undo the effect through this dashboard?** If yes it is `audited`; if no it is `irreversible`. "It is written to the audit log forever" is true of *every* action here and is therefore not the test — every row below is audited in the SPACE-04 sense regardless of its `kind`.
+
+| Action | Kind | Trigger | Why |
+|--------|------|---------|-----|
+| אישור ופרסום (approve + publish) | **irreversible** | `ink` row button | Publishes to residents **and fires the ₪50 charge**. Neither is undoable from here |
+| דחיית הצעה (reject) | **irreversible** | `outline` | Terminal for that submission |
+| שליחת התראה (send notification) | **irreversible** | page-primary `red` `lg` | Delivered to devices; cannot be recalled |
+| החזרה לתיקון (request changes) | audited | `outline` | The submitter can resubmit |
+| הענקת הרשאה (grant capability) | audited | `ink` row button | Revocable |
+| שלילת הרשאה (revoke capability) | audited *(consequence line)* | `outline` | Re-grantable. Line states it takes effect immediately |
+| השעיית חבר (suspend member) | audited *(consequence line)* | `outline` | Reversible via reinstate. Line states history is preserved |
+| ביטול השעיה (reinstate member) | audited | `outline` | |
+| הסתרת תוכן (hide content) | audited | `outline` | Reversible via unhide |
+| ביטול הסתרה (unhide content) | audited | `outline` | |
+| סימון לבדיקה (flag content) | audited | `outline` | Reversible via unflag |
+| ביטול סימון (unflag content) | audited | `outline` | |
+| פנייה למנהל־על (escalate) | audited | `outline` | Sends a record to platform admins |
+
+So `irreversible` covers exactly three actions: **approve, reject, send.** Everything else is `audited`, and two of those carry an optional consequence line.
 
 No destructive action is ever a filled block inside a table row. The only filled red block on any surface is that surface's single page-primary action.
 
@@ -316,7 +348,7 @@ The audience preview is the safety mechanism (SPACE-08). The UI enforces that th
 
 | # | State | What is shown | Send control |
 |---|-------|---------------|--------------|
-| 0 | `quota_exhausted` | `QuotaBlock` (ink block, red kicker `מכסה מוצתה · QUOTA`, reset date). Composer fields render **read-only** | **Not rendered at all** |
+| 0 | `quota_exhausted` | `QuotaBlock` (ink block; kicker `מכסה מוצתה · QUOTA` in **`--np-paper` text with a `--np-red` tick glyph** — never red text on ink, see the ink contrast table; reset date). Composer fields render **read-only** | **Not rendered at all** |
 | 1 | `draft` | Composer fields + `חשבו קהל יעד` (`outline`). Quota line always visible: `מכסה חודשית · {used}/{limit}` | `disabled`, hint `חשבו קהל יעד כדי לאפשר שליחה.` |
 | 2 | `previewing` | Preview panel `aria-busy="true"`, mono `…מחשב קהל יעד` | `disabled` |
 | 3 | `preview_fresh` | `AudiencePreview` `Receipt` populated, `aria-live="polite"` | **Enabled** — `red` `lg`, label `שלחו התראה` |
@@ -450,7 +482,7 @@ Every surface implements all applicable states. Each has one component (`EmptyPa
 
 | Element | Copy |
 |---------|------|
-| Primary CTA | `אשרו ופרסמו` (proposal review — the phase's headline action) |
+| Headline decision | `אשרו ופרסמו` (proposal review). A dialog confirm, not a page-primary — see the accent reserved-for list |
 | Empty state heading | `אין הצעות בבדיקה` |
 | Empty state body | `כשתושב יגיש הצעה חדשה במרחב הזה, היא תופיע כאן להכרעה.` |
 | Error state | `לא הצלחנו לטעון את הנתונים. הנתונים עצמם לא נפגעו — נסו שוב; אם זה חוזר, פנו למנהל־על.` + `נסו שוב` |
@@ -497,7 +529,7 @@ Hebrew is the product language. Nothing below may ship as an English placeholder
 - CTA: `פנייה למנהל־על` (`outline`) — see the escalation target below
 - Note (mono, faint): `ההרשאות נבדקות בשרת בכל בקשה. הסתרת כפתור אינה מה שמגן על הנתונים.`
 
-### Escalation target (SPACE-09, FLAG-6 resolution)
+### Escalation target (SPACE-09)
 
 `פנייה למנהל־על` appears in three places — the overview, `NoPermissionPanel`, and the `FORBIDDEN` error copy — and SPACE-09 requires it to be a real path, not a decorative button. All three resolve to **the same destination**.
 
@@ -508,6 +540,7 @@ Per CONTEXT.md, a super admin is a user carrying `users.is_platform_admin`, not 
 | Heading | `פנייה למנהל־על` |
 | Body | `הפנייה נשלחת למנהלי הפלטפורמה יחד עם שם המרחב ועם החשבון שלכם.` |
 | Field label | `מה תרצו לבקש? (חובה)` |
+| Field error | `נדרש תיאור — לפחות 10 תווים.` (the escalation variant overrides `ConfirmDialog`'s default `נדרש נימוק…`, since this field is a request, not a decision reason) |
 | Placeholder | `תארו מה חסם אתכם — למשל הרשאה שאתם צריכים, או השעיה שנראית לכם שגויה.` |
 | Confirm | `שלחו פנייה` |
 | Success (`aria-live`) | `הפנייה נשלחה. מנהל־על יקבל אותה עם פרטי המרחב.` |
@@ -548,9 +581,10 @@ Capability row labels (UI labels; the canonical machine identifiers are owned by
 | Columns | `הצעה` · `מגיש/ה` · `הוגשה` · `סטטוס` · `פעולות` |
 | Status chips | `בבדיקה` (red) · `טיוטה` · `הוחזרה לתיקון` · `נדחתה` · `אושרה ופורסמה` |
 | Row actions | `אישור ופרסום` · `החזרה לתיקון` · `דחייה` |
-| Content actions (detail view, capability `לנהל תוכן מותר`) | `הסתרת תוכן` · `ביטול הסתרה` · `סימון לבדיקה` |
+| Content actions (detail panel, capability `לנהל תוכן מותר`) | `הסתרת תוכן` · `ביטול הסתרה` · `סימון לבדיקה` · `ביטול סימון` |
 | Hidden-content notice | `התוכן מוסתר מתושבי המרחב מאז {date}. הנימוק נשמר ביומן.` |
 | Flagged-content notice | `התוכן מסומן לבדיקה. הוא עדיין גלוי לתושבים.` |
+| Detail panel toggle | `הצג את ההצעה במלואה ▾` / `הסתר ▴` |
 | Self-submitted lock | `הצעה שהגשתם — ההכרעה שמורה למנהל אחר.` |
 | Empty | `אין הצעות בבדיקה` / `כשתושב יגיש הצעה חדשה במרחב הזה, היא תופיע כאן להכרעה.` |
 | Filter no-results | `אין הצעות בסטטוס הזה` / `נסו סינון אחר.` + `הצגת הכול` |
@@ -560,22 +594,41 @@ Confirmations:
 
 | Action | Heading | Body | Consequence line | Confirm |
 |--------|---------|------|------------------|---------|
-| Approve | `לאשר ולפרסם את ההצעה?` | `ההצעה תתפרסם לתושבי המרחב ותיפתח להצבעה. הפעולה תירשם ביומן עם שמכם ועם הנימוק.` | — | `אשרו ופרסמו` |
+| Approve | `לאשר ולפרסם את ההצעה?` | `ההצעה תתפרסם לתושבי המרחב ותיפתח להצבעה. עם האישור ייגבו ₪50 מהמגיש/ה — התשלום נגבה רק עכשיו, ולא בעת ההגשה.` | `הפרסום והחיוב אינם ניתנים לביטול מהלוח הזה.` | `אשרו ופרסמו` |
 | Request changes | `להחזיר את ההצעה לתיקון?` | `ההצעה תחזור למגיש עם הנימוק שלכם ולא תתפרסם עד שתוגש מחדש.` | — | `החזירו לתיקון` |
 | Reject | `לדחות את ההצעה?` | `ההצעה לא תתפרסם.` | `הדחייה והנימוק נרשמים ביומן לצמיתות. אי אפשר לבטל.` | `דחו את ההצעה` |
 | Hide content | `להסתיר את התוכן מהתושבים?` | `התוכן לא יוצג לתושבי המרחב. ההצעה עצמה נשארת בתור ההכרעה.` | — | `הסתירו את התוכן` |
 | Unhide content | `להחזיר את התוכן לתצוגה?` | `התוכן יוצג שוב לתושבי המרחב.` | — | `החזירו לתצוגה` |
 | Flag content | `לסמן את התוכן לבדיקה?` | `התוכן יסומן לבדיקה ויישאר גלוי לתושבים. הסימון נרשם ביומן.` | — | `סמנו לבדיקה` |
+| Unflag content | `לבטל את הסימון לבדיקה?` | `הסימון יוסר. התוכן נשאר גלוי לתושבים כפי שהיה.` | — | `בטלו את הסימון` |
+
+Approval-charge failure (the ₪50 declines at approve time): the dialog stays open with the reason preserved and renders `role="alert"` — `ההצעה לא פורסמה: החיוב של המגיש/ה נכשל. אף סכום לא נגבה. נסו שוב מאוחר יותר, או החזירו את ההצעה לתיקון.` No vote is published and no charge is recorded — the server commits both or neither.
 
 Reason field: label `נימוק ההחלטה (חובה)`, placeholder `למה הכרעתם כך? הנימוק נשמר ביומן ואי אפשר לערוך אותו אחר כך.`, error `נדרש נימוק — לפחות 10 תווים.`, counter `{n}/500`.
 
-**Permitted-content controls (SPACE-06).** Per the user decision recorded in CONTEXT.md, content moderation lives on this surface — on the proposal detail view — rather than on a seventh route. This is what gives the `לנהל תוכן מותר` capability a home: an admin who holds it acts here, and an admin who does not never sees the three controls (Rule A, absent).
+### The proposal detail panel
 
-- All three actions route through `ConfirmDialog` with the same required reason as every other authority-changing action, and each writes an audit row under SPACE-04. `kind="audited"` for all three — hide is reversible via unhide, and flag is reversible by definition.
-- Hide and unhide are mutually exclusive: a hidden item offers `ביטול הסתרה` and not `הסתרת תוכן`.
-- A hidden or flagged item shows its notice line above the proposal body, so the state is legible without opening the audit log.
+Content moderation needs somewhere to act, and a table row is too small to show what is being moderated. The detail view is an **in-page expanding panel on this surface** — not a seventh route, honouring the user decision, and not a dialog, because `ConfirmDialog` is already the modal layer and stacking a confirmation on top of a modal is bad practice.
 
-**Self-submitted proposals (FLAG-5 resolution).** A reviewer may not decide a proposal they submitted — this is **object-level** authority, not capability-level, so Rule A governs and **the three row actions are not rendered.** The lock text `הצעה שהגשתם — ההכרעה שמורה למנהל אחר.` occupies the actions cell in their place. They are absent, not disabled: Rule B's list is exhaustive and does not include this case, and a disabled control here would wrongly imply the admin could unblock it themselves. Screenshots #3–4 must depict this row.
+| Property | Contract |
+|---|---|
+| Trigger | The proposal title cell is a `<button>` toggling the panel. `aria-expanded`, `aria-controls` pointing at the panel id |
+| Mechanism | A `<tr>` immediately after the proposal's row, its single `<td colspan={n}>` holding the panel. Table semantics preserved — this is the same device as the responsive row disclosure (D11), reused at every width rather than only below 768px |
+| One at a time | Opening a panel closes any other. Prevents two reason fields being open at once |
+| Contents, in order | Full proposal title (`h3`, Heebo 800, `--text-base`) · submitter + submission timestamp (mono meta) · **hidden/flagged notice line if present** · the proposal body · `--np-rule` hairline · the content-control buttons |
+| Proposal body | `--np-font-body` (Frank Ruhl Libre), `--text-base`, line-height 1.5, `max-width: 68ch`. Long bodies clamp at 12 lines behind `הצג את ההצעה במלואה ▾` / `הסתר ▴` |
+| Decision actions | Stay in the **row**, not the panel — approve/reject/request-changes are reachable without expanding. The panel adds content controls only |
+| Deep link | `?proposal={id}` opens the surface with that panel expanded and scrolled into view. This is how screenshot #16 is reached and how an audit-log row links back to its subject |
+| Keyboard | `Escape` collapses the panel and returns focus to the title button |
+| Mobile | Identical. Below 768px the panel additionally carries the hidden-column definition list from D11 |
+
+**Permitted-content controls (SPACE-06).** Per the user decision in CONTEXT.md, content moderation lives here rather than on a seventh route. This gives the `לנהל תוכן מותר` capability its home: an admin holding it acts in this panel, and an admin without it never sees the three controls (Rule A, absent) — the panel itself still opens, so they can read the proposal.
+
+- All four actions (hide, unhide, flag, unflag) route through `ConfirmDialog` with the same required reason as every other authority-changing action, and each writes an audit row under SPACE-04. All are `kind="audited"` — each has an inverse in this same panel.
+- Hide and unhide are mutually exclusive, and so are flag and unflag: a hidden item offers `ביטול הסתרה` and never `הסתרת תוכן`; a flagged item offers `ביטול סימון` and never `סימון לבדיקה`.
+- A hidden or flagged item shows its notice line above the proposal body, so the state is legible without opening the audit log. An item can be both hidden and flagged; both notices render, hidden first.
+
+**Self-submitted proposals.** A reviewer may not decide a proposal they submitted — this is **object-level** authority, not capability-level, so Rule A governs and **the three decision actions are not rendered.** The lock text `הצעה שהגשתם — ההכרעה שמורה למנהל אחר.` occupies the actions cell in their place. They are absent, not disabled: Rule B's list is exhaustive and does not include this case, and a disabled control here would wrongly imply the admin could unblock it themselves. The detail panel still opens and content controls still apply — the restriction is on *deciding* one's own proposal, not on moderating its content. Screenshots #3–4 must depict this row.
 
 **Surface 3 — חברים והרשאות (members & roles)**
 
@@ -601,7 +654,7 @@ Confirmations:
 | Suspend | `להשעות את {name} במרחב?` | `הגישה למרחב הזה נחסמת מיד. אפשר לבטל את ההשעיה בהמשך.` | `ההיסטוריה, ההחלטות והתיעוד נשמרים במלואם ואינם נמחקים.` | `השעו במרחב` |
 | Reinstate | `לבטל את ההשעיה של {name}?` | `הגישה למרחב הזה תחזור מיד, עם אותן הרשאות שהיו לפני ההשעיה.` | — | `בטלו השעיה` |
 
-**Suspension is reversible — `kind="audited"`, not `kind="irreversible"` (FLAG-4 resolution).** Per CONTEXT.md, suspension sets a nullable `suspended_at`; clearing it restores access. Filing it under the `פעולה בלתי הפיכה · IRREVERSIBLE` plate was wrong on the facts, and it devalued that plate for **reject**, which genuinely is terminal. In this phase only reject carries `kind="irreversible"`.
+**Suspension is reversible, so it is `kind="audited"`.** Per CONTEXT.md, suspension sets a nullable `suspended_at`; clearing it restores access. It carries an optional consequence line stating that history is preserved. See the kind table in Interaction Contract 2 for the full assignment — `irreversible` is reserved there for approve, reject, and send.
 
 A suspended member's row shows the `מושעה/ית` chip (inverted ink) and offers **`ביטול השעיה`** in place of `השעיה במרחב`; grant and revoke are not rendered while suspended, because changing the capabilities of a member who cannot act is meaningless and would produce confusing audit rows. Screenshot #6 must show this row in its suspended state with the reinstate action present.
 
@@ -660,7 +713,7 @@ Send confirmation: heading `לשלוח את ההתראה?`, body `ההתראה �
 | Error | `לא הצלחנו לטעון את היומן. הרשומות עצמן לא נפגעו — נסו שוב.` |
 | Scroll hint | `החליקו לצדדים לצפייה בכל העמודות` |
 
-### Screen-reader copy (FLAG-3 resolution)
+### Screen-reader copy
 
 Screen-reader strings are user-facing copy. `PressTable` marks an SR-only `<caption id={captionId} class={srOnly}>{description}</caption>` non-negotiable, and the Accessibility contract mandates `aria-live="polite"` announcements — both were specified structurally with the strings left unwritten. Here they are.
 
@@ -746,7 +799,9 @@ Issue #75 requires screenshot evidence. Capture with Playwright (already a depen
 | 13 | Irreversible dialog | Red plate rule, `בלתי הפיך` kicker, reason field, confirm **visibly** disabled per the disabled-state contract (paper-2 fill, faint text, no hover inversion) |
 | 14 | Quota exhausted | Composer read-only, no send control rendered, `QuotaBlock` ink block with **paper** kicker text and a red tick glyph |
 | 15 | No permission | Direct navigation to a surface the admin lacks, escalation CTA present |
-| 16 | Proposal detail — content controls | `הסתרת תוכן` / `סימון לבדיקה` present for an admin holding `לנהל תוכן מותר`, plus a hidden item showing its notice line and `ביטול הסתרה` |
+| 16 | Proposal detail panel — content controls | Reached at `?proposal={id}` on the proposals surface. Panel expanded showing the proposal body, `הסתרת תוכן` / `סימון לבדיקה` present for an admin holding `לנהל תוכן מותר`, plus a hidden item showing its notice line and `ביטול הסתרה` |
+
+Screenshot #16 is an additional **state** of surface 2, not a seventh surface — it exists because SPACE-06 needs its own evidence, and it is consistent with the "no seventh route, no seventh surface" decision in CONTEXT.md.
 
 Screenshots 1–12 must show **populated** state — an empty table is not evidence the surface works.
 
@@ -785,6 +840,12 @@ Each was open; each is resolved toward the existing locked press system.
 | D19 | Suspension is `kind="audited"`, not `kind="irreversible"`, and a reinstate action exists | Suspension sets a nullable `suspended_at` and is reversible by definition. Mislabelling it devalued the irreversible plate for reject, which is the one genuinely terminal action in this phase |
 | D20 | Self-submitted proposal actions are **absent** (Rule A), not disabled | This is object-level authority, not transient form state. Rule B's list is exhaustive and excludes it, and a disabled control would imply the admin could unblock it themselves |
 | D21 | Escalation resolves to an audited `ConfirmDialog` writing a server-side record, exempt from the space quota, rendered regardless of capability | SPACE-09 requires a real path. A `mailto:` leaves no record, and an escalation about a wrongly-suspended admin is exactly the case that needs one — and the people who most need the control are those holding nothing |
+| D22 | `irreversible` means "the admin cannot undo it from this dashboard", not "it is written to the audit log". Exactly three actions qualify: approve, reject, send | Every action here is audited, so audit-permanence cannot be the test or the label means nothing. The kind table in Interaction Contract 2 is the single source of truth; earlier prose that disagreed has been reconciled to it |
+| D23 | Dense `ink`/`outline` buttons get a local `:hover` override to `--np-red-dark` (6.03:1) | `NewsButton.module.css:44` inverts `.ink` to a red fill with paper text on hover — 4.03:1 at 16px, the same defect that bans `.np-block-red`. Hover states are held to the same threshold as rest states. `--np-red-dark` is an existing token, used as fill only, and does not join the accent reserved-for list |
+| D24 | `StatusChip` red is `--np-red-ink` text + `--np-red` hairline border on paper-box (10.32:1), never a red fill | A red-filled chip with paper text is 4.03:1 at 13.3px. "Red chip" was ambiguous between fill, text, and border; this names it |
+| D25 | The proposal detail view is an in-page expanding row panel on the proposals surface, deep-linked by `?proposal={id}` — not a seventh route and not a dialog | Honours the user's "no seventh route" decision while giving content controls a reachable, screenshot-able home. A dialog would stack under `ConfirmDialog`; a route would contradict D3. Reuses D11's row-disclosure device at every width, so table semantics survive |
+| D26 | The approve dialog discloses the ₪50 charge and defines a charge-decline error path | Per CONTEXT.md the charge fires at approval, so the admin's click bills a third party. A confirmation that does not say so is misleading, and the copy deck claims to be exhaustive |
+| D27 | Disabled overrides must be authored `:disabled`-qualified (`(0,2,0)` / `(0,2,1)`) | A bare `className` class is `(0,1,0)` and loses to `.ink:hover` `(0,1,1)`, so the no-hover-inversion and `not-allowed` rules would silently fail. `:hover` still fires on disabled buttons |
 | D10 | Cursor pagination, no total count on audit | The audit log is append-only and continuously written; offset paging duplicates and skips rows, and a total is expensive and stale on arrival |
 | D11 | Table semantics preserved at all widths; responsive reduction via paired `display:none` + a row disclosure | Switching cells to `display:block` destroys table semantics in assistive tech — the usual "responsive table" trick is an a11y regression |
 | D12 | Add `@radix-ui/react-alert-dialog` | The repo's own precedent (`Masthead.tsx:48-51`) is Radix-for-behaviour + press-tokens-for-paint. The in-repo hand-rolled alternative (`GeoGate`) has no focus trap and no `Escape` handler — unacceptable for destructive confirmation |
