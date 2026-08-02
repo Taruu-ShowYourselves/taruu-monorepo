@@ -18,6 +18,16 @@ Issue #79 asks for the whole community-manager lifecycle: recruit, approve, acti
 
 **The load-bearing property of this phase:** approval is a *standalone prerequisite that by itself grants nothing*. An approved applicant with no billing has no manager access. This phase must be built so that Phase 6 can add the billing prerequisite alongside approval without redesigning the authorization model — the helper must be able to require **both** conditions, and must not treat approval as sufficient.
 
+**Second forward-compatibility constraint — GitHub issue #76.** `.planning/v1.0-MILESTONE-AUDIT.md` finds that issue #76 (municipality onboarding + authority dashboard) depends directly on this phase: the role model, the authorization helper, the super-admin review console, and the append-only audit table are the same infrastructure #76's acceptance criteria require. #76 is a continuation of this phase's line, not an independent milestone.
+
+This does **not** widen Phase 5's scope — no authority onboarding, no dashboard, no organization verification here. It is a design constraint on how the three pieces are built:
+
+- The role set must be extensible to an authority-representative role scoped to one municipality, without a schema rewrite.
+- The review console must generalize to "an admin reviews a submitted claim and approves/rejects it with evidence and a reason", rather than hardcoding community-manager application as the only reviewable object.
+- The audit table must be able to record approvals of things that are not role grants (#76 requires "commitment and satisfaction histories remain auditable after staff changes").
+
+Build for that shape; do not build those features.
+
 **Explicitly NOT in this phase** (all deferred to Phase 6): any payment code, any Green Invoice call, subscription state, renewal scheduling, invoices/receipts, grace/past-due policy, and reconciliation.
 
 **Why there is nothing to build on:** the codebase currently has no role concept whatsoever. The `users` table (`supabase/migrations/20240101000000_initial_schema.sql:24`) has no role column, and there is not a single `is_admin` / `super_admin` / `space_admin` check anywhere under `apps/web/src`. Every line in issue #79 about "platform or authorized space admins" and "super admins may suspend" presumes infrastructure this phase creates from nothing.
@@ -62,6 +72,8 @@ This phase owns the application/grant states only — at minimum: submitted/pend
 - Every grant, revocation, and suspension writes an **append-only** audit row that outlives the role change itself. (ROADMAP criterion 5.)
 - RLS denies anon-key reads of applications and audit rows.
 - Follow the project's established RLS convention: policies use `public.user_id()`, **never** `auth.uid()` — the built-in helper returns NULL under this project's custom JWT. This was a corrective migration in Phase 1 (`20260628000002_fix_rls_user_id_helper.sql`) and repeating the mistake would silently break every per-user policy.
+
+> **Correction from `05-RESEARCH.md` (2026-08-02) — read the research before acting on the paragraph above.** RLS is not currently a real enforcement layer in this codebase. `public.user_id()` reads a session config key that nothing ever sets, `withUserContext()` sets a differently-named key and has zero call sites, and all real traffic goes through the service-role client, which bypasses RLS entirely. Consequences for this phase: RBAC-02's authorization helper **must be application code**, not RLS; and RBAC-04's RLS requirement means anon-key **deny-by-default** on the new tables (enable RLS, define no policies — the `merch_orders` pattern), not per-user policies that would silently never match.
 
 ### Claude's Discretion
 
