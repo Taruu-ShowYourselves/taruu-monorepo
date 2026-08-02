@@ -337,11 +337,11 @@ export default function VoteDetailScreen() {
           <View className="flex-row-reverse items-center mb-2">
             <Ionicons name="information-circle" size={16} color="#9CA3AF" />
             <Text className="text-sm text-neutral-500 font-assistant mr-2">
-              ההשתתפות חינם • כל קול נרשם ומשויך לתושב מאומת אחד
+              כל קול נרשם ומשויך לתושב מאומת אחד
             </Text>
           </View>
           <Text className="text-xs text-neutral-400 font-assistant text-center mb-3">
-            אין תשלום ואין חסמים. נדרש אימות זהות ותושבוּת חד-פעמי בלבד.
+            נדרש אימות זהות ותושבוּת חד-פעמי בלבד.
           </Text>
           <Pressable
             className={`py-4 rounded-xl items-center ${

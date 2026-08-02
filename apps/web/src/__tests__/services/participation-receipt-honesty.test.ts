@@ -161,8 +161,14 @@ describe('the receipt shows only server-backed facts', () => {
     expect(flowCode).toContain('נרשם');
   });
 
-  it('renders a cost of חינם', () => {
-    expect(flowCode).toContain('חינם');
+  it('says nothing about money at all — not even that it is free', () => {
+    // Casting a vote is a civic act, not a transaction. Even the word "free"
+    // frames it as one and invites the question "free compared to what?".
+    // The flow states who is voting and that the vote is recorded once; cost
+    // is not a fact about a ballot and does not belong on one.
+    for (const moneyWord of ['חינם', 'עלות', 'תשלום', '₪']) {
+      expect(flowCode).not.toContain(moneyWord);
+    }
   });
 
   it('renders the server registration number under מספר רישום', () => {
