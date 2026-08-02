@@ -24,14 +24,22 @@
 
 import { timingSafeEqual } from 'node:crypto';
 import type { PaymentWebhookEvent } from '@sync/shared';
-import { VOTE_COST, CREATE_VOTE_COST } from '@sync/shared';
+import { CREATE_VOTE_COST } from '@sync/shared';
 import { getToken, isGreenInvoiceConfigured } from '@/services/greenInvoice';
 import { logger } from '@/lib/logger';
 
 // === Configuration ===
 
 // Payment amounts in ILS (source of truth lives in @sync/shared constants)
-const VOTE_PARTICIPATION_AMOUNT = VOTE_COST; // ₪3
+/**
+ * LEGACY ₪3 vote-participation charge. Participation is free since cfa5d25 and
+ * no web surface creates this payment any more, but the `vote_participation`
+ * rail is still wired through /api/payments/create. The amount is pinned here
+ * rather than imported from @sync/shared so the free-participation constant can
+ * never be mistaken for a live price. Retiring this rail belongs to the Phase 3
+ * payment re-scope.
+ */
+const VOTE_PARTICIPATION_AMOUNT = 3;
 const VOTE_CREATION_AMOUNT = CREATE_VOTE_COST; // ₪50
 
 /** Green Invoice document type for a hosted payment request (issues a receipt/invoice). */
