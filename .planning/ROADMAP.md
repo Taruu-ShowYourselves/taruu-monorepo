@@ -103,7 +103,16 @@ Plans:
   3. An applicant can submit a community-manager application; an admin sees it in a review console and can approve, reject, or suspend it, and every one of those transitions records an actor, a timestamp, and a reason.
   4. An **approved** applicant with no billing has **no** manager access — approval alone changes no authorization outcome (issue #79 acceptance criteria 1 and 2, role half).
   5. Every grant, revocation, and suspension writes an append-only audit row that survives the role change itself; RLS denies anon-key reads of applications and audit rows.
-**Plans**: TBD
+**Plans**: 7 plans in 5 waves
+
+Plans:
+- [ ] 05-01-PLAN.md — Schema: role_grants + community_manager_applications + append-only role_grant_events, DB types, shared Zod contracts (wave 1)
+- [ ] 05-02-PLAN.md — Authorization core: pure policy, role repository, and `requireRole` — the single enforcement point (wave 2)
+- [ ] 05-03-PLAN.md — Applicant API: POST/GET /api/manager-applications (wave 3)
+- [ ] 05-04-PLAN.md — Admin review API: scoped queue, approve/reject, suspend/reinstate/revoke, audit on every transition (wave 3)
+- [ ] 05-05-PLAN.md — Applicant screen /he/settings/community-manager + UX-only roles on the profile (wave 4)
+- [ ] 05-06-PLAN.md — Admin review console /he/admin/manager-applications (wave 4)
+- [ ] 05-07-PLAN.md — Manual gate: apply migration, anon-key RLS + append-only proof, super_admin bootstrap, visual evidence (wave 5, checkpoints)
 
 ### Phase 6: Manager Billing + Subscription
 
