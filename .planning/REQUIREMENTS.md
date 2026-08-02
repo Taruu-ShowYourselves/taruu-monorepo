@@ -41,6 +41,21 @@ This milestone: move vote payments to a Green Invoice card-on-file **membership*
 - [ ] **GO-01**: The app deploys to Cloudflare Workers with real credentials and GI Prime live.
 - [ ] **GO-02**: An end-to-end money check passes — one real ₪50 create + one real ₪5 participation, money lands, treasury ledger reconciles, webhook idempotent on replay.
 
+### RBAC + Admin Review (Phase 5 — issue #79a, post-launch)
+
+- [ ] **RBAC-01**: A roles/role-grants schema exists with `super_admin`, `space_admin`, and `community_manager`, scoped per space where applicable — grants are rows with an explicit lifecycle, not a boolean column on `users`.
+- [ ] **RBAC-02**: A single server-side authorization helper is the only enforcement point for privileged routes; authorization is never inferred client-side and never derived from payment state.
+- [ ] **RBAC-03**: A community-manager application can be submitted and reviewed in an admin console — approve, reject, and suspend each record an actor, a timestamp, and a reason. Approval alone changes no authorization outcome.
+- [ ] **RBAC-04**: Every grant, revocation, and suspension writes an append-only audit row that outlives the role change, and RLS denies anon-key reads of applications and audit rows.
+
+### Manager Billing + Subscription (Phase 6 — issue #79c, post-launch)
+
+- [ ] **MGR-01**: Approval and billing are separate prerequisites — a ₪50 charge without approval grants nothing, and an approved applicant gains scoped access only after server-side confirmation of billing activation.
+- [ ] **MGR-02**: The subscription state machine implements `active`, `past_due`, `grace`, `cancelled`, `rejected`, `suspended`, and `expired` with explicit recorded transitions; a super admin can suspend independently of billing, with a stored reason.
+- [ ] **MGR-03**: Renewal handling is idempotent — duplicate or replayed provider events produce exactly one charge, one invoice, and one role transition; idempotency keys are server-generated and no raw card data is stored.
+- [ ] **MGR-04**: Cancellation and the failed-payment grace policy produce documented, predictable access outcomes, and the user is notified on every state change affecting access.
+- [ ] **MGR-05**: Reconciliation matches GI settlement records against internal subscription and charge rows to zero open mismatches; any ambiguous payment state leaves the role inactive.
+
 ## v2 Requirements
 
 ### Vote-Bags Treasury Execution (separate later milestone)
@@ -91,10 +106,19 @@ This milestone: move vote payments to a Green Invoice card-on-file **membership*
 | PAY-08 | Phase 3 | Pending |
 | GO-01 | Phase 4 | Pending |
 | GO-02 | Phase 4 | Pending |
+| RBAC-01 | Phase 5 | Pending |
+| RBAC-02 | Phase 5 | Pending |
+| RBAC-03 | Phase 5 | Pending |
+| RBAC-04 | Phase 5 | Pending |
+| MGR-01 | Phase 6 | Pending |
+| MGR-02 | Phase 6 | Pending |
+| MGR-03 | Phase 6 | Pending |
+| MGR-04 | Phase 6 | Pending |
+| MGR-05 | Phase 6 | Pending |
 
-**Coverage:** 19/19 v1 requirements mapped — 0 orphaned
+**Coverage:** 28/28 v1 requirements mapped — 0 orphaned
 
 ---
 *Requirements defined: 2026-06-28*
 *Traceability populated: 2026-06-28*
-*Last updated: 2026-06-28 after initialization*
+*Last updated: 2026-08-02 — added Phase 5 (RBAC-01..04) and Phase 6 (MGR-01..05) from GitHub issue #79*

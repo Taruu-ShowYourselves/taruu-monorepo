@@ -2,7 +2,7 @@
 
 ## Overview
 
-Starting from a brownfield Next.js codebase with Paddle vote payments and a working Green Invoice merch rail, this milestone moves vote payments to a Green Invoice card-on-file monthly membership (first vote of the month ₪6, rest free), makes the money rails correct and secure, and ships a live product. Four phases, sequenced by hard dependencies: land the coherent working-tree change first, validate the GI integration in sandbox before writing a line of production payment code, build all payment rails and security hardening together, then go live once the external gates (legal sign-off, GI Prime provisioning) have cleared.
+Starting from a brownfield Next.js codebase with Paddle vote payments and a working Green Invoice merch rail, this milestone moves vote payments to a Green Invoice card-on-file monthly membership (first vote of the month ₪6, rest free), makes the money rails correct and secure, and ships a live product. Four phases, sequenced by hard dependencies: land the coherent working-tree change first, validate the GI integration in sandbox before writing a line of production payment code, build all payment rails and security hardening together, then go live once the external gates (legal sign-off, GI Prime provisioning) have cleared. Two further phases, added from GitHub issue #79, follow go-live: the role/approval system Taruu has never had, then the ₪50/month community-manager subscription built on top of it.
 
 ## Phases
 
@@ -10,6 +10,8 @@ Starting from a brownfield Next.js codebase with Paddle vote payments and a work
 - [x] **Phase 2: Spike + Gate** - Validate GI card-on-file in sandbox (hard technical gate); initiate parallel external tracks (legal sign-off, Prime plan) (completed 2026-06-30)
 - [ ] **Phase 3: Payment Rails + Hardening** - Build complete GI card-on-file vote payment loop with full security hardening
 - [ ] **Phase 4: Go-Live** - Deploy with real credentials, run end-to-end money check, reconcile treasury
+- [ ] **Phase 5: RBAC + Admin Review** - Role model, server-side authorization helper, and the human approval console for community-manager applicants (issue #79a) — no billing
+- [ ] **Phase 6: Manager Billing + Subscription** - ₪50/month community-manager subscription on the GI token rail, with a full billing state machine gating role activation (issue #79c)
 
 ## Phase Details
 
@@ -70,10 +72,44 @@ Plans:
   4. GI settlement report, internal `transactions` table, and `treasury_ledger` reconcile to zero open mismatches after the end-to-end check — every settled charge has a matching ledger row, every ledger row has a matching settled charge.
 **Plans**: TBD
 
+### Phase 5: RBAC + Admin Review
+
+**Goal**: Taruu has a real authorization system — a role model, one server-side authorization helper enforced on every privileged route, and a human review console where an admin approves, rejects, or suspends a community-manager applicant with a recorded reason. Approval is modeled as a standalone prerequisite that by itself grants nothing.
+**Depends on**: Phase 4 (go-live ships first; this is post-launch work)
+**Source**: GitHub issue #79 (split — this is the role/approval half, "79a")
+**Requirements**: RBAC-01, RBAC-02, RBAC-03, RBAC-04
+**Context**: The codebase currently has **no** role concept at all — `users` (`supabase/migrations/20240101000000_initial_schema.sql:24`) has no role column, and there is not a single `is_admin` / `super_admin` / `space_admin` check anywhere in `apps/web/src`. Everything in issue #79 that reads "platform or authorized space admins review applicants" and "super admins may suspend" presumes infrastructure that does not exist yet. This phase builds it, with no money involved, so it can proceed regardless of the Green Invoice sandbox gate.
+**Success Criteria** (what must be TRUE):
+  1. A roles/role-grants schema exists with `super_admin`, `space_admin`, and `community_manager`, scoped per space where applicable; grants are rows with an explicit lifecycle, not a boolean column on `users`.
+  2. One server-side authorization helper is the single enforcement point, and every privileged route calls it — authorization is never inferred client-side and never derived from payment state.
+  3. An applicant can submit a community-manager application; an admin sees it in a review console and can approve, reject, or suspend it, and every one of those transitions records an actor, a timestamp, and a reason.
+  4. An **approved** applicant with no billing has **no** manager access — approval alone changes no authorization outcome (issue #79 acceptance criteria 1 and 2, role half).
+  5. Every grant, revocation, and suspension writes an append-only audit row that survives the role change itself; RLS denies anon-key reads of applications and audit rows.
+**Plans**: TBD
+
+### Phase 6: Manager Billing + Subscription
+
+**Goal**: An approved community-manager applicant subscribes for ₪50/month on the Green Invoice token rail and holds scoped access only while approval **and** billing are both live — with a full billing state machine, idempotent renewals, and reconciliation.
+**Depends on**: Phase 5 (role model + authorization helper), Phase 3 (shared GI token-charge rail, webhook, idempotency, treasury), Phase 2 SPIKE-01 **actually cleared**
+**Source**: GitHub issue #79 (split — this is the billing half, "79c")
+**Requirements**: MGR-01, MGR-02, MGR-03, MGR-04, MGR-05
+**Context and open risks**:
+  - **The sandbox gate is not actually closed.** `apps/web/docs/SPIKE-RESULT.md` Part A is still seven rows of `(pending live run)`, and `.planning/ROADMAP.md` plan `02-01-PLAN.md` is unchecked even though Phase 2 is marked complete. Issue #79's own Risks section says to confirm provider contracts first. Someone must run `pnpm spike:gi --charge` against the GI sandbox before any renewal code is written.
+  - **Green Invoice has no subscription object.** `chargeToken()` (`apps/web/src/services/greenInvoice/index.ts:220`) is a one-shot off-session MIT charge. "Monthly ₪50" therefore means Taruu owns the scheduler, the renewal state, and the retry policy — the provider does not.
+  - **The renewal scheduler needs a cron slot that Cloudflare currently refuses.** `apps/web/wrangler.jsonc:58` records that the schedules API rejected the cron list at deploy behind an account-level gate; only `0 */6 * * *` is active. Resolve the gate or pick an alternative trigger before planning the renewal job.
+**Success Criteria** (what must be TRUE):
+  1. A successful ₪50 charge from someone who was never approved grants **no** manager access, and an approved applicant gains scoped access only after billing activation is confirmed server-side (issue #79 acceptance criteria 1 and 2, billing half).
+  2. The states `active`, `past_due`, `grace`, `cancelled`, `rejected`, `suspended`, and `expired` exist with explicit, recorded transitions; a super admin can suspend access independently of billing, with the reason stored.
+  3. Duplicate or replayed renewal events produce exactly one charge, one invoice, and one role transition — idempotency keys are generated server-side, and no raw card data is ever stored.
+  4. Cancellation and the failed-payment grace policy produce predictable, documented access outcomes, and the user is notified on every state change that affects their access.
+  5. A reconciliation check matches GI settlement records against internal subscription and charge rows with zero open mismatches; on any ambiguous payment state the role stays inactive (the issue's stated rollback posture).
+**Plans**: TBD
+
 ## Progress
 
-**Execution Order:** 1 → 2 → 3 → 4
+**Execution Order:** 1 → 2 → 3 → 4 → 5 → 6
 (SPIKE-02/03 run as parallel external tracks during Phase 2 and Phase 3; they gate Phase 4 only)
+(Phases 5 and 6 are the two halves of issue #79, deliberately sequenced **after** go-live so manager onboarding never delays the voter launch. Phase 5 carries no payment code and is unblocked by the GI sandbox gate; Phase 6 is blocked on it.)
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -81,3 +117,5 @@ Plans:
 | 2. Spike + Gate | 2/2 | Complete   | 2026-06-30 |
 | 3. Payment Rails + Hardening | 0/TBD | Not started | - |
 | 4. Go-Live | 0/TBD | Not started | - |
+| 5. RBAC + Admin Review | 0/TBD | Not started | - |
+| 6. Manager Billing + Subscription | 0/TBD | Not started | - |

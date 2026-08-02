@@ -6,7 +6,7 @@ status: unknown
 stopped_at: Completed 02-spike-gate plan 01 (02-01-PLAN.md)
 last_updated: "2026-06-30T07:22:13.014Z"
 progress:
-  total_phases: 4
+  total_phases: 6
   completed_phases: 2
   total_plans: 4
   completed_plans: 4
@@ -88,6 +88,12 @@ Recent decisions affecting current work:
 - [Phase 02-spike-gate]: type:320 reused in chargeToken() — same GI document-issuance type as createPaymentForm
 - [Phase 02-spike-gate]: Spike harness uses plain console.log only (no @/lib/logger) — tsx-clean, no Next.js path-alias deps
 
+### Roadmap Evolution
+
+- Phase 5 added (2026-08-02): **RBAC + Admin Review** — role model, one server-side authorization helper, community-manager application + admin review console, append-only role audit. From GitHub issue #79, split out as the role/approval half ("79a"). Carries no payment code.
+- Phase 6 added (2026-08-02): **Manager Billing + Subscription** — ₪50/month community-manager subscription on the GI token rail with a full billing state machine gating role activation. From GitHub issue #79, the billing half ("79c").
+- Sequencing decision (2026-08-02): both land **after** Phase 4 go-live, so manager onboarding never delays the voter launch during the 08-04 crunch. Phase 5 is unblocked by the GI sandbox gate; Phase 6 is blocked on it.
+
 ### Pending Todos
 
 None yet.
@@ -98,6 +104,9 @@ None yet.
 - Phase 4 external gate: SPIKE-02 (legal/accountant sign-off) + SPIKE-03 (GI Prime + real creds) must resolve before go-live
 - CONCERNS.md flags: tourist/foreign-card surcharge (~3.5%) erodes the ₪6 charge — block or flag at charge time
 - CONCERNS.md flags: Auth0 callback has no server-side state/CSRF validation — deferred to v2 HARD-03
+- **SPIKE-01 completion is contested (found 2026-08-02):** REQUIREMENTS.md and ROADMAP.md both mark SPIKE-01 complete, but `apps/web/docs/SPIKE-RESULT.md` Part A is still seven `(pending live run)` rows and plan `02-01-PLAN.md` is unchecked in the roadmap. Nobody appears to have run `pnpm spike:gi --charge` against the GI sandbox. This gates Phase 3 as well as Phase 6 — resolve before either is planned.
+- **Phase 6 blocker — GI has no subscription object:** `chargeToken()` (`apps/web/src/services/greenInvoice/index.ts:220`) is a one-shot off-session MIT charge. Monthly recurring billing means Taruu owns the scheduler, renewal state, and retry policy; the provider does not.
+- **Phase 6 blocker — Cloudflare cron gate:** `apps/web/wrangler.jsonc:58` records that the schedules API rejected the cron list behind an account-level gate; only `0 */6 * * *` is live. A monthly renewal job needs that gate resolved or an alternative trigger.
 
 ## Session Continuity
 
