@@ -4,7 +4,6 @@
  */
 
 import { z } from 'zod';
-import { GpsCoordinatesSchema } from './verification';
 
 // === Vote Types ===
 
@@ -81,14 +80,18 @@ export type Vote = z.infer<typeof VoteSchema>;
 
 // === Participation ===
 
+/**
+ * A ballot as it exists in `user_votes`. Participation is free (cfa5d25,
+ * 2026-07-29), so there is no payment id; ballots are not chain-anchored, so
+ * there is no transaction hash. Residency is verified once at /verification,
+ * so there are no per-ballot coordinates. Every field here is backed by a
+ * column of `user_votes`.
+ */
 export const ParticipationSchema = z.object({
   id: z.string().uuid(),
   voteId: z.string().uuid(),
   userId: z.string().uuid(),
   optionId: z.string().uuid(),
-  paymentTxId: z.string(),
-  qubikTxHash: z.string().optional(),
-  gpsCoordinates: GpsCoordinatesSchema.optional(),
   createdAt: z.string().datetime(),
 });
 
@@ -148,15 +151,18 @@ export type GetVoteResponse = z.infer<typeof GetVoteResponseSchema>;
 
 export const ParticipateRequestSchema = z.object({
   optionId: z.string().uuid(),
-  paymentTxId: z.string().min(1),
-  gpsCoordinates: GpsCoordinatesSchema,
 });
 
+/**
+ * `alreadyRecorded` is true when the caller had already voted on this vote and
+ * the server returned the EXISTING ballot instead of creating a second one —
+ * a double-click, a retry, or a replay. It is a successful outcome, not an
+ * error, and the tally was not moved a second time.
+ */
 export const ParticipateResponseSchema = z.object({
   success: z.literal(true),
   participation: ParticipationSchema,
-  txHash: z.string().optional(),
-  tokensEarned: z.number().int().nonnegative(),
+  alreadyRecorded: z.boolean(),
 });
 
 export type ParticipateRequest = z.infer<typeof ParticipateRequestSchema>;
