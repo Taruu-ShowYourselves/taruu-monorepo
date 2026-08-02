@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 02.1-04-PLAN.md (participation-persistence, plan 4 of 5)
-last_updated: "2026-08-02T14:26:16.795Z"
+stopped_at: Completed 02.1-05-PLAN.md (participation-persistence, plan 5 of 5 — phase complete)
+last_updated: "2026-08-02T14:43:10.981Z"
 progress:
   total_phases: 8
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 18
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State
@@ -20,16 +20,18 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 
 **Core value:** A resident pays ₪6 once a month to vote freely on their city's affairs, and trusts that the civic pool funds the decisions that actually execute.
 **NOTE (2026-08-02):** that core-value statement no longer matches the product — `cfa5d25` made participation free. PROJECT.md needs re-stating before Phase 3 is re-scoped.
-**Current focus:** Phase 02.1 — participation-persistence
+**Current focus:** Phase 02.1 — participation-persistence — COMPLETE. Next: Phase 3 needs re-scoping (not planning) before it can proceed — see Blockers/Concerns.
 
 ## Current Position
 
-Phase: 02.1 (participation-persistence) — EXECUTING
-Plan: 4 of 5
+Phase: 02.1 (participation-persistence) — COMPLETE (5/5 plans, VOTE-01..05 all satisfied)
+Plan: 5 of 5 (all plans complete)
 
 ## ▶ RESUME HERE (after /clear)
 
-**Run `/gsd:execute-phase 02.1`.** Phase 02.1 is planned and verified — 5 plans in 2 waves, all autonomous. This is a P0 on live traffic, and it depends on nothing.
+Phase 02.1 is done — the P0 (free votes not persisted, fake blockchain-seal receipt) is closed on both server and client. Next step is `/gsd:plan-milestone-gaps` to re-scope Phase 3: PAY-02/03/04/08 and GO-02 are contradicted by shipped free participation (they describe a ₪6/month membership the product no longer sells) and cannot be planned as currently written. Phase 2's GI sandbox/legal/Prime gates are also still open — see Blockers/Concerns below.
+
+Prior instruction, now complete: ~~Run `/gsd:execute-phase 02.1`. Phase 02.1 is planned and verified — 5 plans in 2 waves, all autonomous. This is a P0 on live traffic, and it depends on nothing.~~
 
 Plans: wave 1 = `02.1-01` (shared/api-client free contract), `02.1-02` (`recordUserVoteOnce` + server eligibility), `02.1-03` (₪3 legacy retirement) — fully parallel, zero file overlap. Wave 2 = `02.1-04` (participate route rewrite, RED→GREEN over the existing 30-test suite), `02.1-05` (client `submitParticipation` + honest receipt).
 
@@ -87,6 +89,7 @@ Open question, still unresolved and now less urgent: **monthly civic-pool alloca
 | Phase 02.1 P03 | 6min | 3 tasks | 5 files |
 | Phase 02.1-participation-persistence P02 | 10min | 3 tasks | 3 files |
 | Phase 02.1 P04 | 10min | 2 tasks | 2 files |
+| Phase 02.1 P05 | 14min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -117,6 +120,7 @@ Recent decisions affecting current work:
 - [Phase 02.1-participation-persistence]: [02.1-02] Server voter eligibility reconciles cleanly with the client's isEligibleToVote — identity_score>=40 kept AND residency rule mirrored exactly, no divergence to flag
 - [Phase 02.1]: [Phase 02.1-participation-persistence]: [02.1-04] Route rewritten to the free contract: recordUserVoteOnce persists the ballot, tally/participant_count bump gated on created, no 402/503, no token mint, no receipt email
 - [Phase 02.1]: [Phase 02.1-participation-persistence]: [02.1-04] Route's response returns the server row's id/created_at (never a client timestamp) and alreadyRecorded on a duplicate submit, matching ParticipateResponseSchema exactly for plan 05
+- [Phase 02.1]: [02.1-05] onComplete now fires only from the receipt's own CTA (not from the write itself), passing the recorded optionId, fixing the bug where sealVote() unmounted the flow before the receipt could render
 
 ### Roadmap Evolution
 
@@ -132,7 +136,7 @@ None yet.
 
 ### Blockers/Concerns
 
-- **P0, LIVE (found 2026-08-02):** free participation is not persisted. `ParticipationFlow.tsx:149-157` seals client-side with `mockHash()` and never calls the server; `/api/votes/[id]/participate` is orphaned and still payment-gated; `recordUserVote` only fires behind a completed payment. Residents are shown a blockchain-seal receipt for votes that do not exist. Phase 02.1 (VOTE-01..05) exists to close this.
+- **P0 CLOSED (2026-08-02):** free participation was not persisted — residents were shown a blockchain-seal receipt for votes that were never recorded. Phase 02.1 (VOTE-01..05) is now complete end to end: the server persists every free ballot idempotently through `recordUserVoteOnce` (plan 04), and the client (`ParticipationFlow.tsx`, plan 05) only shows a receipt after that persistence is confirmed via `submitParticipation`, with `mockHash()` and every chain-seal claim removed from the casting funnel. Manual production verification (cast a real vote as a verified resident, confirm the receipt shows a real `user_votes.id`) is still recommended before considering this fully closed on live traffic — see `02.1-05-SUMMARY.md`'s Next Phase Readiness.
 - **Milestone requirements are partly wrong, not just unbuilt (2026-08-02):** PAY-02/03/04/08 and GO-02 are contradicted by shipped free participation. Phase 3 cannot be planned as written — re-scope first. See `.planning/v1.0-MILESTONE-AUDIT.md`.
 - **Production GI runs in front of an unverified gate:** `wrangler.jsonc:74` sets `GREENINVOICE_ENV=production` while `GI-PRIME-CHECKLIST.md` is 0/24 and `GI-LEGAL-CHECKLIST.md` is 0/19.
 - **CI deploy has been broken since 2026-07-28:** `.github/workflows/deploy.yml:62` references an unset `CLOUDFLARE_API_TOKEN`; 5/5 most recent runs failed. The live site is manual-deploy only.
@@ -148,6 +152,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-02T14:26:16.792Z
-Stopped at: Completed 02.1-04-PLAN.md (participation-persistence, plan 4 of 5)
+Last session: 2026-08-02T14:43:10.978Z
+Stopped at: Completed 02.1-05-PLAN.md (participation-persistence, plan 5 of 5 — phase complete)
 Resume file: None
