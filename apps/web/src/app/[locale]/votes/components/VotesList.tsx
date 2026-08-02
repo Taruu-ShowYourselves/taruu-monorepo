@@ -95,7 +95,7 @@ function toWidgetOptions(vote: Vote) {
 }
 
 /**
- * Settled-record press card for ended / pending votes — final tally, winner
+ * Settled-record press card for ended / pending votes - final tally, winner
  * marked, muted (no live pulse). Mirrors the archive record card.
  */
 function RecordCard({ vote }: { vote: Vote }) {
@@ -104,7 +104,7 @@ function RecordCard({ vote }: { vote: Vote }) {
   const leading =
     options.length > 0
       ? options.reduce((a, b) => (a.voteCount > b.voteCount ? a : b))
-      : { label: '—', voteCount: 0 };
+      : { label: '-', voteCount: 0 };
   const leadingPct = total > 0 ? Math.round((leading.voteCount / total) * 100) : 0;
   const ended = isVoteEnded(vote.status);
 
@@ -266,7 +266,8 @@ export function VotesList({ filter }: VotesListProps) {
                     href={`/votes/${vote.id}`}
                   />
                   <p className={styles.trustNote}>
-                    הקול שלכם ייחתם בבלוקצ׳יין. אי אפשר לשנות אותו בדיעבד.
+                    הקול שלכם נרשם פעם אחת ומשויך לתושב מאומת. אי אפשר לשנות
+                    אותו בדיעבד.
                   </p>
                 </div>
               ) : (
