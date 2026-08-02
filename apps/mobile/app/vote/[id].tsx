@@ -6,7 +6,7 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { votesApi } from '@sync/api-client';
-import { Vote, VoteOption, VOTE_COST, formatCurrency, getTimeRemaining } from '@sync/shared';
+import { Vote, VoteOption, getTimeRemaining } from '@sync/shared';
 import { shareVote } from '@/lib/share';
 
 function OptionCard({
@@ -337,11 +337,11 @@ export default function VoteDetailScreen() {
           <View className="flex-row-reverse items-center mb-2">
             <Ionicons name="information-circle" size={16} color="#9CA3AF" />
             <Text className="text-sm text-neutral-500 font-assistant mr-2">
-              עלות הצבעה: {formatCurrency(VOTE_COST)} • נרשם בבלוקצ'יין
+              ההשתתפות חינם • כל קול נרשם ומשויך לתושב מאומת אחד
             </Text>
           </View>
           <Text className="text-xs text-neutral-400 font-assistant text-center mb-3">
-            דמי ההשתתפות מחזקים פעולה קהילתית ושקיפות—לא "תשלום עבור דעה".
+            אין תשלום ואין חסמים. נדרש אימות זהות ותושבוּת חד-פעמי בלבד.
           </Text>
           <Pressable
             className={`py-4 rounded-xl items-center ${
