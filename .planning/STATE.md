@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-stopped_at: Completed 02-spike-gate plan 01 (02-01-PLAN.md)
-last_updated: "2026-06-30T07:22:13.014Z"
+status: audited_gaps_found
+stopped_at: v1.0 milestone audit complete; Phase 02.1 inserted (P0) and awaiting planning
+last_updated: "2026-08-02T00:00:00.000Z"
 progress:
-  total_phases: 6
-  completed_phases: 2
+  total_phases: 7
+  completed_phases: 1
   total_plans: 4
   completed_plans: 4
 ---
@@ -19,25 +19,33 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-28)
 
 **Core value:** A resident pays ₪6 once a month to vote freely on their city's affairs, and trusts that the civic pool funds the decisions that actually execute.
-**Current focus:** Phase 01 — clean-foundation
+**NOTE (2026-08-02):** that core-value statement no longer matches the product — `cfa5d25` made participation free. PROJECT.md needs re-stating before Phase 3 is re-scoped.
+**Current focus:** Phase 02.1 — participation persistence (P0)
 
 ## Current Position
 
-Phase: 01 (clean-foundation) — COMPLETE
-Plan: 2 of 2 (all plans done)
+Phase: 02.1 (participation-persistence) — INSERTED, NOT PLANNED
+Plan: 0 of TBD
 
 ## ▶ RESUME HERE (after /clear)
 
-**Phase 1 is COMPLETE.** Run `/gsd:execute-phase 2` to begin Phase 2 (GI sandbox spike).
+**Run `/gsd:plan-phase 02.1`.** This is a P0 on live traffic, and it depends on nothing.
 
-Phase 1 completed:
+`.planning/v1.0-MILESTONE-AUDIT.md` (2026-08-02, commit 6c71835) audited the milestone at **2/28 requirements satisfied** and found a defect no requirement covered:
 
-- 01-01 (LAND-01): Auth0 OIDC swap, Printful POD removal, RLS user_id helper fix — commit 44961e0
-- 01-02 (SEC-01): Corrective RLS migration for treasury/issue_coin/phone_verifications per-user policies — commit 31d6860
+- `apps/web/src/app/[locale]/votes/[id]/flow/ParticipationFlow.tsx:149-157` seals a vote with a client-side `mockHash()` and a fabricated block number, then stops. The file has zero `fetch()` calls.
+- `/api/votes/[id]/participate` is orphaned (zero client references) and still requires `paymentTxId` (`route.ts:52`, 402 at `:136-145`).
+- `recordUserVote` only runs behind a completed GI payment (`payments/webhook/route.ts:191`), so no free vote persists at all.
+- Live consequence: residents see `נחתם` / `✓ חתום בבלוקצ׳יין` for votes that were never recorded.
 
-After Phase 1: Phase 2 = GI sandbox spike (the gate). Start the slow external tracks NOW in parallel — GI Prime plan provisioning + accountant/legal merchant-of-record sign-off — neither is code; both gate go-live.
+Phase 02.1 (VOTE-01..05) closes it. After that, the two decisions the audit forces:
 
-Open question to resolve before Phase 3 planning: **monthly civic-pool allocation policy** (how the month's ₪2.10×members pool splits across executed decisions).
+1. **Phase 3 needs re-scoping, not planning.** PAY-02/03/04/08 and GO-02 are contradicted by shipped free participation — they describe a ₪6/month membership the product no longer sells (`PricingContent.tsx:64-65` says `אין מנוי, אין דמי חבר`). Rewrite or retire them via `/gsd:plan-milestone-gaps`.
+2. **Phase 2's gate was never passed.** SPIKE-RESULT.md 0/7 fields, GI-LEGAL 0/19, GI-PRIME 0/24 — while `wrangler.jsonc:74` already runs `GREENINVOICE_ENV=production`.
+
+GitHub issue #76 (municipality onboarding + authority dashboard) is queued behind Phase 5 — it needs RBAC-01..04's role model, authorization helper, admin review console, and audit table. It is a continuation of Phase 5, not a separate milestone.
+
+Open question, still unresolved and now less urgent: **monthly civic-pool allocation policy** (moot until the pricing model is re-decided).
 
 ## Performance Metrics
 
@@ -93,6 +101,8 @@ Recent decisions affecting current work:
 - Phase 5 added (2026-08-02): **RBAC + Admin Review** — role model, one server-side authorization helper, community-manager application + admin review console, append-only role audit. From GitHub issue #79, split out as the role/approval half ("79a"). Carries no payment code.
 - Phase 6 added (2026-08-02): **Manager Billing + Subscription** — ₪50/month community-manager subscription on the GI token rail with a full billing state machine gating role activation. From GitHub issue #79, the billing half ("79c").
 - Sequencing decision (2026-08-02): both land **after** Phase 4 go-live, so manager onboarding never delays the voter launch during the 08-04 crunch. Phase 5 is unblocked by the GI sandbox gate; Phase 6 is blocked on it.
+- Phase 02.1 inserted after Phase 2 (2026-08-02): **Participation Persistence** — record free votes server-side, drop the participate route's payment-shaped contract, remove the `mockHash()` blockchain-seal claim, reconcile the ₪3 legacy across web and mobile (VOTE-01..05). URGENT — P0 found by the v1.0 milestone audit, live on taruu.co.il, depends on nothing.
+- GitHub issue #76 (municipality onboarding + authority dashboard) triaged 2026-08-02: **belongs to the Phase 5 line, not a new milestone.** Its acceptance criteria — super-admin approval before a verified badge, representative role isolation, append-only official responses, audit log — are RBAC-01..04's infrastructure. Add as a phase after 5 once 5 is planned; do not fork it into a parallel milestone.
 
 ### Pending Todos
 
@@ -100,6 +110,12 @@ None yet.
 
 ### Blockers/Concerns
 
+- **P0, LIVE (found 2026-08-02):** free participation is not persisted. `ParticipationFlow.tsx:149-157` seals client-side with `mockHash()` and never calls the server; `/api/votes/[id]/participate` is orphaned and still payment-gated; `recordUserVote` only fires behind a completed payment. Residents are shown a blockchain-seal receipt for votes that do not exist. Phase 02.1 (VOTE-01..05) exists to close this.
+- **Milestone requirements are partly wrong, not just unbuilt (2026-08-02):** PAY-02/03/04/08 and GO-02 are contradicted by shipped free participation. Phase 3 cannot be planned as written — re-scope first. See `.planning/v1.0-MILESTONE-AUDIT.md`.
+- **Production GI runs in front of an unverified gate:** `wrangler.jsonc:74` sets `GREENINVOICE_ENV=production` while `GI-PRIME-CHECKLIST.md` is 0/24 and `GI-LEGAL-CHECKLIST.md` is 0/19.
+- **CI deploy has been broken since 2026-07-28:** `.github/workflows/deploy.yml:62` references an unset `CLOUDFLARE_API_TOKEN`; 5/5 most recent runs failed. The live site is manual-deploy only.
+- **`validateEnv()` is dead code** (`apps/web/src/lib/env.ts:135`, zero callers) and would fail closed on production if wired — it still requires four `AUTH0_*` vars that `da77848` orphaned, plus `SUPABASE_URL`/`SUPABASE_SERVICE_KEY` which no reader uses (runtime reads `NEXT_PUBLIC_SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`).
+- **Mobile still charges ₪3** (`apps/mobile/app/vote/[id].tsx:340`) — `cfa5d25` was web-only and `packages/shared/src/constants/index.ts:6` still exports `VOTE_COST = 3`.
 - Phase 2 gate: SPIKE-01 (GI sandbox spike) must clear before Phase 3 coding begins
 - Phase 4 external gate: SPIKE-02 (legal/accountant sign-off) + SPIKE-03 (GI Prime + real creds) must resolve before go-live
 - CONCERNS.md flags: tourist/foreign-card surcharge (~3.5%) erodes the ₪6 charge — block or flag at charge time
