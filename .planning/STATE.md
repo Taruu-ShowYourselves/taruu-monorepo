@@ -24,8 +24,8 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 
 ## Current Position
 
-Phase: 02.1 (participation-persistence) — INSERTED, NOT PLANNED
-Plan: 0 of TBD
+Phase: 02.1 (participation-persistence) — PLANNED, VERIFIED, NOT EXECUTED
+Plan: 0 of 5
 
 ## ▶ RESUME HERE (after /clear)
 
