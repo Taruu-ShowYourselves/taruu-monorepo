@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 02.1-03-PLAN.md (participation-persistence, plan 3 of 5)
-last_updated: "2026-08-02T14:13:58.818Z"
+stopped_at: Completed 02.1-02-PLAN.md (participation-persistence, plan 2 of 5)
+last_updated: "2026-08-02T14:15:20.494Z"
 progress:
   total_phases: 8
   completed_phases: 2
@@ -85,6 +85,7 @@ Open question, still unresolved and now less urgent: **monthly civic-pool alloca
 | Phase 02-spike-gate P01 | 4 | 3 tasks | 4 files |
 | Phase 02.1-participation-persistence P01 | 12min | 3 tasks | 6 files |
 | Phase 02.1 P03 | 6min | 3 tasks | 5 files |
+| Phase 02.1-participation-persistence P02 | 10min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -111,6 +112,8 @@ Recent decisions affecting current work:
 - [Phase 02-spike-gate]: Spike harness uses plain console.log only (no @/lib/logger) — tsx-clean, no Next.js path-alias deps
 - [Phase 02.1-participation-persistence]: [02.1-01] Participate contract/types stripped of paymentTxId/qubikTxHash/gpsCoordinates/tokensEarned; ParticipateResponseSchema gains alreadyRecorded for idempotent-duplicate success
 - [Phase 02.1]: [Phase 02.1-participation-persistence]: VOTE_COST retired from @sync/shared in favour of explicit VOTE_PARTICIPATION_COST=0; legacy GI vote_participation rail pinned to a local ₪3 literal (deliberately unchanged, deferred to Phase 3 re-scope) rather than importing the retired name
+- [Phase 02.1-participation-persistence]: [02.1-02] recordUserVoteOnce added alongside recordUserVote (not a replacement) — payments webhook keeps the throwing signature; idempotency keyed off SQLSTATE 23505 read-back
+- [Phase 02.1-participation-persistence]: [02.1-02] Server voter eligibility reconciles cleanly with the client's isEligibleToVote — identity_score>=40 kept AND residency rule mirrored exactly, no divergence to flag
 
 ### Roadmap Evolution
 
@@ -142,6 +145,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-02T14:13:50.128Z
-Stopped at: Completed 02.1-03-PLAN.md (participation-persistence, plan 3 of 5)
+Last session: 2026-08-02T14:15:20.490Z
+Stopped at: Completed 02.1-02-PLAN.md (participation-persistence, plan 2 of 5)
 Resume file: None
