@@ -185,6 +185,21 @@ apps/web/src/app/[locale]/space-admin/[spaceId]/
 
 **Why this shape:** Next.js's official guidance is explicit that a layout is not a security boundary — "Avoid performing authentication checks directly in Layouts because they do not re-render on navigation… layouts do not prevent nested route segments or parallel route slots from rendering. Instead, perform authorization checks close to the data source or within a dedicated Data Access Layer." Here the DAL is `server/infra/supabase/*`, and the brand makes the DAL structurally refuse an unauthorized call.
 
+> ⚠ **SUPERSEDED — do not copy the capability names below.** This was a research-time draft.
+> The authoritative vocabulary is the eleven-member union shipped by plan 05-02 in
+> `apps/web/src/server/domain/space/capability.ts`, which maps 1:1 onto the eleven rows of the
+> UI capability manifest in `05-UI-SPEC.md`:
+>
+> `proposal.read` · `proposal.approve` · `proposal.reject` · `member.read` · `member.suspend` ·
+> `grant.create` · `grant.revoke` · `content.moderate` · `metrics.read` · `notification.send` · `audit.read`
+>
+> The names below (`space.read`, `proposal.decide`, `grant.manage`, `notification.compose`,
+> `space.update`) **do not exist** and the `space_capability_grants` CHECK constraint rejects them.
+> Two substantive differences, both deliberate: `proposal.reject` covers request-changes, and
+> reaching the dashboard shell is *membership* via `resolveMembership`, not a `space.read` capability.
+> The shape of the argument below — branded scope, DAL-level enforcement — still holds; only the
+> names are stale.
+
 ```ts
 // server/domain/space/capability.ts  (pure)
 export const CAPABILITIES = [
@@ -598,6 +613,7 @@ export const quotaExceeded = (scope: string, retryAfterSeconds?: number): AppErr
 // server/domain/space/capability.ts (pure, unit-testable)
 export const ROLE_PRESETS = {
   space_admin:        [...CAPABILITIES],
+  // ⚠ SUPERSEDED — these capability names do not exist; see the warning above.
   space_reviewer:     ['space.read','proposal.read','proposal.decide','member.read','metrics.read','audit.read'],
   space_moderator:    ['space.read','content.moderate','member.read','metrics.read','audit.read'],
   space_communicator: ['space.read','member.read','metrics.read','notification.compose','notification.send','audit.read'],
