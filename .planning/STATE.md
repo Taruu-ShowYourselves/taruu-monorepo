@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-08-02T16:04:13.196Z"
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-08-02T16:09:17.732Z"
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 20
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -24,13 +24,18 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 05 (space-governance-substrate-and-space-admin-operations-dashboard) — EXECUTING
-Plan: 2 of 16
+Plan: 3 of 16
 
 ## ▶ RESUME HERE (after /clear)
 
-**Phase 5 is EXECUTING** (16 plans, 6 waves). Plan 05-01 (governance substrate — DB tables, two-file `vote_status` split, `types.ts`) is complete; see `05-01-SUMMARY.md`.
+**Phase 5 is EXECUTING** (16 plans, 6 waves). **Wave 1 is complete** — plans 05-01 and 05-02 both landed.
+
+- 05-01 (governance substrate — DB tables, two-file `vote_status` split, `types.ts`); see `05-01-SUMMARY.md`.
+- 05-02 (capability vocabulary, review transitions, QUOTA_EXCEEDED, rollout flag, full contract surface); see `05-02-SUMMARY.md`.
 
 Outstanding from 05-01: the Phase 5 migrations have **never been applied to a live Postgres** (no Docker/psql on the exec machine). `supabase/tests/audit_append_only.sql` is committed but uncaptured. 05-16 owns that verification.
+
+For plans 03–09: import the capability vocabulary from `apps/web/src/server/domain/space/capability.ts`, the review rules from `.../space/review.ts`, and **every** request/response shape from `packages/shared/src/contracts/spaceAdmin.ts`. That contract file is complete for the phase — no later plan should need to edit it, or `apps/web/src/server/http/errors.ts`.
 
 Phase 1 completed:
 
@@ -66,6 +71,7 @@ Open question to resolve before Phase 3 planning: **monthly civic-pool allocatio
 | Phase 02-spike-gate P02 | 2 | 2 tasks | 2 files |
 | Phase 02-spike-gate P01 | 4 | 3 tasks | 4 files |
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P01 | 7 min | 3 tasks | 6 files |
+| Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P02 | 12 min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -98,6 +104,16 @@ Recent decisions affecting current work:
 - [Phase 05-space-governance]: Audit actions are past tense (proposal.approved), capabilities imperative (proposal.approve) — not interchangeable; only 'proposal.approved' is structurally load-bearing via uq_space_proposal_single_approval
 - [Phase 05-space-governance]: platform_escalations.space_id is nullable by design, paired with non-null raw_space_id, so the escalation endpoint cannot be used as a space-existence oracle
 - [Phase 05-space-governance]: types.ts writers in phase 5 are 05-01 (wave 1) and 05-08 (wave 3) ONLY; 05-07 must not edit it, which is why space_admin_metrics is pre-typed
+- [Phase 05-space-governance]: TS capability vocabulary in server/domain/space/capability.ts matches the DDL CHECK list identifier-for-identifier and in order — verified after both wave-1 plans landed
+- [Phase 05-space-governance]: No twelfth `space.read` capability — reaching the dashboard shell is membership (holding ≥1 grant), resolved by resolveMembership() in 05-04, not a capability
+- [Phase 05-space-governance]: proposal.reject covers request-changes as well as reject; only proposal.approve publishes. Do not add a separate request-changes capability
+- [Phase 05-space-governance]: `pending` keeps its existing meaning ("scheduled, not started") and is NOT a decidable review state — pinned by test in review.test.ts
+- [Phase 05-space-governance]: QUOTA_EXCEEDED → 429 with body {error:'Quota exceeded', code:'QUOTA_EXCEEDED'} only — no scope, count or limit leaked; localized text lives in the UI keyed off `code`
+- [Phase 05-space-governance]: Notification quota is a CALENDAR MONTH with a reset date (`מכסה חודשית`), not a rolling 24h window
+- [Phase 05-space-governance]: Escalations write to platform_escalations only, never to a space audit log — the log is append-only and any authenticated user can escalate, so there is deliberately no `escalation.raised` audit action
+- [Phase 05-space-governance]: packages/shared/src/contracts/spaceAdmin.ts is the phase's COMPLETE contract surface — plans 03–09 import from it and must not reopen it or errors.ts
+- [Phase 05-space-governance]: SpaceSummary.type stays z.string() rather than an enum so the contract does not fork the DDL's space-type list that #74 will extend
+- [Phase 05-space-governance]: SPACE_ADMIN_ENABLED=false is the whole-dashboard kill switch (default on); rollback touches no governance table and no audit history
 
 ### Roadmap Evolution
 
@@ -117,6 +133,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-02T16:04:02.438Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-08-02T16:09:17.728Z
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None
