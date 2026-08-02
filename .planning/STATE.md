@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 02.1-02-PLAN.md (participation-persistence, plan 2 of 5)
-last_updated: "2026-08-02T14:15:20.494Z"
+stopped_at: Completed 02.1-04-PLAN.md (participation-persistence, plan 4 of 5)
+last_updated: "2026-08-02T14:26:16.795Z"
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 18
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 02.1 (participation-persistence) — EXECUTING
-Plan: 1 of 5
+Plan: 4 of 5
 
 ## ▶ RESUME HERE (after /clear)
 
@@ -86,6 +86,7 @@ Open question, still unresolved and now less urgent: **monthly civic-pool alloca
 | Phase 02.1-participation-persistence P01 | 12min | 3 tasks | 6 files |
 | Phase 02.1 P03 | 6min | 3 tasks | 5 files |
 | Phase 02.1-participation-persistence P02 | 10min | 3 tasks | 3 files |
+| Phase 02.1 P04 | 10min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -114,6 +115,8 @@ Recent decisions affecting current work:
 - [Phase 02.1]: [Phase 02.1-participation-persistence]: VOTE_COST retired from @sync/shared in favour of explicit VOTE_PARTICIPATION_COST=0; legacy GI vote_participation rail pinned to a local ₪3 literal (deliberately unchanged, deferred to Phase 3 re-scope) rather than importing the retired name
 - [Phase 02.1-participation-persistence]: [02.1-02] recordUserVoteOnce added alongside recordUserVote (not a replacement) — payments webhook keeps the throwing signature; idempotency keyed off SQLSTATE 23505 read-back
 - [Phase 02.1-participation-persistence]: [02.1-02] Server voter eligibility reconciles cleanly with the client's isEligibleToVote — identity_score>=40 kept AND residency rule mirrored exactly, no divergence to flag
+- [Phase 02.1]: [Phase 02.1-participation-persistence]: [02.1-04] Route rewritten to the free contract: recordUserVoteOnce persists the ballot, tally/participant_count bump gated on created, no 402/503, no token mint, no receipt email
+- [Phase 02.1]: [Phase 02.1-participation-persistence]: [02.1-04] Route's response returns the server row's id/created_at (never a client timestamp) and alreadyRecorded on a duplicate submit, matching ParticipateResponseSchema exactly for plan 05
 
 ### Roadmap Evolution
 
@@ -145,6 +148,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-02T14:15:20.490Z
-Stopped at: Completed 02.1-02-PLAN.md (participation-persistence, plan 2 of 5)
+Last session: 2026-08-02T14:26:16.792Z
+Stopped at: Completed 02.1-04-PLAN.md (participation-persistence, plan 4 of 5)
 Resume file: None
