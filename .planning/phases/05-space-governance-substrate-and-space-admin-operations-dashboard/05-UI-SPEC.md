@@ -601,7 +601,9 @@ Confirmations:
 
 | Action | Heading | Body | Consequence line | Confirm |
 |--------|---------|------|------------------|---------|
-| Approve | `לאשר ולפרסם את ההצעה?` | `ההצעה תתפרסם לתושבי המרחב ותיפתח להצבעה. עם האישור ייגבו ₪50 מהמגיש/ה — התשלום נגבה רק עכשיו, ולא בעת ההגשה.` | `הפרסום והחיוב אינם ניתנים לביטול מהלוח הזה.` | `אשרו ופרסמו` |
+| Approve | `לאשר ולפרסם את ההצעה?` | `ההצעה תתפרסם לתושבי המרחב ותיפתח להצבעה. עם האישור ייווצר חיוב של ₪50 למגיש/ה — החיוב נוצר רק עכשיו, ולא בעת ההגשה.` | `הפרסום והחיוב אינם ניתנים לביטול מהלוח הזה.` | `אשרו ופרסמו` |
+
+> **Amendment 2026-08-02 — approve-dialog verb.** The body reads `ייווצר חיוב` ("a charge will be created"), not `ייגבו` ("will be collected"). Phase 5's `CreationFeePort` records a pending `vote_creation` obligation against the submitter and moves no money; the card-on-file rail that can capture off-session is PAY-06 in phase 3 and has not shipped. "Collected" would state something the code does not do. "Created" is accurate today and stays accurate after PAY-06 lands, so the string never needs revisiting. The failure copy `אף סכום לא נגבה` is correct under either rail and is unchanged.
 | Request changes | `להחזיר את ההצעה לתיקון?` | `ההצעה תחזור למגיש עם הנימוק שלכם ולא תתפרסם עד שתוגש מחדש.` | — | `החזירו לתיקון` |
 | Reject | `לדחות את ההצעה?` | `ההצעה לא תתפרסם.` | `הדחייה והנימוק נרשמים ביומן לצמיתות. אי אפשר לבטל.` | `דחו את ההצעה` |
 | Hide content | `להסתיר את התוכן מהתושבים?` | `התוכן לא יוצג לתושבי המרחב. ההצעה עצמה נשארת בתור ההכרעה.` | — | `הסתירו את התוכן` |
