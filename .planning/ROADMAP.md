@@ -88,7 +88,31 @@ Plans:
 **Requirements**: SPACE-01, SPACE-02, SPACE-03, SPACE-04, SPACE-05, SPACE-06, SPACE-07, SPACE-08, SPACE-09, SPACE-10
 **Depends on:** Nothing — independent of the v1.0 payments track (phases 1–4). Appended scope from issue #75.
 **Canonical refs:** `.planning/phases/05-space-governance-substrate-and-space-admin-operations-dashboard/05-CONTEXT.md`, issue #75
-**Plans:** 0 plans
+**Plans:** 16 plans in 6 waves
+
+| Wave | Plans | Notes |
+|------|-------|-------|
+| 1 | 05-01, 05-02 | Database surface; pure domain + contracts |
+| 2 | 05-03, 05-04, 05-11 | Read-path allow-list; authorization core (checkpoint); UI primitives |
+| 3 | 05-05, 05-06, 05-07, 05-08 | Decisions; members/content; metrics + audit read; notification substrate |
+| 4 | 05-09, 05-10, 05-12, 05-13, 05-14 | Send + escalation; charge-on-approval; overview, proposals, members/stats UI |
+| 5 | 05-15 | Dispatch + audit surfaces |
+| 6 | 05-16 | Screenshot evidence + phase verification (checkpoint) |
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 5 to break down)
+- [ ] 05-01-PLAN.md — Governance DDL, two-file vote_status split, database row types [SPACE-01, SPACE-04, SPACE-09]
+- [ ] 05-02-PLAN.md — Capability vocabulary, review transitions, QUOTA_EXCEEDED, complete shared contract, rollout flag [SPACE-02, SPACE-04, SPACE-05]
+- [ ] 05-03-PLAN.md — Review-state vocabulary in TypeScript + public read-path allow-list [SPACE-05]
+- [ ] 05-04-PLAN.md — Branded SpaceScope authorization core, first two use-cases, ergonomics go/no-go checkpoint [SPACE-02, SPACE-03, SPACE-09]
+- [ ] 05-05-PLAN.md — Proposal decisions: approve / reject / request-changes, deterministic concurrency, audit [SPACE-04, SPACE-05]
+- [ ] 05-06-PLAN.md — Members, grants, suspension, content moderation, escalation [SPACE-06, SPACE-09]
+- [ ] 05-07-PLAN.md — Aggregate-only metrics RPC + cursor-paginated audit read [SPACE-07, SPACE-04]
+- [ ] 05-08-PLAN.md — Notification substrate, single audience resolver, preview [SPACE-08]
+- [ ] 05-09-PLAN.md — Send: dual-hash verification, DB quota, delivery log, deferred push [SPACE-08, SPACE-09]
+- [ ] 05-10-PLAN.md — Free submission into in_review; ₪50 charged at approval via a payment port [SPACE-05]
+- [ ] 05-11-PLAN.md — Shell, PressTable, StatusChip, ConfirmDialog + disabled contract, panels [SPACE-10]
+- [ ] 05-12-PLAN.md — Overview surface, capability manifest, escalation dialog [SPACE-10, SPACE-02, SPACE-09]
+- [ ] 05-13-PLAN.md — Proposal review surface + detail panel with content controls [SPACE-10, SPACE-05, SPACE-06]
+- [ ] 05-14-PLAN.md — Members and statistics surfaces [SPACE-10, SPACE-06, SPACE-07]
+- [ ] 05-15-PLAN.md — Dispatch composer + audit history surfaces [SPACE-10, SPACE-08, SPACE-04]
+- [ ] 05-16-PLAN.md — Screenshot evidence, manual SQL proof, live denial check, sign-off [SPACE-10, SPACE-03, SPACE-04]
