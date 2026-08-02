@@ -43,15 +43,15 @@ This milestone: move vote payments to a Green Invoice card-on-file **membership*
 
 ### Space Governance & Space-Admin Operations (issue #75, appended scope — independent of the payments track)
 
-- [ ] **SPACE-01**: A typed `spaces` table exists (uuid id, type, slug, geography, owner, verification state) with a nullable `municipality_code` FK to `municipalities(code)`. Existing `municipality_id` columns on `users`, `votes`, and `treasury` are unchanged — additive only, no table rewrites.
+- [x] **SPACE-01**: A typed `spaces` table exists (uuid id, type, slug, geography, owner, verification state) with a nullable `municipality_code` FK to `municipalities(code)`. Existing `municipality_id` columns on `users`, `votes`, and `treasury` are unchanged — additive only, no table rewrites.
 - [ ] **SPACE-02**: Authority is expressed as explicit per-action capability grants (`space_capability_grants`), never a broad admin boolean and never a role column that confers power on its own. Default deny. Every capability is resolved server-side from the DB on every read and every mutation; the JWT carries no roles claim.
 - [ ] **SPACE-03**: Object-level authorization holds — a space admin who changes `spaceId` in a URL or an API identifier receives `FORBIDDEN` for both reads and mutations, with no data disclosed in the error.
-- [ ] **SPACE-04**: Every proposal decision and role change writes an immutable audit row carrying actor, timestamp, prior state, new state, reason, and related object. A reason is required at the API layer; audit rows cannot be updated or deleted by any application path.
+- [x] **SPACE-04**: Every proposal decision and role change writes an immutable audit row carrying actor, timestamp, prior state, new state, reason, and related object. A reason is required at the API layer; audit rows cannot be updated or deleted by any application path.
 - [ ] **SPACE-05**: The proposal review queue supports approve / reject / request-changes over `vote_status` review states (`draft`, `in_review`, `changes_requested`, `rejected`), gated ahead of publication. Conflicting simultaneous decisions resolve deterministically with no duplicate publication, and a reviewer cannot decide a proposal they submitted.
 - [ ] **SPACE-06**: Member and role management plus permitted content controls are available within the administered space only, each mutation audited per SPACE-04.
 - [ ] **SPACE-07**: Resident metrics are exposed as aggregates only; member listings carry privacy-safe fields needed for administration and never raw identity-document data.
 - [ ] **SPACE-08**: The notification composer previews its audience, and the delivered recipient set equals the previewed authorized audience with opt-outs honored. Per-space quotas are enforced server-side before send, and a delivery log records what was sent to whom. Channels for v1 are in-app plus Expo push; no email.
-- [ ] **SPACE-09**: A super admin can suspend a space admin's access (`suspended_at`) with immediate effect on authorization, without deleting any historical audit data, and space admins have an escalation path to super admins.
+- [x] **SPACE-09**: A super admin can suspend a space admin's access (`suspended_at`) with immediate effect on authorization, without deleting any historical audit data, and space admins have an escalation path to super admins.
 - [ ] **SPACE-10**: The dashboard ships at `/he/space-admin/[spaceId]` — Hebrew/RTL, design tokens only, no hardcoded colors or spacing — covering space overview, proposal review, members/roles, statistics, notification preview, and audit history at desktop and mobile widths.
 
 ## v2 Requirements
@@ -104,15 +104,15 @@ This milestone: move vote payments to a Green Invoice card-on-file **membership*
 | PAY-08 | Phase 3 | Pending |
 | GO-01 | Phase 4 | Pending |
 | GO-02 | Phase 4 | Pending |
-| SPACE-01 | Phase 5 | Pending |
+| SPACE-01 | Phase 5 | Complete |
 | SPACE-02 | Phase 5 | Pending |
 | SPACE-03 | Phase 5 | Pending |
-| SPACE-04 | Phase 5 | Pending |
+| SPACE-04 | Phase 5 | Complete |
 | SPACE-05 | Phase 5 | Pending |
 | SPACE-06 | Phase 5 | Pending |
 | SPACE-07 | Phase 5 | Pending |
 | SPACE-08 | Phase 5 | Pending |
-| SPACE-09 | Phase 5 | Pending |
+| SPACE-09 | Phase 5 | Complete |
 | SPACE-10 | Phase 5 | Pending |
 
 **Coverage:** 29/29 requirements mapped — 0 orphaned

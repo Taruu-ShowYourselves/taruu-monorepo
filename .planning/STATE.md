@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Phase 5 context gathered
-last_updated: "2026-08-02T08:01:25.006Z"
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-08-02T16:04:13.196Z"
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 20
+  completed_plans: 5
 ---
 
 # Project State
@@ -19,16 +19,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-28)
 
 **Core value:** A resident pays ₪6 once a month to vote freely on their city's affairs, and trusts that the civic pool funds the decisions that actually execute.
-**Current focus:** Phase 01 — clean-foundation
+**Current focus:** Phase 05 — space-governance-substrate-and-space-admin-operations-dashboard
 
 ## Current Position
 
-Phase: 01 (clean-foundation) — COMPLETE
-Plan: 2 of 2 (all plans done)
+Phase: 05 (space-governance-substrate-and-space-admin-operations-dashboard) — EXECUTING
+Plan: 2 of 16
 
 ## ▶ RESUME HERE (after /clear)
 
-**Phase 1 is COMPLETE.** Run `/gsd:execute-phase 2` to begin Phase 2 (GI sandbox spike).
+**Phase 5 is EXECUTING** (16 plans, 6 waves). Plan 05-01 (governance substrate — DB tables, two-file `vote_status` split, `types.ts`) is complete; see `05-01-SUMMARY.md`.
+
+Outstanding from 05-01: the Phase 5 migrations have **never been applied to a live Postgres** (no Docker/psql on the exec machine). `supabase/tests/audit_append_only.sql` is committed but uncaptured. 05-16 owns that verification.
 
 Phase 1 completed:
 
@@ -63,6 +65,7 @@ Open question to resolve before Phase 3 planning: **monthly civic-pool allocatio
 | Phase 01-clean-foundation P02 | 3 min | 2 tasks | 1 file |
 | Phase 02-spike-gate P02 | 2 | 2 tasks | 2 files |
 | Phase 02-spike-gate P01 | 4 | 3 tasks | 4 files |
+| Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P01 | 7 min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -87,6 +90,14 @@ Recent decisions affecting current work:
 - [Phase 02-spike-gate]: chargeToken() appended to greenInvoice service — extend, not rebuild; mirrors createPaymentForm auth pattern
 - [Phase 02-spike-gate]: type:320 reused in chargeToken() — same GI document-issuance type as createPaymentForm
 - [Phase 02-spike-gate]: Spike harness uses plain console.log only (no @/lib/logger) — tsx-clean, no Next.js path-alias deps
+- [Phase 05-space-governance]: spaces.id reuses municipalities.council_id — the public council page and the administered space are the same object, no mapping table
+- [Phase 05-space-governance]: vote_status extension MUST stay split across two migration files; Postgres rolls back ADD VALUE if the same transaction uses the new label
+- [Phase 05-space-governance]: All four new vote_status labels anchor BEFORE 'pending' (a pre-existing label), never chained onto each other
+- [Phase 05-space-governance]: space_audit_log is append-only by trigger + REVOKE, not RLS — the service role has BYPASSRLS; ON DELETE RESTRICT on both FKs makes SPACE-09 structurally true
+- [Phase 05-space-governance]: Eleven-capability manifest is DB-enforced by CHECK and authoritative; 05-RESEARCH.md's draft vocabulary (space.read, proposal.decide, grant.manage, notification.compose) is SUPERSEDED
+- [Phase 05-space-governance]: Audit actions are past tense (proposal.approved), capabilities imperative (proposal.approve) — not interchangeable; only 'proposal.approved' is structurally load-bearing via uq_space_proposal_single_approval
+- [Phase 05-space-governance]: platform_escalations.space_id is nullable by design, paired with non-null raw_space_id, so the escalation endpoint cannot be used as a space-existence oracle
+- [Phase 05-space-governance]: types.ts writers in phase 5 are 05-01 (wave 1) and 05-08 (wave 3) ONLY; 05-07 must not edit it, which is why space_admin_metrics is pre-typed
 
 ### Roadmap Evolution
 
@@ -102,9 +113,10 @@ None yet.
 - Phase 4 external gate: SPIKE-02 (legal/accountant sign-off) + SPIKE-03 (GI Prime + real creds) must resolve before go-live
 - CONCERNS.md flags: tourist/foreign-card surcharge (~3.5%) erodes the ₪6 charge — block or flag at charge time
 - CONCERNS.md flags: Auth0 callback has no server-side state/CSRF validation — deferred to v2 HARD-03
+- Phase 5 migrations (20260802000001-3) are unapplied and unproven — no Docker/psql on the exec machine; supabase/tests/audit_append_only.sql is committed but no transcript captured. 05-16 owns applying them to a scratch DB.
 
 ## Session Continuity
 
-Last session: 2026-08-02T08:01:25.001Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-space-governance-substrate-and-space-admin-operations-dashboard/05-CONTEXT.md
+Last session: 2026-08-02T16:04:02.438Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None

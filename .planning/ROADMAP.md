@@ -81,6 +81,7 @@ Plans:
 | 2. Spike + Gate | 2/2 | Complete   | 2026-06-30 |
 | 3. Payment Rails + Hardening | 0/TBD | Not started | - |
 | 4. Go-Live | 0/TBD | Not started | - |
+| 5. Space Governance + Space-Admin Dashboard | 1/16 | In Progress | - |
 
 ### Phase 5: Space governance substrate and space-admin operations dashboard
 
