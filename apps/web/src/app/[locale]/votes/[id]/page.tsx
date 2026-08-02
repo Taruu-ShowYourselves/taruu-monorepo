@@ -425,7 +425,7 @@ export default function VoteDetailPage() {
                 </p>
                 <ul className={styles.contextList}>
                   <li>
-                    כל קול מאומת בזהות ובמיקום ונספר פעם אחת בלבד — קול אחד
+                    כל קול מאומת בזהות ובמיקום ונספר פעם אחת בלבד - קול אחד
                     לתושב, בלי כפילויות.
                   </li>
                   <li>

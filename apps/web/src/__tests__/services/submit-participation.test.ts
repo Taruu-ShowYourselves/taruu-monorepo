@@ -3,11 +3,11 @@
  * `POST /api/votes/[id]/participate`.
  *
  * This repo's vitest runs `environment: 'node'` with a `.ts`-only include
- * glob (see vitest.config.ts) — no jsdom, no @testing-library/react, and
+ * glob (see vitest.config.ts) - no jsdom, no @testing-library/react, and
  * `.tsx` files are not even collected. That is exactly why this network
  * logic lives in its own `.ts` module instead of inside ParticipationFlow:
  * it is the only way to get executable proof of the request/response
- * contract at all. `fetch` is injected as a `vi.fn()` — global fetch is
+ * contract at all. `fetch` is injected as a `vi.fn()` - global fetch is
  * never touched.
  */
 
@@ -29,7 +29,7 @@ function jsonResponse(status: number, body: unknown, ok = status >= 200 && statu
   } as unknown as Response;
 }
 
-describe('submitParticipation — recorded outcomes', () => {
+describe('submitParticipation - recorded outcomes', () => {
   it('returns a recorded, freshly-cast ballot on a 200 with alreadyRecorded: false', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(
       jsonResponse(200, {
@@ -82,7 +82,7 @@ describe('submitParticipation — recorded outcomes', () => {
     }
   });
 
-  it('rejects a 200 whose JSON is missing participation.id — never trusts a malformed success', async () => {
+  it('rejects a 200 whose JSON is missing participation.id - never trusts a malformed success', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(
       jsonResponse(200, {
         success: true,
@@ -97,7 +97,7 @@ describe('submitParticipation — recorded outcomes', () => {
   });
 });
 
-describe('submitParticipation — rejected outcomes', () => {
+describe('submitParticipation - rejected outcomes', () => {
   it('maps 401 to UNAUTHENTICATED with the Hebrew sign-in message', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(401, { error: 'Unauthorized' }));
     const result = await submitParticipation({ voteId: VOTE_ID, optionId: OPTION_ID }, fetchImpl);
@@ -210,7 +210,7 @@ describe('submitParticipation — rejected outcomes', () => {
   });
 });
 
-describe('submitParticipation — request shape', () => {
+describe('submitParticipation - request shape', () => {
   it('POSTs to /api/votes/{voteId}/participate with exactly { optionId } as the body', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(
       jsonResponse(200, {
