@@ -115,11 +115,9 @@ describe('User Participations API Routes', () => {
       expect(firstParticipation.voteId).toBe('vote-1');
       expect(firstParticipation.userId).toBe('user-123');
       expect(firstParticipation.optionId).toBe('option-1');
-      expect(firstParticipation.paymentTxId).toBe('payment-123');
-      expect(firstParticipation.qubikTxHash).toBe('');
     });
 
-    it('should include GPS coordinates placeholder', async () => {
+    it('should not fabricate payment, chain or GPS fields', async () => {
       (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
       (getUserVotesWithDetails as Mock).mockResolvedValue(mockVotesWithDetails);
 
@@ -128,10 +126,9 @@ describe('User Participations API Routes', () => {
       const data = await response.json();
 
       const firstParticipation = data.participations[0];
-      expect(firstParticipation.gpsCoordinates).toBeDefined();
-      expect(firstParticipation.gpsCoordinates.latitude).toBe(0);
-      expect(firstParticipation.gpsCoordinates.longitude).toBe(0);
-      expect(firstParticipation.gpsCoordinates.timestamp).toBeDefined();
+      expect(firstParticipation.paymentTxId).toBeUndefined();
+      expect(firstParticipation.qubikTxHash).toBeUndefined();
+      expect(firstParticipation.gpsCoordinates).toBeUndefined();
     });
 
     it('should include vote details', async () => {
@@ -167,7 +164,7 @@ describe('User Participations API Routes', () => {
       });
     });
 
-    it('should handle null payment_id', async () => {
+    it('should transform the ballot the same way regardless of a null payment_id', async () => {
       (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
       (getUserVotesWithDetails as Mock).mockResolvedValue(mockVotesWithDetails);
 
@@ -176,7 +173,9 @@ describe('User Participations API Routes', () => {
       const data = await response.json();
 
       const secondParticipation = data.participations[1];
-      expect(secondParticipation.paymentTxId).toBe('');
+      expect(secondParticipation.id).toBe('participation-2');
+      expect(secondParticipation.optionId).toBe('option-3');
+      expect(secondParticipation.paymentTxId).toBeUndefined();
     });
 
     it('should handle missing vote details', async () => {

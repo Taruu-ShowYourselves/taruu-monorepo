@@ -16,19 +16,14 @@ export async function GET(request: NextRequest) {
 
     const votesWithDetails = await getUserVotesWithDetails(session.userId);
 
-    // Transform to Participation format expected by api-client
+    // Transform to the Participation shape (@sync/shared). Ballots carry no
+    // payment, no chain hash and no coordinates — emitting zeroed placeholders
+    // for those made the history look chain-anchored when it never was.
     const participations = votesWithDetails.map((item) => ({
       id: item.id,
       voteId: item.vote_id,
       userId: item.user_id,
       optionId: item.option_id,
-      paymentTxId: item.payment_id || '',
-      qubikTxHash: '', // Not stored in user_votes table
-      gpsCoordinates: {
-        latitude: 0,
-        longitude: 0,
-        timestamp: new Date(item.created_at),
-      },
       createdAt: new Date(item.created_at),
       // Include vote details for convenience
       vote: item.vote
