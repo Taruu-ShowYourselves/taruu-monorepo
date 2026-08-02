@@ -8,7 +8,29 @@ import { GpsCoordinatesSchema } from './verification';
 
 // === Vote Types ===
 
-export const VoteStatusSchema = z.enum(['pending', 'active', 'ended', 'cancelled']);
+/**
+ * All ten `vote_status` labels the database can hold. Kept identical to the
+ * `VoteStatus` union in ../types/vote.ts.
+ *
+ * 'cancelled' is deliberately absent — it was never a database label, only an
+ * API-level alias that `normalizeStatusFilter` still maps to 'ended'.
+ *
+ * This schema describes what a status *can be*, not what is publicly visible.
+ * Public visibility is the narrower `PUBLIC_VOTE_STATUSES` allow-list in
+ * apps/web/src/server/domain/votes/vote.ts, which excludes every review state.
+ */
+export const VoteStatusSchema = z.enum([
+  'pending',
+  'active',
+  'ended',
+  'resolving',
+  'resolved',
+  'failed',
+  'draft',
+  'in_review',
+  'changes_requested',
+  'rejected',
+]);
 export type VoteStatus = z.infer<typeof VoteStatusSchema>;
 
 // === Vote Option ===

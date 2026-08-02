@@ -27,6 +27,7 @@ import type {
   UpdateTables,
 } from './types';
 import type { PublicCouncilAggregateRow } from '@/server/domain/council/public-profile';
+import type { PublicVoteStatus } from '@/server/domain/votes/vote';
 
 // ============================================
 // USER OPERATIONS
@@ -782,7 +783,7 @@ export async function getActiveVotes(
 
 export async function getVotesByMunicipality(
   municipalityId: string,
-  status?: 'pending' | 'active' | 'ended'
+  status?: PublicVoteStatus
 ): Promise<Vote[]> {
   let query = supabaseAdmin
     .from('votes')

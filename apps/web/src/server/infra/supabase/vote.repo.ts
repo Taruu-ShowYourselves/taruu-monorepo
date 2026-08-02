@@ -13,13 +13,12 @@ import {
   createVoteOptions as dbCreateVoteOptions,
 } from '@/lib/supabase/db';
 import type { Vote, VoteOption, InsertTables } from '@/lib/supabase/types';
+import type { PublicVoteStatus } from '@/server/domain/votes/vote';
 import { dbError, type AppError } from '@/server/http/errors';
-
-type VoteStatus = 'pending' | 'active' | 'ended';
 
 export function listVotes(filter: {
   municipality?: string;
-  status?: VoteStatus;
+  status?: PublicVoteStatus;
 }): ResultAsync<Vote[], AppError> {
   const query = filter.municipality
     ? getVotesByMunicipality(filter.municipality, filter.status)

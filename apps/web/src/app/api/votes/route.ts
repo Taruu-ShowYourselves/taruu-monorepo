@@ -8,11 +8,15 @@ import { unauthorized } from '@/server/http/errors';
 import { errAsync } from 'neverthrow';
 import { listVotes } from '@/server/app/votes/list-votes';
 import { createVote } from '@/server/app/votes/create-vote';
-import { normalizeStatusFilter } from '@/server/domain/votes/vote';
+import {
+  normalizeStatusFilter,
+  PUBLIC_VOTE_STATUSES,
+} from '@/server/domain/votes/vote';
 
 const ListQuerySchema = z.object({
   municipality: z.string().min(1).optional(),
-  status: z.enum(['pending', 'active', 'ended']).optional(),
+  // No .nullable(): the call site already coalesces null to undefined.
+  status: z.enum(PUBLIC_VOTE_STATUSES).optional(),
 });
 
 /**
@@ -23,6 +27,10 @@ export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const query = parse(ListQuerySchema, {
     municipality: params.get('municipality') ?? undefined,
+    // normalise BEFORE validating: a review status arriving here becomes
+    // undefined — "no filter" — and falls back to the allow-list. Validating
+    // first would make ?status=in_review a 400 whose very existence confirms
+    // the label is real, an existence oracle for the review vocabulary.
     status: normalizeStatusFilter(params.get('status')) ?? undefined,
   });
   return respond(query.asyncAndThen(listVotes));

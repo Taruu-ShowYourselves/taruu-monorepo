@@ -4,12 +4,16 @@
 
 import type { ResultAsync } from 'neverthrow';
 import { listVotes as repoListVotes } from '@/server/infra/supabase/vote.repo';
-import { toVoteDto, type VoteDto } from '@/server/domain/votes/vote';
+import {
+  toVoteDto,
+  type VoteDto,
+  type PublicVoteStatus,
+} from '@/server/domain/votes/vote';
 import type { AppError } from '@/server/http/errors';
 
 export interface ListVotesQuery {
   municipality?: string;
-  status?: 'pending' | 'active' | 'ended';
+  status?: PublicVoteStatus;
 }
 
 export function listVotes(
