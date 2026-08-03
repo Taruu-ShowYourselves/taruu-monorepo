@@ -41,7 +41,8 @@ const CreateVoteBodySchema = CreateVoteRequestSchema.omit({ municipality: true }
 
 /**
  * POST /api/votes
- * Create a new vote (requires authentication and a completed payment).
+ * Submit a proposal for review. Requires authentication; requires no payment —
+ * the ₪50 creation fee is charged when a space admin approves (issue #75).
  * Notification fan-out runs after the response via `after()`.
  */
 export async function POST(request: NextRequest) {
