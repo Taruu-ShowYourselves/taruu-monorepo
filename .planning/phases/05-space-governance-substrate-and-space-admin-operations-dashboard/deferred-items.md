@@ -68,6 +68,7 @@ Out-of-scope findings logged during execution. Not fixed by the plan that found 
 - **Status:** 05-14's members surface implements it correctly (`memberRowFlash` in `members/page.module.css`). This is logged so the proposals and audit surfaces copy the working version rather than rediscovering both traps.
 - **What it would take to close:** move the keyframe and the reduced-motion rule into `PressTable.module.css` and export the class name, the way `confirmButtonClass` is exported for the disabled-state contract.
 - **Owner:** 05-15.
+- **CLOSED by 05-15** (commit `35d7cca`) exactly as described. `PressTable` now exports `rowFlashClass` and `ROW_FLASH_MS`; `.rowFlash > th, > td` and its `prefers-reduced-motion` opt-out live in `PressTable.module.css`, the opt-out authored at matching (0,1,1) specificity and later in the same file so it wins on source order. Both keyframes — `memberRowFlash` and `proposalRowFlash` — are gone, and both surfaces pass the shared class through `rowClassName`. The duplicated `ROW_FLASH_MS = 1200` constants are gone too, so the timer that clears the class and the animation that runs under it can no longer drift.
 
 **9. Four small things are now duplicated across the space-admin surfaces, pending a dedupe pass**
 
@@ -76,6 +77,7 @@ Out-of-scope findings logged during execution. Not fixed by the plan that found 
 - **Why not fixed here:** 05-12 was running concurrently and is the plan authorized to create shared modules this wave; importing a component that had not yet been committed would have broken on a rename, and adding a competing shared module would have collided.
 - **What it needs:** fold both maps into one module beside `SpaceAdminNav` (they are nav concerns), and replace both inline escalation dialogs with `EscalationDialog` once its API is settled.
 - **Owner:** 05-15.
+- **CLOSED by 05-15** (commit `35d7cca`). Both maps are now `components/space-admin/chrome.ts`, and there were FOUR copies of each rather than the two named here — the proposals surface and the overview carried them too. The escalation dialog had four copies, not three: `MembersClient`, `StatsFallback`, `ProposalsAccessDenied` (exported from `ProposalsClient` and used at two call sites on the proposals page), and `EscalationDialog` itself. All three inline copies are deleted and every call site is now `<EscalationDialog trigger="no-permission" />`. See item 11 for the label discrepancy the fold-in surfaced.
 
 ## From 05-12
 
@@ -92,10 +94,51 @@ Out-of-scope findings logged during execution. Not fixed by the plan that found 
 - **Why not fixed here:** 05-12 is the plan authorized to add a shared UI module this wave, but by the time the third copy existed the other two were already committed by a finished sibling. Extracting would have meant editing two completed plans' files to import a module none of them had reviewed, in a shared index, while 05-15 may be live. Creating the module and migrating only the overview would leave a fourth file and two stale copies — strictly worse.
 - **What it needs:** one module beside `SpaceAdminNav` exporting both maps (they are both nav/edition-line concerns), then five one-line imports. **Owner:** 05-15, as item 9 already assigns, or 05-16's hygiene pass.
 - **Related and ready:** `components/space-admin/EscalationDialog.tsx` now exists and covers both shapes item 9 names — `trigger="cta"` for a panel CTA and `trigger="no-permission"` for the refused surface, which renders `NoPermissionPanel` itself. Whoever does the dedupe can delete the two inline escalation dialogs in `MembersClient.tsx` and `StatsFallback.tsx` and import it by direct path. It is **not** in the barrel, by 05-11's rule.
+- **CLOSED by 05-15** (commit `35d7cca`), together with item 9. Two things the extraction surfaced, both resolved once in `chrome.ts` rather than left as a silent split:
+  1. **The four `SPACE_TYPE_LABELS_HE` copies were not identical.** The overview and proposals surfaces wrote `urban_area` as `מרחב עירוני`; members and statistics wrote `אזור עירוני`. The shared map uses `אזור עירוני` — `מרחב` is the copy deck's word for "space" itself, so `מרחב עירוני` makes the edition line read "space: urban space", and `אזור` is also the literal reading of "area".
+  2. **Their fallbacks disagreed.** The overview fell back to `'מרחב'`; the other three fell back to `space.type`, which would print the raw machine value (`urban_area`) on the edition line the first time #74 adds a type. `spaceTypeLabel()` uses the Hebrew generic everywhere.
 
 **12. `councils/[identifier]/page.tsx` prints the site name twice in its title**
 
 - **Found during:** 05-12's manual render, which caught the same bug in its own metadata.
 - **Observed:** `[locale]/layout.tsx:49` sets a `%s | תַּרְאוּ` title template, so a page whose own `metadata.title` already ends in `| תַּרְאוּ` renders `… | תַּרְאוּ | תַּרְאוּ`. `apps/web/src/app/[locale]/councils/[identifier]/page.tsx:8` does exactly that.
 - **Why not fixed here:** unrelated surface, predates this phase, and a title change is a visible product edit rather than a compile fix.
-- **Owner:** whoever next touches that page.
+- **Owner:** whoever next touches that page. Still open after 05-15.
+
+## From 05-15
+
+**13. The members surface now renders the server's 409 sentence; the whole dashboard should agree on when a response body is showable**
+
+- **Found during:** 05-15's dedupe pass, on the inconsistency the orchestrator asked for judgement on.
+- **Observed and FIXED:** `MembersClient` flattened every failure to `הפעולה לא בוצעה ולא נרשמה ביומן` — which for a 409 is not merely vaguer than the server's answer, it contradicts it. `space-member.repo.ts` maps a unique-index collision and a zero-row conditional update to `CONFLICT` with real Hebrew: `החבר/ה כבר מושעה/ית במרחב הזה.`, `החבר/ה אינו מושעה/ית במרחב הזה.`, `ההרשאה כבר אינה פעילה.` — all of which mean the state already exists, while the generic line says nothing happened and nothing was recorded.
+- **How, and why not simply "render `payload.error`":** 05-13's unconditional form has a small defect of its own. `toHttp` guarantees a Hebrew sentence only for `CONFLICT` and `PAYMENT_REQUIRED` (both constructors require a reason); `forbidden(reason?)` is optional, so an unreasoned 403 answers the English literal `Forbidden`, and `Unauthorized` / `Invalid request` / `Quota exceeded` / `Internal server error` are English too. `components/space-admin/serverSentence.ts` encodes the rule once; members, proposals and dispatch all use it. Nearly unreachable on proposals (Rule A means the button is absent when the capability is missing), but it costs one import to be right.
+- **What is still open:** the notification `send` endpoint's 403 is deliberately opaque and its 429 deliberately carries no figures, so the composer's fallbacks are surface-written rather than transported. That is by design, not an inconsistency — but 05-16's evidence pass should confirm no surface prints an English body anywhere.
+
+**14. The state-0 copy promises a draft the state-0 fields do not allow**
+
+- **Found during:** 05-15 Task 2.
+- **Observed:** Interaction Contract 3 renders the composer fields **read-only** at an exhausted quota, and screenshot #14 requires it. The `QuotaBlock` body it renders beside them ends `עד אז אפשר להכין טיוטה, אבל לא לשלוח` — "until then you can prepare a draft, but not send". A read-only composer cannot be drafted in.
+- **Resolution taken:** the binding contract wins. The fields are read-only, the send is absent, and the preview CTA is absent too (costing an audience from read-only empty fields could only answer 400).
+- **What it needs:** a copy-deck decision, not a code one. Either the sentence drops its drafting clause, or state 0 keeps the fields editable and drops only the send — which would also make the preview CTA meaningful again, since a preview writes no notification and consumes no quota. **Owner:** 05-16 or a spec amendment.
+
+**15. `הרשאות` on the audit filter selects grant rows only, so a suspension does not appear under it**
+
+- **Found during:** 05-15 Task 3.
+- **Observed:** the copy deck's four audit chips are `הכול · הצעות · הרשאות · התראות`, and `space_audit_log.object_type` admits seven values. The chips cover `vote`, `grant` and `notification_campaign`; `member`, `content`, `space` and `escalation` rows are reachable only under `הכול`. A member suspension is a `member` row, so an admin filtering to `הרשאות` to review authority changes will not see it — even though suspension is the most consequential authority change on the dashboard.
+- **Why not fixed here:** the chip list is the copy deck's, and adding a fifth chip or widening `הרשאות` to two object types is a spec change. Documented in `AuditClient.tsx` at the filter map so the next reader is not surprised.
+- **Owner:** 05-16 or a spec amendment.
+
+**16. The audit actor filter is built from the page on screen**
+
+- **Found during:** 05-15 Task 3.
+- **Observed:** the surface needs a list of actors for the `מבצע/ת הפעולה` select, and no endpoint provides one. `getSpaceMembers` is gated on `member.read` — a different capability from `audit.read` — so an audit reader without it would get a refusal instead of a filter, and every member of a space is not the same set as everyone who has acted in it.
+- **Resolution taken:** derive the options from the rows currently displayed, and always render `ניקוי סינון` once any filter is applied so a narrowed list cannot trap anyone.
+- **What it would take to close:** a `distinct actor_user_id` read on `space_audit_log` behind `audit.read`, returned alongside the page. One query, one repository function, one field on `AuditPage`.
+- **Owner:** 05-16, or whoever picks up the audit surface next.
+
+**17. `'צריך למלא את השדה הזה כדי להמשיך.'` is now in five files**
+
+- **Found during:** 05-15 Task 2.
+- **Observed:** the house required-field microcopy already existed as four independent local constants — `votes/create/page.tsx`, `verification/page.tsx`, `verification/components/DocumentScanStep.tsx`, `store/cart/components/CartView.tsx` — before this phase started. The composer needed it too, because Rule B's list of permitted `disabled` controls is exhaustive and does not include "preview CTA disabled until the form is valid", so an empty field has to be answered by a field error rather than by an inert button.
+- **Why not fixed here:** a repo-wide press-microcopy module is a sensible thing to own, and four of the five files are unrelated to phase 5. Starting that from inside a phase-5 plan would put unrelated surfaces in this phase's commits.
+- **Owner:** unassigned. Worth doing next time anything touches press microcopy.

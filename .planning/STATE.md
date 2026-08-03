@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: "Completed 05-12-PLAN.md — the space overview, the capability manifest and the escalation path (wave 4 complete)"
-last_updated: "2026-08-03T12:25:00.000Z"
+stopped_at: "Completed 05-15-PLAN.md — the notification composer, the audit history, and the dedupe backlog (wave 5 complete)"
+last_updated: "2026-08-03T10:15:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 20
-  completed_plans: 18
+  completed_plans: 19
 ---
 
 # Project State
@@ -24,11 +24,11 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 05 (space-governance-substrate-and-space-admin-operations-dashboard) — EXECUTING
-Plan: 14 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several plans in parallel, so this counter is a count of completed plans, not a position in a sequence)
+Plan: 15 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several plans in parallel, so this counter is a count of completed plans, not a position in a sequence)
 
 ## ▶ RESUME HERE (after /clear)
 
-**Phase 5 is EXECUTING** (16 plans, 6 waves). **Waves 1 and 2 are complete** — 05-01, 05-02, 05-03, 05-04 and 05-11 have all landed. **Wave 3 is complete** — 05-05, 05-06, 05-07 and 05-08 have all landed. **Wave 4 is complete** — 05-09, 05-10, 05-12, 05-13 and 05-14 have all landed. **Wave 5 (05-15) is next.**
+**Phase 5 is EXECUTING** (16 plans, 6 waves). **Waves 1 and 2 are complete** — 05-01, 05-02, 05-03, 05-04 and 05-11 have all landed. **Wave 3 is complete** — 05-05, 05-06, 05-07 and 05-08 have all landed. **Wave 4 is complete** — 05-09, 05-10, 05-12, 05-13 and 05-14 have all landed. **Wave 5 (05-15) is complete — all six surfaces now exist. 05-16 is the last plan.**
 
 - 05-01 (governance substrate — DB tables, two-file `vote_status` split, `types.ts`); see `05-01-SUMMARY.md`.
 - 05-02 (capability vocabulary, review transitions, QUOTA_EXCEEDED, rollout flag, full contract surface); see `05-02-SUMMARY.md`.
@@ -42,6 +42,7 @@ Plan: 14 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several
 - 05-13 (**Surface 2** — the review queue, three decisions behind a required reason, self-submitted rows locked by absence, and `ProposalDetailPanel`, the expanding `<tr>` where the permitted-content controls live); see `05-13-SUMMARY.md`. **05-15 and 05-16 should read its "Two Hebrew sentences this surface does not contain" and "The status labels" sections.** The 409 and 402 copy is rendered from the server's response body rather than re-typed, so a grep for those strings in the client returns nothing by design; and `apps/web/src/components/space-admin/proposalStatusLabels.ts` is the new client-safe status label map — repoint `[locale]/votes/create/page.tsx` at it, then collapse it and `REVIEW_STATUS_LABELS_HE` into one shared definition.
 - 05-11 (np-native shell + eight UI primitives: `SpaceAdminHeader`, `SpaceAdminNav`, `PressTable`, `StatusChip`, `ConfirmDialog`, three panels); see `05-11-SUMMARY.md`. **Surface plans 05-12…05-15 should read that summary's "Component API" section before writing a line** — it gives every prop signature, and `components/space-admin/index.ts` is a CLOSED barrel they must not reopen (import new components by direct path).
 - 05-12 (**Surface 1** — the overview, `CapabilityManifest`, `EscalationDialog`, the shell-boot spinner, and the four overview figures finally wired); see `05-12-SUMMARY.md`. **05-15 should import `components/space-admin/EscalationDialog.tsx` by direct path** rather than inline a third copy of the escalation dialog — it takes `trigger="cta"` or `trigger="no-permission"` and renders `NoPermissionPanel` itself in the second shape. Deferred items 9 and 11 are its dedupe list.
+- 05-15 (**Surfaces 5 and 6** — the notification composer with its eight-state gate, the audit history, and the dedupe backlog four plans had been logging); see `05-15-SUMMARY.md`. **05-16 must read three sections of it.** Its "Files edited outside this plan's `files_modified`" table lists the fifteen files the dedupe pass touched. Its "Criteria met differently than written" section records six, of which two matter for the evidence document: all three send 409s take one branch and render the server's sentence rather than client literals, and the send button takes `disabledButtonClass` rather than `confirmButtonClass` (the latter would give a `red`/`lg` button D23's `ink`-only hover fill). And **nothing on these two surfaces has been rendered, only compiled** — there is no React test harness in `apps/web`, so the plan's manual staleness check is argued from the code and belongs on the screenshot pass. New deferred items 13–17; items 8, 9 and 11 are closed.
 
 **Two things from 05-03 need someone's attention before the phase closes** — both detailed in `05-03-SUMMARY.md` and `deferred-items.md`:
 
@@ -95,6 +96,7 @@ Open question to resolve before Phase 3 planning: **monthly civic-pool allocatio
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P08 | 15 min | 3 tasks | 8 files |
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P06 | 20 min | 3 tasks | 14 files |
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P09 | 22 min | 3 tasks | 7 files |
+| Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P15 | 38 min | 3 tasks + dedupe | 31 files |
 
 ## Accumulated Context
 
@@ -138,6 +140,11 @@ Recent decisions affecting current work:
 - [Phase 05-space-governance]: SpaceSummary.type stays z.string() rather than an enum so the contract does not fork the DDL's space-type list that #74 will extend
 - [Phase 05-space-governance]: SPACE_ADMIN_ENABLED=false is the whole-dashboard kill switch (default on); rollback touches no governance table and no audit history
 - [Phase 05-space-governance]: PUBLIC_VOTE_STATUSES is the ONE allow-list governing public vote visibility — both the default filter and the validation set; no second "filterable" list
+- [Phase 05-space-governance]: The composer's state is DERIVED from data in one expression over eight names, never assigned in a handler — a stored state is how a send control outlives the preview that justified it
+- [Phase 05-space-governance]: Whether an error body may be shown to an admin is decided by its CODE, not by the status alone — only conflict() and paymentInvalid() require a reason, so only CONFLICT and PAYMENT_REQUIRED guarantee a Hebrew sentence; an unreasoned FORBIDDEN answers the English literal
+- [Phase 05-space-governance]: The disabled-state contract (D17/D27) is SPLIT from the dense-ink hover fix (D23) — a red lg or outline control takes the appearance without the red hover fill, which would lower its already-compliant 16.66:1 inversion
+- [Phase 05-space-governance]: spaces.type labels and the nav-visibility map live in components/space-admin/chrome.ts; an unmapped type falls back to the Hebrew generic, never to the stored machine value
+- [Phase 05-space-governance]: The audit surface's keyset trail rides in the URL (?cursor=&trail=), so paging backwards is a navigation the surface can see and a deep page stays linkable
 - [Phase 05-space-governance]: 'failed' is deliberately OFF the public allow-list (a real, intended narrowing — such votes were visible before); 'pending' is deliberately ON it (means "scheduled", not "awaiting approval")
 - [Phase 05-space-governance]: getVoteById is the FILTERED name; getVoteByIdUnfiltered is the internal escape hatch, callable only after authorization — so the default reach is the safe one
 - [Phase 05-space-governance]: ?status=in_review returns 200 with the ordinary public list, never a 400 — a validation error there would be an existence oracle for the review vocabulary. Normalise before validating
@@ -220,6 +227,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-03T12:25:00.000Z
-Stopped at: Completed 05-12-PLAN.md — the space overview: figures that are absent rather than zeroed, one manifest explaining every absence, and an escalation path reachable by an admin holding nothing (wave 4 complete; 05-15 is next)
+Last session: 2026-08-03T10:15:00.000Z
+Stopped at: Completed 05-15-PLAN.md — the notification composer whose send control is derived rather than stored, the read-only keyset-paged audit log, and the deduplication backlog four plans had been logging (wave 5 complete; 05-16 is the last plan)
 Resume file: None
