@@ -1,7 +1,8 @@
 /* ============================================================
- * Space-admin shell. Masthead is not sticky, so `main` takes no top
- * offset — and never `var(--header-height)` (D2: undefined property,
- * invalid calc(), silently dropped declaration).
+ * Space-admin shell. Masthead is not sticky, so `main` takes no top offset —
+ * and in particular no offset computed from the undefined masthead-height
+ * custom property three legacy stylesheets still reference (D2: invalid
+ * calc(), silently dropped declaration).
  * ============================================================ */
 
 .main {

@@ -153,7 +153,7 @@
 
 /* D23 — dense `ink` hover fix. `NewsButton.module.css:44` inverts `.ink` to a
    red fill with paper text on hover: 4.03:1 at body size, the same defect
-   bans `.np-block-red`. `--np-red-dark` restores the press inversion at
+   bans the global red-fill block utility. `--np-red-dark` restores it at
    6.03:1. This applies to `ink` ONLY: `.outline:hover` already inverts to
    ink at 16.66:1, and giving it a red fill would lower compliant contrast
    and put red on every destructive row trigger, gutting D7. */

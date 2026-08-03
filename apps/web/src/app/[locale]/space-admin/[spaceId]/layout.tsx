@@ -25,9 +25,10 @@ interface SpaceAdminLayoutProps {
  * each page rather than here: both need the resolved space and the resolved
  * capability set, and the nav must hide links per surface.
  *
- * `Masthead` is not sticky, so `main` takes no top offset — and never
- * `var(--header-height)`, which is referenced in three stylesheets and
- * defined nowhere, making the whole `calc()` declaration invalid (D2).
+ * `Masthead` is not sticky, so `main` takes no top offset — and in particular
+ * no offset computed from the undefined masthead-height custom property that
+ * three legacy stylesheets still reference, which makes the whole `calc()`
+ * declaration invalid and silently dropped (D2).
  */
 export default async function SpaceAdminLayout({
   children,
