@@ -12,6 +12,7 @@
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { NextRequest } from 'next/server';
 import { okAsync } from 'neverthrow';
+import { AuditPageSchema } from '@sync/shared/contracts';
 import {
   MUNICIPALITY_A,
   OTHER_USER_ID,
@@ -146,7 +147,7 @@ describe('GET /api/space-admin/[spaceId]/audit', () => {
 });
 
 describe('cursor pagination walks the log without repeating or skipping a row', () => {
-  it('feeds nextCursor back and gets a disjoint second page', async () => {
+  it('feeds nextCursor back, sends a keyset predicate, and gets a disjoint page', async () => {
     queryResult = { data: pageOf(3, 0), error: null };
     const first = await GET_AUDIT(
       req(`/api/space-admin/${SPACE_A}/audit?limit=2`),
@@ -155,6 +156,12 @@ describe('cursor pagination walks the log without repeating or skipping a row', 
     const pageOne = await first.json();
     expect(pageOne.rows).toHaveLength(2);
     expect(pageOne.nextCursor).toEqual(expect.any(String));
+
+    // The cursor is one opaque URL-safe token, not two column values the client
+    // could assemble — or tamper with — itself.
+    expect(pageOne.nextCursor).toMatch(/^[A-Za-z0-9_-]+$/);
+
+    const lastOfPageOne = pageOne.rows[1];
 
     queryResult = { data: pageOf(2, 5), error: null };
     const second = await GET_AUDIT(
@@ -165,10 +172,32 @@ describe('cursor pagination walks the log without repeating or skipping a row', 
     );
     const pageTwo = await second.json();
 
+    // Page two's recorded query pages by key, not by offset: strictly older
+    // than the last row shown, with the id breaking a same-instant tie.
+    expect(lastBuilder?.spies.or).toHaveBeenCalledWith(
+      `created_at.lt.${lastOfPageOne.createdAt},` +
+        `and(created_at.eq.${lastOfPageOne.createdAt},id.lt.${lastOfPageOne.id})`
+    );
+    expect(lastBuilder?.spies.eq).toHaveBeenCalledWith('space_id', SPACE_A);
+
     const firstIds = pageOne.rows.map((row: { id: string }) => row.id);
     const secondIds = pageTwo.rows.map((row: { id: string }) => row.id);
     expect(secondIds.some((id: string) => firstIds.includes(id))).toBe(false);
     expect(pageTwo.nextCursor).toBeNull();
+  });
+
+  it('sends no keyset predicate on the first page', async () => {
+    await GET_AUDIT(req(`/api/space-admin/${SPACE_A}/audit`), ctx(SPACE_A));
+    expect(lastBuilder?.spies.or).not.toHaveBeenCalled();
+  });
+
+  it('rejects a cursor that is not one this server issued', async () => {
+    const res = await GET_AUDIT(
+      req(`/api/space-admin/${SPACE_A}/audit?cursor=bm90YWN1cnNvcg`),
+      ctx(SPACE_A)
+    );
+    expect(res.status).toBe(400);
+    expect(fromSpy).not.toHaveBeenCalled();
   });
 
   it('exhausts the log with a null cursor rather than an empty page', async () => {
@@ -180,6 +209,56 @@ describe('cursor pagination walks the log without repeating or skipping a row', 
     const body = await res.json();
     expect(body.nextCursor).toBeNull();
     expect(body.truncated).toBe(false);
+  });
+});
+
+describe('the page is exactly the contract', () => {
+  it('validates against AuditPageSchema', async () => {
+    const res = await GET_AUDIT(req(`/api/space-admin/${SPACE_A}/audit`), ctx(SPACE_A));
+    const body = await res.json();
+    expect(AuditPageSchema.safeParse(body).success).toBe(true);
+    expect(AuditPageSchema.strict().safeParse(body).success).toBe(true);
+  });
+
+  it('gives every row the six columns the surface renders, in camelCase', async () => {
+    const res = await GET_AUDIT(req(`/api/space-admin/${SPACE_A}/audit`), ctx(SPACE_A));
+    const body = await res.json();
+    const [row] = body.rows;
+
+    // מתי · מי · פעולה · אובייקט · ממצב → למצב · נימוק
+    expect(row.createdAt).toBe('2026-07-30T09:59:00.000Z');
+    expect(row.actorDisplayName).toBe('דנה לוי');
+    expect(row.action).toBe('proposal.approved');
+    expect(row.objectType).toBe('vote');
+    expect(row).toHaveProperty('priorState');
+    expect(row).toHaveProperty('newState');
+    expect(row.reason).toContain('ההצעה עומדת בכללי המרחב');
+
+    // The mapping happened: no database column name survives into the payload,
+    // and the embedded actor object is gone with them.
+    for (const raw of [
+      'created_at',
+      'actor_user_id',
+      'object_type',
+      'object_id',
+      'prior_state',
+      'new_state',
+      'actor_first_name',
+      'space_id',
+      'users',
+    ]) {
+      expect(row).not.toHaveProperty(raw);
+    }
+  });
+
+  it('labels an actor whose name was never recorded, in Hebrew', async () => {
+    queryResult = {
+      data: [auditRow({ users: { first_name: null, last_name: null } })],
+      error: null,
+    };
+    const res = await GET_AUDIT(req(`/api/space-admin/${SPACE_A}/audit`), ctx(SPACE_A));
+    const body = await res.json();
+    expect(body.rows[0].actorDisplayName).toBe('מנהל/ת מרחב');
   });
 });
 

@@ -16,6 +16,7 @@
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { NextRequest } from 'next/server';
 import { okAsync } from 'neverthrow';
+import { SpaceMetricsResponseSchema } from '@sync/shared/contracts';
 import {
   MUNICIPALITY_A,
   SESSION,
@@ -182,6 +183,48 @@ describe('GET /api/space-admin/[spaceId]/metrics', () => {
       ctx(SPACE_A)
     );
     expect(res.status).toBe(500);
+  });
+});
+
+describe('the response is exactly the contract, and has no room for a resident', () => {
+  it('validates against SpaceMetricsResponseSchema', async () => {
+    const res = await GET_METRICS(
+      req(`/api/space-admin/${SPACE_A}/metrics`),
+      ctx(SPACE_A)
+    );
+    const body = await res.json();
+    expect(SpaceMetricsResponseSchema.safeParse(body).success).toBe(true);
+  });
+
+  it('carries no field the contract does not name', async () => {
+    const res = await GET_METRICS(
+      req(`/api/space-admin/${SPACE_A}/metrics`),
+      ctx(SPACE_A)
+    );
+    const body = await res.json();
+    // `.strict()` is what turns the contract into an allow-list: a stray field
+    // added upstream fails here rather than reaching a browser.
+    const strict = SpaceMetricsResponseSchema.strict().safeParse(body);
+    expect(strict.success).toBe(true);
+  });
+
+  /**
+   * The guarantee is structural — the RPC returns nine scalars and the mapping
+   * builds four figures — so this regex should be impossible to trip. That is
+   * the point: it fails loudly the day someone widens the shape.
+   */
+  it.each([
+    ['a populated space', metricsRow()],
+    ['a suppressed space', metricsRow({ registered_residents: 3, registered_residents_status: 'suppressed' })],
+    ['an empty space', null],
+  ])('never serializes anything resident-shaped — %s', async (_name, row) => {
+    rpcResult = { data: row, error: null };
+    const res = await GET_METRICS(
+      req(`/api/space-admin/${SPACE_A}/metrics`),
+      ctx(SPACE_A)
+    );
+    const serialized = JSON.stringify(await res.json());
+    expect(serialized).not.toMatch(/@|\+972|id_number|did:sync|first_name|userId/);
   });
 });
 
