@@ -219,7 +219,21 @@ Plans:
   5. Response deadlines and escalations exist as workflow states with recorded transitions — they carry no legal claim, and no copy implies one.
   6. Suspending a verified authority or a representative removes access without deleting history, and the municipality's public council page continues to render exactly as it did before the authority joined.
 **Out of scope** (from the issue): government-level dashboard, legal filing, resident identity access, automatic authority verification.
-**Plans**: TBD
+**Plans**: 13 plans in 6 waves
 
 Plans:
-- [ ] TBD (run `/gsd:plan-phase 8` to break down — do NOT plan before Phase 5 has executed; every success criterion above depends on primitives Phase 5 has planned but not yet built)
+- [ ] 08-01-PLAN.md — Access schema: authority_organizations / claims / rep invitations, the three Phase 5 CHECK extensions, `is_authority_member()`, RLS, shared contracts (wave 1)
+- [ ] 08-02-PLAN.md — Cohort-privacy primitive (MIN_COHORT_SIZE=10, withheld-not-rounded) + the public-council-page regression guard, landed before any authority code (wave 1)
+- [ ] 08-03-PLAN.md — Authority repo, `mappers`, rate limiters, and `requireAuthority`/`resolveAuthorityScope` composed from Phase 5's `requireRole`; `ADMIN_TIER_ROLES` widened (wave 2)
+- [ ] 08-04-PLAN.md — Content schema: append-only `official_responses`, `authority_commitments`, `authority_satisfaction_snapshots` on Phase 5's `reject_audit_mutation()`, + insert-only repo (wave 2)
+- [ ] 08-05-PLAN.md — Claim submission + super-admin evidence review; approval is the only path to a verified organization and an `authority_admin` grant (wave 3)
+- [ ] 08-06-PLAN.md — Representative lifecycle: single-use invitation token, accept, suspend/reinstate/offboard on Phase 5's guarded `setGrantStatus` (wave 3)
+- [ ] 08-07-PLAN.md — Dashboard aggregates with the cohort floor, vote/result inbox, identity-free CSV export, daily satisfaction snapshots (wave 3)
+- [ ] 08-08-PLAN.md — Versioned official responses and tracking targets — every revision a new row, never an update (wave 3)
+- [ ] 08-09-PLAN.md — `/[locale]/authority/onboarding` claim form + `/[locale]/admin/authority-claims` evidence-review console (wave 4)
+- [ ] 08-10-PLAN.md — `/[locale]/municipality-admin` shell, dashboard home with the withheld-aggregate rendering, representative roster (wave 4)
+- [ ] 08-11-PLAN.md — Vote inbox + response composer, target tracker, and the Hebrew copy guard against legal-claim language (wave 5)
+- [ ] 08-12-PLAN.md — Public official-response surface on the vote page: distinguishable from Taruu content, public revision history (wave 4)
+- [ ] 08-13-PLAN.md — Land on a real database: apply both migrations, the scope guard, the RLS harness extension, live append-only probes, visual evidence (wave 6, checkpoint)
+
+**Wave structure**: W1 = 08-01, 08-02 · W2 = 08-03, 08-04 · W3 = 08-05, 08-06, 08-07, 08-08 · W4 = 08-09, 08-10, 08-12 · W5 = 08-11 · W6 = 08-13 (blocking checkpoint)
