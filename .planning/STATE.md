@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-08-02T16:09:17.732Z"
+stopped_at: Completed 05-03-PLAN.md
+last_updated: "2026-08-03T09:45:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 20
-  completed_plans: 6
+  completed_plans: 7
 ---
 
 # Project State
@@ -24,14 +24,20 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 05 (space-governance-substrate-and-space-admin-operations-dashboard) — EXECUTING
-Plan: 3 of 16
+Plan: 4 of 16 (derived from SUMMARY files on disk — wave 2 runs 05-03, 05-04 and 05-11 in parallel, so this counter is not a strict sequence)
 
 ## ▶ RESUME HERE (after /clear)
 
-**Phase 5 is EXECUTING** (16 plans, 6 waves). **Wave 1 is complete** — plans 05-01 and 05-02 both landed.
+**Phase 5 is EXECUTING** (16 plans, 6 waves). **Wave 1 is complete** — plans 05-01 and 05-02 both landed. **Wave 2 is in progress**: 05-03 has landed; 05-04 and 05-11 were still executing alongside it.
 
 - 05-01 (governance substrate — DB tables, two-file `vote_status` split, `types.ts`); see `05-01-SUMMARY.md`.
 - 05-02 (capability vocabulary, review transitions, QUOTA_EXCEEDED, rollout flag, full contract surface); see `05-02-SUMMARY.md`.
+- 05-03 (public visibility allow-list, six corrected read paths, reconciled status vocabulary); see `05-03-SUMMARY.md`.
+
+**Two things from 05-03 need someone's attention before the phase closes** — both detailed in `05-03-SUMMARY.md` and `deferred-items.md`:
+
+1. **CI is red on `apps/mobile`** — 130 `TS2786` errors from a duplicate `@types/react` (18.3.27 and 19.2.7 both installed). Not caused by 05-03; it appeared mid-wave-2 after an install. Root `pnpm.overrides` pin + reinstall on a quiet tree.
+2. **Commit `5979545` has mixed authorship** — it carries 05-04's `apps/web/package.json`/`pnpm-lock.yaml` and seven of 05-11's `space-admin/` files, swept in from a shared git index. No content lost. Later plans in this tree should commit with the path-scoped form `git commit -m "…" -- <path>`, which ignores everything else in the index.
 
 Outstanding from 05-01: the Phase 5 migrations have **never been applied to a live Postgres** (no Docker/psql on the exec machine). `supabase/tests/audit_append_only.sql` is committed but uncaptured. 05-16 owns that verification.
 
@@ -72,6 +78,7 @@ Open question to resolve before Phase 3 planning: **monthly civic-pool allocatio
 | Phase 02-spike-gate P01 | 4 | 3 tasks | 4 files |
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P01 | 7 min | 3 tasks | 6 files |
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P02 | 12 min | 3 tasks | 10 files |
+| Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P03 | 25 min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -114,6 +121,11 @@ Recent decisions affecting current work:
 - [Phase 05-space-governance]: packages/shared/src/contracts/spaceAdmin.ts is the phase's COMPLETE contract surface — plans 03–09 import from it and must not reopen it or errors.ts
 - [Phase 05-space-governance]: SpaceSummary.type stays z.string() rather than an enum so the contract does not fork the DDL's space-type list that #74 will extend
 - [Phase 05-space-governance]: SPACE_ADMIN_ENABLED=false is the whole-dashboard kill switch (default on); rollback touches no governance table and no audit history
+- [Phase 05-space-governance]: PUBLIC_VOTE_STATUSES is the ONE allow-list governing public vote visibility — both the default filter and the validation set; no second "filterable" list
+- [Phase 05-space-governance]: 'failed' is deliberately OFF the public allow-list (a real, intended narrowing — such votes were visible before); 'pending' is deliberately ON it (means "scheduled", not "awaiting approval")
+- [Phase 05-space-governance]: getVoteById is the FILTERED name; getVoteByIdUnfiltered is the internal escape hatch, callable only after authorization — so the default reach is the safe one
+- [Phase 05-space-governance]: ?status=in_review returns 200 with the ordinary public list, never a 400 — a validation error there would be an existence oracle for the review vocabulary. Normalise before validating
+- [Phase 05-space-governance]: shared VoteStatus carries all ten DB labels; 'cancelled' stays out and is documented as a legacy API alias mapped to 'ended'
 
 ### Roadmap Evolution
 
@@ -130,9 +142,11 @@ None yet.
 - CONCERNS.md flags: tourist/foreign-card surcharge (~3.5%) erodes the ₪6 charge — block or flag at charge time
 - CONCERNS.md flags: Auth0 callback has no server-side state/CSRF validation — deferred to v2 HARD-03
 - Phase 5 migrations (20260802000001-3) are unapplied and unproven — no Docker/psql on the exec machine; supabase/tests/audit_append_only.sql is committed but no transcript captured. 05-16 owns applying them to a scratch DB.
+- **CI BLOCKER (found by 05-03):** `pnpm --filter @sync/mobile typecheck` fails with 130 `TS2786` errors from a duplicate `@types/react` (18.3.27 + 19.2.7 both installed). Root `pnpm typecheck` runs `@sync/mobile` on every PR to main, so this reddens CI. Not caused by 05-03 — mobile was green at its Task 1 gate with its change applied. Fix: pin one `@types/react` via root `pnpm.overrides`, reinstall on a quiet tree. See `deferred-items.md` item 5.
+- Commit `5979545` mixes three plans' files (05-03's db.ts, 05-04's package.json/lockfile, 05-11's space-admin components) — a shared-git-index race, no content lost. Reconciling plan-to-commit attribution is 05-16's.
 
 ## Session Continuity
 
-Last session: 2026-08-02T16:09:17.728Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-08-03T09:45:00.000Z
+Stopped at: Completed 05-03-PLAN.md
 Resume file: None
