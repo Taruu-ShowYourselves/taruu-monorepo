@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 05-11-PLAN.md
-last_updated: "2026-08-03T07:05:00.000Z"
+stopped_at: Completed 05-04-PLAN.md
+last_updated: "2026-08-03T09:55:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 20
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State
@@ -24,15 +24,16 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 05 (space-governance-substrate-and-space-admin-operations-dashboard) — EXECUTING
-Plan: 5 of 16 (derived from SUMMARY files on disk — wave 2 runs 05-03, 05-04 and 05-11 in parallel, so this counter is not a strict sequence)
+Plan: 6 of 16 (derived from SUMMARY files on disk — wave 2 ran 05-03, 05-04 and 05-11 in parallel, so this counter is not a strict sequence)
 
 ## ▶ RESUME HERE (after /clear)
 
-**Phase 5 is EXECUTING** (16 plans, 6 waves). **Wave 1 is complete** — plans 05-01 and 05-02 both landed. **Wave 2 is in progress**: 05-03 and 05-11 have landed; 05-04 was still executing alongside them.
+**Phase 5 is EXECUTING** (16 plans, 6 waves). **Waves 1 and 2 are complete** — 05-01, 05-02, 05-03, 05-04 and 05-11 have all landed. Wave 3 is next.
 
 - 05-01 (governance substrate — DB tables, two-file `vote_status` split, `types.ts`); see `05-01-SUMMARY.md`.
 - 05-02 (capability vocabulary, review transitions, QUOTA_EXCEEDED, rollout flag, full contract surface); see `05-02-SUMMARY.md`.
 - 05-03 (public visibility allow-list, six corrected read paths, reconciled status vocabulary); see `05-03-SUMMARY.md`.
+- 05-04 (**the authorization core** — branded `SpaceScope`, `resolveMembership`, two space repositories, the first two use-cases and routes, 52 tests); see `05-04-SUMMARY.md`. **Plans 05-05…05-09 must read three sections of it before adding a repository function:** the limit of the guarantee (`SpaceScope.capability` is carried but enforced by no repository), the two-token cost (`SpaceMembership` needs its own entry points), and the `optional()` extraction note under "For downstream plans".
 - 05-11 (np-native shell + eight UI primitives: `SpaceAdminHeader`, `SpaceAdminNav`, `PressTable`, `StatusChip`, `ConfirmDialog`, three panels); see `05-11-SUMMARY.md`. **Surface plans 05-12…05-15 should read that summary's "Component API" section before writing a line** — it gives every prop signature, and `components/space-admin/index.ts` is a CLOSED barrel they must not reopen (import new components by direct path).
 
 **Two things from 05-03 need someone's attention before the phase closes** — both detailed in `05-03-SUMMARY.md` and `deferred-items.md`:
@@ -81,6 +82,7 @@ Open question to resolve before Phase 3 planning: **monthly civic-pool allocatio
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P02 | 12 min | 3 tasks | 10 files |
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P03 | 25 min | 3 tasks | 9 files |
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P11 | ~50 min active | 3 tasks | 19 files |
+| Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P04 | 11 min + checkpoint | 4 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -130,6 +132,13 @@ Recent decisions affecting current work:
 - [Phase 05-space-governance]: shared VoteStatus carries all ten DB labels; 'cancelled' stays out and is documented as a legacy API alias mapped to 'ended'
 - [Phase 05-space-governance]: The disabled-state override is authored `:disabled`-qualified — `.x:disabled` (0,2,0) and `.x:disabled:hover` (0,2,1) — because a bare className class is (0,1,0) and silently loses to NewsButton's `.ink:hover` (0,1,1). No dimming: it would drag `--np-paper-2` below its 0.03 AA margin. Canonical copy in ConfirmDialog.module.css, exported as `confirmButtonClass`
 - [Phase 05-space-governance]: The `--np-red-dark` hover fix applies to dense `ink` buttons ONLY. `outline` already inverts to ink at 16.66:1, and it is the declared trigger for every destructive row action, so it never takes a red fill
+- [Phase 05-space-governance]: CHECKPOINT DECIDED — branded `SpaceScope` is committed to (`commit-scope` over `fallback-assert`). A raw id at the data layer is `error TS2345`; the fallback would trade that compile error for a convention without reducing the measured cost. All of 05-05…05-09 are written against this
+- [Phase 05-space-governance]: `SpaceScope` is mintable ONLY in `server/app/space-admin/authorize.ts`; every space-scoped repository function takes it (or a `SpaceMembership`) as parameter one. `findActiveGrant`/`findGrantsForUser` are the only two functions allowed a raw spaceId — they produce the scope
+- [Phase 05-space-governance]: LIMIT OF THE GUARANTEE — `SpaceScope.capability` is carried but read by NO repository. The brand stops raw strings, not wrong-capability scopes; a `metrics.read` scope is structurally accepted by `listProposals`. Capability correctness lives in the use-case's `authorize(…, capability)` argument and is proven only by the matrix test. Issue #68 must not inherit a guarantee that is not there
+- [Phase 05-space-governance]: `SpaceScope.municipalityCode` is NON-nullable and `authorize()` refuses a grant whose space has none — otherwise every scoped query silently degrades to `.eq(col, null)` when #74's space types arrive. `SpaceMembership.municipalityCode` stays nullable; it only renders the shell
+- [Phase 05-space-governance]: `SpaceMembership` is a SECOND token, never a downcast from `SpaceScope`. Each weaker notion of authority needs its own repository entry points (`findSpaceSummaryByMembership` beside `findSpaceSummary`, funnelling into one private query). A third notion repeats this cost
+- [Phase 05-space-governance]: Malformed uuid, unknown space, no grant, wrong capability, suspended grant and null municipality_code ALL return the identical `{error:'Forbidden',code:'FORBIDDEN'}` 403. Never `notFound()` on a space-admin path — existence is data
+- [Phase 05-space-governance]: CONVENTION (3 plans have hit this) — when a mandated comment must name a token a mechanical grep counts, phrase the prose without the literal, or scope the grep to exclude comment lines. A count assertion cannot tell prose from code. Hit by 05-01 (`AFTER`), 05-02 (`space.read`), 05-04 (the brand-audit string)
 - [Phase 05-space-governance]: `apps/web/src/components/space-admin/index.ts` is a CLOSED barrel owned by 05-11, exporting exactly its eight components. Plans 05-12…05-15 import their own components by direct path and must not reopen it
 - [Phase 05-space-governance]: PressTable never switches a cell to `display: block` — responsive reduction is a paired `display: none` on `th[data-col]`/`td[data-col]`, with hidden values reachable through exactly one `<tr>` expansion per row at every width
 - [Phase 05-space-governance]: The space-admin layout is chrome only and is documented as NOT the authorization boundary — a Next.js layout does not re-render on navigation and does not gate nested segments, so every page re-resolves space identity and capability server-side
@@ -153,10 +162,11 @@ None yet.
 - **CI BLOCKER (found by 05-03):** `pnpm --filter @sync/mobile typecheck` fails with 130 `TS2786` errors from a duplicate `@types/react` (18.3.27 + 19.2.7 both installed). Root `pnpm typecheck` runs `@sync/mobile` on every PR to main, so this reddens CI. Not caused by 05-03 — mobile was green at its Task 1 gate with its change applied. Fix: pin one `@types/react` via root `pnpm.overrides`, reinstall on a quiet tree. See `deferred-items.md` item 5.
 - Commit `5979545` mixes three plans' files (05-03's db.ts, 05-04's package.json/lockfile, 05-11's space-admin components) — a shared-git-index race, no content lost. Reconciling plan-to-commit attribution is 05-16's.
 - **Shared-worktree hazard, sharper than the index race:** a sibling executor ran `git reset HEAD~1` on the shared branch during wave 2 and orphaned an empty marker commit (visible at `git reflog` HEAD@{10}–{11}). No non-empty commit was lost, but a stray reset in this tree can drop other agents' work. Wave-3+ executors: never reset the shared branch, and prefer `git add <paths> && git commit -m "…" -- <paths>`.
+- **05-04's PostgREST embeds are unexecuted.** `spaces!inner(municipality_code)` in the grant resolver, `users(first_name,last_name)` on votes, the actor embed on `space_audit_log`, and the keyset `.or()` predicate in `listAuditRows` are all reviewed but never run — the migrations have never reached a live Postgres. Each fails at runtime, not compile time, if a relationship does not resolve. Add these four to 05-16's checklist.
 - 05-11 did NOT perform its plan's one manual step — rendering the shell at `/he/space-admin/{uuid}`. No page exists under `[spaceId]` yet and starting `next dev` in a tree with live executors risks clobbering `.next`. 05-12 is the first plan able to load the route and should confirm the masthead/nav/colophon compose with no top offset.
 
 ## Session Continuity
 
-Last session: 2026-08-03T07:05:00.000Z
-Stopped at: Completed 05-11-PLAN.md
+Last session: 2026-08-03T09:55:00.000Z
+Stopped at: Completed 05-04-PLAN.md
 Resume file: None

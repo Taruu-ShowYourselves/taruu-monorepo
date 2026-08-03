@@ -81,7 +81,7 @@ Plans:
 | 2. Spike + Gate | 2/2 | Complete   | 2026-06-30 |
 | 3. Payment Rails + Hardening | 0/TBD | Not started | - |
 | 4. Go-Live | 0/TBD | Not started | - |
-| 5. Space Governance + Space-Admin Dashboard | 4/16 | In Progress | - |
+| 5. Space Governance + Space-Admin Dashboard | 5/16 | In Progress | - |
 
 ### Phase 5: Space governance substrate and space-admin operations dashboard
 
@@ -101,10 +101,10 @@ Plans:
 | 6 | 05-16 | Screenshot evidence + phase verification (checkpoint) |
 
 Plans:
-- [ ] 05-01-PLAN.md — Governance DDL, two-file vote_status split, database row types [SPACE-01, SPACE-04, SPACE-09]
-- [ ] 05-02-PLAN.md — Capability vocabulary, review transitions, QUOTA_EXCEEDED, complete shared contract, rollout flag [SPACE-02, SPACE-04, SPACE-05]
-- [ ] 05-03-PLAN.md — Review-state vocabulary in TypeScript + public read-path allow-list [SPACE-05]
-- [ ] 05-04-PLAN.md — Branded SpaceScope authorization core, first two use-cases, ergonomics go/no-go checkpoint [SPACE-02, SPACE-03, SPACE-09]
+- [x] 05-01-PLAN.md — Governance DDL, two-file vote_status split, database row types [SPACE-01, SPACE-04, SPACE-09]
+- [x] 05-02-PLAN.md — Capability vocabulary, review transitions, QUOTA_EXCEEDED, complete shared contract, rollout flag [SPACE-02, SPACE-04, SPACE-05]
+- [x] 05-03-PLAN.md — Review-state vocabulary in TypeScript + public read-path allow-list [SPACE-05]
+- [x] 05-04-PLAN.md — Branded SpaceScope authorization core, first two use-cases, ergonomics go/no-go checkpoint [SPACE-02, SPACE-03, SPACE-09]
 - [ ] 05-05-PLAN.md — Proposal decisions: approve / reject / request-changes, deterministic concurrency, audit [SPACE-04, SPACE-05]
 - [ ] 05-06-PLAN.md — Members, grants, suspension, content moderation, escalation [SPACE-06, SPACE-09]
 - [ ] 05-07-PLAN.md — Aggregate-only metrics RPC + cursor-paginated audit read [SPACE-07, SPACE-04]
