@@ -74,7 +74,7 @@ Plans:
 ### Phase 3: Payment Rails + Hardening
 **Goal**: The money model matches the product — participation is free, vote creation charges ₪50 through the working GI hosted form with a correct receipt, the civic pool is funded by a tradeable Bags.fm token behind a written legal gate, and the security gaps from CONCERNS.md are closed.
 > **Re-scoped 2026-08-03.** This phase originally built a ₪6/month card-on-file membership. That model is retired: `cfa5d25` made participation free and the pool is now token-funded. PAY-01..05 are RETIRED, not deferred; COIN-01..04 are new. Re-read REQUIREMENTS.md before planning — the old success criteria below no longer apply.
-**Depends on**: Phase 1 (corrective RLS migration in place), Phase 2 SPIKE-01 cleared (sandbox verified)
+**Depends on**: Phase 1 (corrective RLS migration in place). **No longer gated on SPIKE-01** — that spike verified the off-session MIT token charge, which only the retired membership needed. The ₪50 creation fee runs on the GI *hosted form*, which already works in production. SPIKE-01 now gates Phase 6 alone.
 **Requirements**: SEC-02, SEC-03, SEC-04, SEC-05, PAY-06, PAY-07, PAY-08, COIN-01, COIN-02, COIN-03, COIN-04
 
 > **Splittable.** The security block (SEC-02..05) and the ₪50 creation rail (PAY-06..08) depend on nothing external and can be planned and executed now. The token block (COIN-01..04) is behind COIN-01, a written legal sign-off nobody in this repo can produce. Plan the phase so the coin work is its own wave and the phase can ship its security and creation-fee value without it.
