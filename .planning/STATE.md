@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 05-04-PLAN.md
-last_updated: "2026-08-03T09:55:00.000Z"
+stopped_at: Completed 05-05-PLAN.md
+last_updated: "2026-08-03T10:50:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 20
-  completed_plans: 9
+  completed_plans: 10
 ---
 
 # Project State
@@ -24,16 +24,17 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 05 (space-governance-substrate-and-space-admin-operations-dashboard) — EXECUTING
-Plan: 6 of 16 (derived from SUMMARY files on disk — wave 2 ran 05-03, 05-04 and 05-11 in parallel, so this counter is not a strict sequence)
+Plan: 7 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several plans in parallel, so this counter is a count of completed plans, not a position in a sequence)
 
 ## ▶ RESUME HERE (after /clear)
 
-**Phase 5 is EXECUTING** (16 plans, 6 waves). **Waves 1 and 2 are complete** — 05-01, 05-02, 05-03, 05-04 and 05-11 have all landed. Wave 3 is next.
+**Phase 5 is EXECUTING** (16 plans, 6 waves). **Waves 1 and 2 are complete** — 05-01, 05-02, 05-03, 05-04 and 05-11 have all landed. **Wave 3 is in progress:** 05-05 is done; 05-06, 05-07 and 05-08 were committing into this same worktree alongside it.
 
 - 05-01 (governance substrate — DB tables, two-file `vote_status` split, `types.ts`); see `05-01-SUMMARY.md`.
 - 05-02 (capability vocabulary, review transitions, QUOTA_EXCEEDED, rollout flag, full contract surface); see `05-02-SUMMARY.md`.
 - 05-03 (public visibility allow-list, six corrected read paths, reconciled status vocabulary); see `05-03-SUMMARY.md`.
 - 05-04 (**the authorization core** — branded `SpaceScope`, `resolveMembership`, two space repositories, the first two use-cases and routes, 52 tests); see `05-04-SUMMARY.md`. **Plans 05-05…05-09 must read three sections of it before adding a repository function:** the limit of the guarantee (`SpaceScope.capability` is carried but enforced by no repository), the two-token cost (`SpaceMembership` needs its own entry points), and the `optional()` extraction note under "For downstream plans".
+- 05-05 (**the first real writer** — `space-decision.repo.ts`, the six-guard `decideProposal` chain, POST decide + GET detail routes, 29 tests); see `05-05-SUMMARY.md`. **05-10 must read its "Where plan 05-10 inserts the creation-fee charge" section first:** the seam is `decide-proposal.ts:118`, between `resolveDecisionTarget` (116) and `transitionProposal` (123), and moving it after the transition yields publish-then-charge. **05-13** builds Surface 2 against both endpoints; the decision responds with a full `ProposalDetail` carrying the new status.
 - 05-11 (np-native shell + eight UI primitives: `SpaceAdminHeader`, `SpaceAdminNav`, `PressTable`, `StatusChip`, `ConfirmDialog`, three panels); see `05-11-SUMMARY.md`. **Surface plans 05-12…05-15 should read that summary's "Component API" section before writing a line** — it gives every prop signature, and `components/space-admin/index.ts` is a CLOSED barrel they must not reopen (import new components by direct path).
 
 **Two things from 05-03 need someone's attention before the phase closes** — both detailed in `05-03-SUMMARY.md` and `deferred-items.md`:
@@ -83,6 +84,7 @@ Open question to resolve before Phase 3 planning: **monthly civic-pool allocatio
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P03 | 25 min | 3 tasks | 9 files |
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P11 | ~50 min active | 3 tasks | 19 files |
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P04 | 11 min + checkpoint | 4 tasks | 14 files |
+| Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P05 | 14 min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -142,6 +144,12 @@ Recent decisions affecting current work:
 - [Phase 05-space-governance]: `apps/web/src/components/space-admin/index.ts` is a CLOSED barrel owned by 05-11, exporting exactly its eight components. Plans 05-12…05-15 import their own components by direct path and must not reopen it
 - [Phase 05-space-governance]: PressTable never switches a cell to `display: block` — responsive reduction is a paired `display: none` on `th[data-col]`/`td[data-col]`, with hidden values reachable through exactly one `<tr>` expansion per row at every width
 - [Phase 05-space-governance]: The space-admin layout is chrome only and is documented as NOT the authorization boundary — a Next.js layout does not re-render on navigation and does not gate nested segments, so every page re-resolves space identity and capability server-side
+- [Phase 05-space-governance]: The proposal decision is ONE conditional UPDATE carrying `.eq('id')`, `.eq('municipality_id')` and `.eq('status','in_review')` together; zero rows folds to `conflict()` INSIDE `space-decision.repo.ts`, so no caller can forget the 409. Advisory transaction locks were rejected — pooled Supabase connections from Workers make session-scoped lock semantics undependable
+- [Phase 05-space-governance]: `DECISION_CONFLICT_HE` in `space-decision.repo.ts` is the single definition of the 409 sentence; the repository raises it on a lost race and the use-case on an already-decided row. Do not re-type the literal — a test pins it to the UI-spec string
+- [Phase 05-space-governance]: The 05-10 creation-fee seam is `decide-proposal.ts:118`, between `resolveDecisionTarget` (116) and `transitionProposal` (123). A charge placed after the transition is publish-then-charge and contradicts `אף סכום לא נגבה`. Charge failure is `PAYMENT_INVALID` → 402, never a 500
+- [Phase 05-space-governance]: The audit write is the last link of the decision's Result chain, before the terminal `.map(` — a failed `insertAuditRow` fails the whole request, because a published-but-unaudited vote breaks SPACE-04
+- [Phase 05-space-governance]: A malformed `voteId` is a 403 at the route edge (`parse(ProposalSummarySchema.shape.id, …)` → `forbidden()`), never a 400 and never a Postgres uuid 500 — the same uniform-denial rule 05-04 set for `spaceId`
+- [Phase 05-space-governance]: A module-shape assertion (e.g. "the audit repo exports no mutator") must run against `vi.importActual`, not the mocked namespace — `Object.keys` over a mock describes the mock and cannot fail
 - [Phase 05-space-governance]: Red text is compliant PER BACKGROUND — `--np-red-ink` on paper, `--np-paper` on ink, `--np-red` only on aria-hidden tick glyphs. The shared `.np-kicker` utility is 4.03:1 and is replaced phase-locally by `kicker.module.css`
 
 ### Roadmap Evolution
@@ -167,6 +175,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-03T09:55:00.000Z
-Stopped at: Completed 05-04-PLAN.md
+Last session: 2026-08-03T10:50:00.000Z
+Stopped at: Completed 05-05-PLAN.md
 Resume file: None
