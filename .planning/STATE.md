@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: "Completed 05-09-PLAN.md — the notification send (wave 4, alongside 05-10, 05-12, 05-13, 05-14)"
-last_updated: "2026-08-03T12:10:00.000Z"
+stopped_at: "Completed 05-13-PLAN.md — the proposal review surface and its detail panel (wave 4; only 05-12 still running)"
+last_updated: "2026-08-03T12:20:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 20
-  completed_plans: 15
+  completed_plans: 17
 ---
 
 # Project State
@@ -24,11 +24,11 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 05 (space-governance-substrate-and-space-admin-operations-dashboard) — EXECUTING
-Plan: 12 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several plans in parallel, so this counter is a count of completed plans, not a position in a sequence)
+Plan: 13 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several plans in parallel, so this counter is a count of completed plans, not a position in a sequence)
 
 ## ▶ RESUME HERE (after /clear)
 
-**Phase 5 is EXECUTING** (16 plans, 6 waves). **Waves 1 and 2 are complete** — 05-01, 05-02, 05-03, 05-04 and 05-11 have all landed. **Wave 3 is complete** — 05-05, 05-06, 05-07 and 05-08 have all landed. **Wave 4 is in progress** — 05-09, 05-10 and 05-14 have landed; 05-12 and 05-13 are running.
+**Phase 5 is EXECUTING** (16 plans, 6 waves). **Waves 1 and 2 are complete** — 05-01, 05-02, 05-03, 05-04 and 05-11 have all landed. **Wave 3 is complete** — 05-05, 05-06, 05-07 and 05-08 have all landed. **Wave 4 is in progress** — 05-09, 05-10, 05-13 and 05-14 have landed; only 05-12 is still running.
 
 - 05-01 (governance substrate — DB tables, two-file `vote_status` split, `types.ts`); see `05-01-SUMMARY.md`.
 - 05-02 (capability vocabulary, review transitions, QUOTA_EXCEEDED, rollout flag, full contract surface); see `05-02-SUMMARY.md`.
@@ -39,6 +39,7 @@ Plan: 12 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several
 - 05-09 (**the send** — dual-fingerprint verification, the DB-counted quota enforced at-or-over the limit, a conditional claim, the in-app rows and the delivery log before any push, `POST …/notifications/send` + `GET …/notifications`, 33 tests); see `05-09-SUMMARY.md`. **05-15 must read its "Error taxonomy the composer must map" table before writing the composer's state machine:** it maps every status code to a composer state and a sentence. Two traps it names — the 429 body carries **no** numbers (the exhausted block reads `{used}/{limit}` and `resetsAt` from `GET …/notifications`), and the two 409s share one code and differ only in their Hebrew string, so the client branches on the string. Note `resolveAudience` now also returns `optedOutUserIds`; the addition is additive and 05-08's 29 tests are unchanged.
 - 05-07 (**the two read-only reporting surfaces** — `space_admin_metrics` RPC with the k-anonymity floor in SQL, `getSpaceMetrics`, `listSpaceAudit`, two GET routes, 30 tests); see `05-07-SUMMARY.md`. **05-14 and 05-15 must read its "For 05-14 and 05-15" section before writing a line:** it names the two use-cases to import (never the repositories), gives the base64url cursor encoding so audit links round-trip, and gives the `available`/`suppressed`/`unavailable` render table. Note `participationRate` can be `unavailable` while its neighbours are `available` — that is the deliberate ratio-suppression fix, not a bug.
 - 05-06 (**people, content and escalation** — `space-member.repo.ts`, five use-cases, five endpoints, 39 tests); see `05-06-SUMMARY.md`. **05-12…05-15 must read its endpoint table:** it names the eight use-cases to import and states plainly that the repository will run without an authorization call in front of it. **05-09 must read its audit-action list** — the nine actions this plan writes, and the standing rule that there is no escalation action and must not be one. The `/escalations` endpoint is the phase's one un-gated route; its constant `{ "accepted": true }` / 202 answer is what makes it not an existence oracle, and four separate properties hold that up.
+- 05-13 (**Surface 2** — the review queue, three decisions behind a required reason, self-submitted rows locked by absence, and `ProposalDetailPanel`, the expanding `<tr>` where the permitted-content controls live); see `05-13-SUMMARY.md`. **05-15 and 05-16 should read its "Two Hebrew sentences this surface does not contain" and "The status labels" sections.** The 409 and 402 copy is rendered from the server's response body rather than re-typed, so a grep for those strings in the client returns nothing by design; and `apps/web/src/components/space-admin/proposalStatusLabels.ts` is the new client-safe status label map — repoint `[locale]/votes/create/page.tsx` at it, then collapse it and `REVIEW_STATUS_LABELS_HE` into one shared definition.
 - 05-11 (np-native shell + eight UI primitives: `SpaceAdminHeader`, `SpaceAdminNav`, `PressTable`, `StatusChip`, `ConfirmDialog`, three panels); see `05-11-SUMMARY.md`. **Surface plans 05-12…05-15 should read that summary's "Component API" section before writing a line** — it gives every prop signature, and `components/space-admin/index.ts` is a CLOSED barrel they must not reopen (import new components by direct path).
 
 **Two things from 05-03 need someone's attention before the phase closes** — both detailed in `05-03-SUMMARY.md` and `deferred-items.md`:
@@ -211,10 +212,13 @@ None yet.
 - **05-09's writes are unexecuted, and one of them shares 05-06's first-priority risk.** Four items for 05-16's checklist: `claimCampaignForSend`'s `.select()` after a conditional `UPDATE` (zero rows *is* the "already sent" 409 — if a conditional update returns something else, every send either always 409s or never detects a double send); `insertDeliveries`' `ignoreDuplicates` against `uq_delivery_once`, whose whole purpose is retry idempotency; the bulk insert into `user_notifications` with its two nullable FKs; and the history query's `.order('sent_at').limit()` against the partial quota index. **Plus a design question 05-16 should rule on:** a failure between the claim and the audit row leaves a `sent` campaign with zero recipients and one unit of quota spent — acceptable, or does the send need an RPC?
 - **A layout that narrows its own route param fails Next's generated validator (found and fixed by 05-14).** `space-admin/[spaceId]/layout.tsx` declared `params: Promise<{ locale: Locale; … }>`; `LayoutConfig` types a layout's params from the route segments as plain strings, so `tsc --noEmit` failed with `TS2344` as soon as `.next/types` regenerated — and `next build` would too. Fixed in `1bd7134` by narrowing in the body, the pattern `[locale]/layout.tsx` already uses. **Pages are exempt** (`AppPageConfig` intersects with `any`), which is why the six surfaces can declare `Locale` directly. Worth knowing before anyone "tidies" a layout signature.
 - **05-14 shipped two surfaces that have never been rendered.** Members and statistics typecheck and lint; neither has been loaded in a browser, and none of their five fetches has reached a route. The RTL layout, the 768px column reduction, the row flash and the LTR isolation of the suppressed `<5` figure are reviewed, not seen. Screenshots 5–8 are 05-16's, and #7–8 need a fixture space small enough to produce a suppressed bucket, which needs the metrics migration applied first.
+- **"Show all" on the proposals surface is two reads, not one (found by 05-13).** `listProposals` with no status filters to the four REVIEW statuses; the published status is not among them. Since audit-log deep links point at *decided* proposals — most often approved ones — a single unfiltered read would silently omit exactly the rows `?proposal={id}` exists to reach. Surface 2 issues two authorized reads and merges them. Anyone adding a "show everything" view elsewhere in this phase has the same trap.
+- **`PressTable` gained two optional props in 05-13** — `renderExpansionRow` (the caller returns the whole expansion `<tr>`, so it owns the `<td colSpan>` and the id its trigger's `aria-controls` names) and `rowClassName` (the post-decision row flash, unreachable otherwise because the table paints cell backgrounds). Both are additive; 05-14 already consumes `rowClassName`.
+- **05-13 shipped a third surface that has never been rendered.** Proposals typecheck and lint; no browser, no fetch executed, and the plan's manual deep-link check is undone — it needs a space, a grant and a proposal, and the migrations are still unapplied. Screenshots 3–4 and 16a/16b are 05-16's, and 16b needs a fixture proposal that is hidden **and** flagged at once.
 - 05-11 did NOT perform its plan's one manual step — rendering the shell at `/he/space-admin/{uuid}`. No page exists under `[spaceId]` yet and starting `next dev` in a tree with live executors risks clobbering `.next`. 05-12 is the first plan able to load the route and should confirm the masthead/nav/colophon compose with no top offset.
 
 ## Session Continuity
 
-Last session: 2026-08-03T12:15:00.000Z
-Stopped at: Completed 05-14-PLAN.md — the members/roles and aggregate-statistics surfaces, with suppressed (`<5`) and withheld (em dash) kept as two visibly different claims (wave 4 continues with 05-12 and 05-13)
+Last session: 2026-08-03T12:20:00.000Z
+Stopped at: Completed 05-13-PLAN.md — the proposal review queue and the expanding detail panel that gives content moderation a home, with the 409/402 sentences rendered from the server rather than re-typed (wave 4 continues with 05-12 alone)
 Resume file: None
