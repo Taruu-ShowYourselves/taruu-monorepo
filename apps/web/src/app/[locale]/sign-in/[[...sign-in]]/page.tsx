@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
+import { safeRedirect } from '@/lib/safeRedirect';
 import styles from './page.module.css';
 
 // Google "G" mark — monochrome, inherits the button text colour (brutalist
@@ -28,8 +29,9 @@ export default function SignInPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      const redirect = searchParams.get('redirect') || '/dashboard';
-      router.push(redirect);
+      // Never push an unvalidated query param: an absolute URL here is an
+      // open redirect off the back of a successful sign-in.
+      router.push(safeRedirect(searchParams.get('redirect'), '/dashboard'));
     }
   }, [isAuthenticated, isLoading, router, searchParams]);
 

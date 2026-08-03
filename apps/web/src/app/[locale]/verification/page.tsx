@@ -7,6 +7,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { NewsButton, Stepper, SealCard, PressInput } from '@/components/press';
 import { isEligibleToVote } from '@/lib/verification';
+import { safeRedirect } from '@/lib/safeRedirect';
 import { DocumentScanStep } from './components/DocumentScanStep';
 import styles from './page.module.css';
 
@@ -71,7 +72,9 @@ function VerificationView() {
   const { user, isAuthenticated, isLoading, refreshSession } = useAuth();
 
   /** Where to send the user once they can vote (preserve through sign-in). */
-  const redirect = searchParams.get('redirect') || DEFAULT_REDIRECT;
+  // Sanitised: this value is pushed to the router and re-embedded in the
+  // sign-in bounce below, so an absolute URL here would be an open redirect.
+  const redirect = safeRedirect(searchParams.get('redirect'), DEFAULT_REDIRECT);
 
   // --- Local flow state ---
   const [flow, setFlow] = useState<Flow>('phone');
