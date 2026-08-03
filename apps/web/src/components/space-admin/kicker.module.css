@@ -3,8 +3,8 @@
  *
  * The shared `.np-kicker` utility (globals.css:445) paints its TEXT in
  * `--np-red`, which measures 4.03:1 against paper and fails AA for normal
- * text at 11.1px. This phase does not propagate that: it scopes the fix to
- * its own modules rather than editing a global every existing surface uses.
+ * text at the kicker size. This phase does not propagate that: it scopes the
+ * fix to its own modules rather than editing a global every surface uses.
  *
  * The rule is stated PER BACKGROUND, because a token alone is not enough:
  *   - on paper / paper-box / paper-2 → red text is `--np-red-ink` (9.56:1)
@@ -39,4 +39,11 @@
 .kickerOnInk {
   composes: kicker;
   color: var(--np-paper);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kicker {
+    transition: none;
+    animation: none;
+  }
 }

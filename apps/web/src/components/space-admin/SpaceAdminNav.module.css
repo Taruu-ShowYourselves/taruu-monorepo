@@ -1,7 +1,7 @@
 /* ============================================================
  * SpaceAdminNav — the Segmented visual language on real links.
  * Boxed row, ink hairlines between cells, active cell inverts to ink.
- * Below 768px the row scrolls horizontally rather than wrapping.
+ * On narrow viewports the row scrolls horizontally rather than wrapping.
  * ============================================================ */
 
 .nav {

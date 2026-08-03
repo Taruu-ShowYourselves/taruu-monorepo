@@ -1,0 +1,62 @@
+/* ============================================================
+ * EmptyPanel / ErrorPanel / NoPermissionPanel — one boxed treatment.
+ * Hierarchy is carried by the heavy rule and the kicker, not by a size ladder.
+ * ============================================================ */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--np-paper-box);
+  border: var(--np-rule-hair) solid var(--np-paper-edge);
+  border-block-start: var(--np-rule-heavy) solid var(--np-ink);
+  border-radius: 0;
+}
+
+.heading {
+  font-family: var(--np-font-display);
+  font-weight: 800;
+  font-size: var(--text-base);
+  line-height: 1.2;
+  color: var(--np-ink);
+}
+
+.body {
+  font-family: var(--np-font-display);
+  font-weight: 400;
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--np-ink-soft);
+  max-width: 68ch;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+/* Mono, faint — 4.96:1 on paper-box. */
+.note {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: var(--np-ink-faint);
+  max-width: 68ch;
+}
+
+@media (min-width: 768px) {
+  .panel {
+    padding: var(--space-6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    transition: none;
+    animation: none;
+  }
+}
