@@ -62,6 +62,16 @@ export function initialStatus(startDate: Date, now: Date): 'active' | 'pending' 
 }
 
 /**
+ * Every new proposal enters review. `pending` is NOT this state — it means
+ * "approved and scheduled, not yet open". `initialStatus` still decides
+ * between active and pending, but only at approval time.
+ *
+ * A function rather than a constant, so the eventual "trusted submitter skips
+ * review" rule has a place to live.
+ */
+export const submissionStatus = (): 'in_review' => 'in_review';
+
+/**
  * The only statuses a vote may be shown at under a public read path.
  *
  * An allow-list, never a deny-list: a status invented later is invisible until

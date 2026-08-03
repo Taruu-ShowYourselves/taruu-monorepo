@@ -125,7 +125,13 @@ export const CreateVoteRequestSchema = z.object({
   options: z.array(VoteOptionInputSchema).min(2).max(10),
   startDate: z.string().datetime(),
   endDate: z.string().datetime(),
-  paymentTxId: z.string().min(1),
+  // paymentTxId removed: submission is free. The ₪50 creation fee is charged
+  // when a space admin approves and the proposal publishes (issue #75).
+  //
+  // Not `.strict()`, deliberately: a bundle deployed before this change still
+  // sends the field, and zod strips unknown keys rather than rejecting the
+  // request. That tolerance is for old clients in flight only — every caller in
+  // this repository has been updated to stop sending it.
 });
 
 export const CreateVoteResponseSchema = z.object({
