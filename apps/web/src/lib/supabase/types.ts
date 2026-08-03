@@ -1262,6 +1262,107 @@ export interface Database {
         };
         Relationships: [];
       };
+      space_notification_campaigns: {
+        Row: {
+          id: string;
+          space_id: string;
+          created_by: string;
+          title: string;
+          body: string;
+          audience_filter:
+            | 'all_members'
+            | 'active_vote_participants'
+            | 'new_members_30d';
+          /** sha256 of the sorted, comma-joined recipient ids. Re-derived at send. */
+          audience_hash: string;
+          /** sha256 of trimmed title + body + filter. This IS the previewToken. */
+          content_hash: string;
+          audience_size: number;
+          excluded_opted_out: number;
+          excluded_no_channel: number;
+          status: 'previewed' | 'sent' | 'failed';
+          reason: string | null;
+          previewed_at: string;
+          sent_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          space_id: string;
+          created_by: string;
+          title: string;
+          body: string;
+          audience_filter:
+            | 'all_members'
+            | 'active_vote_participants'
+            | 'new_members_30d';
+          audience_hash: string;
+          content_hash: string;
+          audience_size: number;
+          excluded_opted_out?: number;
+          excluded_no_channel?: number;
+          status?: 'previewed' | 'sent' | 'failed';
+          reason?: string | null;
+          previewed_at?: string;
+          sent_at?: string | null;
+        };
+        Update: {
+          status?: 'previewed' | 'sent' | 'failed';
+          reason?: string | null;
+          sent_at?: string | null;
+        };
+        Relationships: [];
+      };
+      space_notification_deliveries: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          user_id: string;
+          channel: 'in_app' | 'push';
+          state: 'delivered' | 'suppressed' | 'failed';
+          suppression_reason: 'opted_out' | 'no_active_channel' | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          campaign_id: string;
+          user_id: string;
+          channel: 'in_app' | 'push';
+          state?: 'delivered' | 'suppressed' | 'failed';
+          suppression_reason?: 'opted_out' | 'no_active_channel' | null;
+          created_at?: string;
+        };
+        Update: {
+          state?: 'delivered' | 'suppressed' | 'failed';
+          suppression_reason?: 'opted_out' | 'no_active_channel' | null;
+        };
+        Relationships: [];
+      };
+      user_notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          space_id: string | null;
+          campaign_id: string | null;
+          title: string;
+          body: string;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          space_id?: string | null;
+          campaign_id?: string | null;
+          title: string;
+          body: string;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          read_at?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -1402,3 +1503,6 @@ export type SpaceCapabilityGrant = Tables<'space_capability_grants'>;
 export type SpaceMemberSuspension = Tables<'space_member_suspensions'>;
 export type SpaceAuditRow = Tables<'space_audit_log'>;
 export type PlatformEscalation = Tables<'platform_escalations'>;
+export type SpaceNotificationCampaign = Tables<'space_notification_campaigns'>;
+export type SpaceNotificationDelivery = Tables<'space_notification_deliveries'>;
+export type UserNotification = Tables<'user_notifications'>;
