@@ -21,7 +21,9 @@
  */
 
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
+import { NextRequest } from 'next/server';
 import { okAsync, errAsync } from 'neverthrow';
+import { SendNotificationResponseSchema } from '@sync/shared/contracts';
 import { conflict, dbError } from '@/server/http/errors';
 import { MUNICIPALITY_A, SESSION, SPACE_A, SPACE_B, scopeFor } from '../fixtures/space';
 
@@ -60,6 +62,8 @@ vi.mock('@/services/notifications/expo', () => ({
   sendBatchNotifications: vi.fn(),
 }));
 
+vi.mock('@/services/auth/session', () => ({ getSessionFromRequest: vi.fn() }));
+
 import {
   activeTokensForUsers,
   usersWithActiveChannel,
@@ -71,13 +75,18 @@ import {
   insertDeliveries,
   insertUserNotifications,
   listAudienceCandidates,
+  listCampaignsForSpace,
   readSpaceQuota,
 } from '@/server/infra/supabase/space-notify.repo';
 import { insertAuditRow } from '@/server/infra/supabase/space-audit.repo';
 import { findActiveGrant } from '@/server/infra/supabase/space.repo';
 import { sendBatchNotifications } from '@/services/notifications/expo';
+import { getSessionFromRequest } from '@/services/auth/session';
 import { contentHash, resolveAudience } from '@/server/app/space-admin/audience';
 import { sendNotification } from '@/server/app/space-admin/send-notification';
+import { fanOutCampaignPush } from '@/server/infra/notify/space-campaign';
+import { POST as POST_SEND } from '@/app/api/space-admin/[spaceId]/notifications/send/route';
+import { GET as GET_CAMPAIGNS } from '@/app/api/space-admin/[spaceId]/notifications/route';
 
 const CAMPAIGN_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const REASON = 'עדכון לתושבים על שינוי במועד ההצבעה השבועית';
@@ -219,6 +228,7 @@ beforeEach(() => {
   (insertUserNotifications as Mock).mockReturnValue(okAsync(undefined));
   (insertDeliveries as Mock).mockReturnValue(okAsync(undefined));
   (insertAuditRow as Mock).mockReturnValue(okAsync({ id: 'audit-1' }));
+  (getSessionFromRequest as Mock).mockResolvedValue(SESSION);
   (sendBatchNotifications as Mock).mockResolvedValue({
     sent: 2,
     failed: 0,
@@ -482,5 +492,213 @@ describe('sendNotification — the verification that makes SPACE-08 true', () =>
     // An unaudited dispatch would break SPACE-04, so the audit write is part of
     // the send rather than a best-effort side effect.
     expect(result.isErr()).toBe(true);
+  });
+});
+
+const postSend = (spaceId: string, payload: unknown) =>
+  POST_SEND(
+    new NextRequest(
+      `http://localhost/api/space-admin/${spaceId}/notifications/send`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: { 'content-type': 'application/json' },
+      }
+    ),
+    { params: Promise.resolve({ spaceId }) }
+  );
+
+describe('POST /api/space-admin/[spaceId]/notifications/send', () => {
+  it('returns the sent receipt in the shape the shared contract declares', async () => {
+    const { command } = await previewed();
+
+    const response = await postSend(SPACE_A, command);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(SendNotificationResponseSchema.safeParse(body).success).toBe(true);
+  });
+
+  it('answers a changed audience with the stale-audience sentence', async () => {
+    const { command } = await previewed([candidate(1), candidate(2)]);
+    candidatesAre([candidate(1)]);
+
+    const response = await postSend(SPACE_A, command);
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      error: 'הקהל השתנה — הציגו תצוגה מקדימה מחדש.',
+      code: 'CONFLICT',
+    });
+  });
+
+  it('answers an edited message with the recompute-before-sending sentence', async () => {
+    const { command } = await previewed();
+
+    const response = await postSend(SPACE_A, { ...command, title: 'כותרת אחרת' });
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      error: 'ההודעה שונתה אחרי חישוב הקהל — חשבו שוב לפני שליחה.',
+      code: 'CONFLICT',
+    });
+  });
+
+  it('answers an exhausted quota with 429 and no notification rows', async () => {
+    const { command } = await previewed();
+    (countCampaignsSentThisMonth as Mock).mockReturnValue(okAsync(8));
+
+    const response = await postSend(SPACE_A, command);
+
+    expect(response.status).toBe(429);
+    expect(await response.json()).toEqual({
+      error: 'Quota exceeded',
+      code: 'QUOTA_EXCEEDED',
+    });
+    expect(insertUserNotifications).not.toHaveBeenCalled();
+  });
+
+  it('refuses a swapped spaceId with the constant 403 body', async () => {
+    const { command } = await previewed();
+
+    const response = await postSend(SPACE_B, command);
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ error: 'Forbidden', code: 'FORBIDDEN' });
+  });
+
+  it('is 401 with no session, before any authorization work', async () => {
+    const { command } = await previewed();
+    (getSessionFromRequest as Mock).mockResolvedValue(null);
+
+    const response = await postSend(SPACE_A, command);
+
+    expect(response.status).toBe(401);
+    expect(findActiveGrant).not.toHaveBeenCalled();
+  });
+
+  it('rejects a reason shorter than the audit column allows, before any read', async () => {
+    const { command } = await previewed();
+
+    const response = await postSend(SPACE_A, { ...command, reason: 'קצר' });
+
+    expect(response.status).toBe(400);
+    expect(findCampaignInScope).not.toHaveBeenCalled();
+  });
+});
+
+const getCampaigns = (spaceId: string) =>
+  GET_CAMPAIGNS(
+    new NextRequest(`http://localhost/api/space-admin/${spaceId}/notifications`),
+    { params: Promise.resolve({ spaceId }) }
+  );
+
+describe('GET /api/space-admin/[spaceId]/notifications', () => {
+  beforeEach(() => {
+    (listCampaignsForSpace as Mock).mockReturnValue(
+      okAsync([
+        campaignRow({
+          status: 'sent',
+          sent_at: SENT_AT,
+          audience_size: 12,
+          excluded_opted_out: 3,
+        }),
+      ])
+    );
+  });
+
+  it('returns past dispatches with their delivered and suppressed counts', async () => {
+    const response = await getCampaigns(SPACE_A);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.campaigns).toEqual([
+      {
+        id: CAMPAIGN_ID,
+        title: 'עדכון',
+        sentAt: SENT_AT,
+        recipients: 12,
+        suppressed: 3,
+      },
+    ]);
+  });
+
+  it('carries the quota composer state 0 needs before any preview exists', async () => {
+    const body = await (await getCampaigns(SPACE_A)).json();
+
+    expect(body.quota).toEqual({ used: 2, limit: 8, resetsAt: NEXT_MONTH });
+  });
+
+  it('caps the list at twenty, newest first, with no caller-supplied limit', async () => {
+    await getCampaigns(SPACE_A);
+
+    expect(listCampaignsForSpace).toHaveBeenCalledWith(
+      expect.objectContaining({ spaceId: SPACE_A }),
+      20
+    );
+  });
+
+  it('refuses a caller without notification.send', async () => {
+    grantOnlyInSpaceA(['audit.read']);
+
+    const response = await getCampaigns(SPACE_A);
+
+    expect(response.status).toBe(403);
+    expect(listCampaignsForSpace).not.toHaveBeenCalled();
+  });
+});
+
+describe('fanOutCampaignPush — best effort, and evidence either way', () => {
+  const campaign = {
+    id: CAMPAIGN_ID,
+    space_id: SPACE_A,
+    title: 'עדכון',
+    body: 'גוף ההודעה',
+  };
+
+  it('records a push row per recipient after a successful batch', async () => {
+    await fanOutCampaignPush(campaign, [uid(1), uid(2)]);
+
+    expect(sendBatchNotifications).toHaveBeenCalledTimes(1);
+    const [rows] = (insertDeliveries as Mock).mock.calls[0];
+    expect(rows).toEqual([
+      { campaign_id: CAMPAIGN_ID, user_id: uid(1), channel: 'push', state: 'delivered' },
+      { campaign_id: CAMPAIGN_ID, user_id: uid(2), channel: 'push', state: 'delivered' },
+    ]);
+  });
+
+  it('records a no_active_channel suppression instead of dropping the recipient', async () => {
+    (usersWithActiveChannel as Mock).mockReturnValue(okAsync(new Set([uid(1)])));
+
+    await fanOutCampaignPush(campaign, [uid(1), uid(2)]);
+
+    const [rows] = (insertDeliveries as Mock).mock.calls[0];
+    expect(rows).toContainEqual({
+      campaign_id: CAMPAIGN_ID,
+      user_id: uid(2),
+      channel: 'push',
+      state: 'suppressed',
+      suppression_reason: 'no_active_channel',
+    });
+  });
+
+  it('does not call Expo when nobody has a token, but still logs the suppressions', async () => {
+    (usersWithActiveChannel as Mock).mockReturnValue(okAsync(new Set<string>()));
+    (activeTokensForUsers as Mock).mockReturnValue(okAsync([]));
+
+    await fanOutCampaignPush(campaign, [uid(1)]);
+
+    expect(sendBatchNotifications).not.toHaveBeenCalled();
+    const [rows] = (insertDeliveries as Mock).mock.calls[0];
+    expect(rows).toHaveLength(1);
+    expect((rows as { suppression_reason: string }[])[0].suppression_reason).toBe(
+      'no_active_channel'
+    );
+  });
+
+  it('swallows a failing batch — the in-app notification is already delivered', async () => {
+    (sendBatchNotifications as Mock).mockRejectedValue(new Error('expo is down'));
+
+    await expect(fanOutCampaignPush(campaign, [uid(1)])).resolves.toBeUndefined();
   });
 });
