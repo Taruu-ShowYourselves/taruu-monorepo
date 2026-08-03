@@ -217,6 +217,9 @@ const toRequest = (spaceId: string, action: PendingAction, reason: string): Requ
 
 const SEARCH_DEBOUNCE_MS = 300;
 
+/** Interaction Contract 2: the decided row flashes for this long, then settles. */
+const ROW_FLASH_MS = 1200;
+
 const PRESET_OPTIONS = (Object.keys(ROLE_PRESETS) as RolePreset[]).map((preset) => ({
   value: preset,
   label: ROLE_PRESET_LABELS_HE[preset],
@@ -243,7 +246,17 @@ export function MembersClient({
   const [failure, setFailure] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [announcement, setAnnouncement] = useState('');
+  const [flashKey, setFlashKey] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // The affected row settles out of a paper-2 flash after a decision. The
+  // duration is the contract's, and the reduced-motion opt-out is in the
+  // stylesheet rather than here, so the class can be applied unconditionally.
+  useEffect(() => {
+    if (flashKey === null) return;
+    const timer = setTimeout(() => setFlashKey(null), ROW_FLASH_MS);
+    return () => clearTimeout(timer);
+  }, [flashKey]);
 
   // Search lives in the query string, so a filtered view stays linkable and
   // back-button-correct. Debounced, because the server re-reads on every push.
@@ -283,6 +296,7 @@ export function MembersClient({
         }
         setAction(null);
         setAnnouncement(dialogCopy(pending).announcement);
+        if (pending.kind !== 'escalate') setFlashKey(pending.member.id);
         startTransition(() => router.refresh());
       } catch {
         setFailure(ACTION_FAILED_HE);
@@ -527,6 +541,9 @@ export function MembersClient({
             renderExpansion={renderExpansion}
             expandedKey={expanded}
             onExpandedKeyChange={setExpanded}
+            rowClassName={(member) =>
+              member.id === flashKey ? styles.flashRow : undefined
+            }
           />
           <p className={styles.total}>{total} חברים במרחב</p>
         </>
