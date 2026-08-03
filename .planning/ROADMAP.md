@@ -86,7 +86,26 @@ Plans:
   4. The payments webhook verifies its secret via constant-time comparison of an HTTP header (never `?token=`) and fails closed in production on any secret mismatch or DB error; the payment idempotency key is server-generated and deterministic (`{userId}:{type}:{voteId|optionId}`), never `Date.now()`.
   5. `env.ts` validates the variables actually read at runtime (`SUPABASE_SERVICE_ROLE_KEY`, the `GREENINVOICE_*` set) and `validateEnv()` runs at startup and fails fast — it is currently dead code that would reject production if wired as written; the treasury transactions endpoint scopes results to the caller's `user_id` or exposes only anonymized aggregates.
   6. **Gated on COIN-01.** No token surface is live without written Israeli legal sign-off covering securities status, treasury custody, and permissible claims. Once cleared: token proceeds accrue to a per-municipality civic pool on an append-only ledger reconciling to the chain with zero open mismatches, buy/sell runs through the Bags surfaces with server-side validation where the quote shown is the quote that executes, and every public claim about return, pool size, or what the money funds is one Taruu can back — with no implied guarantee of profit or of civic outcome.
-**Plans**: TBD
+**Plans**: 13 plans in 3 waves, across three independently shippable tracks (planned 2026-08-03)
+
+> **Track A (security, SEC-02..05)** and **Track B (₪50 creation rail + honest copy, PAY-06..08)** are unblocked and fill waves 1-2 — the phase ships their value without waiting on a lawyer. **Track C (COIN-01..04)** is wave 3 and every plan in it opens with a blocking human gate.
+>
+> **SEC-02 was already satisfied out of phase** in commit `35b0709`; plan 03-01 closes it on the record and adds a source guard rather than re-implementing it. See `03-CONTEXT.md` for the full verification and for four further contradictions found between the roadmap and the code.
+
+Plans:
+- [ ] 03-01-PLAN.md — env schema matches the runtime readers, fail-closed gate in `worker.ts`, SEC-02 closure record [SEC-05, SEC-02] (wave 1)
+- [ ] 03-02-PLAN.md — retire the ₪3 participation payment rail; a settled ₪50 creation fee credits no civic pool [PAY-08, PAY-06] (wave 1)
+- [ ] 03-03-PLAN.md — cross-package rail retirement: shared contracts, api-client, mobile checkout [PAY-08] (wave 1)
+- [ ] 03-04-PLAN.md — the per-vote ₪ claim: Ticker, MoneyTransparency, vote-created email, mobile welcome [PAY-08] (wave 1)
+- [ ] 03-05-PLAN.md — the unbacked 70/30 fee split and the 1% trading fee on `/economics` [PAY-08] (wave 1)
+- [ ] 03-06-PLAN.md — creation funnel truth: no fabricated seal, GI's failure redirect honoured [PAY-06] (wave 1)
+- [ ] 03-07-PLAN.md — webhook secret off the URL, two-factor authenticity, fail closed, honest document id [SEC-03, PAY-07] (wave 2)
+- [ ] 03-08-PLAN.md — server-derived deterministic idempotency key, no clock and no client override [SEC-04] (wave 2)
+- [ ] 03-09-PLAN.md — treasury board and pricing card, then the repo-wide money-model sweep that closes PAY-08 [PAY-08] (wave 2)
+- [ ] 03-10-PLAN.md — COIN-01 dossier: legal checklist + file:line inventory of every live token claim [COIN-01] (wave 2)
+- [ ] 03-11-PLAN.md — 🔒 BLOCKED on COIN-01 — append-only civic pool ledger + chain reconciliation [COIN-02] (wave 3)
+- [ ] 03-12-PLAN.md — 🔒 BLOCKED on COIN-01 — server-issued quote tokens; the quote shown is the quote that executes [COIN-03] (wave 3)
+- [ ] 03-13-PLAN.md — 🔒 BLOCKED on COIN-01 — rewrite every ruled token claim; the register becomes enforced [COIN-04] (wave 3)
 
 ### Phase 4: Go-Live
 **Goal**: The platform is live — residents vote free, a real ₪50 vote-creation charge lands with a correct Israeli receipt, and the end-to-end money flow reconciles with zero open mismatches.
@@ -192,7 +211,7 @@ Plans:
 | 1. Clean Foundation | 2/2 | Done (audit: partial — see AUDIT) | 2026-06-29 |
 | 2. Spike + Gate | 2/2 | Complete (audit: gate NOT passed) | 2026-06-30 |
 | 02.1 Participation Persistence | 5/5 | Complete    | 2026-08-02 |
-| 3. Payment Rails + Hardening | 0/TBD | Re-scoped 2026-08-03 — ready to plan | - |
+| 3. Payment Rails + Hardening | 0/13 | Planned 2026-08-03 — 13 plans, 3 waves; waves 1-2 unblocked, wave 3 gated on COIN-01 | - |
 | 4. Go-Live | 0/6 | Planned 2026-08-03 — 6 plans / 4 waves; blocked on Phase 3 + gates G1/G2 | - |
 | 5. RBAC + Admin Review | 0/9 | Planned — RLS foundation folded in (RLS-01..05); carries issue #76 | - |
 | 6. Manager Billing + Subscription | 0/11 | Planned — blocked on SPIKE-01 (gate 06-01) and on Phase 5 executing | - |
