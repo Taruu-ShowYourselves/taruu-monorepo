@@ -88,7 +88,9 @@ completed: 2026-08-03
 3. **Task 2 GREEN: repository, two use-cases, two routes** — `267ffe4` (feat)
 4. **Task 3: contract allow-list, PII guard, keyset assertions** — `efaf85c` (test)
 
-All four commits were audited with `git show --stat` and contain only this plan's files. Siblings 05-05, 05-06 and 05-08 committed into the same working tree between mine; every commit here used the path-scoped form `git commit -m "…" -- <paths>`.
+**Plan metadata:** `7ea8fc9` (docs) — this one is not clean, and it is the known shared-index race rather than a mistake: it carries **05-08's ROADMAP checkbox tick** alongside mine, because that sibling edited `.planning/ROADMAP.md` between my read and my commit. No content was lost and both ticks are correct; only the attribution is mixed. It was left rather than amended, because rewriting `HEAD` on a branch three agents are committing to is the hazard STATE.md's blockers section explicitly warns against. 05-16 owns attribution reconciliation.
+
+All four **task** commits were audited with `git show --stat` and contain only this plan's files. Siblings 05-05, 05-06 and 05-08 committed into the same working tree between mine; every commit here used the path-scoped form `git commit -m "…" -- <paths>`.
 
 ## Files Created
 
