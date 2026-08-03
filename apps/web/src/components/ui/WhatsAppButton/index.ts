@@ -1,1 +1,0 @@
-export { WhatsAppButton } from './WhatsAppButton';

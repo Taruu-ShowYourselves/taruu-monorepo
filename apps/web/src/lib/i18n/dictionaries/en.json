@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Taruu | Israel’s Public Consensus Mechanism",
-    "description": "Taruu is a public consensus mechanism that measures, verifies and surfaces where the majority of the public stands — from the voice of a city to the voice of a nation. Every voice is identity- and GPS-verified and sealed on the blockchain. Opening nationwide on 04.08.26.",
+    "description": "Taruu is a public consensus mechanism that measures, verifies and surfaces where the majority of the public stands, from the voice of a city to the voice of a nation. Every voice is identity- and GPS-verified and sealed on the blockchain. Opening nationwide on 04.08.26.",
     "keywords": "public consensus, majority opinion, direct democracy, community voting, GPS resident verification, blockchain voting, public transparency, civic participation, Israeli municipalities"
   },
   "nav": {
@@ -19,12 +19,12 @@
     "title2": "In a Measurable Way.",
     "subtitle": "Taro helps communities form a transparent civic majority on issues that truly matter. We create an objective picture that helps authorities understand residents' wishes and act in coordination with the community.",
     "cta": {
-      "download": "Download App - Coming Soon!",
+      "download": "Download App - Coming Soon",
       "viewVotes": "View Public Votes"
     },
     "badges": {
       "transparency": "Full Result Transparency",
-      "price": "₪3 Participation Fee to Strengthen Community Voice",
+      "price": "Voting Is Free: No Payment, No Barriers",
       "verification": "Location-Based Resident Verification (GPS)"
     },
     "pilot": "Opening nationwide on 04.08.26. Features and procedures evolve with the community."
@@ -50,7 +50,7 @@
       },
       {
         "title": "Full Financial Transparency",
-        "description": "The participation fee (₪3) is clearly divided: ₪2 goes to a community trust fund for experts and public interest advancement, ₪1 goes to platform maintenance and development."
+        "description": "Every vote has a transparent community fund on an open ledger, financed by outside investment in the vote's BAG. Every movement is visible, from investment to impact."
       }
     ]
   },
@@ -60,7 +60,7 @@
       {
         "number": "01",
         "title": "Easy Registration",
-        "description": "Email or phone, quick verification — that's it, you're part of the influential community."
+        "description": "Email or phone, quick verification. That's it, you're in."
       },
       {
         "number": "02",
@@ -70,7 +70,7 @@
       {
         "number": "03",
         "title": "Vote and Participate",
-        "description": "Choose a position, verify presence (GPS), and participate with ₪3 fee that backs your position professionally."
+        "description": "Choose a position, verify presence (GPS), and vote. Free, with no payment and no barriers."
       },
       {
         "number": "04",
@@ -94,9 +94,9 @@
   },
   "cta": {
     "label": "Join Now",
-    "title1": "It's Time",
-    "title2": "To Make Your Voice Heard",
-    "description": "Join residents already shaping the future of their community.",
+    "title1": "Your Voice",
+    "title2": "Will Be Counted",
+    "description": "Join the residents who have already signed up for the first vote.",
     "whatsapp": "Join WhatsApp",
     "updates": "Sign Up for Updates",
     "appNotice": "App will be available for download soon on App Store and Google Play"
@@ -107,7 +107,7 @@
     "support": "Support",
     "legal": "Legal",
     "copyright": "Taro. All rights reserved.",
-    "builtBy": "Built with love by"
+    "builtBy": "Built by"
   },
   "comingSoon": {
     "title": "Coming Soon",

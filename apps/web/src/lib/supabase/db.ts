@@ -23,6 +23,7 @@ import type {
   MerchOrderRow,
   VoteSource,
   KnessetItem,
+  KnessetRanking,
   InsertTables,
   UpdateTables,
 } from './types';
@@ -953,6 +954,31 @@ export async function getKnessetItemsByVoteIds(
   return data || [];
 }
 
+/**
+ * Editorial hotness for a set of votes (agents/knesset-ranker output).
+ * Degrades to an empty map on any failure — ranking is never load-bearing.
+ */
+export async function getKnessetRankingsByVoteIds(
+  voteIds: string[]
+): Promise<Map<string, KnessetRanking>> {
+  const byVote = new Map<string, KnessetRanking>();
+  if (voteIds.length === 0) return byVote;
+
+  const { data, error } = await supabaseAdmin
+    .from('knesset_rankings')
+    .select('*')
+    .in('vote_id', voteIds);
+
+  if (error) {
+    console.error('Failed to get knesset rankings (continuing without):', error);
+    return byVote;
+  }
+  for (const row of (data || []) as KnessetRanking[]) {
+    byVote.set(row.vote_id, row);
+  }
+  return byVote;
+}
+
 export async function createVote(
   voteData: InsertTables<'votes'>
 ): Promise<Vote> {
@@ -1035,6 +1061,43 @@ export async function hasUserParticipated(
 ): Promise<boolean> {
   const vote = await getUserVote(userId, voteId);
   return !!vote;
+}
+
+/** Outcome of an idempotent ballot insert. `created: false` means the ballot already existed. */
+export interface BallotInsertResult {
+  readonly created: boolean;
+  readonly vote: UserVote;
+}
+
+/**
+ * Insert a ballot, tolerating the `UNIQUE(user_id, vote_id)` constraint.
+ *
+ * A double-click, a retry or a replayed request must produce exactly one row,
+ * never a 500, and must not move the tally twice — so the caller keys the
+ * `incrementVoteOption` bump off `created`. Postgres reports the unique
+ * violation as SQLSTATE 23505; on that code we read the existing ballot back
+ * and report it as `created: false`.
+ *
+ * `recordUserVote` is deliberately left alone: the payments webhook still uses
+ * the throwing form.
+ */
+export async function recordUserVoteOnce(
+  voteRecord: InsertTables<'user_votes'>
+): Promise<BallotInsertResult> {
+  const { data, error } = await supabaseAdmin
+    .from('user_votes')
+    .insert(voteRecord)
+    .select()
+    .single();
+
+  if (!error && data) return { created: true, vote: data };
+
+  if (error?.code === '23505') {
+    const existing = await getUserVote(voteRecord.user_id, voteRecord.vote_id);
+    if (existing) return { created: false, vote: existing };
+  }
+
+  throw new Error(`Failed to record vote: ${error?.message ?? 'insert returned no row'}`);
 }
 
 export async function getUserVotes(userId: string): Promise<UserVote[]> {

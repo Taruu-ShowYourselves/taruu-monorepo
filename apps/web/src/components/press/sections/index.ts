@@ -1,5 +1,4 @@
 export { Lead } from './Lead';
-export { BackedBy } from './BackedBy';
 export { ConsensusDesk } from './ConsensusDesk';
 export { KnessetDesk } from './KnessetDesk';
 export { KnessetAgenda } from './KnessetAgenda';

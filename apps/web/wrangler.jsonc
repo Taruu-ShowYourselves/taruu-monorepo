@@ -62,8 +62,8 @@
   // "triggers": {
   //   "crons": ["*/15 * * * *", "0 * * * *", "*/10 * * * *", "0 */6 * * *"]
   // },
-  // TEMP: only the knesset cron is registered pre-go-live (no-op on the old
-  // worker build; the other three activate with the full deploy).
+  // Only the day-order sync runs on the Worker. Document summaries moved to
+  // agents/knesset-ranker (Agent SDK, no API key) — see docs/KNESSET.md.
   "triggers": {
     "crons": ["0 */6 * * *"]
   },

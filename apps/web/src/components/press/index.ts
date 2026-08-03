@@ -1,7 +1,7 @@
 export { NewsButton } from './NewsButton';
 export { Ticker } from './Ticker';
 export { Countdown } from './Countdown/Countdown';
-export { VoteWidget, TallyBar } from './VoteWidget';
+export { VoteWidget, LiveVoteWidget, TallyBar } from './VoteWidget';
 export { Masthead } from './Masthead';
 export { PressInput } from './PressInput/PressInput';
 export { PressSelect } from './PressSelect/PressSelect';

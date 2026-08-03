@@ -78,7 +78,7 @@ function StepIcon({ name }: { name: IconName }) {
 }
 
 const flywheelSteps: FlywheelStep[] = [
-  { id: 'local', title: 'תושב מקומי', description: 'משלם ₪3 ומצביע', icon: 'resident' },
+  { id: 'local', title: 'תושב מקומי', description: 'מצביע חינם, מאומת זהות ו-GPS', icon: 'resident' },
   { id: 'coin', title: 'BAG נוצר ב-bags.fm', description: 'ההצבעה נרשמת בבלוקצ\'יין', icon: 'coin' },
   { id: 'external', title: 'תומך חיצוני', description: 'מזהה נושא שחשוב לו', icon: 'globe' },
   { id: 'trade', title: 'קונה את ה-BAG', description: 'תמיכה שמייצרת עמלות', icon: 'trade' },
@@ -88,7 +88,6 @@ const flywheelSteps: FlywheelStep[] = [
 
 const revenueStreams = [
   { stream: 'יצירת הצבעה', source: '₪50 להצבעה חדשה', allocation: 'תפעול הפלטפורמה' },
-  { stream: 'השתתפות בהצבעה', source: '₪3 לכל הצבעה', allocation: '70% לקרן · 30% לפלטפורמה' },
   { stream: 'עמלות מסחר', source: '1% על כל עסקה', allocation: '70% לקרן · 30% לפלטפורמה' },
   { stream: 'רכישות חיצוניות', source: 'תמיכה → BAGS ב-bags.fm', allocation: '100% לקופת הקרן' },
 ];
@@ -96,7 +95,7 @@ const revenueStreams = [
 const sustainabilityPoints = [
   'הפלטפורמה מתקיימת מהיום הראשון',
   'הרשויות מרוויחות, לא מוציאות',
-  'התושבים מצביעים — ומחזיקים תעודה בעלת ערך',
+  'התושבים מצביעים ומקבלים תעודה דיגיטלית',
   'תומכים חיצוניים מקבלים נכס סחיר ושקוף',
 ];
 
@@ -112,7 +111,7 @@ export function FlywheelDiagram() {
             גלגל התנופה · THE LEDGER LOOP
           </span>
           <h2 id="flywheel-title" className={styles.headline}>
-            כל הצבעה מפעילה מחזור כלכלי <span className={styles.red}>שמכפיל השפעה.</span>
+            כל הצבעה מפעילה מחזור כלכלי <span className={styles.red}>סביב הנושא.</span>
           </h2>
         </header>
 
@@ -152,8 +151,8 @@ export function FlywheelDiagram() {
         <div className={styles.result}>
           <span className={styles.resultLabel}>התוצאה</span>
           <p className={styles.resultValue}>
-            הצבעה של <span className={styles.resultNum}>₪3</span> יכולה לרכז מאחורי הנושא
-            משאבים אמיתיים — לא רק קול.
+            הצבעה <span className={styles.resultNum}>אחת</span> יכולה לרכז מאחורי הנושא
+            משאבים אמיתיים, לא רק קול.
           </p>
         </div>
 

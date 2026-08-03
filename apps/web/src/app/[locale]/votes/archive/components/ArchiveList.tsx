@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Segmented, PressSelect, TallyBar } from '@/components/press';
+import { MunicipalityLink } from '@/components/uikit/municipality-link';
 import { formatCurrency, formatDate } from '@sync/shared';
 import styles from './ArchiveList.module.css';
 
@@ -126,7 +127,7 @@ function VoteArchiveCard({ vote }: { vote: ResolvedVote }) {
         </span>
       </header>
 
-      <span className={styles.municipality}>{vote.municipality}</span>
+      <MunicipalityLink name={vote.municipality} className={styles.municipality} />
       <h3 className={styles.cardTitle}>{vote.title}</h3>
       <p className={styles.cardDescription}>{vote.description}</p>
 

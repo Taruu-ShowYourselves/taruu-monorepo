@@ -31,8 +31,8 @@ export interface CreateVoteResponse {
 export interface ParticipateResponse {
   success: boolean;
   participation: Participation;
-  txHash: string;
-  tokensEarned: number;
+  /** True when the ballot already existed — the server returned it instead of creating a second row. */
+  alreadyRecorded: boolean;
 }
 
 export const votesApi = {
@@ -91,11 +91,7 @@ export const votesApi = {
     const client = getApiClient();
     return client.post<ParticipateResponse>(
       `/api/votes/${input.voteId}/participate`,
-      {
-        optionId: input.optionId,
-        paymentTxId: input.paymentTxId,
-        gpsCoordinates: input.gpsCoordinates,
-      }
+      { optionId: input.optionId }
     );
   },
 

@@ -12,7 +12,7 @@ interface CTASectionProps {
 }
 
 const trustStats = [
-  { value: '₪3', label: 'עלות הצבעה' },
+  { value: 'חינם', label: 'עלות הצבעה' },
   { value: '70%', label: 'לקרן הקהילתית' },
   { value: 'תעודה', label: 'לכל משתתף' },
 ];
@@ -30,7 +30,7 @@ export function CTASection(_props: CTASectionProps) {
           </span>
 
           <h2 id="cta-title" className={styles.headline}>
-            מוכנים להפוך 3 שקלים <span className={styles.red}>לכוח קהילתי?</span>
+            מוכנים להפוך קול אחד <span className={styles.red}>לכוח קהילתי?</span>
           </h2>
 
           <p className={styles.standfirst}>

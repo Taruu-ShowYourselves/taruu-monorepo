@@ -8,6 +8,7 @@
 import { ResultAsync } from 'neverthrow';
 import {
   getActiveVotes,
+  getActiveVotesWithOptions,
   getVotesByMunicipality,
   createVote as dbCreateVote,
   createVoteOptions as dbCreateVoteOptions,
@@ -25,6 +26,15 @@ export function listVotes(filter: {
     ? getVotesByMunicipality(filter.municipality, filter.status)
     : getActiveVotes();
   return ResultAsync.fromPromise(query, (cause) => dbError('votes.list', cause));
+}
+
+/** Active votes with their option tallies (for list views that need them). */
+export function listActiveVotesWithOptions(
+  municipality?: string
+): ResultAsync<(Vote & { options: VoteOption[] })[], AppError> {
+  return ResultAsync.fromPromise(getActiveVotesWithOptions(municipality), (cause) =>
+    dbError('votes.listWithOptions', cause)
+  );
 }
 
 export function insertVote(row: InsertTables<'votes'>): ResultAsync<Vote, AppError> {
