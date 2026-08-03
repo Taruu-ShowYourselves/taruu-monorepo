@@ -29,13 +29,11 @@ export async function fanOutCampaignPush(
     // client out of the eager import graph of the modules that reach this one,
     // so a unit test can import the route without Supabase env configured.
     // This is deliberate — do not hoist it.
-    const { activeTokensForUsers, usersWithActiveChannel } = await import(
-      '@/server/infra/supabase/push.repo'
-    );
+    const pushRepo = await import('@/server/infra/supabase/push.repo');
 
     // Who could be reached at all. The user-level projection, because the
     // delivery log records people and the token list records devices.
-    const reachable = await usersWithActiveChannel(userIds).match(
+    const reachable = await pushRepo.usersWithActiveChannel(userIds).match(
       (users) => users,
       (error) => {
         logger.warn('channel lookup failed for campaign push', {
@@ -46,7 +44,7 @@ export async function fanOutCampaignPush(
       }
     );
 
-    const tokens = await activeTokensForUsers(userIds).match(
+    const tokens = await pushRepo.activeTokensForUsers(userIds).match(
       (found) => found,
       (error) => {
         logger.warn('push token lookup failed for campaign', {
