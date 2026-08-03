@@ -18,9 +18,8 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-06-28)
 
-**Core value:** A resident pays ₪6 once a month to vote freely on their city's affairs, and trusts that the civic pool funds the decisions that actually execute.
-**NOTE (2026-08-02):** that core-value statement no longer matches the product — `cfa5d25` made participation free. PROJECT.md needs re-stating before Phase 3 is re-scoped.
-**Current focus:** Phase 02.1 — participation-persistence — COMPLETE. Next: Phase 3 needs re-scoping (not planning) before it can proceed — see Blockers/Concerns.
+**Core value:** A resident votes freely on their city's affairs, and supporters who believe in the cause fund the civic pool by buying into its token — so the money behind executed decisions is visible and anyone can join it.
+**Current focus:** Phase 02.1 COMPLETE. Phase 3 re-scoped 2026-08-03 (commit 1b3fe1e + roadmap criteria rewrite) — **ready to plan**.
 
 ## Current Position
 
@@ -29,7 +28,13 @@ Plan: 5 of 5 (all plans complete)
 
 ## ▶ RESUME HERE (after /clear)
 
-Phase 02.1 is done — the P0 (free votes not persisted, fake blockchain-seal receipt) is closed on both server and client. Next step is `/gsd:plan-milestone-gaps` to re-scope Phase 3: PAY-02/03/04/08 and GO-02 are contradicted by shipped free participation (they describe a ₪6/month membership the product no longer sells) and cannot be planned as currently written. Phase 2's GI sandbox/legal/Prime gates are also still open — see Blockers/Concerns below.
+**Next step: `/gsd:plan-phase 3`.** Phase 3 is re-scoped and plannable as written.
+
+The re-scope is done (2026-08-03). REQUIREMENTS.md retired PAY-01..05 outright (the ₪6/month card-on-file membership is a product Taruu no longer sells — `cfa5d25` made participation free), corrected PAY-06's mechanism to the GI **hosted form** (`services/payments/greenInvoice.ts:213`, which already works) rather than the token-charge flow, narrowed PAY-07/08, added COIN-01..04 for the Bags.fm token that now funds the civic pool, and rewrote GO-02 to drop its impossible participation leg. ROADMAP.md's Phase 3 and Phase 4 success criteria were rewritten to match — they had been left describing the ₪6 membership and would have mis-briefed the planner.
+
+**Plan Phase 3 as two independent tracks.** The security block (SEC-02..05) and the ₪50 creation rail (PAY-06..08) depend on nothing external and can execute immediately. The token block (COIN-01..04) sits behind COIN-01 — written Israeli legal sign-off on securities status, treasury custody, and permissible claims — which is a human external track, not code. Keep the coin work in its own wave so the phase can ship its security and creation-fee value without waiting on a lawyer.
+
+Prior instruction, now complete: ~~`/gsd:plan-milestone-gaps` to re-scope Phase 3.~~ Done by direct requirement rewrite instead — `plan-milestone-gaps` creates phases to *build* audit gaps, which for the contradicted PAY-* requirements would have meant building the abandoned membership.
 
 Prior instruction, now complete: ~~Run `/gsd:execute-phase 02.1`. Phase 02.1 is planned and verified — 5 plans in 2 waves, all autonomous. This is a P0 on live traffic, and it depends on nothing.~~
 
@@ -139,7 +144,8 @@ None yet.
 ### Blockers/Concerns
 
 - **P0 CLOSED (2026-08-02):** free participation was not persisted — residents were shown a blockchain-seal receipt for votes that were never recorded. Phase 02.1 (VOTE-01..05) is now complete end to end: the server persists every free ballot idempotently through `recordUserVoteOnce` (plan 04), and the client (`ParticipationFlow.tsx`, plan 05) only shows a receipt after that persistence is confirmed via `submitParticipation`, with `mockHash()` and every chain-seal claim removed from the casting funnel. Manual production verification (cast a real vote as a verified resident, confirm the receipt shows a real `user_votes.id`) is still recommended before considering this fully closed on live traffic — see `02.1-05-SUMMARY.md`'s Next Phase Readiness.
-- **Milestone requirements are partly wrong, not just unbuilt (2026-08-02):** PAY-02/03/04/08 and GO-02 are contradicted by shipped free participation. Phase 3 cannot be planned as written — re-scope first. See `.planning/v1.0-MILESTONE-AUDIT.md`.
+- ~~**Milestone requirements are partly wrong (2026-08-02)**~~ **RESOLVED 2026-08-03.** PAY-01..05 retired, PAY-06/07/08 and GO-02 rewritten, COIN-01..04 added, ROADMAP Phase 3/4 success criteria rewritten to match. Phase 3 is plannable.
+- **COIN-01 is a hard external gate (2026-08-03):** a tradeable token whose proceeds fund a civic treasury raises Israeli securities and consumer-protection questions. Written legal sign-off blocks every other COIN requirement, and it is stricter than SPIKE-02's merchant-of-record sign-off — not a reuse of it. Nothing in the repo can clear it.
 - **Production GI runs in front of an unverified gate:** `wrangler.jsonc:74` sets `GREENINVOICE_ENV=production` while `GI-PRIME-CHECKLIST.md` is 0/24 and `GI-LEGAL-CHECKLIST.md` is 0/19.
 - **CI deploy has been broken since 2026-07-28:** `.github/workflows/deploy.yml:62` references an unset `CLOUDFLARE_API_TOKEN`; 5/5 most recent runs failed. The live site is manual-deploy only.
 - **`validateEnv()` is dead code** (`apps/web/src/lib/env.ts:135`, zero callers) and would fail closed on production if wired — it still requires four `AUTH0_*` vars that `da77848` orphaned, plus `SUPABASE_URL`/`SUPABASE_SERVICE_KEY` which no reader uses (runtime reads `NEXT_PUBLIC_SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`).
