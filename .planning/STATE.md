@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 05 (space-governance-substrate-and-space-admin-operations-dashboard) — EXECUTING
-Plan: 9 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several plans in parallel, so this counter is a count of completed plans, not a position in a sequence)
+Plan: 10 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several plans in parallel, so this counter is a count of completed plans, not a position in a sequence)
 
 ## ▶ RESUME HERE (after /clear)
 
@@ -202,6 +202,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-03T08:02:00.000Z
-Stopped at: Completed 05-06-PLAN.md — wave 3 complete (05-05, 05-06, 05-07, 05-08 all landed)
+Last session: 2026-08-03T08:55:00.000Z
+Stopped at: Completed 05-10-PLAN.md — the ₪50 moved from submission to approval on both sides of the wire (wave 4 in progress alongside 05-09, 05-12, 05-13, 05-14)
 Resume file: None

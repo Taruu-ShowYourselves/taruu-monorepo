@@ -81,7 +81,7 @@ Plans:
 | 2. Spike + Gate | 2/2 | Complete   | 2026-06-30 |
 | 3. Payment Rails + Hardening | 0/TBD | Not started | - |
 | 4. Go-Live | 0/TBD | Not started | - |
-| 5. Space Governance + Space-Admin Dashboard | 9/16 | In Progress | - |
+| 5. Space Governance + Space-Admin Dashboard | 10/16 | In Progress | - |
 
 ### Phase 5: Space governance substrate and space-admin operations dashboard
 
@@ -110,7 +110,7 @@ Plans:
 - [x] 05-07-PLAN.md — Aggregate-only metrics RPC + cursor-paginated audit read [SPACE-07, SPACE-04]
 - [x] 05-08-PLAN.md — Notification substrate, single audience resolver, preview [SPACE-08]
 - [ ] 05-09-PLAN.md — Send: dual-hash verification, DB quota, delivery log, deferred push [SPACE-08, SPACE-09]
-- [ ] 05-10-PLAN.md — Free submission into in_review; ₪50 charged at approval via a payment port [SPACE-05]
+- [x] 05-10-PLAN.md — Free submission into in_review; ₪50 charged at approval via a payment port [SPACE-05]
 - [x] 05-11-PLAN.md — Shell, PressTable, StatusChip, ConfirmDialog + disabled contract, panels [SPACE-10]
 - [ ] 05-12-PLAN.md — Overview surface, capability manifest, escalation dialog [SPACE-10, SPACE-02, SPACE-09]
 - [ ] 05-13-PLAN.md — Proposal review surface + detail panel with content controls [SPACE-10, SPACE-05, SPACE-06]
