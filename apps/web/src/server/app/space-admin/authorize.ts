@@ -74,9 +74,11 @@ const SpaceIdSchema = z.string().uuid();
 
 /**
  * The one escape hatch in the phase, and it is module-private on purpose: a
- * branded interface has no legal constructor, so exactly one cast has to exist
- * somewhere. Keeping it here is what makes `grep -rn "as unknown as SpaceScope"`
- * a meaningful audit.
+ * branded interface has no legal constructor, so exactly one unsound cast has
+ * to exist somewhere. Keeping it here, and only here, is what lets a grep for
+ * that cast serve as the phase's brand-leak audit — outside `__tests__` it must
+ * match this line and nothing else. A second match anywhere in `src/server` or
+ * `src/app` means some caller has forged a scope instead of earning one.
  */
 const mintScope = (fields: {
   spaceId: string;
