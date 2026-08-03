@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: "Completed 05-07-PLAN.md (wave 3 parallel: 05-05, 05-07, 05-08 all landed)"
-last_updated: "2026-08-03T07:55:52.544Z"
+stopped_at: "Completed 05-06-PLAN.md — wave 3 is complete (05-05, 05-06, 05-07, 05-08 all landed)"
+last_updated: "2026-08-03T08:02:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 20
-  completed_plans: 12
+  completed_plans: 13
 ---
 
 # Project State
@@ -24,11 +24,11 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 05 (space-governance-substrate-and-space-admin-operations-dashboard) — EXECUTING
-Plan: 8 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several plans in parallel, so this counter is a count of completed plans, not a position in a sequence)
+Plan: 9 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several plans in parallel, so this counter is a count of completed plans, not a position in a sequence)
 
 ## ▶ RESUME HERE (after /clear)
 
-**Phase 5 is EXECUTING** (16 plans, 6 waves). **Waves 1 and 2 are complete** — 05-01, 05-02, 05-03, 05-04 and 05-11 have all landed. **Wave 3 is nearly done:** 05-05, 05-07 and 05-08 are complete; only 05-06 was still committing into this same worktree.
+**Phase 5 is EXECUTING** (16 plans, 6 waves). **Waves 1 and 2 are complete** — 05-01, 05-02, 05-03, 05-04 and 05-11 have all landed. **Wave 3 is complete** — 05-05, 05-06, 05-07 and 05-08 have all landed. Wave 4 is next.
 
 - 05-01 (governance substrate — DB tables, two-file `vote_status` split, `types.ts`); see `05-01-SUMMARY.md`.
 - 05-02 (capability vocabulary, review transitions, QUOTA_EXCEEDED, rollout flag, full contract surface); see `05-02-SUMMARY.md`.
@@ -37,6 +37,7 @@ Plan: 8 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several 
 - 05-05 (**the first real writer** — `space-decision.repo.ts`, the six-guard `decideProposal` chain, POST decide + GET detail routes, 29 tests); see `05-05-SUMMARY.md`. **05-10 must read its "Where plan 05-10 inserts the creation-fee charge" section first:** the seam is `decide-proposal.ts:118`, between `resolveDecisionTarget` (116) and `transitionProposal` (123), and moving it after the transition yields publish-then-charge. **05-13** builds Surface 2 against both endpoints; the decision responds with a full `ProposalDetail` carrying the new status.
 - 05-08 (**the notification substrate and the audience preview** — three tables, the one `resolveAudience`, both fingerprints, a calendar-month DB quota, `POST …/notifications/preview`, 29 tests); see `05-08-SUMMARY.md`. **05-09 must read its "For plan 05-09" section before writing the send:** it pins the sha256 join strings for `audience_hash` and `content_hash`, records that `previewToken` **is** `content_hash` rather than something derived from it, and lists the repository surface including `currentMonthStartIso`/`nextMonthStartIso`, which exist so the send and the quota block cannot compute two disagreeing month boundaries.
 - 05-07 (**the two read-only reporting surfaces** — `space_admin_metrics` RPC with the k-anonymity floor in SQL, `getSpaceMetrics`, `listSpaceAudit`, two GET routes, 30 tests); see `05-07-SUMMARY.md`. **05-14 and 05-15 must read its "For 05-14 and 05-15" section before writing a line:** it names the two use-cases to import (never the repositories), gives the base64url cursor encoding so audit links round-trip, and gives the `available`/`suppressed`/`unavailable` render table. Note `participationRate` can be `unavailable` while its neighbours are `available` — that is the deliberate ratio-suppression fix, not a bug.
+- 05-06 (**people, content and escalation** — `space-member.repo.ts`, five use-cases, five endpoints, 39 tests); see `05-06-SUMMARY.md`. **05-12…05-15 must read its endpoint table:** it names the eight use-cases to import and states plainly that the repository will run without an authorization call in front of it. **05-09 must read its audit-action list** — the nine actions this plan writes, and the standing rule that there is no escalation action and must not be one. The `/escalations` endpoint is the phase's one un-gated route; its constant `{ "accepted": true }` / 202 answer is what makes it not an existence oracle, and four separate properties hold that up.
 - 05-11 (np-native shell + eight UI primitives: `SpaceAdminHeader`, `SpaceAdminNav`, `PressTable`, `StatusChip`, `ConfirmDialog`, three panels); see `05-11-SUMMARY.md`. **Surface plans 05-12…05-15 should read that summary's "Component API" section before writing a line** — it gives every prop signature, and `components/space-admin/index.ts` is a CLOSED barrel they must not reopen (import new components by direct path).
 
 **Two things from 05-03 need someone's attention before the phase closes** — both detailed in `05-03-SUMMARY.md` and `deferred-items.md`:
@@ -89,6 +90,7 @@ Open question to resolve before Phase 3 planning: **monthly civic-pool allocatio
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P05 | 14 min | 3 tasks | 6 files |
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P07 | 12 min | 3 tasks | 8 files |
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P08 | 15 min | 3 tasks | 8 files |
+| Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P06 | 20 min | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -167,6 +169,14 @@ Recent decisions affecting current work:
 - [Phase 05-space-governance]: The month boundary is computed in TypeScript (`currentMonthStartIso`/`nextMonthStartIso` in `space-notify.repo.ts`), because PostgREST filter values are literals and cannot be `date_trunc('month', now())`. Both are exported so the send and the quota block cannot derive two boundaries that disagree
 - [Phase 05-space-governance]: `push.repo.ts` now carries TWO projections of one batched query — `activeTokensForUsers` (deduped tokens, for fan-out) and `usersWithActiveChannel` (a Set of user ids, for counting people with no channel). The token form structurally cannot answer the second question; adding a sibling projection beside it beat opening a second access path
 
+- [Phase 05-space-governance]: The `/escalations` endpoint is the phase's ONE un-gated route. Its opacity rests on four properties and breaks if any is removed: membership attempted once and folded to null with `unwrapOr` (no error inspection, no separate lookup, no uuid-shape branch); `platform_escalations.space_id` nullable against a non-null `raw_space_id`; a FROZEN constant response body `{ accepted: true }` at 202, deliberately NOT `EscalationResponseSchema` whose fresh id and timestamp would make two answers unequal; and a limiter keyed by user, never by space
+- [Phase 05-space-governance]: Repository functions are renamed away from their use-case twins throughout 05-06 — `insertMemberSuspension`/`liftMemberSuspension` beside the `suspendMember`/`reinstateMember` use-cases, as `listSpaceMembers` sits beside `getSpaceMembers`. One name across the app and infra layers is how a Server Component reaches the database with no authorization call in front of it
+- [Phase 05-space-governance]: Reinstatement restores ONLY the grants the suspension itself took, matched on the suspension's own timestamp. Clearing every suspended grant would resurrect a capability revoked individually BEFORE the suspension, contradicting the confirmation copy `אותן הרשאות שהיו לפני ההשעיה`
+- [Phase 05-space-governance]: Member suspension and reinstatement are each two writes with no transaction available through PostgREST, and the ORDER is the mitigation — suspend writes grants first and the record second, reinstate writes the record first and grants second, so a partial failure always leaves access closed rather than open. Do not "simplify" the ordering
+- [Phase 05-space-governance]: The members response is re-parsed through `SpaceMemberListResponseSchema` at the route. Zod strips keys the schema does not name, so the privacy allow-list is enforced three times — repository column list, use-case narrowing, contract strip at the edge — and a leak past the first two still cannot reach the wire
+- [Phase 05-space-governance]: A shape written into a `Json` column must be an object TYPE ALIAS, not an interface — TypeScript grants the implicit index signature only to the alias, so an interface makes the audit write `error TS2322`
+- [Phase 05-space-governance]: `optional()` is STILL not extracted after 05-06, deliberately and without a copy: every 05-06 surface is gated on a single capability, so a missing capability is a 403 for the whole endpoint rather than an absent widget. 05-07 is the genuine first reuse
+
 ### Roadmap Evolution
 
 - Phase 5 added: Space governance substrate and space-admin operations dashboard (issue #75) — out-of-milestone scope from the Grand Release Crunchtime board, appended rather than opened as a new milestone so the incomplete v1.0 payments phases are not archived
@@ -187,10 +197,11 @@ None yet.
 - **Shared-worktree hazard, sharper than the index race:** a sibling executor ran `git reset HEAD~1` on the shared branch during wave 2 and orphaned an empty marker commit (visible at `git reflog` HEAD@{10}–{11}). No non-empty commit was lost, but a stray reset in this tree can drop other agents' work. Wave-3+ executors: never reset the shared branch, and prefer `git add <paths> && git commit -m "…" -- <paths>`.
 - **05-04's PostgREST embeds are unexecuted.** `spaces!inner(municipality_code)` in the grant resolver, `users(first_name,last_name)` on votes, the actor embed on `space_audit_log`, and the keyset `.or()` predicate in `listAuditRows` are all reviewed but never run — the migrations have never reached a live Postgres. Each fails at runtime, not compile time, if a relationship does not resolve. Add these four to 05-16's checklist.
 - **`space_admin_metrics` (05-07) is unapplied like the rest.** Three probes belong on 05-16's checklist: call it for a real space; for a random uuid (must return **zero rows**, not a row of zeroes); and for a space with a NULL `municipality_code` (must return zero rows). The `WHERE EXISTS` guard is the only thing standing between a nonexistent space and a fabricated `registered_residents: 0, status: 'available'`, and it has never executed.
+- **05-06's repository predicates are unexecuted, and one of them is load-bearing for every 409 in the plan.** Four items for 05-16's checklist: the `or=(first_name.ilike.*t*,last_name.ilike.*t*)` member search; the `23505` code surfacing on the supabase-js error for `uq_active_grant` and `uq_active_member_suspension`; the exact-timestamp match in `liftMemberSuspension` (assumes Postgres returns the ISO string it was given); and — **first priority** — `.select()` after an `UPDATE` returning the affected rows. Every conflict detection in `space-member.repo.ts` reads a zero-length array as "already in that state"; if that returns something else, all of the plan's 409s silently become 200s.
 - 05-11 did NOT perform its plan's one manual step — rendering the shell at `/he/space-admin/{uuid}`. No page exists under `[spaceId]` yet and starting `next dev` in a tree with live executors risks clobbering `.next`. 05-12 is the first plan able to load the route and should confirm the masthead/nav/colophon compose with no top offset.
 
 ## Session Continuity
 
-Last session: 2026-08-03T07:55:52.539Z
-Stopped at: Completed 05-07-PLAN.md (wave 3 parallel: 05-05, 05-07, 05-08 all landed)
+Last session: 2026-08-03T08:02:00.000Z
+Stopped at: Completed 05-06-PLAN.md — wave 3 complete (05-05, 05-06, 05-07, 05-08 all landed)
 Resume file: None
