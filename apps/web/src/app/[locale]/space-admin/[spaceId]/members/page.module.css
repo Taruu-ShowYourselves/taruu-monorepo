@@ -1,0 +1,285 @@
+/* ============================================================
+ * Surface 3 — חברים והרשאות.
+ *
+ * Tokens only. The single permitted hardcoded length in this phase is the
+ * media-query breakpoint, because CSS media queries cannot read custom
+ * properties.
+ * ============================================================ */
+
+.surface {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.heading {
+  font-family: var(--np-font-display);
+  font-weight: 800;
+  font-size: var(--text-base);
+  line-height: 1.2;
+  color: var(--np-ink);
+}
+
+/* The surface's one editorial line: Frank Ruhl Libre, family change only. */
+.standfirst {
+  font-family: var(--np-font-body);
+  font-weight: 400;
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--np-ink-soft);
+  max-inline-size: 68ch;
+}
+
+/* The SPACE-07 promise, on screen. Mono and faint, never a tooltip. */
+.privacyNote {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: var(--np-ink-faint);
+  max-inline-size: 68ch;
+}
+
+/* Visually hidden, still announced. Sized off the hairline rule token. */
+.srOnly {
+  position: absolute;
+  inline-size: var(--np-rule-hair);
+  block-size: var(--np-rule-hair);
+  margin: calc(-1 * var(--np-rule-hair));
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.search {
+  max-inline-size: 32ch;
+}
+
+/* ---------- Table cells ---------- */
+
+.memberCell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.mono {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--np-ink);
+}
+
+.latin {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  unicode-bidi: isolate;
+  overflow-wrap: anywhere;
+}
+
+.disclosure {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  min-block-size: var(--space-11);
+  padding: 0;
+  background: transparent;
+  border: 0;
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--np-ink);
+  cursor: pointer;
+}
+
+.disclosure:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.disclosure:focus-visible {
+  outline: var(--np-rule) solid var(--np-red);
+  outline-offset: var(--np-rule-hair);
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.rowActions > * {
+  min-block-size: var(--space-11);
+}
+
+/* ---------- Row disclosure ---------- */
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.detailsList {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-2) var(--space-4);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.detailsList dt {
+  font-weight: 700;
+  color: var(--np-ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.detailsList dd {
+  color: var(--np-ink);
+  overflow-wrap: anywhere;
+}
+
+.total {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--np-ink-faint);
+}
+
+/* ---------- Capability management panel ---------- */
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--np-paper-box);
+  border: var(--np-rule) solid var(--np-ink);
+  border-radius: 0;
+}
+
+.editorHeading {
+  font-family: var(--np-font-display);
+  font-weight: 800;
+  font-size: var(--text-base);
+  line-height: 1.2;
+  color: var(--np-ink);
+  overflow-wrap: anywhere;
+}
+
+.presetPreview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--np-paper-2);
+  border-inline-start: var(--np-rule-heavy) solid var(--np-ink);
+}
+
+.presetNote {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: var(--np-ink-faint);
+}
+
+.presetList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  letter-spacing: 0.02em;
+  color: var(--np-ink);
+}
+
+.manifest {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.manifestRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  min-block-size: var(--space-11);
+  padding-block: var(--space-2);
+  border-block-start: var(--np-rule-hair) solid var(--np-paper-edge);
+}
+
+.manifestRow:first-child {
+  border-block-start: 0;
+}
+
+.manifestMark {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--np-ink);
+  flex-shrink: 0;
+}
+
+.manifestLabel {
+  font-family: var(--np-font-display);
+  font-size: var(--text-base);
+  font-weight: 400;
+  color: var(--np-ink);
+  flex: 1 1 auto;
+}
+
+.manifestState {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--np-ink-faint);
+}
+
+/* D23 — the dense `ink` hover fix, and ONLY on `ink`. `NewsButton`'s `.ink`
+   inverts to a red fill with paper text on hover, which is 4.03:1 at body
+   size; `--np-red-dark` restores it to 6.03:1. `outline` is deliberately left
+   alone: it already inverts to ink at 16.66:1, and giving it a red fill would
+   lower compliant contrast and paint red on every destructive trigger. */
+.inkBtn:hover:not(:disabled) {
+  background: var(--np-red-dark);
+  color: var(--np-paper);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (min-width: 768px) {
+  .surface {
+    gap: var(--space-6);
+  }
+
+  .editor {
+    padding: var(--space-6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .surface *,
+  .editor * {
+    transition: none;
+    animation: none;
+  }
+}
