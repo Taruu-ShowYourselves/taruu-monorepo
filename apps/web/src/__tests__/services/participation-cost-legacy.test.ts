@@ -14,13 +14,13 @@
  * here is "this string / this export must (not) exist", which is exactly
  * what a regression would reintroduce.
  *
- * Known, deliberately-deferred follow-up (NOT covered by this suite):
- * `apps/mobile/app/vote/[id].tsx`'s `handleVote` still pushes to
- * `/payment/checkout` for a vote that this file now advertises as free.
- * Rewiring mobile to call `votesApi.participate({ voteId, optionId })`
- * requires the mobile app to be exercised end to end and is outside this
- * phase's blast radius (see 02.1-03-PLAN.md success criteria). A future
- * reader should not mistake the untouched `handleVote` for an oversight.
+ * Resolved 2026-08-03 (was recorded here as deliberately deferred):
+ * `apps/mobile/app/vote/[id].tsx`'s `handleVote` no longer pushes to
+ * `/payment/checkout`. It calls `votesApi.participate({ voteId, optionId })`,
+ * the same endpoint the web flow records through, so both surfaces share one
+ * contract and one server-side eligibility rule. The assertions below hold
+ * that line. Note this is still source-level proof only — the mobile app has
+ * not been exercised end to end against a running API.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -98,12 +98,31 @@ describe('mobile vote screen', () => {
     expect(mobileVoteScreenCode).not.toMatch(/בבלוקצ'יין|בבלוקצ׳יין/);
   });
 
-  it('says nothing about money at all — not even that it is free', () => {
+  it('says nothing about money at all, not even that it is free', () => {
     // Same rule as the web flow: a resident casting a vote should never be
     // prompted to think about money, and "free" is still a claim about price.
     for (const moneyWord of ['חינם', 'עלות', 'תשלום', '₪']) {
       expect(mobileVoteScreenCode).not.toContain(moneyWord);
     }
+  });
+
+  it('records the ballot instead of routing to a payment checkout', () => {
+    // handleVote used to push to /payment/checkout - a leftover from the ₪3
+    // era. A checkout screen for a free vote is both a dead end and a false
+    // claim about what voting costs.
+    expect(mobileVoteScreenCode).not.toContain('/payment/checkout');
+    expect(mobileVoteScreenCode).toContain('votesApi.participate(');
+  });
+
+  it('reflects the ballot the server recorded, not the one tapped', () => {
+    // Same defect the web receipt had: on the already-recorded path the API
+    // returns the EXISTING ballot, which may be a different option.
+    expect(mobileVoteScreenCode).toContain('result.participation.optionId');
+    expect(mobileVoteScreenCode).toContain('alreadyRecorded');
+  });
+
+  it('never surfaces a raw server error string', () => {
+    expect(mobileVoteScreenCode).not.toMatch(/Alert\.alert\([^)]*\berr\b/);
   });
 });
 
