@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: "Completed 05-13-PLAN.md — the proposal review surface and its detail panel (wave 4; only 05-12 still running)"
-last_updated: "2026-08-03T12:20:00.000Z"
+stopped_at: "Completed 05-12-PLAN.md — the space overview, the capability manifest and the escalation path (wave 4 complete)"
+last_updated: "2026-08-03T12:25:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 20
-  completed_plans: 17
+  completed_plans: 18
 ---
 
 # Project State
@@ -24,11 +24,11 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 05 (space-governance-substrate-and-space-admin-operations-dashboard) — EXECUTING
-Plan: 13 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several plans in parallel, so this counter is a count of completed plans, not a position in a sequence)
+Plan: 14 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several plans in parallel, so this counter is a count of completed plans, not a position in a sequence)
 
 ## ▶ RESUME HERE (after /clear)
 
-**Phase 5 is EXECUTING** (16 plans, 6 waves). **Waves 1 and 2 are complete** — 05-01, 05-02, 05-03, 05-04 and 05-11 have all landed. **Wave 3 is complete** — 05-05, 05-06, 05-07 and 05-08 have all landed. **Wave 4 is in progress** — 05-09, 05-10, 05-13 and 05-14 have landed; only 05-12 is still running.
+**Phase 5 is EXECUTING** (16 plans, 6 waves). **Waves 1 and 2 are complete** — 05-01, 05-02, 05-03, 05-04 and 05-11 have all landed. **Wave 3 is complete** — 05-05, 05-06, 05-07 and 05-08 have all landed. **Wave 4 is complete** — 05-09, 05-10, 05-12, 05-13 and 05-14 have all landed. **Wave 5 (05-15) is next.**
 
 - 05-01 (governance substrate — DB tables, two-file `vote_status` split, `types.ts`); see `05-01-SUMMARY.md`.
 - 05-02 (capability vocabulary, review transitions, QUOTA_EXCEEDED, rollout flag, full contract surface); see `05-02-SUMMARY.md`.
@@ -41,6 +41,7 @@ Plan: 13 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several
 - 05-06 (**people, content and escalation** — `space-member.repo.ts`, five use-cases, five endpoints, 39 tests); see `05-06-SUMMARY.md`. **05-12…05-15 must read its endpoint table:** it names the eight use-cases to import and states plainly that the repository will run without an authorization call in front of it. **05-09 must read its audit-action list** — the nine actions this plan writes, and the standing rule that there is no escalation action and must not be one. The `/escalations` endpoint is the phase's one un-gated route; its constant `{ "accepted": true }` / 202 answer is what makes it not an existence oracle, and four separate properties hold that up.
 - 05-13 (**Surface 2** — the review queue, three decisions behind a required reason, self-submitted rows locked by absence, and `ProposalDetailPanel`, the expanding `<tr>` where the permitted-content controls live); see `05-13-SUMMARY.md`. **05-15 and 05-16 should read its "Two Hebrew sentences this surface does not contain" and "The status labels" sections.** The 409 and 402 copy is rendered from the server's response body rather than re-typed, so a grep for those strings in the client returns nothing by design; and `apps/web/src/components/space-admin/proposalStatusLabels.ts` is the new client-safe status label map — repoint `[locale]/votes/create/page.tsx` at it, then collapse it and `REVIEW_STATUS_LABELS_HE` into one shared definition.
 - 05-11 (np-native shell + eight UI primitives: `SpaceAdminHeader`, `SpaceAdminNav`, `PressTable`, `StatusChip`, `ConfirmDialog`, three panels); see `05-11-SUMMARY.md`. **Surface plans 05-12…05-15 should read that summary's "Component API" section before writing a line** — it gives every prop signature, and `components/space-admin/index.ts` is a CLOSED barrel they must not reopen (import new components by direct path).
+- 05-12 (**Surface 1** — the overview, `CapabilityManifest`, `EscalationDialog`, the shell-boot spinner, and the four overview figures finally wired); see `05-12-SUMMARY.md`. **05-15 should import `components/space-admin/EscalationDialog.tsx` by direct path** rather than inline a third copy of the escalation dialog — it takes `trigger="cta"` or `trigger="no-permission"` and renders `NoPermissionPanel` itself in the second shape. Deferred items 9 and 11 are its dedupe list.
 
 **Two things from 05-03 need someone's attention before the phase closes** — both detailed in `05-03-SUMMARY.md` and `deferred-items.md`:
 
@@ -215,10 +216,10 @@ None yet.
 - **"Show all" on the proposals surface is two reads, not one (found by 05-13).** `listProposals` with no status filters to the four REVIEW statuses; the published status is not among them. Since audit-log deep links point at *decided* proposals — most often approved ones — a single unfiltered read would silently omit exactly the rows `?proposal={id}` exists to reach. Surface 2 issues two authorized reads and merges them. Anyone adding a "show everything" view elsewhere in this phase has the same trap.
 - **`PressTable` gained two optional props in 05-13** — `renderExpansionRow` (the caller returns the whole expansion `<tr>`, so it owns the `<td colSpan>` and the id its trigger's `aria-controls` names) and `rowClassName` (the post-decision row flash, unreachable otherwise because the table paints cell backgrounds). Both are additive; 05-14 already consumes `rowClassName`.
 - **05-13 shipped a third surface that has never been rendered.** Proposals typecheck and lint; no browser, no fetch executed, and the plan's manual deep-link check is undone — it needs a space, a grant and a proposal, and the migrations are still unapplied. Screenshots 3–4 and 16a/16b are 05-16's, and 16b needs a fixture proposal that is hidden **and** flagged at once.
-- 05-11 did NOT perform its plan's one manual step — rendering the shell at `/he/space-admin/{uuid}`. No page exists under `[spaceId]` yet and starting `next dev` in a tree with live executors risks clobbering `.next`. 05-12 is the first plan able to load the route and should confirm the masthead/nav/colophon compose with no top offset.
+- **The shell has now been rendered (05-12), and four overview states with it.** `next dev` on port 3999 against a throwaway PostgREST stub in the scratchpad, with a minted session cookie: masthead/nav/colophon compose with no top offset; a `metrics.read`-only admin gets two nav links, zero figure cards and a 1-✓/10-✕ manifest; an eleven-capability admin gets four figures, the queue and six links; a suspended admin gets the banner, no figures and the escalation CTA; a member holding nothing gets `NoPermissionPanel` with **no** space name. **This proves the render path, not the SQL** — the rows came from a fake PostgREST, and no query in this phase has still ever run against a real Postgres. 05-16's seeded run is unchanged in scope.
 
 ## Session Continuity
 
-Last session: 2026-08-03T12:20:00.000Z
-Stopped at: Completed 05-13-PLAN.md — the proposal review queue and the expanding detail panel that gives content moderation a home, with the 409/402 sentences rendered from the server rather than re-typed (wave 4 continues with 05-12 alone)
+Last session: 2026-08-03T12:25:00.000Z
+Stopped at: Completed 05-12-PLAN.md — the space overview: figures that are absent rather than zeroed, one manifest explaining every absence, and an escalation path reachable by an admin holding nothing (wave 4 complete; 05-15 is next)
 Resume file: None

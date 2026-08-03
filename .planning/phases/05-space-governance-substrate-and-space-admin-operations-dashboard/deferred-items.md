@@ -51,6 +51,7 @@ Out-of-scope findings logged during execution. Not fixed by the plan that found 
 - **Why not fixed here:** three siblings (05-05, 05-07, 05-08) were live in this working tree, and `get-space-overview.ts` is 05-04's file. Editing a file outside the plan's declared territory during a shared-index wave is how the phase's earlier mixed-authorship commits happened. The figures render as absent rather than wrong in the meantime, which is the design's intended `null` (an unavailable figure, never a fabricated zero).
 - **What it needs:** `getSpaceOverview` should call `authorize(…, 'member.read')` → `countSpaceMembers(scope)` folded through `optional()`, exactly as `proposalWidgets` already does for `proposal.read`. `activeVotes` needs a count that no plan has written yet.
 - **Owner:** 05-12 (the overview surface, which is the first plan that will notice the empty figures) or 05-16.
+- **CLOSED by 05-12** (commit `55d0f99`, `feat(05-12): wire the overview's member, active-vote and notification figures`). `membersInSpace` now folds `countSpaceMembers` behind `member.read`; `notificationsSentThisMonth` folds 05-08's `countCampaignsSentThisMonth` behind `notification.send` — its `// wired in 05-08` comment was stale in the same way and is gone with the others. `activeVotes` needed the count this item says nobody had written: `countActiveVotes` is new in `space.repo.ts`, gated on `proposal.read` alongside the queue because it reads the same table under the same predicate. The three capability-matrix tests were updated: they now assert one figure per capability instead of asserting the nulls.
 
 **7. `optional()` was NOT extracted to a shared module by 05-06, and that is deliberate**
 
@@ -75,3 +76,26 @@ Out-of-scope findings logged during execution. Not fixed by the plan that found 
 - **Why not fixed here:** 05-12 was running concurrently and is the plan authorized to create shared modules this wave; importing a component that had not yet been committed would have broken on a rename, and adding a competing shared module would have collided.
 - **What it needs:** fold both maps into one module beside `SpaceAdminNav` (they are nav concerns), and replace both inline escalation dialogs with `EscalationDialog` once its API is settled.
 - **Owner:** 05-15.
+
+## From 05-12
+
+**10. `optional()` still has zero duplicates, so 05-12 did not extract it either**
+
+- **Found during:** 05-12's wiring of the three remaining overview figures.
+- **Observed:** item 7 nominates 05-07 as "the genuine first reuse", but 05-07 (`get-metrics.ts`) is a single-capability surface and did not reuse the helper. 05-12 added three new uses — `memberCount`, `notificationCount` and the widened `proposalWidgets` — and **all three live in `get-space-overview.ts`, the file that already owns the helper.**
+- **Why not extracted:** the count of copies is still one. A shared module whose only consumer is the file it was cut from is the speculation 05-04 declined, and it would add an import cycle risk for nothing. The first plan that needs `optional()` in a *second* file should move it, and now has three call sites to model on.
+
+**11. The nav-visibility map and the `spaces.type` Hebrew labels are duplicated three times, and 05-12 chose not to be the one to dedupe them**
+
+- **Found during:** 05-12, reading 05-14's item 9 after both siblings had committed.
+- **Observed:** `NAV_CAPABILITY` (surface → capability, driving `SpaceAdminNav`'s `visibleHrefs`) and `SPACE_TYPE_LABELS_HE` now exist in three surface pages: 05-14's `members/page.tsx` and `stats/page.tsx`, and 05-12's overview `page.tsx`. 05-15's two surfaces will make five.
+- **Why not fixed here:** 05-12 is the plan authorized to add a shared UI module this wave, but by the time the third copy existed the other two were already committed by a finished sibling. Extracting would have meant editing two completed plans' files to import a module none of them had reviewed, in a shared index, while 05-15 may be live. Creating the module and migrating only the overview would leave a fourth file and two stale copies — strictly worse.
+- **What it needs:** one module beside `SpaceAdminNav` exporting both maps (they are both nav/edition-line concerns), then five one-line imports. **Owner:** 05-15, as item 9 already assigns, or 05-16's hygiene pass.
+- **Related and ready:** `components/space-admin/EscalationDialog.tsx` now exists and covers both shapes item 9 names — `trigger="cta"` for a panel CTA and `trigger="no-permission"` for the refused surface, which renders `NoPermissionPanel` itself. Whoever does the dedupe can delete the two inline escalation dialogs in `MembersClient.tsx` and `StatsFallback.tsx` and import it by direct path. It is **not** in the barrel, by 05-11's rule.
+
+**12. `councils/[identifier]/page.tsx` prints the site name twice in its title**
+
+- **Found during:** 05-12's manual render, which caught the same bug in its own metadata.
+- **Observed:** `[locale]/layout.tsx:49` sets a `%s | תַּרְאוּ` title template, so a page whose own `metadata.title` already ends in `| תַּרְאוּ` renders `… | תַּרְאוּ | תַּרְאוּ`. `apps/web/src/app/[locale]/councils/[identifier]/page.tsx:8` does exactly that.
+- **Why not fixed here:** unrelated surface, predates this phase, and a title change is a visible product edit rather than a compile fix.
+- **Owner:** whoever next touches that page.
