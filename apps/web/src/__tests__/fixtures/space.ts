@@ -115,6 +115,24 @@ export function proposalRow(overrides: Partial<Record<string, unknown>> = {}) {
   };
 }
 
+/** A `space_audit_log` row with its actor embedded, as `listAuditRows` reads it. */
+export function auditRow(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    id: '66666666-6666-4666-8666-666666666666',
+    space_id: SPACE_A,
+    actor_user_id: USER_ID,
+    action: 'proposal.approved',
+    object_type: 'vote',
+    object_id: '55555555-5555-4555-8555-555555555555',
+    prior_state: null,
+    new_state: null,
+    reason: 'ההצעה עומדת בכללי המרחב ולכן אושרה לפרסום',
+    created_at: '2026-07-30T09:00:00.000Z',
+    users: { first_name: 'דנה', last_name: 'לוי' },
+    ...overrides,
+  };
+}
+
 export type BuilderMethod =
   | 'select'
   | 'eq'
