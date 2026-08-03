@@ -174,7 +174,7 @@ describe('votesApi', () => {
   });
 
   describe('createVote', () => {
-    it('should create a new vote', async () => {
+    it('should submit a new proposal with no payment reference', async () => {
       const input = {
         title: 'New Vote',
         description: 'Vote description',
@@ -182,7 +182,6 @@ describe('votesApi', () => {
         options: [{ label: 'Option A' }, { label: 'Option B', description: 'Second option' }],
         startDate: new Date('2025-01-16T00:00:00Z'),
         endDate: new Date('2025-02-15T00:00:00Z'),
-        paymentTxId: 'payment-tx-123',
       };
 
       const mockResponse = {
