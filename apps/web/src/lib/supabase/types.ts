@@ -1047,9 +1047,149 @@ export interface Database {
         Update: Record<string, never>;
         Relationships: [];
       };
+      role_grants: {
+        Row: {
+          id: string;
+          user_id: string;
+          role: 'super_admin' | 'space_admin' | 'community_manager';
+          space_id: string | null;
+          status: 'active' | 'suspended' | 'revoked';
+          source: 'manual' | 'application';
+          source_id: string | null;
+          granted_by: string | null;
+          granted_at: string;
+          ended_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          role: 'super_admin' | 'space_admin' | 'community_manager';
+          space_id?: string | null;
+          status?: 'active' | 'suspended' | 'revoked';
+          source?: 'manual' | 'application';
+          source_id?: string | null;
+          granted_by?: string | null;
+          granted_at?: string;
+          ended_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          role?: 'super_admin' | 'space_admin' | 'community_manager';
+          space_id?: string | null;
+          status?: 'active' | 'suspended' | 'revoked';
+          source?: 'manual' | 'application';
+          source_id?: string | null;
+          granted_by?: string | null;
+          granted_at?: string;
+          ended_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      community_manager_applications: {
+        Row: {
+          id: string;
+          user_id: string;
+          space_id: string;
+          motivation: string;
+          contact_phone: string | null;
+          evidence_urls: Json;
+          status: 'submitted' | 'approved' | 'rejected' | 'withdrawn';
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          review_reason: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          space_id: string;
+          motivation: string;
+          contact_phone?: string | null;
+          evidence_urls?: Json;
+          status?: 'submitted' | 'approved' | 'rejected' | 'withdrawn';
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          motivation?: string;
+          contact_phone?: string | null;
+          evidence_urls?: Json;
+          status?: 'submitted' | 'approved' | 'rejected' | 'withdrawn';
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_reason?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      role_grant_events: {
+        Row: {
+          id: string;
+          subject_type: 'role_grant' | 'community_manager_application';
+          subject_id: string;
+          event:
+            | 'submitted'
+            | 'approved'
+            | 'rejected'
+            | 'granted'
+            | 'suspended'
+            | 'reinstated'
+            | 'revoked';
+          subject_user_id: string | null;
+          actor_user_id: string | null;
+          role: string | null;
+          space_id: string | null;
+          reason: string | null;
+          detail: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          subject_type: 'role_grant' | 'community_manager_application';
+          subject_id: string;
+          event:
+            | 'submitted'
+            | 'approved'
+            | 'rejected'
+            | 'granted'
+            | 'suspended'
+            | 'reinstated'
+            | 'revoked';
+          subject_user_id?: string | null;
+          actor_user_id?: string | null;
+          role?: string | null;
+          space_id?: string | null;
+          reason?: string | null;
+          detail?: Json | null;
+          created_at?: string;
+        };
+        // Append-only: enforced by the role_grant_events_append_only trigger.
+        Update: Record<string, never>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
+      user_id: {
+        Args: Record<string, never>;
+        Returns: string | null;
+      };
+      is_platform_admin: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      can_admin_space: {
+        Args: { p_space: string | null };
+        Returns: boolean;
+      };
       increment_vote_option: {
         Args: {
           option_id: string;
@@ -1148,5 +1288,8 @@ export type MerchOrderRow = Tables<'merch_orders'>;
 export type VoteSource = Tables<'vote_sources'>;
 export type IdentityDocument = Tables<'identity_documents'>;
 export type IdentityDocumentEvent = Tables<'identity_document_events'>;
+export type RoleGrant = Tables<'role_grants'>;
+export type CommunityManagerApplication = Tables<'community_manager_applications'>;
+export type RoleGrantEvent = Tables<'role_grant_events'>;
 export type KnessetItem = Tables<'knesset_items'>;
 export type KnessetRanking = Tables<'knesset_rankings'>;
