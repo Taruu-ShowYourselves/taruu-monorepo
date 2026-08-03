@@ -162,6 +162,15 @@ export const findSpaceSummaryByMembership = (m: SpaceMembership) =>
  * The single `.eq()` form is why the scope carries the resolved
  * `municipality_code` and not only the space id: PostgREST cannot express the
  * subquery form.
+ *
+ * THE SUBMITTER EMBED MUST NAME ITS FOREIGN KEY. `votes` has three foreign
+ * keys into `users` — `creator_id`, and the `hidden_by` / `flagged_by` columns
+ * 20260802000003 added for permitted-content moderation. An unqualified
+ * `users(...)` is therefore ambiguous and PostgREST refuses the whole request
+ * with PGRST201 rather than picking one, which surfaces as a 500 on the queue.
+ * Disambiguating by constraint name keeps the response key `users`, so the
+ * mapper below is unchanged. Found by running this query against a live
+ * database in 05-16; it had never been executed before.
  */
 export function listProposals(
   scope: SpaceScope,
@@ -170,7 +179,7 @@ export function listProposals(
   const query = supabaseAdmin
     .from('votes')
     .select(
-      'id, title, description, status, creator_id, created_at, hidden_at, flagged_at, users(first_name, last_name)'
+      'id, title, description, status, creator_id, created_at, hidden_at, flagged_at, users!votes_creator_id_fkey(first_name, last_name)'
     )
     .eq('municipality_id', scope.municipalityCode) // scope key, never a caller string — non-nullable by construction, so no cast
     .in('status', filter.status ? [filter.status] : [...REVIEW_VOTE_STATUSES])
