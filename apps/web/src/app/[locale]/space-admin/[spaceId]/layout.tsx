@@ -4,9 +4,17 @@ import { Colophon } from '@/components/press/sections';
 import type { Locale } from '@/lib/i18n';
 import styles from './layout.module.css';
 
+/**
+ * `locale` is typed `string` and narrowed below, matching `[locale]/layout.tsx`.
+ * Next's generated `LayoutConfig` types a layout's params from the route
+ * segments alone, so a layout that narrows the segment in its own signature
+ * fails the generated validator with `TS2344`. Pages escape this — their
+ * generated constraint is intersected with `any` — which is why the sibling
+ * surfaces can and do declare `Locale` directly.
+ */
 interface SpaceAdminLayoutProps {
   children: React.ReactNode;
-  params: Promise<{ locale: Locale; spaceId: string }>;
+  params: Promise<{ locale: string; spaceId: string }>;
 }
 
 /**
@@ -34,7 +42,8 @@ export default async function SpaceAdminLayout({
   children,
   params,
 }: SpaceAdminLayoutProps) {
-  const { locale } = await params;
+  const { locale: rawLocale } = await params;
+  const locale = rawLocale as Locale;
 
   return (
     <div className="np-page">
