@@ -166,7 +166,16 @@ export function makeQueryBuilder(result: {
     };
   }
 
-  builder.then = (resolve: (value: unknown) => unknown) => resolve(result);
+  /**
+   * A real promise, not `resolve(result)` directly: the space repositories call
+   * `.then(mapper)` and hand the *return value* to `ResultAsync.fromPromise`,
+   * which needs a thenable back. Returning the mapped value bare would make
+   * every repository throw instead of resolving.
+   */
+  builder.then = (
+    resolve: (value: unknown) => unknown,
+    reject?: (reason: unknown) => unknown
+  ) => Promise.resolve(result).then(resolve, reject);
 
   return { builder, spies };
 }
