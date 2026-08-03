@@ -163,7 +163,20 @@ Plans:
   3. Duplicate or replayed renewal events produce exactly one charge, one invoice, and one role transition — idempotency keys are generated server-side, and no raw card data is ever stored.
   4. Cancellation and the failed-payment grace policy produce predictable, documented access outcomes, and the user is notified on every state change that affects their access.
   5. A reconciliation check matches GI settlement records against internal subscription and charge rows with zero open mismatches; on any ambiguous payment state the role stays inactive (the issue's stated rollback posture).
-**Plans**: TBD
+**Plans**: 11 plans in 7 waves
+
+Plans:
+- [ ] 06-01-PLAN.md — Gates: run `pnpm spike:gi --charge` and fill SPIKE-RESULT Part A + Part C, decide the renewal trigger around the Cloudflare cron gate, confirm Phase 5 is executed [MGR-03] (wave 1, checkpoints)
+- [ ] 06-02-PLAN.md — Schema: billing_payment_methods + manager_subscriptions + charges + append-only events, SELECT-only RLS, DB types, shared Zod contracts, the ₪50 constant [MGR-02, MGR-03] (wave 2)
+- [ ] 06-03-PLAN.md — Pure domain: the eight-state transition table, the +1/+3/+7 retry ladder, the 14-day grace, `isBillingActive`, and the transition→Hebrew-notice map [MGR-02, MGR-04] (wave 3)
+- [ ] 06-04-PLAN.md — Adapters: deterministic idempotency key, claim-before-charge repository, the Green Invoice billing module, the best-effort notifier [MGR-03, MGR-04] (wave 3)
+- [ ] 06-05-PLAN.md — Wire the billing prerequisite into Phase 5's `requireRole` + GET /api/manager-billing [MGR-01, MGR-02] (wave 4)
+- [ ] 06-06-PLAN.md — Approval-gated checkout and the idempotent activation webhook [MGR-01, MGR-03] (wave 4)
+- [ ] 06-07-PLAN.md — Renewal due-check job + the widened worker cron dispatch [MGR-03, MGR-04] (wave 5)
+- [ ] 06-08-PLAN.md — End-of-period cancellation + admin suspend/reinstate on the billing lever [MGR-02, MGR-04] (wave 5)
+- [ ] 06-09-PLAN.md — Hebrew/RTL billing panel on /he/settings/community-manager [MGR-01, MGR-04] (wave 6)
+- [ ] 06-10-PLAN.md — Two-directional reconciliation against GI documents [MGR-05] (wave 6)
+- [ ] 06-11-PLAN.md — Manual gate: apply the migration, set the secrets, walk the sandbox lifecycle, confirm the cron fires, visual evidence, sign-off [MGR-01..05] (wave 7, checkpoints)
 
 ## Progress
 
@@ -182,7 +195,7 @@ Plans:
 | 3. Payment Rails + Hardening | 0/TBD | Re-scoped 2026-08-03 — ready to plan | - |
 | 4. Go-Live | 0/6 | Planned 2026-08-03 — 6 plans / 4 waves; blocked on Phase 3 + gates G1/G2 | - |
 | 5. RBAC + Admin Review | 0/9 | Planned — RLS foundation folded in (RLS-01..05); carries issue #76 | - |
-| 6. Manager Billing + Subscription | 0/TBD | Not started | - |
+| 6. Manager Billing + Subscription | 0/11 | Planned — blocked on SPIKE-01 (gate 06-01) and on Phase 5 executing | - |
 | 7. Service-Role Migration | 0/TBD | Not started — blocked on Phase 5 RLS foundation | - |
 | 8. Municipality Onboarding + Authority Dashboard | 0/TBD | Not started — blocked on Phase 5 RBAC primitives (issue #76) | - |
 
