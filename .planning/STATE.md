@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 05-03-PLAN.md
-last_updated: "2026-08-03T09:45:00.000Z"
+stopped_at: Completed 05-11-PLAN.md
+last_updated: "2026-08-03T07:05:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 20
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 # Project State
@@ -24,15 +24,16 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 05 (space-governance-substrate-and-space-admin-operations-dashboard) — EXECUTING
-Plan: 4 of 16 (derived from SUMMARY files on disk — wave 2 runs 05-03, 05-04 and 05-11 in parallel, so this counter is not a strict sequence)
+Plan: 5 of 16 (derived from SUMMARY files on disk — wave 2 runs 05-03, 05-04 and 05-11 in parallel, so this counter is not a strict sequence)
 
 ## ▶ RESUME HERE (after /clear)
 
-**Phase 5 is EXECUTING** (16 plans, 6 waves). **Wave 1 is complete** — plans 05-01 and 05-02 both landed. **Wave 2 is in progress**: 05-03 has landed; 05-04 and 05-11 were still executing alongside it.
+**Phase 5 is EXECUTING** (16 plans, 6 waves). **Wave 1 is complete** — plans 05-01 and 05-02 both landed. **Wave 2 is in progress**: 05-03 and 05-11 have landed; 05-04 was still executing alongside them.
 
 - 05-01 (governance substrate — DB tables, two-file `vote_status` split, `types.ts`); see `05-01-SUMMARY.md`.
 - 05-02 (capability vocabulary, review transitions, QUOTA_EXCEEDED, rollout flag, full contract surface); see `05-02-SUMMARY.md`.
 - 05-03 (public visibility allow-list, six corrected read paths, reconciled status vocabulary); see `05-03-SUMMARY.md`.
+- 05-11 (np-native shell + eight UI primitives: `SpaceAdminHeader`, `SpaceAdminNav`, `PressTable`, `StatusChip`, `ConfirmDialog`, three panels); see `05-11-SUMMARY.md`. **Surface plans 05-12…05-15 should read that summary's "Component API" section before writing a line** — it gives every prop signature, and `components/space-admin/index.ts` is a CLOSED barrel they must not reopen (import new components by direct path).
 
 **Two things from 05-03 need someone's attention before the phase closes** — both detailed in `05-03-SUMMARY.md` and `deferred-items.md`:
 
@@ -79,6 +80,7 @@ Open question to resolve before Phase 3 planning: **monthly civic-pool allocatio
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P01 | 7 min | 3 tasks | 6 files |
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P02 | 12 min | 3 tasks | 10 files |
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P03 | 25 min | 3 tasks | 9 files |
+| Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P11 | ~50 min active | 3 tasks | 19 files |
 
 ## Accumulated Context
 
@@ -126,6 +128,12 @@ Recent decisions affecting current work:
 - [Phase 05-space-governance]: getVoteById is the FILTERED name; getVoteByIdUnfiltered is the internal escape hatch, callable only after authorization — so the default reach is the safe one
 - [Phase 05-space-governance]: ?status=in_review returns 200 with the ordinary public list, never a 400 — a validation error there would be an existence oracle for the review vocabulary. Normalise before validating
 - [Phase 05-space-governance]: shared VoteStatus carries all ten DB labels; 'cancelled' stays out and is documented as a legacy API alias mapped to 'ended'
+- [Phase 05-space-governance]: The disabled-state override is authored `:disabled`-qualified — `.x:disabled` (0,2,0) and `.x:disabled:hover` (0,2,1) — because a bare className class is (0,1,0) and silently loses to NewsButton's `.ink:hover` (0,1,1). No dimming: it would drag `--np-paper-2` below its 0.03 AA margin. Canonical copy in ConfirmDialog.module.css, exported as `confirmButtonClass`
+- [Phase 05-space-governance]: The `--np-red-dark` hover fix applies to dense `ink` buttons ONLY. `outline` already inverts to ink at 16.66:1, and it is the declared trigger for every destructive row action, so it never takes a red fill
+- [Phase 05-space-governance]: `apps/web/src/components/space-admin/index.ts` is a CLOSED barrel owned by 05-11, exporting exactly its eight components. Plans 05-12…05-15 import their own components by direct path and must not reopen it
+- [Phase 05-space-governance]: PressTable never switches a cell to `display: block` — responsive reduction is a paired `display: none` on `th[data-col]`/`td[data-col]`, with hidden values reachable through exactly one `<tr>` expansion per row at every width
+- [Phase 05-space-governance]: The space-admin layout is chrome only and is documented as NOT the authorization boundary — a Next.js layout does not re-render on navigation and does not gate nested segments, so every page re-resolves space identity and capability server-side
+- [Phase 05-space-governance]: Red text is compliant PER BACKGROUND — `--np-red-ink` on paper, `--np-paper` on ink, `--np-red` only on aria-hidden tick glyphs. The shared `.np-kicker` utility is 4.03:1 and is replaced phase-locally by `kicker.module.css`
 
 ### Roadmap Evolution
 
@@ -144,9 +152,11 @@ None yet.
 - Phase 5 migrations (20260802000001-3) are unapplied and unproven — no Docker/psql on the exec machine; supabase/tests/audit_append_only.sql is committed but no transcript captured. 05-16 owns applying them to a scratch DB.
 - **CI BLOCKER (found by 05-03):** `pnpm --filter @sync/mobile typecheck` fails with 130 `TS2786` errors from a duplicate `@types/react` (18.3.27 + 19.2.7 both installed). Root `pnpm typecheck` runs `@sync/mobile` on every PR to main, so this reddens CI. Not caused by 05-03 — mobile was green at its Task 1 gate with its change applied. Fix: pin one `@types/react` via root `pnpm.overrides`, reinstall on a quiet tree. See `deferred-items.md` item 5.
 - Commit `5979545` mixes three plans' files (05-03's db.ts, 05-04's package.json/lockfile, 05-11's space-admin components) — a shared-git-index race, no content lost. Reconciling plan-to-commit attribution is 05-16's.
+- **Shared-worktree hazard, sharper than the index race:** a sibling executor ran `git reset HEAD~1` on the shared branch during wave 2 and orphaned an empty marker commit (visible at `git reflog` HEAD@{10}–{11}). No non-empty commit was lost, but a stray reset in this tree can drop other agents' work. Wave-3+ executors: never reset the shared branch, and prefer `git add <paths> && git commit -m "…" -- <paths>`.
+- 05-11 did NOT perform its plan's one manual step — rendering the shell at `/he/space-admin/{uuid}`. No page exists under `[spaceId]` yet and starting `next dev` in a tree with live executors risks clobbering `.next`. 05-12 is the first plan able to load the route and should confirm the masthead/nav/colophon compose with no top offset.
 
 ## Session Continuity
 
-Last session: 2026-08-03T09:45:00.000Z
-Stopped at: Completed 05-03-PLAN.md
+Last session: 2026-08-03T07:05:00.000Z
+Stopped at: Completed 05-11-PLAN.md
 Resume file: None
