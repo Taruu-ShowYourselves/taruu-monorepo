@@ -36,9 +36,9 @@ Playwright spec plus the seed fixture.
 | **SPACE-05** | approve / reject / request-changes over the review states, gated ahead of publication; deterministic under conflict; no self-review | Automated: `space-admin-decide.test.ts` (29 cases), `review.test.ts` (28). Live (§3.3): an approval published a proposal `in_review → active` and wrote exactly one `proposal.approved` row; the *same* decision repeated answered `409` with `ההצעה כבר הוכרעה על ידי מנהל אחר…` and published nothing; a reviewer deciding their own submission got `403` with the lock sentence. `uq_space_proposal_single_approval` confirmed to hold at one row. | **Automated** + **Live** |
 | **SPACE-06** | member/role management and permitted-content controls, inside the administered space only, each mutation audited | Automated: `space-admin-members.test.ts`, `space-admin-content.test.ts` (39 cases). Live (§3.3): suspend → `200`, suspend again → `409 החבר/ה כבר מושעה/ית במרחב הזה.`, reinstate → `200`, reinstate again → `409 החבר/ה אינו מושעה/ית במרחב הזה.` — the conditional-write conflict detection working against a real database. Frames 05/06 show a suspended row offering only reinstatement; frames 16a/16b show the four content controls in their two mutually-exclusive states. | **Automated** + **Live** |
 | **SPACE-07** | aggregates only; privacy-safe member fields; never raw identity-document data | Automated: `space-admin-metrics.test.ts` (14 cases incl. a hostile row), the serialization guard in `space-admin-members.test.ts`. Live: `space_admin_metrics` executed against a four-resident space returned `registered_residents = NULL / suppressed` and `active_participants_30d = NULL / suppressed` — the true small numbers never left Postgres. Frames 07/08 render `<5` and the aggregate-only footer, and the frame asserts **zero** `a, button, [role=button], input, select` inside any stat card. | **Automated** + **Live** |
-| **SPACE-08** | preview the audience; delivered set equals previewed authorized audience; opt-outs honored; server-side quota; delivery log | **The equality had never been executed until this run.** §3.2 is a full preview → send round trip: preview returned `approvedRecipients 4 / excludedOptedOut 0 / excludedNoChannel 2`; the send returned `deliveredRecipients 4`; the database then showed `audience_size 4`, four `in_app`/`delivered` delivery rows, four inbox rows, and `delivered_equals_previewed = t` computed in SQL. Quota moved 1→2 of 8 and is counted from campaign rows. A second send of the same campaign answered `409 ההתראה כבר נשלחה.` | **Automated** (`space-admin-audience.test.ts` 29, `space-admin-notifications.test.ts` 33) + **Live** |
+| **SPACE-08** | preview the audience; delivered set equals previewed authorized audience; opt-outs honored; server-side quota; delivery log | **The equality had never been executed until this run.** §3.2 is a full preview → send round trip: preview returned `approvedRecipients 4 / excludedOptedOut 0 / excludedNoChannel 2`; the send returned `deliveredRecipients 4`; the database then showed `audience_size 4`, four `in_app`/`delivered` delivery rows, four inbox rows, and `delivered_equals_previewed = t` computed in SQL. Quota moved 1→2 of 8 and is counted from campaign rows. A second send of the same campaign answered `409 ההתראה כבר נשלחה.` The composer's client-side staleness rule — an edit invalidates the preview on change, across zero blur events — is asserted in §6.2 rather than argued. | **Automated** (`space-admin-audience.test.ts` 29, `space-admin-notifications.test.ts` 33) + **Live** |
 | **SPACE-09** | super admin can suspend access with immediate effect, deleting no audit history; admins have an escalation path | Automated: `space-admin-suspension.test.ts` shows 200 → 403 on the next request with the same cookie and the suspended admin's history still readable. Structural: `ON DELETE RESTRICT` on both audit FKs, proven by the `23503` case in §4. Live: the seed's suspended member holds a suspended grant and an unlifted suspension row, and frames 05/06 show the surface; the escalation CTA is present on the refused surface in frame 15 and on the overview in frame 01. | **Automated** + **Manual** (the `23503` refusal) |
-| **SPACE-10** | the dashboard ships at `/he/space-admin/[spaceId]` — Hebrew/RTL, tokens only, six surfaces, desktop and mobile | 22 assertion-guarded frames at 1440×900 and 390×844 (§6). Token-hygiene scan in §5: no hardcoded colour, no pixel literal in any declaration, no banned import. **A human has not yet confirmed the appearance** — that is the blocking checkpoint this document is handed to, and §8 says exactly what is being asked. | **Live** (capture + assertions) · **verdict pending** |
+| **SPACE-10** | the dashboard ships at `/he/space-admin/[spaceId]` — Hebrew/RTL, tokens only, six surfaces, desktop and mobile | 22 assertion-guarded frames at 1440×900 and 390×844, plus the screenshot-less staleness test (§6, §6.2) — 24 tests in all. Token-hygiene scan in §5: no hardcoded colour, no pixel literal in any declaration, no banned import. **A human has not yet confirmed the appearance** — that is the blocking checkpoint this document is handed to, and §8 says exactly what is being asked. | **Live** (capture + assertions) · **verdict pending** |
 
 **Not claimed anywhere above:** that any of this ran against production, that the
 Expo push endpoint was reached, or that a real payment was captured. See §7.
@@ -487,7 +487,7 @@ $ pnpm --filter @sync/api-client exec vitest run
 
 $ SPACE_ADMIN_E2E_JWT_SECRET=… PLAYWRIGHT_BASE_URL=http://127.0.0.1:3999 \
   pnpm --filter @sync/web exec playwright test tests/e2e/space-admin.spec.ts
- 22 passed (30.5s)
+ 24 passed (20.8s)
 ```
 
 Root `pnpm typecheck` is the command CI runs on every PR to `main`, and it covers
@@ -502,6 +502,9 @@ before this plan, so neither repository fix regressed a test.
 Captured by `apps/web/tests/e2e/space-admin.spec.ts` at **1440×900**
 (`desktop-1440x900`) and **390×844** (`mobile-390x844`), full-page, unmodified.
 All under `apps/web/tests/e2e/__screenshots__/space-admin/`.
+
+The spec runs **24 tests** — 22 frames plus one screenshot-less behavioural test
+per viewport, §6.2.
 
 Every frame is guarded — the assertion runs before the capture, so a frame can
 only exist if it depicts the state it claims.
@@ -550,7 +553,49 @@ enabled+hover   rgb(176,  34,  15)    rgb(244, 241, 232)    pointer         (--n
 
 D17, D27 and D23 all landed. No `opacity` is involved, as the contract requires.
 
-### 6.2 Two things a reviewer will see in the frames that are not space-admin
+### 6.2 The one behaviour no frame can show, asserted instead
+
+The frames capture the composer's **fresh** state. The rule 05-15 shipped is
+about a **transition** — "staleness fires on change, not on blur" — so a picture
+cannot prove it, and 05-15 said plainly that it was argued from the code and
+never observed. It is observed now, at both widths, by a test that carries no
+screenshot:
+
+```
+✓ [desktop-1440x900] dispatch staleness fires on change, with no blur — the behaviour no frame can show
+✓ [mobile-390x844]   dispatch staleness fires on change, with no blur — the behaviour no frame can show
+```
+
+**The load-bearing part is not that the send ends up disabled.** An
+implementation that invalidated on *blur* would also be disabled by the time an
+assertion ran, and would pass a weaker version of this test. So the sequence is:
+
+1. resolve an audience; assert the send is **enabled** and no stale banner exists
+   — the precondition, so the test cannot pass vacuously;
+2. click into the body, assert it is focused, and *then* install a `blur`
+   listener on the element itself that counts events;
+3. type **one character** with `page.keyboard.type('.')` — not `fill()`, which
+   sets the value programmatically and would not reproduce a person typing;
+4. assert the send is **disabled**, the body is **still focused**, the stale
+   banner `ההודעה שונתה אחרי חישוב הקהל — חשבו שוב לפני שליחה.` is visible, and
+   Rule B's unblock line `חשבו קהל יעד כדי לאפשר שליחה.` is present;
+5. read the blur counter back: **`0`**.
+
+**Negative control, run once to prove the test can fail.** With the single
+keystroke commented out and nothing else changed:
+
+```
+Error: expect(locator).toBeDisabled() failed
+  Locator:  getByRole('button', { name: 'שלחו התראה', exact: true })
+  Expected: disabled
+  Received: enabled
+```
+
+So the send is disabled *by the edit*, not by elapsed time and not by the focus
+change that preceded it — and it happens across zero blur events. That is the
+rule, measured.
+
+### 6.3 Two things a reviewer will see in the frames that are not space-admin
 
 Recorded so they are not read as dashboard defects:
 
@@ -635,7 +680,19 @@ JWT signed with the app's `JWT_SECRET`; the spec's `mintSession` helper is the
 one-line recipe, and `apps/web/.env.local` (gitignored) holds the secret used
 here.
 
-### The ten steps, and the two that matter most
+### Nine steps, not ten — and the one that matters most
+
+The plan's checkpoint listed ten. **Step 6 is now automated and is not on this
+list.** "Compute an audience, change one character, the send must disable before
+you click away" is a behavioural claim rather than an aesthetic judgement, so it
+was expressible as a test once a seeded database existed — §6.2 has the method,
+the assertions and the negative control that proves the test can fail. It runs at
+both widths on every invocation of the spec.
+
+**Step 4 stays a human judgement, deliberately.** Its colours are measured in
+four states (§6.1) and they pass; what a measurement cannot answer is whether the
+control *reads* as disabled and *feels* inert. That is the one thing on this list
+that genuinely needs eyes.
 
 1. Open the overview. Masthead at the top with no gap or overlap; the six-link
    nav reads right to left; the capability manifest shows at least one
@@ -646,30 +703,31 @@ here.
 3. `/proposals` → click a proposal title. The panel expands in place as a table
    row; only one can be open at a time; `Escape` closes it and returns focus to
    the title.
-4. **⚠ Click `אישור ופרסום` on a proposal you did not submit.** Plate rule red;
-   kicker reads `פעולה בלתי הפיכה · IRREVERSIBLE`; focus lands in the reason
-   textarea rather than on the confirm; the confirm looks **visibly** disabled —
-   greyed fill, faint text — and does **not** turn red when you hover it. The
-   colour values are measured in §6.1 and pass; what a person still has to judge
-   is whether it *reads* as disabled.
+4. **⚠ THE ONE THAT NEEDS EYES. Click `אישור ופרסום` on a proposal you did not
+   submit.** Plate rule red; kicker reads `פעולה בלתי הפיכה · IRREVERSIBLE`;
+   focus lands in the reason textarea rather than on the confirm; the confirm
+   looks **visibly** disabled — greyed fill, faint text — and does **not** turn
+   red when you hover it. §6.1 proves the computed colours are the right ones and
+   that hover changes nothing; what it cannot tell you is whether the result
+   reads as disabled to a person.
 5. Find the self-submitted proposal (`הצבת ספסלים מוצלים בגן הוותיקים`, submitted
    by נועה ברק, who is the signed-in admin). Its actions cell holds the lock text
    and contains no buttons at all.
-6. **⚠ `/dispatch` → compute an audience, then change one character in the body.**
-   The send must disable **immediately, before you click away**, and the stale
-   banner must appear. This is the one behaviour no automated check in this run
-   covers: the frames capture the fresh state, not the transition. 05-15 argued
-   it from the code and said plainly that it was argued, not observed.
-7. `/stats`. Try to click a figure — nothing responds, no cursor change — and the
+6. `/stats`. Try to click a figure — nothing responds, no cursor change — and the
    aggregate-only footer note is present.
-8. `/audit`. Expand a long reason; the table must not reflow sideways. Page with
+7. `/audit`. Expand a long reason; the table must not reflow sideways. Page with
    `← רשומות ישנות יותר` (the fixture makes it live: 105 rows, 100 per page) and
    confirm no row repeats.
-9. Sign in as the `metrics.read`-only admin and go straight to `/proposals`. The
+8. Sign in as the `metrics.read`-only admin and go straight to `/proposals`. The
    page must stay coherent — masthead, nav, footer intact — showing
    `NoPermissionPanel` with a working `פנייה למנהל־על`.
-10. Review the 22 frames in `apps/web/tests/e2e/__screenshots__/space-admin/`.
-    Frames 01–12 populated; nothing reads as an English placeholder.
+9. Review the 22 frames in `apps/web/tests/e2e/__screenshots__/space-admin/`.
+   Frames 01–12 populated; nothing reads as an English placeholder.
+
+*(The former step 6 — dispatch staleness — is now automated. If you want to see
+it anyway: `/dispatch`, compute an audience, then change one character in the
+body. The send must disable before you click away. §6.2 asserts exactly this,
+including that it happens across zero blur events.)*
 
 ### The verdict
 

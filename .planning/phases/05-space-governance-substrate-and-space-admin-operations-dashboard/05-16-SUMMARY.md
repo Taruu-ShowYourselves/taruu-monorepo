@@ -19,7 +19,7 @@ requires:
   - phase: 05-15
     provides: the dispatch and audit surfaces (frames 09-12, 14)
 provides:
-  - apps/web/tests/e2e/space-admin.spec.ts — 22 assertion-guarded evidence frames at two widths
+  - apps/web/tests/e2e/space-admin.spec.ts — 22 assertion-guarded evidence frames at two widths, plus the composer's staleness rule observed rather than argued
   - apps/web/tests/e2e/fixtures/space-admin-seed.sql — the idempotent local fixture the frames need
   - two Playwright viewport projects, 1440x900 and 390x844, scoped so the existing specs run once
   - 05-EVIDENCE.md — the phase's verification record, with an automated/manual/live split per requirement
@@ -304,20 +304,45 @@ pnpm --filter @sync/web exec playwright test tests/e2e/space-admin.spec.ts
 Without the secret or a seeded space the spec skips with a message, so
 `pnpm --filter @sync/web test:e2e` stays green on a machine with no Supabase.
 
+## The staleness rule: argued by 05-15, observed here
+
+Added after the first checkpoint hand-off, on the coordinator's request. I had
+called this "the single least-verified behaviour in the phase"; it is now the
+best-verified one.
+
+05-15 shipped "staleness fires on change, not on blur" and said plainly it was
+argued from the code rather than observed, because `apps/web` has no React
+harness and the interaction needs a session, a seeded space and a running
+Supabase. All three exist here.
+
+**The subtlety is why a naive test would not have been worth writing.** An
+implementation that invalidated on *blur* would also be disabled by the time an
+assertion ran, so "type, then assert disabled" proves nothing. The test therefore
+focuses the body, installs a `blur` listener **on the element**, types exactly one
+character with `page.keyboard.type()` rather than `fill()`, and then asserts the
+send is disabled, the field is still focused, the stale banner and the Rule B
+unblock line are both present — and reads the blur counter back at **`0`**.
+
+Preconditions are asserted too (fresh preview, send enabled, no banner), so it
+cannot pass vacuously. And it was checked against a negative control: with the
+single keystroke commented out and nothing else changed, the send stays
+**enabled** and the test fails. So the disabling is caused by the edit, not by
+elapsed time and not by the focus change before it.
+
+Transcript and method in `05-EVIDENCE.md` §6.2; commit is path-scoped, one file.
+The spec is now **24 tests** — 22 frames plus this one per viewport.
+
 ## What the phase still needs — the blocking checkpoint
 
 **A human has to walk the surface.** `05-EVIDENCE.md` §8 has the URLs, both
-accounts and the ten numbered steps. Two of them are the reason this checkpoint
-exists, because nothing automated in this run covers them:
+accounts and **nine** numbered steps — the former step 6 moved into automated
+evidence, above.
 
-- **Step 4 — the disabled confirm.** Its colours are measured and pass (§6.1).
-  What a person still has to judge is whether it *reads* as disabled, and whether
-  hovering it feels inert.
-- **Step 6 — staleness on change, not on blur.** Compute an audience, then change
-  one character in the body: the send must disable **before** you click away, and
-  the stale banner must appear. 05-15 argued this from the code and said plainly
-  that it was argued, not observed. The frames capture the fresh state, not the
-  transition. **This is the single least-verified behaviour in the phase.**
+**One step is the reason this checkpoint exists.** Step 4: open an approve
+dialog and judge the disabled confirm. §6.1 measures its computed colours in four
+states and they pass, and it proves hover changes nothing — but a measurement
+cannot answer whether the result *reads* as disabled to a person or whether
+hovering it *feels* inert. That is a human judgement and should stay one.
 
 The verdict goes at the end of `05-EVIDENCE.md`, which currently reads
 `Status: awaiting review.`
