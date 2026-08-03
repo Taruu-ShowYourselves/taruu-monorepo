@@ -41,3 +41,19 @@ Out-of-scope findings logged during execution. Not fixed by the plan that found 
 
 - The plan specifies targeted verifies only, because 05-01 shared the working tree during wave 1. `tsc --noEmit` is green for both `@sync/web` and `@sync/shared`.
 - Separately, `npx prettier --check` fails repo-wide including on files no plan touched — there is no prettier config in the repo, so the default profile does not match the committed style. Adopting (or not) a prettier config is a repo-level decision, not a phase-5 one.
+
+## From 05-06
+
+**6. The overview's `membersInSpace` and `activeVotes` figures are still `null`, and the `// wired in 05-06` comments on them are now stale**
+
+- **Found during:** 05-06 Task 2.
+- **Observed:** `apps/web/src/server/app/space-admin/get-space-overview.ts:115-116` marks both figures `// wired in 05-06`. 05-06 ships the member count (`countSpaceMembers`) that the first of them needs, but the plan's `files_modified` does not list `get-space-overview.ts` and no task asks for the wiring.
+- **Why not fixed here:** three siblings (05-05, 05-07, 05-08) were live in this working tree, and `get-space-overview.ts` is 05-04's file. Editing a file outside the plan's declared territory during a shared-index wave is how the phase's earlier mixed-authorship commits happened. The figures render as absent rather than wrong in the meantime, which is the design's intended `null` (an unavailable figure, never a fabricated zero).
+- **What it needs:** `getSpaceOverview` should call `authorize(…, 'member.read')` → `countSpaceMembers(scope)` folded through `optional()`, exactly as `proposalWidgets` already does for `proposal.read`. `activeVotes` needs a count that no plan has written yet.
+- **Owner:** 05-12 (the overview surface, which is the first plan that will notice the empty figures) or 05-16.
+
+**7. `optional()` was NOT extracted to a shared module by 05-06, and that is deliberate**
+
+- 05-04's summary asks the first plan that *reuses* the `FORBIDDEN`-folding helper to move it out of `get-space-overview.ts` rather than copy it.
+- 05-06 does not reuse it and did not copy it. Every surface in this plan is gated on a single capability, so a missing capability is a 403 for the whole endpoint rather than an absent widget — `GET /members` without `member.read` must be refused, not served with an empty list, and Task 2's behaviour bullet requires exactly that.
+- Extracting a helper for callers that do not exist yet is the speculation 05-04 explicitly declined. **05-07 (metrics) is the real first reuse** — it renders a multi-widget surface under Rule A — and should do the extraction.
