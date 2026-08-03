@@ -6,7 +6,7 @@
  * include glob, so logic living inside the `.tsx` component cannot be tested
  * at all. `fetch` is injected for the same reason.
  *
- * Server messages are never surfaced verbatim — the caller gets a Hebrew,
+ * Server messages are never surfaced verbatim - the caller gets a Hebrew,
  * user-facing string chosen from the status and the machine code.
  */
 
@@ -22,21 +22,40 @@ export type ParticipationRejectionCode =
   | 'RESIDENCY_NOT_VERIFIED'
   | 'IDENTITY_NOT_VERIFIED'
   | 'RATE_LIMITED'
+  | 'VOTE_ENDED'
+  | 'VOTE_NOT_OPEN'
   | 'INVALID'
   | 'NOT_FOUND'
   | 'SERVER_ERROR'
   | 'NETWORK_ERROR';
 
+/**
+ * Rejections that retrying cannot fix. The UI must stop inviting another
+ * attempt on these - a vote that has ended will not un-end because the
+ * resident pressed the button again.
+ */
+export const TERMINAL_REJECTION_CODES = [
+  'VOTE_ENDED',
+  'VOTE_NOT_OPEN',
+  'NOT_FOUND',
+] as const satisfies readonly ParticipationRejectionCode[];
+
+export function isTerminalRejection(code: ParticipationRejectionCode): boolean {
+  return (TERMINAL_REJECTION_CODES as readonly string[]).includes(code);
+}
+
 export type ParticipationSubmission =
   | { readonly status: 'recorded'; readonly ballot: RecordedBallot; readonly alreadyRecorded: boolean }
   | { readonly status: 'rejected'; readonly code: ParticipationRejectionCode; readonly message: string };
 
-/** The same Hebrew strings the UI shows — kept here so tests assert the copy once. */
+/** The same Hebrew strings the UI shows - kept here so tests assert the copy once. */
 export const PARTICIPATION_MESSAGES: Record<ParticipationRejectionCode, string> = {
   UNAUTHENTICATED: 'צריך להתחבר כדי להצביע.',
   RESIDENCY_NOT_VERIFIED: 'צריך לאמת תושבוּת לפני ההצבעה.',
   IDENTITY_NOT_VERIFIED: 'צריך לאמת זהות לפני ההצבעה.',
   RATE_LIMITED: 'יותר מדי בקשות. נסו שוב בעוד דקה.',
+  VOTE_ENDED: 'ההצבעה נסגרה והקול לא נרשם. אפשר לצפות בתוצאות.',
+  VOTE_NOT_OPEN: 'ההצבעה עדיין לא נפתחה.',
   INVALID: 'לא ניתן לרשום את הקול הזה. רעננו את הדף ונסו שוב.',
   NOT_FOUND: 'ההצבעה לא נמצאה.',
   SERVER_ERROR: 'הקול לא נרשם. נסו שוב בעוד רגע.',
@@ -104,7 +123,7 @@ export async function submitParticipation(
         },
       };
     }
-    // Never trust a malformed 200 — a missing ballot id is not a recorded vote.
+    // Never trust a malformed 200 - a missing ballot id is not a recorded vote.
     return rejected('SERVER_ERROR');
   }
 
@@ -120,6 +139,10 @@ export async function submitParticipation(
     case 429:
       return rejected('RATE_LIMITED');
     case 400:
+      // 400 covers five distinct server conditions. Only the ones the resident
+      // can act on differently are split out; the rest stay generic.
+      if (errorCode === 'VOTE_ENDED') return rejected('VOTE_ENDED');
+      if (errorCode === 'VOTE_NOT_OPEN') return rejected('VOTE_NOT_OPEN');
       return rejected('INVALID');
     case 404:
       return rejected('NOT_FOUND');

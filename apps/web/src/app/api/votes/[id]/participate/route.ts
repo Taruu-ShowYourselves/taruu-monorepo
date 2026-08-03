@@ -23,7 +23,7 @@ interface RouteParams {
  *
  * Records a free ballot. Participation costs nothing (cfa5d25, 2026-07-29) and
  * residency is verified once at /verification, so the body is `{ optionId }`
- * alone — no payment id, no per-vote coordinates. Idempotency leans on the
+ * alone - no payment id, no per-vote coordinates. Idempotency leans on the
  * `UNIQUE(user_id, vote_id)` constraint rather than on a check-then-act read,
  * so a double-click returns the ballot already cast instead of a second row.
  * Ballots are not chain-anchored; nothing here writes to a chain and no chain
@@ -50,7 +50,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const body = await request.json().catch(() => null);
     const parsed = ParticipateRequestSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Missing or invalid field: optionId' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing or invalid field: optionId', code: 'INVALID_BODY' },
+        { status: 400 }
+      );
     }
     const { optionId } = parsed.data;
 
@@ -58,35 +61,45 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const vote = await getVoteWithOptions(voteId);
 
     if (!vote) {
-      return NextResponse.json({ error: 'Vote not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Vote not found', code: 'NOT_FOUND' }, { status: 404 });
     }
 
-    // Check if vote is active
+    // A closed vote and a not-yet-open vote are different facts and must not
+    // collapse into one client message - "refresh and try again" is actively
+    // wrong advice for a vote that has ended.
+    if (vote.status === 'ended') {
+      return NextResponse.json({ error: 'Vote has ended', code: 'VOTE_ENDED' }, { status: 400 });
+    }
+
     if (vote.status !== 'active') {
-      return NextResponse.json({ error: 'Vote is not active' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Vote is not open yet', code: 'VOTE_NOT_OPEN' },
+        { status: 400 }
+      );
     }
 
-    // Check if vote has ended
+    // Status can still lag the clock: a vote whose end_date has passed is
+    // ended, whatever the stored status says.
     if (new Date(vote.end_date) < new Date()) {
-      return NextResponse.json({ error: 'Vote has ended' }, { status: 400 });
+      return NextResponse.json({ error: 'Vote has ended', code: 'VOTE_ENDED' }, { status: 400 });
     }
 
     // Validate option exists
     const validOption = vote.options.find((opt) => opt.id === optionId);
     if (!validOption) {
-      return NextResponse.json({ error: 'Invalid option' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid option', code: 'INVALID_OPTION' }, { status: 400 });
     }
 
     // Get user profile
     const user = await getUserByGoogleId(session.googleId);
     if (!user) {
       return NextResponse.json(
-        { error: 'User profile not found' },
+        { error: 'User profile not found', code: 'USER_NOT_FOUND' },
         { status: 400 }
       );
     }
 
-    // Server-side voter eligibility — the enforcement point, mirroring what
+    // Server-side voter eligibility - the enforcement point, mirroring what
     // the client already shows.
     const eligibility = await checkVoterEligibility(user);
     if (!eligibility.eligible) {
@@ -104,7 +117,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       option_id: optionId,
     });
 
-    // Move the tally and participant count only for a genuinely new ballot —
+    // Move the tally and participant count only for a genuinely new ballot -
     // never on the duplicate path, or the count drifts above the ballot count.
     if (created) {
       await incrementVoteOption(optionId);

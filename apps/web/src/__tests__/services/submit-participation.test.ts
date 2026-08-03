@@ -14,6 +14,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   submitParticipation,
+  isTerminalRejection,
   PARTICIPATION_MESSAGES,
   type ParticipationSubmission,
 } from '@/app/[locale]/votes/[id]/flow/submitParticipation';
@@ -152,7 +153,7 @@ describe('submitParticipation - rejected outcomes', () => {
     });
   });
 
-  it('maps 400 to the "refresh and try again" message', async () => {
+  it('maps an uncoded 400 to the "refresh and try again" message', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(400, { error: 'Invalid option' }));
     const result = await submitParticipation({ voteId: VOTE_ID, optionId: OPTION_ID }, fetchImpl);
     expect(result).toEqual({
@@ -160,6 +161,52 @@ describe('submitParticipation - rejected outcomes', () => {
       code: 'INVALID',
       message: PARTICIPATION_MESSAGES.INVALID,
     });
+  });
+
+  it('maps a 400 with code VOTE_ENDED to the closed-vote message, not "try again"', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(400, { error: 'Vote has ended', code: 'VOTE_ENDED' }));
+    const result = await submitParticipation({ voteId: VOTE_ID, optionId: OPTION_ID }, fetchImpl);
+    expect(result).toEqual({
+      status: 'rejected',
+      code: 'VOTE_ENDED',
+      message: PARTICIPATION_MESSAGES.VOTE_ENDED,
+    });
+    // The whole point: a closed vote must not tell the resident to retry.
+    expect(PARTICIPATION_MESSAGES.VOTE_ENDED).not.toContain('רעננו את הדף');
+  });
+
+  it('maps a 400 with code VOTE_NOT_OPEN to the not-yet-open message', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(400, { error: 'not open', code: 'VOTE_NOT_OPEN' }));
+    const result = await submitParticipation({ voteId: VOTE_ID, optionId: OPTION_ID }, fetchImpl);
+    expect(result).toEqual({
+      status: 'rejected',
+      code: 'VOTE_NOT_OPEN',
+      message: PARTICIPATION_MESSAGES.VOTE_NOT_OPEN,
+    });
+  });
+
+  it('treats an unrecognised 400 code as the generic invalid case', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(jsonResponse(400, { error: 'nope', code: 'SOMETHING_NEW' }));
+    const result = await submitParticipation({ voteId: VOTE_ID, optionId: OPTION_ID }, fetchImpl);
+    expect(result.status).toBe('rejected');
+    expect(result).toMatchObject({ code: 'INVALID' });
+  });
+
+  it('classifies which rejections are terminal', () => {
+    expect(isTerminalRejection('VOTE_ENDED')).toBe(true);
+    expect(isTerminalRejection('VOTE_NOT_OPEN')).toBe(true);
+    expect(isTerminalRejection('NOT_FOUND')).toBe(true);
+    // Retrying genuinely can fix these, so the button must stay live.
+    expect(isTerminalRejection('NETWORK_ERROR')).toBe(false);
+    expect(isTerminalRejection('SERVER_ERROR')).toBe(false);
+    expect(isTerminalRejection('RATE_LIMITED')).toBe(false);
+    expect(isTerminalRejection('UNAUTHENTICATED')).toBe(false);
   });
 
   it('maps 404 to "vote not found"', async () => {
