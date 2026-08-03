@@ -2,13 +2,13 @@
 
 ## Overview
 
-Starting from a brownfield Next.js codebase with Paddle vote payments and a working Green Invoice merch rail, this milestone moves vote payments to a Green Invoice card-on-file monthly membership (first vote of the month ₪6, rest free), makes the money rails correct and secure, and ships a live product. Four phases, sequenced by hard dependencies: land the coherent working-tree change first, validate the GI integration in sandbox before writing a line of production payment code, build all payment rails and security hardening together, then go live once the external gates (legal sign-off, GI Prime provisioning) have cleared. Two further phases, added from GitHub issue #79, follow go-live: the role/approval system Taruu has never had, then the ₪50/month community-manager subscription built on top of it.
+Starting from a brownfield Next.js codebase with Paddle vote payments and a working Green Invoice merch rail, this milestone makes the money rails correct and secure and ships a live product. **Re-scoped 2026-08-03:** participation is free, vote creation costs ₪50 through the GI hosted form, and the civic pool is funded by a tradeable Bags.fm token rather than the card-on-file monthly membership originally planned. Four phases, sequenced by hard dependencies: land the coherent working-tree change first, validate the GI integration in sandbox before writing a line of production payment code, build all payment rails and security hardening together, then go live once the external gates (legal sign-off, GI Prime provisioning) have cleared. Two further phases, added from GitHub issue #79, follow go-live: the role/approval system Taruu has never had, then the ₪50/month community-manager subscription built on top of it.
 
 ## Phases
 
 - [x] **Phase 1: Clean Foundation** - Land the uncommitted change and corrective RLS migration — clean, secure base before payment rails
 - [x] **Phase 2: Spike + Gate** - Validate GI card-on-file in sandbox (hard technical gate); initiate parallel external tracks (legal sign-off, Prime plan) (completed 2026-06-30)
-- [ ] **Phase 3: Payment Rails + Hardening** - Build complete GI card-on-file vote payment loop with full security hardening
+- [ ] **Phase 3: Payment Rails + Hardening** - ₪50 creation fee + token-funded civic pool (behind a legal gate) + security hardening — RE-SCOPED 2026-08-03
 - [ ] **Phase 4: Go-Live** - Deploy with real credentials, run end-to-end money check, reconcile treasury
 - [ ] **Phase 5: RBAC + Admin Review** - Working RLS transport, role model, server-side authorization helper, and the human approval console for community-manager applicants (issue #79a + RLS corrective) — no billing
 - [ ] **Phase 6: Manager Billing + Subscription** - ₪50/month community-manager subscription on the GI token rail, with a full billing state machine gating role activation (issue #79c)
@@ -72,7 +72,8 @@ Plans:
 - [ ] 02.1-05-PLAN.md — Client: extract `submitParticipation`, server-confirmed write, honest receipt, remove `mockHash`/`SealCard`/chain copy from the casting funnel [VOTE-02, VOTE-04] (wave 2)
 
 ### Phase 3: Payment Rails + Hardening
-**Goal**: A voter sets up their card once and votes freely all month after a single ₪6 first-vote-of-the-month charge — the full GI card-on-file membership loop (card setup, once-per-calendar-month token charge, charge-then-commit, monthly-pool accrual, receipt, Paddle cutover) is implemented, idempotent, and hardened against the security gaps identified in CONCERNS.md.
+**Goal**: The money model matches the product — participation is free, vote creation charges ₪50 through the working GI hosted form with a correct receipt, the civic pool is funded by a tradeable Bags.fm token behind a written legal gate, and the security gaps from CONCERNS.md are closed.
+> **Re-scoped 2026-08-03.** This phase originally built a ₪6/month card-on-file membership. That model is retired: `cfa5d25` made participation free and the pool is now token-funded. PAY-01..05 are RETIRED, not deferred; COIN-01..04 are new. Re-read REQUIREMENTS.md before planning — the old success criteria below no longer apply.
 **Depends on**: Phase 1 (corrective RLS migration in place), Phase 2 SPIKE-01 cleared (sandbox verified)
 **Requirements**: SEC-02, SEC-03, SEC-04, SEC-05, PAY-01, PAY-02, PAY-03, PAY-04, PAY-05, PAY-06, PAY-07, PAY-08
 **Success Criteria** (what must be TRUE):
@@ -85,7 +86,8 @@ Plans:
 **Plans**: TBD
 
 ### Phase 4: Go-Live
-**Goal**: The platform is live — real Israeli residents pay ₪6 on their first vote of the month and vote free after, the ₪2.10 civic share reaches the monthly pool, and the end-to-end money flow reconciles with zero open mismatches.
+**Goal**: The platform is live — residents vote free, a real ₪50 vote-creation charge lands with a correct Israeli receipt, and the end-to-end money flow reconciles with zero open mismatches.
+> **Re-scoped 2026-08-03.** GO-02's participation leg is gone — there is no participation charge to test. Any token go-live is gated on COIN-01 (written legal sign-off), which is stricter than SPIKE-02.
 **Depends on**: Phase 3 (payment rails complete) + SPIKE-02/03 cleared (legal sign-off obtained, GI Prime provisioned with real credentials)
 **Requirements**: GO-01, GO-02
 **Success Criteria** (what must be TRUE):
@@ -161,7 +163,7 @@ Plans:
 | 1. Clean Foundation | 2/2 | Done (audit: partial — see AUDIT) | 2026-06-29 |
 | 2. Spike + Gate | 2/2 | Complete (audit: gate NOT passed) | 2026-06-30 |
 | 02.1 Participation Persistence | 5/5 | Complete    | 2026-08-02 |
-| 3. Payment Rails + Hardening | 0/TBD | Blocked — requirements contradicted, needs re-scope | - |
+| 3. Payment Rails + Hardening | 0/TBD | Re-scoped 2026-08-03 — ready to plan | - |
 | 4. Go-Live | 0/TBD | Not started (audit: GO-01 de-facto partial) | - |
 | 5. RBAC + Admin Review | 0/9 | Planned — RLS foundation folded in (RLS-01..05); carries issue #76 | - |
 | 6. Manager Billing + Subscription | 0/TBD | Not started | - |

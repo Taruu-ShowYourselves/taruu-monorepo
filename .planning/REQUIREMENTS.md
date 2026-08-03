@@ -1,11 +1,11 @@
 # Requirements: Taruu — P0 Payments + Go-Live
 
 **Defined:** 2026-06-28
-**Core Value:** A resident pays ₪6 once a month to vote freely on their city's affairs, and trusts that the civic pool funds the decisions that actually execute.
+**Core Value:** A resident votes freely on their city's affairs, and supporters who believe in the cause fund the civic pool by buying into its token — so the money behind executed decisions is visible and anyone can join it.
 
 ## v1 Requirements
 
-This milestone: move vote payments to a Green Invoice card-on-file **membership** model — the **first vote of a calendar month costs ₪6, the rest of the month is free** — make the money rails correct and secure, and go live. The ₪6 splits ₪2.10 → monthly civic pool / ₪3.90 → platform. Hard gate (spike + legal + Prime + creds) precedes production payment code.
+This milestone (re-scoped 2026-08-03): **participation is free**, vote creation costs **₪50** through the Green Invoice hosted form, and the **civic pool is funded by a tradeable Bags.fm token** that supporters buy into. Make the remaining money rails correct and secure, and go live. The card-on-file membership model this milestone was originally written around is retired — see the Payments section. A hard legal gate (COIN-01) precedes any live token surface.
 
 ### Foundation
 
@@ -26,21 +26,34 @@ This milestone: move vote payments to a Green Invoice card-on-file **membership*
 - [x] **SPIKE-02**: Accountant/legal sign-off on merchant-of-record status — correct GI document type per flow, VAT treatment, refund/credit-note (זיכוי) mechanics, consumer-protection.
 - [x] **SPIKE-03**: GI **Prime** plan provisioned and real Green Invoice + Supabase credentials in place (the ₪0.15/receipt rate the economics depend on).
 
-### Payments (Green Invoice card-on-file)
+### Payments (Green Invoice — creation fee only)
 
-- [ ] **PAY-01**: A user with no saved card is sent to the GI `/payments/form` hosted page once; on completion the card token + GI client id are stored against the user, with off-session-charge consent captured.
-- [ ] **PAY-02**: On a vote, the server checks whether the user has already paid this calendar month. First vote of the month → charge the saved token **₪6** via `/payments/tokens/{id}/charge` (no re-entry) and mark the membership-month paid. Subsequent votes that month → no charge. The month-paid check + write is atomic and idempotent (one charge per member per calendar month, even under concurrent first votes).
-- [ ] **PAY-03**: The first (paid) vote of a month is recorded only after payment-success (charge-then-commit); a failed charge records no vote and no membership-month. Free votes commit directly.
-- [ ] **PAY-04**: Each ₪6 membership charge accrues a fixed **₪2.10** to the **monthly civic pool** (and ₪3.90 to platform), atomically with the charge commit, idempotent under retries/webhook replay (mirrors `markMerchOrderPaid`). The pool is allocated to the month's executed decisions (allocation policy detailed in the bags spec) — NOT a per-vote treasury credit.
-- [ ] **PAY-05**: A declined/expired/missing token shows a localized (Hebrew/RTL) retry/update-card path and never surfaces a raw gateway error.
-- [ ] **PAY-06**: Vote creation charges **₪50** through the same token-charge flow (100% platform; not part of the monthly membership; treasury pool not credited on creation).
-- [ ] **PAY-07**: Each settled charge (the ₪6 membership charge and the ₪50 create) issues a Green Invoice receipt (חשבונית/קבלה) with correct Israeli private-payer fields, and stores the document id with the transaction.
-- [ ] **PAY-08**: Paddle is removed from the vote-payment flow; pricing/messaging states the model as "₪6/month, first vote of the month — then free" and the civic share as "₪2.10/member/month into the civic pool" (not per-vote, not "70%").
+> **Re-scoped 2026-08-03.** The card-on-file membership model is retired. Participation is free (`cfa5d25`), and the civic pool is now funded by a tradeable Bags.fm token rather than by a per-member monthly charge (see COIN-01..04). PAY-01..05 described a product Taruu no longer sells; they are retired rather than deferred. What survives is the ₪50 vote-creation fee, which already works end to end through the GI hosted form.
+
+- ~~**PAY-01**~~ RETIRED — card-on-file token storage. No recurring charge exists to store a card for.
+- ~~**PAY-02**~~ RETIRED — ₪6 first-vote-of-month membership charge. Participation is free.
+- ~~**PAY-03**~~ RETIRED — charge-then-commit ordering. Superseded by VOTE-03: free ballots commit directly.
+- ~~**PAY-04**~~ RETIRED — ₪2.10/member/month pool accrual. Replaced by COIN-02.
+- ~~**PAY-05**~~ RETIRED — declined-token retry path. No off-session token charge exists to decline.
+- [ ] **PAY-06**: Vote creation charges **₪50** via the Green Invoice hosted form (100% platform; the civic pool is not credited on creation). *(Mechanism corrected: the original text said "the same token-charge flow" — the shipped and working path is the hosted form at `services/payments/greenInvoice.ts:213`.)*
+- [ ] **PAY-07**: Each settled ₪50 creation charge issues a Green Invoice receipt (חשבונית/קבלה) with correct Israeli private-payer fields, and stores the document id with the transaction.
+- [ ] **PAY-08**: Paddle is gone from the vote-payment flow, and all user-facing copy states the model accurately: participation is free, creating a vote costs ₪50, and the civic pool is funded by the token — not by a membership, and not by a per-vote share.
+
+### Civic Pool (Bags.fm token)
+
+> **Added 2026-08-03.** The civic pool is funded by a tradeable meme coin on Bags.fm (Solana) that supporters buy into because they believe in the cause — closer to a prediction-market posture than a subscription. Partial surface already exists: `/api/bags/{quote,swap,trending}` and the `/coin` pages.
+>
+> **HARD REGULATORY GATE.** A tradeable token whose proceeds fund a civic treasury raises Israeli securities and consumer-protection questions that are not a product decision. Written legal sign-off is required before any of this is live — this gate is stricter than SPIKE-02's, not a reuse of it.
+
+- [ ] **COIN-01**: Legal sign-off, in writing, on the token's status under Israeli securities law, the treasury's custody structure, and what may and may not be claimed to buyers. Blocks everything else in this section.
+- [ ] **COIN-02**: Token proceeds accrue to a per-municipality civic pool with an append-only ledger, reconciling against on-chain records with zero open mismatches.
+- [ ] **COIN-03**: Buy/sell runs through the existing Bags surfaces with server-side validation; no raw chain error reaches the user, and every quote the UI shows is the quote that executes.
+- [ ] **COIN-04**: Every public claim about the token — expected return, pool size, what the money funds — is one Taruu can actually back, with no implied guarantee of profit or of civic outcome.
 
 ### Go-Live
 
 - [ ] **GO-01**: The app deploys to Cloudflare Workers with real credentials and GI Prime live.
-- [ ] **GO-02**: An end-to-end money check passes — one real ₪50 create + one real ₪5 participation, money lands, treasury ledger reconciles, webhook idempotent on replay.
+- [ ] **GO-02**: An end-to-end money check passes — one real ₪50 vote-creation charge lands, the GI document issues, and the internal `transactions` table reconciles with zero open mismatches. *(Re-scoped 2026-08-03: the original text required a real participation charge, which cannot exist in a free-participation product, and quoted ₪5 against a ₪6 milestone.)*
 
 ### Participation Persistence (Phase 02.1 — P0 from the v1.0 audit, URGENT)
 
@@ -138,14 +151,18 @@ Built entirely on Phase 5's primitives — the role-grant schema, the authorizat
 | SEC-03 | Phase 3 | Pending |
 | SEC-04 | Phase 3 | Pending |
 | SEC-05 | Phase 3 | Pending |
-| PAY-01 | Phase 3 | Pending |
-| PAY-02 | Phase 3 | Pending |
-| PAY-03 | Phase 3 | Pending |
-| PAY-04 | Phase 3 | Pending |
-| PAY-05 | Phase 3 | Pending |
+| PAY-01 | — | RETIRED 2026-08-03 (membership model dropped) |
+| PAY-02 | — | RETIRED 2026-08-03 (membership model dropped) |
+| PAY-03 | — | RETIRED 2026-08-03 (membership model dropped) |
+| PAY-04 | — | RETIRED 2026-08-03 (membership model dropped) |
+| PAY-05 | — | RETIRED 2026-08-03 (membership model dropped) |
 | PAY-06 | Phase 3 | Pending |
 | PAY-07 | Phase 3 | Pending |
 | PAY-08 | Phase 3 | Pending |
+| COIN-01 | Phase 3 | Pending (hard legal gate) |
+| COIN-02 | Phase 3 | Pending |
+| COIN-03 | Phase 3 | Pending |
+| COIN-04 | Phase 3 | Pending |
 | GO-01 | Phase 4 | Pending |
 | GO-02 | Phase 4 | Pending |
 | RBAC-01 | Phase 5 | Pending |
@@ -173,7 +190,7 @@ Built entirely on Phase 5's primitives — the role-grant schema, the authorizat
 | AUTH-05 | Phase 8 | Pending |
 | AUTH-06 | Phase 8 | Pending |
 
-**Coverage:** 48/48 v1 requirements mapped — 0 orphaned
+**Coverage:** 47/52 mapped, 5 retired (PAY-01..05) — 0 orphaned
 
 > **Audit note (2026-08-02):** the checkbox and Status columns above predate `.planning/v1.0-MILESTONE-AUDIT.md` and overstate progress. SPIKE-01/02/03 are marked Complete but their artifacts are unfilled templates. SEC-02 reads Pending but shipped out of phase in `35b0709`. PAY-02/03/04/08 and GO-02 are contradicted by shipped free participation and need rewriting rather than building. Audit-verified coverage is 2/28 of the pre-02.1 set.
 
