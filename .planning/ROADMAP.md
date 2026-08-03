@@ -98,7 +98,20 @@ Plans:
   2. A real ₪50 vote-creation charge lands in the GI dashboard, a חשבונית with correct Israeli private-payer fields is issued, and the charge id + document id are stored in the internal `transactions` table.
   3. A real resident casts a free vote on production and the `user_votes` row, tally bump, and `participant_count` are read back from live Supabase — the one Phase 02.1 check no automated test can make (see `02.1-05-SUMMARY.md`).
   4. GI settlement report and the internal `transactions` table reconcile to zero open mismatches after the end-to-end check — every settled creation charge has a matching transaction row and vice versa. *(The `treasury_ledger` leg moves to the token track and is gated on COIN-01; there is no participation charge to reconcile.)*
-**Plans**: TBD
+
+> **Planning note (2026-08-03):** there is no `transactions` table in any migration — the internal ledger is `payments` (`supabase/migrations/20240101000000_initial_schema.sql:148`), where the GI document id lands in `provider_id` and amounts are stored in agorot. Criterion 4 is planned against `payments`.
+>
+> **Hard gates encoded in `04-CONTEXT.md` (G0–G6), all verified against the repo:** Phase 3 unplanned (no `03-*` directory); `GI-LEGAL-CHECKLIST.md` 0/19 and `GI-PRIME-CHECKLIST.md` 0/24, both unsigned **and** written against the retired ₪6 membership; `wrangler.jsonc:74` runs `GREENINVOICE_ENV=production` in front of them; `validateEnv()` (`env.ts:146`) has zero callers and requires 6 variables with 0 runtime readers (owner: Phase 3 SEC-05); `CLOUDFLARE_API_TOKEN` is absent from `gh secret list` and the last 10 `deploy.yml` runs failed; UPSTASH/GI-prod/SMS Worker secrets are empty.
+
+**Plans**: 6 plans in 4 waves
+
+Plans:
+- [ ] 04-01-PLAN.md — Re-scope the legal + GI Prime checklists to free participation / ₪50 creation, and create the G0–G6 gate ledger [GO-01] (wave 1)
+- [ ] 04-02-PLAN.md — Deploy path: fail-fast CI credential guard, non-fatal notifier, names-only production secret preflight, corrected runbook [GO-01] (wave 1)
+- [ ] 04-03-PLAN.md — Reconciliation: pure tested core + tsx CLI over a GI settlement export and the `payments` table + runbook [GO-02] (wave 1)
+- [ ] 04-04-PLAN.md — Hard external gate: SPIKE-02 legal sign-off, SPIKE-03 Prime/creds/clearing, `GREENINVOICE_ENV` reconciled, go/no-go decision [GO-01] (wave 2, checkpoints)
+- [ ] 04-05-PLAN.md — Production deploy + live smoke; record the deployment id, cron reality, and the `validateEnv()` state [GO-01] (wave 3, checkpoints)
+- [ ] 04-06-PLAN.md — Real ₪50 charge + free-vote read-back from live Supabase + reconcile to zero; sign off `04-VALIDATION.md` [GO-01, GO-02] (wave 4, checkpoints)
 
 ### Phase 5: RBAC + Admin Review
 
@@ -167,7 +180,7 @@ Plans:
 | 2. Spike + Gate | 2/2 | Complete (audit: gate NOT passed) | 2026-06-30 |
 | 02.1 Participation Persistence | 5/5 | Complete    | 2026-08-02 |
 | 3. Payment Rails + Hardening | 0/TBD | Re-scoped 2026-08-03 — ready to plan | - |
-| 4. Go-Live | 0/TBD | Not started (audit: GO-01 de-facto partial) | - |
+| 4. Go-Live | 0/6 | Planned 2026-08-03 — 6 plans / 4 waves; blocked on Phase 3 + gates G1/G2 | - |
 | 5. RBAC + Admin Review | 0/9 | Planned — RLS foundation folded in (RLS-01..05); carries issue #76 | - |
 | 6. Manager Billing + Subscription | 0/TBD | Not started | - |
 | 7. Service-Role Migration | 0/TBD | Not started — blocked on Phase 5 RLS foundation | - |
