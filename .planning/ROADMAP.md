@@ -196,7 +196,7 @@ Plans:
 | 4. Go-Live | 0/6 | Planned 2026-08-03 — 6 plans / 4 waves; blocked on Phase 3 + gates G1/G2 | - |
 | 5. RBAC + Admin Review | 0/9 | Planned — RLS foundation folded in (RLS-01..05); carries issue #76 | - |
 | 6. Manager Billing + Subscription | 0/11 | Planned — blocked on SPIKE-01 (gate 06-01) and on Phase 5 executing | - |
-| 7. Service-Role Migration | 0/TBD | Not started — blocked on Phase 5 RLS foundation | - |
+| 7. Service-Role Migration | 0/16 | Planned 2026-08-03 (16 plans, 6 waves) — GATED on Phase 5 RLS-01..05 being **built**, not planned | - |
 | 8. Municipality Onboarding + Authority Dashboard | 0/TBD | Not started — blocked on Phase 5 RBAC primitives (issue #76) | - |
 
 ### Phase 7: Service-Role Migration
@@ -215,7 +215,30 @@ Plans:
   2. All 112 `db.ts` exports are classified user-initiated vs system, and every user-initiated path runs through the RLS-enforced user-scoped client.
   3. Remaining privileged call sites each carry a written justification; no route uses service-role by habit.
   4. Each migrated table has a test in the RLS-04 harness proving cross-user reads are denied, and the full suite is green.
-**Plans**: TBD
+
+> **Scope re-counted 2026-08-03 during planning; the figures above drifted.** Verified: **25** tables (matches), **36 live distinct policies** (39 `CREATE POLICY` statements — `20260628000002` DROPs and re-CREATEs 3), **14** `USING (true)` policies (the 15th grep hit is a comment), **30** files referencing `supabaseAdmin` (19 source + 11 test, up from 27), `db.ts` at **2441 lines / 114 exports** (107 functions + 7 types) with 112 `supabaseAdmin` references, and **7** API routes (matches). MIG-02 is written against "112 exports"; the real number is 114.
+>
+> **Two live security findings surfaced by the audit, neither of which is a keep-or-replace judgement call:** (1) `webhook_events`'s only policy is `FOR ALL USING (true) WITH CHECK (true)` with **no `TO` clause**, so it defaults to `TO PUBLIC` — anyone holding the published anon key can read the replay guard, DELETE rows to re-enable webhook replay, or INSERT a row to make a real webhook look already-processed. Fixed in wave 1. (2) `vote_nfts` is `SELECT USING (true)` over a table carrying `user_id` and `wallet_address`, publishing the join from a Taruu user to a specific vote and a Solana wallet.
+
+**Plans**: 16 plans in 6 waves
+
+Plans:
+- [ ] 07-01-PLAN.md — Policy audit of all 25 tables + `USING (true)` verdicts + the `webhook_events` anon read/write hotfix [MIG-01] (wave 1)
+- [ ] 07-02-PLAN.md — Classify all 114 `db.ts` exports user-initiated vs system + the privileged-justification convention [MIG-02, MIG-03] (wave 1)
+- [ ] 07-03-PLAN.md — `createAnonClient()` for public reads + generalize the RLS-04 harness to all 28 tables [MIG-02, MIG-04] (wave 1)
+- [ ] 07-04-PLAN.md — Split `db.ts` part 1: eight domain modules, 66 exports [MIG-02] (wave 1)
+- [ ] 07-05-PLAN.md — The corrective policy migration: every replace verdict + every required addition [MIG-01] (wave 2)
+- [ ] 07-06-PLAN.md — Split `db.ts` part 2: seven more modules, delete `db.ts`, `db/index.ts` barrel [MIG-02] (wave 2)
+- [ ] 07-07-PLAN.md — CHECKPOINT: verify the Phase 5 gate, apply both migrations, prove both findings closed live [MIG-01, MIG-04] (wave 3)
+- [ ] 07-08-PLAN.md — Identity slice: users, social_proofs, identity_documents, identity_document_events [MIG-02, MIG-03, MIG-04] (wave 4)
+- [ ] 07-09-PLAN.md — Residency slice: verification_runs/schedule/attempts, phone_verifications [MIG-02, MIG-03, MIG-04] (wave 4)
+- [ ] 07-10-PLAN.md — Ballot slice: user_votes + user statistics — the secret-ballot proof [MIG-02, MIG-03, MIG-04] (wave 4)
+- [ ] 07-11-PLAN.md — Public catalogue slice: votes, vote_sources, knesset_*, municipalities [MIG-01, MIG-02, MIG-04] (wave 4)
+- [ ] 07-12-PLAN.md — Payments slice: payments, entitlements [MIG-02, MIG-03, MIG-04] (wave 4)
+- [ ] 07-13-PLAN.md — Money-visibility slice: treasury, treasury_transactions, issue_coins, issue_coin_holdings [MIG-02, MIG-03, MIG-04] (wave 4)
+- [ ] 07-14-PLAN.md — System-privileged slice: vote_nfts, push_tokens, webhook_events, merch_orders + the permanent findings guard [MIG-02, MIG-03, MIG-04] (wave 4)
+- [ ] 07-15-PLAN.md — Migrate Phase 5's `role.repo.ts` + the privileged-access guard test that fails CI on an unjustified `supabaseAdmin` [MIG-02, MIG-03, MIG-04] (wave 5)
+- [ ] 07-16-PLAN.md — CHECKPOINT: coverage ledger asserted, full RLS suite live with a non-zero count, phase record [MIG-01..04] (wave 6)
 
 ### Phase 8: Municipality Onboarding + Authority Dashboard
 
