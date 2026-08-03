@@ -53,6 +53,21 @@ vi.mock('@/server/infra/supabase/space-audit.repo', () => ({
   listAuditRows: vi.fn(),
 }));
 
+/**
+ * Approval charges the ₪50 creation fee (05-10) through this port before it
+ * publishes, and the real implementation reaches Supabase. A permanently
+ * succeeding stub keeps this file about the guard chain; the charge itself —
+ * who is billed, the ordering, what a decline leaves behind — is
+ * space-admin-approve-charge.test.ts's subject, and is not duplicated here.
+ */
+vi.mock('@/server/infra/payments/creation-fee', () => ({
+  createCreationFeePort: () => ({
+    charge: vi.fn(() =>
+      okAsync({ paymentId: '77777777-7777-4777-8777-777777777777', outcome: 'obligation' })
+    ),
+  }),
+}));
+
 import { getSessionFromRequest } from '@/services/auth/session';
 import type { Capability } from '@/server/domain/space/capability';
 import { findActiveGrant } from '@/server/infra/supabase/space.repo';

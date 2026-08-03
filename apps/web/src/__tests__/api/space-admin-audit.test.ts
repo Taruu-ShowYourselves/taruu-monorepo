@@ -45,6 +45,20 @@ vi.mock('@/server/infra/supabase/space-audit.repo', () => ({
   listAuditRows: vi.fn(),
 }));
 
+/**
+ * Approval charges the ₪50 creation fee (05-10) before it publishes, and the
+ * real port reaches Supabase. Stubbed to a fixed payment id so the approval
+ * rows below can assert that the money and the decision are linked.
+ */
+const CHARGED_PAYMENT_ID = '77777777-7777-4777-8777-777777777777';
+vi.mock('@/server/infra/payments/creation-fee', () => ({
+  createCreationFeePort: () => ({
+    charge: vi.fn(() =>
+      okAsync({ paymentId: '77777777-7777-4777-8777-777777777777', outcome: 'obligation' })
+    ),
+  }),
+}));
+
 import { getSessionFromRequest } from '@/services/auth/session';
 import { findActiveGrant } from '@/server/infra/supabase/space.repo';
 import { insertAuditRow } from '@/server/infra/supabase/space-audit.repo';
@@ -124,12 +138,19 @@ describe('every decision writes one complete audit row', () => {
     });
   });
 
+  // An approval's new_state carries the creation fee alongside the status
+  // (05-10), so the immutable log ties the ₪50 to the decision that caused it.
+  // A decline carries the status alone — asserted in the it.each below.
   it('records the real transition, not a restatement of the request', async () => {
     await DECIDE(post({ decision: 'approve', reason: REASON }), ctx());
 
     const row = writtenRow();
     expect(row.prior_state).toEqual({ status: 'in_review' });
-    expect(row.new_state).toEqual({ status: 'active' });
+    expect(row.new_state).toEqual({
+      status: 'active',
+      paymentId: CHARGED_PAYMENT_ID,
+      amountAgorot: 5000,
+    });
   });
 
   it('records the scheduled target when approval precedes the start date', async () => {
@@ -141,7 +162,11 @@ describe('every decision writes one complete audit row', () => {
 
     const row = writtenRow();
     expect(row.prior_state).toEqual({ status: 'in_review' });
-    expect(row.new_state).toEqual({ status: 'pending' });
+    expect(row.new_state).toEqual({
+      status: 'pending',
+      paymentId: CHARGED_PAYMENT_ID,
+      amountAgorot: 5000,
+    });
   });
 
   it.each([
