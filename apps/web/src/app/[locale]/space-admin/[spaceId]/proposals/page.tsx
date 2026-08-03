@@ -117,10 +117,17 @@ export default async function SpaceProposalsPage({
   // is the same opaque refusal as a space that does not exist.
   const overview = await getSpaceOverview(session, spaceId);
   if (overview.isErr()) {
-    return overview.error.kind === 'FORBIDDEN' ? (
-      <ProposalsAccessDenied spaceId={spaceId} />
-    ) : (
-      <ErrorPanel />
+    // No header and no nav here on purpose: the space has not been disclosed,
+    // and naming it in the refusal would answer the question the refusal is
+    // withholding. The escalation path is still present.
+    return (
+      <div className={styles.surface}>
+        {overview.error.kind === 'FORBIDDEN' ? (
+          <ProposalsAccessDenied spaceId={spaceId} />
+        ) : (
+          <ErrorPanel />
+        )}
+      </div>
     );
   }
 
