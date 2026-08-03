@@ -1,0 +1,169 @@
+/* ============================================================
+ * ConfirmDialog — Radix AlertDialog, press-painted.
+ * Also the canonical home of this phase's DISABLED-STATE CONTRACT (D17/D27)
+ * and of the dense-`ink` hover fix (D23). Both are at the bottom of the file.
+ * ============================================================ */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal-backdrop);
+  background: var(--color-surface-overlay);
+}
+
+/* `inset: 0` + `margin: auto` + a sized box centres on both axes without a
+   transform, so there is no RTL sign to get wrong. The positioner hugs the
+   plate, which leaves the rest of the viewport to the backdrop and keeps the
+   backdrop-click cancel working. */
+.positioner {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  z-index: var(--z-modal);
+  inline-size: min(calc(100% - 2 * var(--space-4)), 44rem);
+  block-size: fit-content;
+  max-block-size: calc(100% - 2 * var(--space-4));
+  overflow-y: auto;
+}
+
+.plate {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-8);
+  background: var(--np-paper-box);
+  border: var(--np-rule-heavy) solid var(--np-ink);
+  border-radius: 0;
+  animation: plateReveal var(--np-dur) var(--np-ease);
+}
+
+/* Danger is structural: a red `--np-rule-heavy` plate rule, not a red fill
+   and not a third hue (D7). */
+.plateIrreversible {
+  composes: plate;
+  border-color: var(--np-red);
+}
+
+/* Hard inset clip reveal. No fade, no scale, no bounce. */
+@keyframes plateReveal {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.heading {
+  font-family: var(--np-font-display);
+  font-weight: 800;
+  font-size: var(--text-base);
+  line-height: 1.2;
+  color: var(--np-ink);
+}
+
+.body {
+  font-family: var(--np-font-display);
+  font-weight: 400;
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--np-ink-soft);
+}
+
+/* Red text on paper-box is `--np-red-ink` — 10.32:1 (D9). */
+.consequence {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: var(--np-red-ink);
+}
+
+.rule {
+  inline-size: 100%;
+  border: 0;
+  border-block-start: var(--np-rule) solid var(--np-ink);
+  margin: 0;
+}
+
+.counter {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--np-ink-faint);
+}
+
+.error {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: var(--np-red-ink);
+}
+
+.unblockHint {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: var(--np-ink-faint);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+/* Touch target on both the confirm and the cancel. */
+.actions > * {
+  min-block-size: var(--space-11);
+}
+
+/* ============================================================
+ * DISABLED-STATE CONTRACT — D17 + D27.
+ *
+ * `NewsButton.module.css` has no `:disabled` rule at all, so this is the
+ * whole appearance. It MUST be authored `:disabled`-qualified or it silently
+ * loses: a bare class arriving through `className` is specificity (0,1,0),
+ * which cannot beat `.ink:hover` (0,1,1) and only ties `.btn { cursor:
+ * pointer }` (0,1,0) on source order. `:hover` still fires on a disabled
+ * button, so the no-inversion rule needs its own `:disabled:hover` selector.
+ *
+ * Do not dim the control. Dimming would drag `--np-paper-2` below its 0.03
+ * AA margin, and that token also carries row hover and the skeletons.
+ * ============================================================ */
+
+/* (0,2,0) — beats `.btn` and `.ink`. */
+.confirmBtn:disabled {
+  background: var(--np-paper-2);
+  color: var(--np-ink-faint); /* 4.53:1 on paper-2 — AA normal text */
+  border-color: var(--np-ink-faint);
+  cursor: not-allowed;
+}
+
+/* (0,2,1) — beats `.ink:hover` (0,1,1). */
+.confirmBtn:disabled:hover {
+  background: var(--np-paper-2);
+  color: var(--np-ink-faint);
+}
+
+/* D23 — dense `ink` hover fix. `NewsButton.module.css:44` inverts `.ink` to a
+   red fill with paper text on hover: 4.03:1 at body size, the same defect
+   bans `.np-block-red`. `--np-red-dark` restores the press inversion at
+   6.03:1. This applies to `ink` ONLY: `.outline:hover` already inverts to
+   ink at 16.66:1, and giving it a red fill would lower compliant contrast
+   and put red on every destructive row trigger, gutting D7. */
+.confirmBtn:hover:not(:disabled) {
+  background: var(--np-red-dark);
+  color: var(--np-paper);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plate {
+    animation: none;
+  }
+}
