@@ -24,6 +24,18 @@ export interface ResolvedAudience {
   readonly userIds: string[];
   /** sha256 of the sorted ids. The equality SPACE-08 promises, made checkable. */
   readonly hash: string;
+  /**
+   * Who was excluded, not just how many — the send writes one `suppressed`
+   * delivery row per opted-out candidate so the log accounts for the whole
+   * considered set rather than only its included half. The counts below stay
+   * because the preview renders numbers; this list exists because the delivery
+   * table's rows are per user.
+   *
+   * Deliberately NOT part of the fingerprint: the hash covers the recipients,
+   * and folding exclusions into it would make an opt-out by someone who was
+   * never going to be delivered to invalidate a still-correct preview.
+   */
+  readonly optedOutUserIds: string[];
   readonly excludedOptedOut: number;
   readonly excludedNoChannel: number;
 }
@@ -76,7 +88,10 @@ export function resolveAudience(
 ): ResultAsync<ResolvedAudience, AppError> {
   return listAudienceCandidates(scope, filter).andThen((candidates) => {
     const included = candidates.filter(optedIn);
-    const excludedOptedOut = candidates.length - included.length;
+    const optedOutUserIds = candidates
+      .filter((row) => !optedIn(row))
+      .map((row) => row.id)
+      .sort();
     const userIds = included.map((row) => row.id).sort();
 
     // One batched channel lookup for the whole audience, never one per user.
@@ -84,7 +99,8 @@ export function resolveAudience(
       ResultAsync.fromSafePromise(sha256Hex(userIds.join(','))).map((hash) => ({
         userIds,
         hash,
-        excludedOptedOut,
+        optedOutUserIds,
+        excludedOptedOut: optedOutUserIds.length,
         excludedNoChannel: userIds.filter((id) => !reachable.has(id)).length,
       }))
     );

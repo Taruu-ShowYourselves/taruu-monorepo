@@ -61,6 +61,10 @@ vi.mock('@/services/notifications/expo', () => ({
 }));
 
 import {
+  activeTokensForUsers,
+  usersWithActiveChannel,
+} from '@/server/infra/supabase/push.repo';
+import {
   claimCampaignForSend,
   countCampaignsSentThisMonth,
   findCampaignInScope,
@@ -69,7 +73,6 @@ import {
   listAudienceCandidates,
   readSpaceQuota,
 } from '@/server/infra/supabase/space-notify.repo';
-import { usersWithActiveChannel } from '@/server/infra/supabase/push.repo';
 import { insertAuditRow } from '@/server/infra/supabase/space-audit.repo';
 import { findActiveGrant } from '@/server/infra/supabase/space.repo';
 import { sendBatchNotifications } from '@/services/notifications/expo';
@@ -206,6 +209,9 @@ beforeEach(() => {
   vi.clearAllMocks();
   delete process.env.SPACE_ADMIN_ENABLED;
   everyoneHasAChannel();
+  (activeTokensForUsers as Mock).mockReturnValue(
+    okAsync(['ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]'])
+  );
   candidatesAre([candidate(1), candidate(2)]);
   grantOnlyInSpaceA();
   (countCampaignsSentThisMonth as Mock).mockReturnValue(okAsync(2));
