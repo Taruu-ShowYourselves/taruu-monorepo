@@ -58,6 +58,13 @@ import { POST as POST_CONTENT } from '@/app/api/space-admin/[spaceId]/proposals/
 import { POST as POST_ESCALATION } from '@/app/api/space-admin/[spaceId]/escalations/route';
 import { ESCALATION_ACKNOWLEDGEMENT } from '@/server/app/space-admin/raise-escalation';
 
+/**
+ * Snapshotted at import time. The limiter is constructed when the route module
+ * loads, and `vi.clearAllMocks()` in `beforeEach` would erase that call before
+ * any test could read it.
+ */
+const limiterConstruction = [...(createRateLimiter as unknown as Mock).mock.calls];
+
 const VOTE_ID = '55555555-5555-4555-8555-555555555555';
 const REASON = 'התוכן חורג מכללי המרחב';
 const BODY = 'ההרשאה שלי הושעתה ואני מבקש בירור';
@@ -269,10 +276,10 @@ describe('POST /api/space-admin/{spaceId}/escalations', () => {
   });
 
   it('is rate-limited per user, not per space', async () => {
-    expect(createRateLimiter).toHaveBeenCalledWith(
+    expect(limiterConstruction).toContainEqual([
       'space-escalation',
-      expect.objectContaining({ windowMs: 3_600_000, maxRequests: 5 })
-    );
+      expect.objectContaining({ windowMs: 3_600_000, maxRequests: 5 }),
+    ]);
 
     limiterCheck.mockResolvedValue({ limited: true, remaining: 0, resetIn: 1_000 });
 
