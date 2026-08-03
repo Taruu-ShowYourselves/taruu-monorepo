@@ -1,0 +1,37 @@
+/* ============================================================
+ * EscalationDialog — the trigger and its confirmation line.
+ * The dialog plate itself is ConfirmDialog's; nothing here paints it.
+ * ============================================================ */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+/*
+ * The success line is visible as well as announced. A screen-reader-only
+ * confirmation would leave a sighted admin unsure whether the request went
+ * anywhere after the dialog closed under them.
+ */
+.sent {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: var(--np-ink);
+  max-width: 68ch;
+}
+
+/* The live region is always in the DOM; with no text it occupies nothing. */
+.sent:empty {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wrap {
+    transition: none;
+    animation: none;
+  }
+}
