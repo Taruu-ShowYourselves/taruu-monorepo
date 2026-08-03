@@ -1,7 +1,8 @@
 import React from 'react';
+import { notFound } from 'next/navigation';
 import { Masthead } from '@/components/press';
 import { Colophon } from '@/components/press/sections';
-import type { Locale } from '@/lib/i18n';
+import { i18n, type Locale } from '@/lib/i18n';
 import styles from './layout.module.css';
 
 /**
@@ -43,7 +44,13 @@ export default async function SpaceAdminLayout({
   params,
 }: SpaceAdminLayoutProps) {
   const { locale: rawLocale } = await params;
+
+  // The cast is only sound because of the line under it: an unexpected segment
+  // is a 404, not a locale we quietly pretend to support. Same shape as
+  // `[locale]/layout.tsx`, which runs first and also refuses — this repeats it
+  // rather than depending on a parent layout to have done it.
   const locale = rawLocale as Locale;
+  if (!(i18n.locales as readonly string[]).includes(locale)) notFound();
 
   return (
     <div className="np-page">
