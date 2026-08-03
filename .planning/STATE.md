@@ -24,11 +24,11 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 05 (space-governance-substrate-and-space-admin-operations-dashboard) — EXECUTING
-Plan: 11 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several plans in parallel, so this counter is a count of completed plans, not a position in a sequence)
+Plan: 12 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several plans in parallel, so this counter is a count of completed plans, not a position in a sequence)
 
 ## ▶ RESUME HERE (after /clear)
 
-**Phase 5 is EXECUTING** (16 plans, 6 waves). **Waves 1 and 2 are complete** — 05-01, 05-02, 05-03, 05-04 and 05-11 have all landed. **Wave 3 is complete** — 05-05, 05-06, 05-07 and 05-08 have all landed. **Wave 4 is in progress** — 05-09 and 05-10 have landed; 05-12, 05-13 and 05-14 are running.
+**Phase 5 is EXECUTING** (16 plans, 6 waves). **Waves 1 and 2 are complete** — 05-01, 05-02, 05-03, 05-04 and 05-11 have all landed. **Wave 3 is complete** — 05-05, 05-06, 05-07 and 05-08 have all landed. **Wave 4 is in progress** — 05-09, 05-10 and 05-14 have landed; 05-12 and 05-13 are running.
 
 - 05-01 (governance substrate — DB tables, two-file `vote_status` split, `types.ts`); see `05-01-SUMMARY.md`.
 - 05-02 (capability vocabulary, review transitions, QUOTA_EXCEEDED, rollout flag, full contract surface); see `05-02-SUMMARY.md`.
@@ -209,10 +209,12 @@ None yet.
 - **`space_admin_metrics` (05-07) is unapplied like the rest.** Three probes belong on 05-16's checklist: call it for a real space; for a random uuid (must return **zero rows**, not a row of zeroes); and for a space with a NULL `municipality_code` (must return zero rows). The `WHERE EXISTS` guard is the only thing standing between a nonexistent space and a fabricated `registered_residents: 0, status: 'available'`, and it has never executed.
 - **05-06's repository predicates are unexecuted, and one of them is load-bearing for every 409 in the plan.** Four items for 05-16's checklist: the `or=(first_name.ilike.*t*,last_name.ilike.*t*)` member search; the `23505` code surfacing on the supabase-js error for `uq_active_grant` and `uq_active_member_suspension`; the exact-timestamp match in `liftMemberSuspension` (assumes Postgres returns the ISO string it was given); and — **first priority** — `.select()` after an `UPDATE` returning the affected rows. Every conflict detection in `space-member.repo.ts` reads a zero-length array as "already in that state"; if that returns something else, all of the plan's 409s silently become 200s.
 - **05-09's writes are unexecuted, and one of them shares 05-06's first-priority risk.** Four items for 05-16's checklist: `claimCampaignForSend`'s `.select()` after a conditional `UPDATE` (zero rows *is* the "already sent" 409 — if a conditional update returns something else, every send either always 409s or never detects a double send); `insertDeliveries`' `ignoreDuplicates` against `uq_delivery_once`, whose whole purpose is retry idempotency; the bulk insert into `user_notifications` with its two nullable FKs; and the history query's `.order('sent_at').limit()` against the partial quota index. **Plus a design question 05-16 should rule on:** a failure between the claim and the audit row leaves a `sent` campaign with zero recipients and one unit of quota spent — acceptable, or does the send need an RPC?
+- **A layout that narrows its own route param fails Next's generated validator (found and fixed by 05-14).** `space-admin/[spaceId]/layout.tsx` declared `params: Promise<{ locale: Locale; … }>`; `LayoutConfig` types a layout's params from the route segments as plain strings, so `tsc --noEmit` failed with `TS2344` as soon as `.next/types` regenerated — and `next build` would too. Fixed in `1bd7134` by narrowing in the body, the pattern `[locale]/layout.tsx` already uses. **Pages are exempt** (`AppPageConfig` intersects with `any`), which is why the six surfaces can declare `Locale` directly. Worth knowing before anyone "tidies" a layout signature.
+- **05-14 shipped two surfaces that have never been rendered.** Members and statistics typecheck and lint; neither has been loaded in a browser, and none of their five fetches has reached a route. The RTL layout, the 768px column reduction, the row flash and the LTR isolation of the suppressed `<5` figure are reviewed, not seen. Screenshots 5–8 are 05-16's, and #7–8 need a fixture space small enough to produce a suppressed bucket, which needs the metrics migration applied first.
 - 05-11 did NOT perform its plan's one manual step — rendering the shell at `/he/space-admin/{uuid}`. No page exists under `[spaceId]` yet and starting `next dev` in a tree with live executors risks clobbering `.next`. 05-12 is the first plan able to load the route and should confirm the masthead/nav/colophon compose with no top offset.
 
 ## Session Continuity
 
-Last session: 2026-08-03T12:10:00.000Z
-Stopped at: Completed 05-09-PLAN.md — the send enforces "delivered equals previewed" with two fingerprints, a database-counted quota and a delivery log (wave 4 in progress alongside 05-12, 05-13, 05-14; 05-10 has landed)
+Last session: 2026-08-03T12:15:00.000Z
+Stopped at: Completed 05-14-PLAN.md — the members/roles and aggregate-statistics surfaces, with suppressed (`<5`) and withheld (em dash) kept as two visibly different claims (wave 4 continues with 05-12 and 05-13)
 Resume file: None

@@ -57,3 +57,21 @@ Out-of-scope findings logged during execution. Not fixed by the plan that found 
 - 05-04's summary asks the first plan that *reuses* the `FORBIDDEN`-folding helper to move it out of `get-space-overview.ts` rather than copy it.
 - 05-06 does not reuse it and did not copy it. Every surface in this plan is gated on a single capability, so a missing capability is a 403 for the whole endpoint rather than an absent widget — `GET /members` without `member.read` must be refused, not served with an empty list, and Task 2's behaviour bullet requires exactly that.
 - Extracting a helper for callers that do not exist yet is the speculation 05-04 explicitly declined. **05-07 (metrics) is the real first reuse** — it renders a multi-widget surface under Rule A — and should do the extraction.
+
+## From 05-14
+
+**8. The post-decision row flash needs a keyframe per surface, because `PressTable` ships the hook but not the animation**
+
+- **Found during:** 05-14 Task 1.
+- **Observed:** 05-13 added `rowClassName?: (row) => string | undefined` to `PressTable` for exactly this purpose, but no flash keyframe lives in `PressTable.module.css`. Each surface therefore writes its own — and has to know two non-obvious things to get it right: the flash must target `> th, > td` because the table paints cell backgrounds rather than row backgrounds, and the `prefers-reduced-motion` opt-out needs matching specificity or a `.surface *` wildcard silently loses to it.
+- **Status:** 05-14's members surface implements it correctly (`memberRowFlash` in `members/page.module.css`). This is logged so the proposals and audit surfaces copy the working version rather than rediscovering both traps.
+- **What it would take to close:** move the keyframe and the reduced-motion rule into `PressTable.module.css` and export the class name, the way `confirmButtonClass` is exported for the disabled-state contract.
+- **Owner:** 05-15.
+
+**9. Four small things are now duplicated across the space-admin surfaces, pending a dedupe pass**
+
+- **Found during:** 05-14, both tasks.
+- **Observed, in `members/page.tsx` and `stats/page.tsx`:** the surface→capability map that drives `SpaceAdminNav`'s `visibleHrefs`, and the Hebrew label map for the five `spaces.type` values. Both are byte-identical copies. **In `members/MembersClient.tsx` and `stats/StatsFallback.tsx`:** the escalation `ConfirmDialog` (same copy deck, same endpoint, same acknowledgement) — and 05-12 has since landed `components/space-admin/EscalationDialog.tsx`, which is a third copy of the same idea.
+- **Why not fixed here:** 05-12 was running concurrently and is the plan authorized to create shared modules this wave; importing a component that had not yet been committed would have broken on a rename, and adding a competing shared module would have collided.
+- **What it needs:** fold both maps into one module beside `SpaceAdminNav` (they are nav concerns), and replace both inline escalation dialogs with `EscalationDialog` once its API is settled.
+- **Owner:** 05-15.
