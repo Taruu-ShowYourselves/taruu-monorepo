@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 05-05-PLAN.md
-last_updated: "2026-08-03T10:50:00.000Z"
+stopped_at: "Completed 05-07-PLAN.md (wave 3 parallel: 05-05, 05-07, 05-08 all landed)"
+last_updated: "2026-08-03T07:55:52.544Z"
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 20
-  completed_plans: 10
+  completed_plans: 12
 ---
 
 # Project State
@@ -24,17 +24,19 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 05 (space-governance-substrate-and-space-admin-operations-dashboard) — EXECUTING
-Plan: 7 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several plans in parallel, so this counter is a count of completed plans, not a position in a sequence)
+Plan: 8 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several plans in parallel, so this counter is a count of completed plans, not a position in a sequence)
 
 ## ▶ RESUME HERE (after /clear)
 
-**Phase 5 is EXECUTING** (16 plans, 6 waves). **Waves 1 and 2 are complete** — 05-01, 05-02, 05-03, 05-04 and 05-11 have all landed. **Wave 3 is in progress:** 05-05 is done; 05-06, 05-07 and 05-08 were committing into this same worktree alongside it.
+**Phase 5 is EXECUTING** (16 plans, 6 waves). **Waves 1 and 2 are complete** — 05-01, 05-02, 05-03, 05-04 and 05-11 have all landed. **Wave 3 is nearly done:** 05-05, 05-07 and 05-08 are complete; only 05-06 was still committing into this same worktree.
 
 - 05-01 (governance substrate — DB tables, two-file `vote_status` split, `types.ts`); see `05-01-SUMMARY.md`.
 - 05-02 (capability vocabulary, review transitions, QUOTA_EXCEEDED, rollout flag, full contract surface); see `05-02-SUMMARY.md`.
 - 05-03 (public visibility allow-list, six corrected read paths, reconciled status vocabulary); see `05-03-SUMMARY.md`.
 - 05-04 (**the authorization core** — branded `SpaceScope`, `resolveMembership`, two space repositories, the first two use-cases and routes, 52 tests); see `05-04-SUMMARY.md`. **Plans 05-05…05-09 must read three sections of it before adding a repository function:** the limit of the guarantee (`SpaceScope.capability` is carried but enforced by no repository), the two-token cost (`SpaceMembership` needs its own entry points), and the `optional()` extraction note under "For downstream plans".
 - 05-05 (**the first real writer** — `space-decision.repo.ts`, the six-guard `decideProposal` chain, POST decide + GET detail routes, 29 tests); see `05-05-SUMMARY.md`. **05-10 must read its "Where plan 05-10 inserts the creation-fee charge" section first:** the seam is `decide-proposal.ts:118`, between `resolveDecisionTarget` (116) and `transitionProposal` (123), and moving it after the transition yields publish-then-charge. **05-13** builds Surface 2 against both endpoints; the decision responds with a full `ProposalDetail` carrying the new status.
+- 05-08 (**the notification substrate and the audience preview** — three tables, the one `resolveAudience`, both fingerprints, a calendar-month DB quota, `POST …/notifications/preview`, 29 tests); see `05-08-SUMMARY.md`. **05-09 must read its "For plan 05-09" section before writing the send:** it pins the sha256 join strings for `audience_hash` and `content_hash`, records that `previewToken` **is** `content_hash` rather than something derived from it, and lists the repository surface including `currentMonthStartIso`/`nextMonthStartIso`, which exist so the send and the quota block cannot compute two disagreeing month boundaries.
+- 05-07 (**the two read-only reporting surfaces** — `space_admin_metrics` RPC with the k-anonymity floor in SQL, `getSpaceMetrics`, `listSpaceAudit`, two GET routes, 30 tests); see `05-07-SUMMARY.md`. **05-14 and 05-15 must read its "For 05-14 and 05-15" section before writing a line:** it names the two use-cases to import (never the repositories), gives the base64url cursor encoding so audit links round-trip, and gives the `available`/`suppressed`/`unavailable` render table. Note `participationRate` can be `unavailable` while its neighbours are `available` — that is the deliberate ratio-suppression fix, not a bug.
 - 05-11 (np-native shell + eight UI primitives: `SpaceAdminHeader`, `SpaceAdminNav`, `PressTable`, `StatusChip`, `ConfirmDialog`, three panels); see `05-11-SUMMARY.md`. **Surface plans 05-12…05-15 should read that summary's "Component API" section before writing a line** — it gives every prop signature, and `components/space-admin/index.ts` is a CLOSED barrel they must not reopen (import new components by direct path).
 
 **Two things from 05-03 need someone's attention before the phase closes** — both detailed in `05-03-SUMMARY.md` and `deferred-items.md`:
@@ -85,6 +87,8 @@ Open question to resolve before Phase 3 planning: **monthly civic-pool allocatio
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P11 | ~50 min active | 3 tasks | 19 files |
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P04 | 11 min + checkpoint | 4 tasks | 14 files |
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P05 | 14 min | 3 tasks | 6 files |
+| Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P07 | 12 min | 3 tasks | 8 files |
+| Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P08 | 15 min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -151,6 +155,17 @@ Recent decisions affecting current work:
 - [Phase 05-space-governance]: A malformed `voteId` is a 403 at the route edge (`parse(ProposalSummarySchema.shape.id, …)` → `forbidden()`), never a 400 and never a Postgres uuid 500 — the same uniform-denial rule 05-04 set for `spaceId`
 - [Phase 05-space-governance]: A module-shape assertion (e.g. "the audit repo exports no mutator") must run against `vi.importActual`, not the mocked namespace — `Object.keys` over a mock describes the mock and cannot fail
 - [Phase 05-space-governance]: Red text is compliant PER BACKGROUND — `--np-red-ink` on paper, `--np-paper` on ink, `--np-red` only on aria-hidden tick glyphs. The shared `.np-kicker` utility is 4.03:1 and is replaced phase-locally by `kicker.module.css`
+- [Phase 05-space-governance]: A RATIO DISCLOSES ITS NUMERATOR. `participation_rate_pct` is withheld when EITHER side is below the k-anonymity floor, not only the denominator — with residents published, rate × residents / 100 recovers a suppressed participant count almost exactly. Any future derived figure inherits the suppression of every input it is derived from
+- [Phase 05-space-governance]: A withheld RATE is `unavailable`, never `suppressed`. The UI renders a suppressed figure as the literal `<5`, which on a percentage card asserts "under five percent" — a different and possibly false claim. `suppressed` is for headcounts only
+- [Phase 05-space-governance]: `get-metrics.ts` publishes a figure's value only when that figure's own status is `available`, so the k-anonymity floor holds in two independent places — a future SQL edit that nulls the status but forgets the value leaks nothing through the API. A test proves this layer with a row the shipped SQL cannot produce
+- [Phase 05-space-governance]: The audit cursor on the wire is base64url of the repository's `${created_at}|${id}` keyset; the codec lives in `list-audit.ts`, and `space-audit.repo.ts` is unchanged. A cursor that does not decode is a 400 checked AFTER `authorize()`, so an unauthorized space still answers the identical opaque 403 whatever the cursor looks like
+- [Phase 05-space-governance]: `space_admin_metrics` returns NO ROW for a nonexistent or non-municipal space (`WHERE EXISTS (SELECT 1 FROM s)`), because its `raw` CTE has no FROM and would otherwise always yield one row of zeroes presented as measurements. The caller maps no-row to four `unavailable` figures and a 200 — a DB *error* still 500s
+- [Phase 05-space-governance]: CONVENTION UPDATE — the comment-versus-grep collision has now hit six plans; 05-07 added three more instances (`RETURNS TABLE`, the word `total`, and the anon/authenticated grant line). Treat it as the default hazard when writing any criterion that counts a literal. 05-08 added three more (the built-in session helper in the migration, `createRateLimiter` in the "this is not the quota" comment, and the device-token table name)
+- [Phase 05-space-governance]: NULL `notification_settings` MEANS OPTED IN. The column is nullable JSONB the existing fan-out ignores entirely, so absence is "never asked", not "declined". Only an explicit `spaceAnnouncements: false` excludes. Reading absence as refusal would silently mute every existing resident the first time an admin sent anything. Opt-in would be a migration backfilling the key, not a flipped comparison
+- [Phase 05-space-governance]: `previewToken` **IS** `content_hash` — the same string from one variable, not a token derived from a hash. Both are sha256Hex of `[title.trim(), body.trim(), audienceFilter.trim()].join('\n')`; `audience_hash` is sha256Hex of the SORTED recipient ids joined by `,`. 05-09 must re-derive both identically or correct sends fail
+- [Phase 05-space-governance]: The notification preview returns 200 on an exhausted quota, deliberately — composer state 0 needs the true `{used}/{limit}` and a reset date to render the block that explains why the send control is absent. The 429 belongs to the send. Do not "fix" the preview into a 429
+- [Phase 05-space-governance]: The month boundary is computed in TypeScript (`currentMonthStartIso`/`nextMonthStartIso` in `space-notify.repo.ts`), because PostgREST filter values are literals and cannot be `date_trunc('month', now())`. Both are exported so the send and the quota block cannot derive two boundaries that disagree
+- [Phase 05-space-governance]: `push.repo.ts` now carries TWO projections of one batched query — `activeTokensForUsers` (deduped tokens, for fan-out) and `usersWithActiveChannel` (a Set of user ids, for counting people with no channel). The token form structurally cannot answer the second question; adding a sibling projection beside it beat opening a second access path
 
 ### Roadmap Evolution
 
@@ -171,10 +186,11 @@ None yet.
 - Commit `5979545` mixes three plans' files (05-03's db.ts, 05-04's package.json/lockfile, 05-11's space-admin components) — a shared-git-index race, no content lost. Reconciling plan-to-commit attribution is 05-16's.
 - **Shared-worktree hazard, sharper than the index race:** a sibling executor ran `git reset HEAD~1` on the shared branch during wave 2 and orphaned an empty marker commit (visible at `git reflog` HEAD@{10}–{11}). No non-empty commit was lost, but a stray reset in this tree can drop other agents' work. Wave-3+ executors: never reset the shared branch, and prefer `git add <paths> && git commit -m "…" -- <paths>`.
 - **05-04's PostgREST embeds are unexecuted.** `spaces!inner(municipality_code)` in the grant resolver, `users(first_name,last_name)` on votes, the actor embed on `space_audit_log`, and the keyset `.or()` predicate in `listAuditRows` are all reviewed but never run — the migrations have never reached a live Postgres. Each fails at runtime, not compile time, if a relationship does not resolve. Add these four to 05-16's checklist.
+- **`space_admin_metrics` (05-07) is unapplied like the rest.** Three probes belong on 05-16's checklist: call it for a real space; for a random uuid (must return **zero rows**, not a row of zeroes); and for a space with a NULL `municipality_code` (must return zero rows). The `WHERE EXISTS` guard is the only thing standing between a nonexistent space and a fabricated `registered_residents: 0, status: 'available'`, and it has never executed.
 - 05-11 did NOT perform its plan's one manual step — rendering the shell at `/he/space-admin/{uuid}`. No page exists under `[spaceId]` yet and starting `next dev` in a tree with live executors risks clobbering `.next`. 05-12 is the first plan able to load the route and should confirm the masthead/nav/colophon compose with no top offset.
 
 ## Session Continuity
 
-Last session: 2026-08-03T10:50:00.000Z
-Stopped at: Completed 05-05-PLAN.md
+Last session: 2026-08-03T07:55:52.539Z
+Stopped at: Completed 05-07-PLAN.md (wave 3 parallel: 05-05, 05-07, 05-08 all landed)
 Resume file: None

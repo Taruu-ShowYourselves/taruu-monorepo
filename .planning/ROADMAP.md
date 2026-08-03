@@ -81,7 +81,7 @@ Plans:
 | 2. Spike + Gate | 2/2 | Complete   | 2026-06-30 |
 | 3. Payment Rails + Hardening | 0/TBD | Not started | - |
 | 4. Go-Live | 0/TBD | Not started | - |
-| 5. Space Governance + Space-Admin Dashboard | 6/16 | In Progress | - |
+| 5. Space Governance + Space-Admin Dashboard | 8/16 | In Progress | - |
 
 ### Phase 5: Space governance substrate and space-admin operations dashboard
 
@@ -107,8 +107,8 @@ Plans:
 - [x] 05-04-PLAN.md — Branded SpaceScope authorization core, first two use-cases, ergonomics go/no-go checkpoint [SPACE-02, SPACE-03, SPACE-09]
 - [x] 05-05-PLAN.md — Proposal decisions: approve / reject / request-changes, deterministic concurrency, audit [SPACE-04, SPACE-05]
 - [ ] 05-06-PLAN.md — Members, grants, suspension, content moderation, escalation [SPACE-06, SPACE-09]
-- [ ] 05-07-PLAN.md — Aggregate-only metrics RPC + cursor-paginated audit read [SPACE-07, SPACE-04]
-- [ ] 05-08-PLAN.md — Notification substrate, single audience resolver, preview [SPACE-08]
+- [x] 05-07-PLAN.md — Aggregate-only metrics RPC + cursor-paginated audit read [SPACE-07, SPACE-04]
+- [x] 05-08-PLAN.md — Notification substrate, single audience resolver, preview [SPACE-08]
 - [ ] 05-09-PLAN.md — Send: dual-hash verification, DB quota, delivery log, deferred push [SPACE-08, SPACE-09]
 - [ ] 05-10-PLAN.md — Free submission into in_review; ₪50 charged at approval via a payment port [SPACE-05]
 - [x] 05-11-PLAN.md — Shell, PressTable, StatusChip, ConfirmDialog + disabled contract, panels [SPACE-10]
