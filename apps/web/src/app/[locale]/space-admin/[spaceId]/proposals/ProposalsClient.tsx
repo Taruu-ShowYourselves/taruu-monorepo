@@ -10,13 +10,15 @@ import {
   ConfirmDialog,
   EmptyPanel,
   ErrorPanel,
-  NoPermissionPanel,
   PressTable,
   StatusChip,
   confirmButtonClass,
+  rowFlashClass,
+  ROW_FLASH_MS,
   type PressTableColumn,
 } from '@/components/space-admin';
 import { ProposalDetailPanel } from '@/components/space-admin/ProposalDetailPanel';
+import { serverSentence } from '@/components/space-admin/serverSentence';
 import {
   PROPOSAL_STATUS_LABELS_HE,
   proposalChipTone,
@@ -123,8 +125,6 @@ const REASON_PLACEHOLDER =
  */
 const ACTION_FAILED_HE = 'הפעולה לא הושלמה. נסו שוב; אם זה חוזר — פנו למנהל־על.';
 
-const ROW_FLASH_MS = 1200;
-
 const toSummary = (detail: ProposalDetail): ProposalSummary => ({
   id: detail.id,
   title: detail.title,
@@ -150,85 +150,6 @@ function withDeepLinked(
 ): ProposalSummary[] {
   if (!detail || proposals.some((row) => row.id === detail.id)) return [...proposals];
   return [toSummary(detail), ...proposals];
-}
-
-// ---------------------------------------------------------------------------
-// The escalation path (SPACE-09)
-// ---------------------------------------------------------------------------
-
-/**
- * `NoPermissionPanel` plus the audited dialog its CTA opens.
- *
- * DUPLICATION, DELIBERATE AND LOGGED: plan 05-12 owns
- * `components/space-admin/EscalationDialog.tsx` and is running concurrently, so
- * this surface cannot import it without depending on a file that may not exist
- * when this one compiles. Repoint here once both have landed.
- */
-export function ProposalsAccessDenied({ spaceId }: { spaceId: string }) {
-  const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [announcement, setAnnouncement] = useState('');
-
-  const submit = useCallback(
-    async (body: string) => {
-      setPending(true);
-      setError(null);
-      try {
-        const response = await fetch(`/api/space-admin/${spaceId}/escalations`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ body }),
-        });
-        if (!response.ok) {
-          const payload = (await response.json().catch(() => null)) as {
-            error?: string;
-          } | null;
-          setError(payload?.error ?? ACTION_FAILED_HE);
-          return;
-        }
-        setOpen(false);
-        setAnnouncement('הפנייה נשלחה. מנהל־על יקבל אותה עם פרטי המרחב.');
-      } catch {
-        setError(ACTION_FAILED_HE);
-      } finally {
-        setPending(false);
-      }
-    },
-    [spaceId],
-  );
-
-  return (
-    <>
-      <NoPermissionPanel
-        onEscalate={() => {
-          setError(null);
-          setOpen(true);
-        }}
-      />
-      <p className={styles.srOnly} aria-live="polite">
-        {announcement}
-      </p>
-      <ConfirmDialog
-        kind="audited"
-        open={open}
-        onOpenChange={(next) => {
-          if (!pending) setOpen(next);
-        }}
-        heading="פנייה למנהל־על"
-        body="הפנייה נשלחת למנהלי הפלטפורמה יחד עם שם המרחב ועם החשבון שלכם."
-        reasonLabel="מה תרצו לבקש? (חובה)"
-        reasonError="נדרש תיאור — לפחות 10 תווים."
-        unblockHint="התיאור נדרש כדי להמשיך."
-        placeholder="תארו מה חסם אתכם — למשל הרשאה שאתם צריכים, או השעיה שנראית לכם שגויה."
-        confirmLabel="שלחו פנייה"
-        pending={pending}
-        pendingLabel="…שולח"
-        error={error}
-        onConfirm={submit}
-      />
-    </>
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -402,8 +323,10 @@ export function ProposalsClient({
 
         // 402 is the declined creation fee; 403 is a refused self-review. In
         // both the dialog stays open with the reason intact and shows the
-        // server's sentence.
-        setDecisionError(payload?.error ?? ACTION_FAILED_HE);
+        // server's sentence. `serverSentence` is what decides "has a sentence":
+        // an unreasoned 403 answers the English literal `Forbidden`, and
+        // printing that into a Hebrew dialog reads as a crash, not an answer.
+        setDecisionError(serverSentence(payload) ?? ACTION_FAILED_HE);
       } catch {
         setDecisionError(ACTION_FAILED_HE);
       } finally {
@@ -602,7 +525,7 @@ export function ProposalsClient({
           description={`הצעות במרחב ${spaceName}, ממוינות לפי מועד הגשה. כל שורה כוללת את שם ההצעה, המגיש/ה, מועד ההגשה, הסטטוס והפעולות הזמינות לכם.`}
           expandedKey={expandedId}
           onExpandedKeyChange={setExpandedId}
-          rowClassName={(row) => (row.id === flashId ? styles.flashRow : undefined)}
+          rowClassName={(row) => (row.id === flashId ? rowFlashClass : undefined)}
           renderExpansionRow={(row, columnCount) => {
             if (detail?.id === row.id) {
               return (

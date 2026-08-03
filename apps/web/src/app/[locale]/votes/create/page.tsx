@@ -12,6 +12,7 @@ import {
   Stepper,
   Receipt,
 } from '@/components/press';
+import { PROPOSAL_STATUS_LABELS_HE } from '@/components/space-admin/proposalStatusLabels';
 import { useAuth } from '@/providers/AuthProvider';
 import styles from './page.module.css';
 
@@ -20,16 +21,6 @@ import styles from './page.module.css';
 // ---------------------------------------------------------------------------
 const MSG_REQUIRED = 'צריך למלא את השדה הזה כדי להמשיך.';
 const MSG_GENERAL = 'משהו השתבש אצלנו, לא אצלכם. נסו שוב בעוד רגע.';
-
-/**
- * The submitted proposal's status label. Must stay identical to
- * `REVIEW_STATUS_LABELS_HE.in_review` in `server/domain/space/review.ts`, which
- * is the source of truth and is pinned by `review.test.ts`. It is copied rather
- * than imported because that module is server-domain code and this is a client
- * component — one Hebrew word is not worth pulling the review domain, and its
- * transitive cycle with the votes domain, into the browser bundle.
- */
-const STATUS_IN_REVIEW_HE = 'בבדיקה';
 
 // Press wizard is 4 editorial steps; the underlying validation stays 3-staged
 // (details → options → submission) — duration lives on the final plate.
@@ -245,7 +236,11 @@ export default function CreateVotePage() {
                 rows={[
                   { label: 'משך הצבעה', value: `${duration} ימים` },
                   { label: 'אפשרויות', value: String(filledOptions.length) },
-                  { label: 'סטטוס', value: STATUS_IN_REVIEW_HE, strong: true },
+                  {
+                    label: 'סטטוס',
+                    value: PROPOSAL_STATUS_LABELS_HE.in_review,
+                    strong: true,
+                  },
                 ]}
                 footer="תַּרְאוּ · כל הארץ · המהדורה הקהילתית"
               />

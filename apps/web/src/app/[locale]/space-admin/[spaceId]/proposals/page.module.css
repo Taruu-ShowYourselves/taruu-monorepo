@@ -136,23 +136,9 @@
   border-block-start: var(--np-rule-hair) solid var(--np-paper-edge);
 }
 
-/* ---------- Post-decision row flash ---------- */
-
-/* An animation outranks the table's normal background declaration, so the
-   flash needs no specificity contest with the row-hover rule. */
-.flashRow > th,
-.flashRow > td {
-  animation: proposalRowFlash 1200ms var(--np-ease) 1;
-}
-
-@keyframes proposalRowFlash {
-  from {
-    background-color: var(--np-paper-2);
-  }
-  to {
-    background-color: var(--np-paper-box);
-  }
-}
+/* The post-decision row flash used to live here. It is now `rowFlashClass`
+   from `PressTable`, which ships the keyframe and its own reduced-motion
+   opt-out at matching specificity — see deferred item 8. */
 
 /* Visually hidden, still announced. Sized from the hairline rule token. */
 .srOnly {
@@ -171,10 +157,5 @@
   .chip,
   .titleTrigger {
     transition: none;
-  }
-
-  .flashRow > th,
-  .flashRow > td {
-    animation: none;
   }
 }

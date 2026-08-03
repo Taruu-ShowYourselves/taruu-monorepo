@@ -17,9 +17,13 @@ import type { ProposalStatus } from '@sync/shared/contracts';
  * The five review labels are byte-identical to the server map — verified, not
  * assumed. If either side is reworded, both must move together, and the right
  * long-term fix is to lift the map into `packages/shared` (where the status
- * enum already lives) and have both sides import it. Named for 05-15/05-16:
- *   - repoint `apps/web/src/app/[locale]/votes/create/page.tsx` here, and
- *   - collapse this map and the server one into a single shared definition.
+ * enum already lives) and have both sides import it.
+ *
+ * 05-15 did the first half of what was named here: `votes/create/page.tsx` now
+ * reads `PROPOSAL_STATUS_LABELS_HE.in_review` instead of carrying a third copy
+ * of that one word. The second half — collapsing this map and the server one
+ * into a single shared definition — is still open and belongs to 05-16 or to
+ * whoever next touches `server/domain/space/review.ts`.
  *
  * `pending` and `ended` carry the approved label deliberately. A proposal
  * approved before its start date lands in `pending` — scheduled rather than

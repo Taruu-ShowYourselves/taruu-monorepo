@@ -22,11 +22,8 @@ import React from 'react';
 import { redirect } from 'next/navigation';
 import type { Result } from 'neverthrow';
 import type { SpaceMemberListResponse } from '@sync/shared/contracts';
-import {
-  SpaceAdminHeader,
-  SpaceAdminNav,
-  type SpaceAdminNavHref,
-} from '@/components/space-admin';
+import { SpaceAdminHeader, SpaceAdminNav } from '@/components/space-admin';
+import { spaceTypeLabel, visibleNavHrefs } from '@/components/space-admin/chrome';
 import kicker from '@/components/space-admin/kicker.module.css';
 import type { Locale } from '@/lib/i18n';
 import { getSpaceMembers } from '@/server/app/space-admin/list-members';
@@ -36,55 +33,6 @@ import type { AppError } from '@/server/http/errors';
 import { getSessionFromCookies } from '@/services/auth/session';
 import { MembersClient, type MembersSurfaceState } from './MembersClient';
 import styles from './page.module.css';
-
-/**
- * Which capability opens which surface. Duplicated on the statistics surface
- * in this same plan and, most likely, on the four other surfaces of this
- * phase — deliberately inlined rather than extracted, because 05-12 runs
- * concurrently and is the plan authorized to create a shared module this
- * wave. 05-15 dedupes.
- */
-const SURFACE_CAPABILITY: Readonly<Record<string, Capability>> = {
-  proposals: 'proposal.read',
-  members: 'member.read',
-  stats: 'metrics.read',
-  dispatch: 'notification.send',
-  audit: 'audit.read',
-};
-
-const NAV_ORDER: readonly SpaceAdminNavHref[] = [
-  '',
-  'proposals',
-  'members',
-  'stats',
-  'dispatch',
-  'audit',
-];
-
-/** Rule A: a surface the admin holds nothing for gets no nav link at all. */
-const visibleSurfaces = (
-  capabilities: readonly Capability[]
-): readonly SpaceAdminNavHref[] => {
-  const held = new Set<Capability>(capabilities);
-  return NAV_ORDER.filter((href) => {
-    if (href === '') return true;
-    const required = SURFACE_CAPABILITY[href];
-    return required !== undefined && held.has(required);
-  });
-};
-
-/**
- * Hebrew for the five values the `spaces.type` CHECK admits today. Also
- * duplicated on the statistics surface for the same reason as the map above.
- * Unknown values fall through to the stored string rather than to a guess.
- */
-const SPACE_TYPE_LABELS_HE: Readonly<Record<string, string>> = {
-  municipality: 'רשות מקומית',
-  national: 'מרחב ארצי',
-  organization: 'ארגון',
-  urban_area: 'אזור עירוני',
-  nationwide_civic: 'מרחב אזרחי ארצי',
-};
 
 const toSurfaceState = (
   spaceName: string,
@@ -148,7 +96,7 @@ export default async function SpaceMembersPage({
     <>
       <SpaceAdminHeader
         spaceName={space.nameHe}
-        spaceTypeLabel={SPACE_TYPE_LABELS_HE[space.type] ?? space.type}
+        spaceTypeLabel={spaceTypeLabel(space.type)}
         slug={space.slug}
         spaceId={space.id}
         suspended={space.suspended}
@@ -157,7 +105,7 @@ export default async function SpaceMembersPage({
       <SpaceAdminNav
         spaceId={space.id}
         active="members"
-        visibleHrefs={visibleSurfaces(space.capabilities)}
+        visibleHrefs={visibleNavHrefs(space.capabilities)}
         locale={locale}
       />
 

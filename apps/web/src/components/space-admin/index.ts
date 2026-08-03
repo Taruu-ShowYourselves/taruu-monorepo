@@ -11,6 +11,13 @@
  * disabled-state contract (D17/D27) has to reach the other two permitted
  * `disabled` controls outside this file — the dispatch send button, and any
  * surface-level pagination that does not go through `PressTable`.
+ *
+ * 05-15 added `rowFlashClass` / `ROW_FLASH_MS` for the same reason and under
+ * the same rule, not as an exception to it: they are new exports of
+ * `PressTable`, which this barrel already owns, and the closure above is about
+ * the FIVE COMPONENTS created by 05-12 through 05-15 (those stay out and are
+ * imported by direct path). The wave collision that motivated the closure is
+ * also over — every one of those plans has landed.
  */
 
 export { SpaceAdminHeader } from './SpaceAdminHeader';
@@ -19,7 +26,13 @@ export type { SpaceAdminHeaderProps } from './SpaceAdminHeader';
 export { SpaceAdminNav, SPACE_ADMIN_NAV_ITEMS } from './SpaceAdminNav';
 export type { SpaceAdminNavProps, SpaceAdminNavHref } from './SpaceAdminNav';
 
-export { PressTable, ShortId, ClampedText } from './PressTable';
+export {
+  PressTable,
+  ShortId,
+  ClampedText,
+  rowFlashClass,
+  ROW_FLASH_MS,
+} from './PressTable';
 export type {
   PressTableProps,
   PressTableColumn,

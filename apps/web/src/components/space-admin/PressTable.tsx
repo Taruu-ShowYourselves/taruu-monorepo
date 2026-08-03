@@ -5,6 +5,23 @@ import clsx from 'clsx';
 import { NewsButton } from '@/components/press/NewsButton';
 import styles from './PressTable.module.css';
 
+/**
+ * The post-mutation row flash (Interaction Contract 2), as a class to pass
+ * through `rowClassName` — the same shape as `confirmButtonClass`.
+ *
+ * It lives here rather than in each surface's stylesheet because the members
+ * and proposals surfaces each had to rediscover the two traps documented at
+ * `.rowFlash` in the stylesheet. Deferred item 8 asks for exactly this.
+ */
+export const rowFlashClass: string = styles.rowFlash;
+
+/**
+ * How long the flash runs, and therefore how long a surface should hold the
+ * flashed key before clearing it. Exported alongside the class so the timer
+ * and the animation cannot drift apart.
+ */
+export const ROW_FLASH_MS = 1200;
+
 export interface PressTableColumn<Row> {
   /** Stable key. Emitted as `data-col` on the matched `th`/`td` pair. */
   key: string;

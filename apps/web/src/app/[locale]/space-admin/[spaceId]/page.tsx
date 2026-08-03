@@ -8,14 +8,13 @@ import {
   SpaceAdminHeader,
   SpaceAdminNav,
   StatusChip,
-  type SpaceAdminNavHref,
 } from '@/components/space-admin';
 import { CapabilityManifest } from '@/components/space-admin/CapabilityManifest';
+import { spaceTypeLabel, visibleNavHrefs } from '@/components/space-admin/chrome';
 import { EscalationDialog } from '@/components/space-admin/EscalationDialog';
 import kicker from '@/components/space-admin/kicker.module.css';
 import type { Locale } from '@/lib/i18n';
 import { getSpaceOverview } from '@/server/app/space-admin/get-space-overview';
-import type { Capability } from '@/server/domain/space/capability';
 import { getSessionFromCookies } from '@/services/auth/session';
 import styles from './page.module.css';
 
@@ -48,39 +47,6 @@ const STANDFIRST =
 const QUEUE_EMPTY = 'אין כרגע הצעות שממתינות להכרעה.';
 const ESCALATION_BODY =
   'נתקלתם במשהו שחורג מההרשאות שלכם, או במקרה שדורש מנהל־על?';
-
-/**
- * `spaces.type` is a plain string in the contract because the DDL owns the list
- * and issue #74 adds to it. The fallback is a real Hebrew word rather than the
- * machine value: an edition line reading `urban_area` would be a bug on screen.
- */
-const SPACE_TYPE_LABELS_HE: Record<string, string> = {
-  municipality: 'רשות מקומית',
-  national: 'מרחב ארצי',
-  organization: 'ארגון',
-  urban_area: 'מרחב עירוני',
-  nationwide_civic: 'מרחב אזרחי ארצי',
-};
-
-/**
- * Which capability each surface needs. A surface the admin lacks has no nav
- * link (Rule A) — the route still re-resolves the capability server-side, so
- * this is presentation, not protection. Overview itself is always linked.
- */
-const NAV_CAPABILITY: Record<Exclude<SpaceAdminNavHref, ''>, Capability> = {
-  proposals: 'proposal.read',
-  members: 'member.read',
-  stats: 'metrics.read',
-  dispatch: 'notification.send',
-  audit: 'audit.read',
-};
-
-const navHrefsFor = (capabilities: readonly Capability[]): SpaceAdminNavHref[] => [
-  '',
-  ...(Object.keys(NAV_CAPABILITY) as Array<Exclude<SpaceAdminNavHref, ''>>).filter(
-    (href) => capabilities.includes(NAV_CAPABILITY[href])
-  ),
-];
 
 interface SpaceOverviewPageProps {
   params: Promise<{ locale: Locale; spaceId: string }>;
@@ -130,13 +96,13 @@ export default async function SpaceOverviewPage({ params }: SpaceOverviewPagePro
     <>
       <SpaceAdminHeader
         spaceName={space.nameHe}
-        spaceTypeLabel={SPACE_TYPE_LABELS_HE[space.type] ?? 'מרחב'}
+        spaceTypeLabel={spaceTypeLabel(space.type)}
         slug={space.slug}
         spaceId={space.id}
         suspended={space.suspended}
       />
 
-      <SpaceAdminNav spaceId={spaceId} active="" visibleHrefs={navHrefsFor(capabilities)} />
+      <SpaceAdminNav spaceId={spaceId} active="" visibleHrefs={visibleNavHrefs(capabilities)} />
 
       <p className={styles.standfirst}>{STANDFIRST}</p>
 

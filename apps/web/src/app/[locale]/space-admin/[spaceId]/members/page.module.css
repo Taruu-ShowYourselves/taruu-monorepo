@@ -264,25 +264,9 @@
   color: var(--np-paper);
 }
 
-/* ---------- Post-decision row flash ---------- */
-
-/* `PressTable` paints the cell backgrounds, not the row, so the flash has to
-   reach the cells. A keyframed background wins over those static declarations
-   from the cascade's animation origin, which is why this needs no specificity
-   contest with the table's own rules. */
-.flashRow > th,
-.flashRow > td {
-  animation: memberRowFlash 1200ms var(--np-ease);
-}
-
-@keyframes memberRowFlash {
-  from {
-    background-color: var(--np-paper-2);
-  }
-  to {
-    background-color: var(--np-paper-box);
-  }
-}
+/* The post-decision row flash used to live here. It is now `rowFlashClass`
+   from `PressTable`, which ships the keyframe and its own reduced-motion
+   opt-out at matching specificity — see deferred item 8. */
 
 /* ---------- Responsive ---------- */
 
@@ -300,13 +284,6 @@
   .surface *,
   .editor * {
     transition: none;
-    animation: none;
-  }
-
-  /* The wildcard above is (0,1,0) and would lose to `.flashRow > td` at
-     (0,1,1), so the flash needs its own opt-out at matching specificity. */
-  .flashRow > th,
-  .flashRow > td {
     animation: none;
   }
 }

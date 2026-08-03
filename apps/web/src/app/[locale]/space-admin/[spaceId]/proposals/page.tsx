@@ -1,13 +1,14 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
 import type { Result } from 'neverthrow';
-import type { Capability, ProposalListResponse } from '@sync/shared/contracts';
+import type { ProposalListResponse } from '@sync/shared/contracts';
 import {
   ErrorPanel,
   SpaceAdminHeader,
   SpaceAdminNav,
-  type SpaceAdminNavHref,
 } from '@/components/space-admin';
+import { spaceTypeLabel, visibleNavHrefs } from '@/components/space-admin/chrome';
+import { EscalationDialog } from '@/components/space-admin/EscalationDialog';
 import kicker from '@/components/space-admin/kicker.module.css';
 import type { Locale } from '@/lib/i18n';
 import { getProposalDetail } from '@/server/app/space-admin/decide-proposal';
@@ -18,7 +19,6 @@ import { getSessionFromCookies, type Session } from '@/services/auth/session';
 import {
   DEFAULT_PROPOSAL_FILTER,
   PROPOSAL_FILTERS,
-  ProposalsAccessDenied,
   ProposalsClient,
   type ProposalsFilter,
 } from './ProposalsClient';
@@ -34,32 +34,6 @@ import styles from './page.module.css';
  */
 
 const HEADING_ID = 'space-admin-proposals-heading';
-
-/**
- * Nav visibility (Rule A): a surface the admin holds no capability for gets no
- * link. Duplicated with the overview surface, which is authored concurrently;
- * one of the two should become the shared map once both have landed.
- */
-const NAV_CAPABILITY: Record<Exclude<SpaceAdminNavHref, ''>, Capability> = {
-  proposals: 'proposal.read',
-  members: 'member.read',
-  stats: 'metrics.read',
-  dispatch: 'notification.send',
-  audit: 'audit.read',
-};
-
-/**
- * The copy deck names the edition-meta slot but not the label that fills it,
- * and the header takes an already-localized string. These five are the values
- * the space type check admits today.
- */
-const SPACE_TYPE_LABELS_HE: Record<string, string> = {
-  municipality: 'רשות מקומית',
-  national: 'מרחב ארצי',
-  organization: 'ארגון',
-  urban_area: 'מרחב עירוני',
-  nationwide_civic: 'מרחב אזרחי ארצי',
-};
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -123,7 +97,7 @@ export default async function SpaceProposalsPage({
     return (
       <div className={styles.surface}>
         {overview.error.kind === 'FORBIDDEN' ? (
-          <ProposalsAccessDenied spaceId={spaceId} />
+          <EscalationDialog spaceId={spaceId} trigger="no-permission" />
         ) : (
           <ErrorPanel />
         )}
@@ -132,13 +106,6 @@ export default async function SpaceProposalsPage({
   }
 
   const { space } = overview.value;
-  const visibleHrefs: SpaceAdminNavHref[] = [
-    '',
-    ...(Object.keys(NAV_CAPABILITY) as Exclude<SpaceAdminNavHref, ''>[]).filter((href) =>
-      space.capabilities.includes(NAV_CAPABILITY[href]),
-    ),
-  ];
-
   const deepLinkId = readParam(query.proposal);
   const requested = readParam(query.status);
   // The deep link forces the filter to show everything BEFORE expanding.
@@ -158,7 +125,7 @@ export default async function SpaceProposalsPage({
     <>
       <SpaceAdminHeader
         spaceName={space.nameHe}
-        spaceTypeLabel={SPACE_TYPE_LABELS_HE[space.type] ?? space.type}
+        spaceTypeLabel={spaceTypeLabel(space.type)}
         slug={space.slug}
         spaceId={space.id}
         suspended={space.suspended}
@@ -166,7 +133,7 @@ export default async function SpaceProposalsPage({
       <SpaceAdminNav
         spaceId={space.id}
         active="proposals"
-        visibleHrefs={visibleHrefs}
+        visibleHrefs={visibleNavHrefs(space.capabilities)}
         locale={locale}
       />
       <h2 id={HEADING_ID} className={styles.srOnly}>
@@ -192,7 +159,7 @@ export default async function SpaceProposalsPage({
       <section className={styles.surface} aria-labelledby={HEADING_ID}>
         {shell}
         {listed.error.kind === 'FORBIDDEN' ? (
-          <ProposalsAccessDenied spaceId={spaceId} />
+          <EscalationDialog spaceId={spaceId} trigger="no-permission" />
         ) : (
           <ErrorPanel />
         )}

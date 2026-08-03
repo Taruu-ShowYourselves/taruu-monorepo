@@ -35,11 +35,14 @@ import {
   ConfirmDialog,
   EmptyPanel,
   ErrorPanel,
-  NoPermissionPanel,
   PressTable,
   StatusChip,
+  rowFlashClass,
+  ROW_FLASH_MS,
   type PressTableColumn,
 } from '@/components/space-admin';
+import { EscalationDialog } from '@/components/space-admin/EscalationDialog';
+import { serverSentence } from '@/components/space-admin/serverSentence';
 import {
   CAPABILITIES,
   CAPABILITY_LABELS_HE,
@@ -88,8 +91,7 @@ type PendingAction =
   | { kind: 'grant'; member: SpaceMember; capability: Capability; viaRole?: RolePreset }
   | { kind: 'revoke'; member: SpaceMember; capability: Capability }
   | { kind: 'suspend'; member: SpaceMember }
-  | { kind: 'reinstate'; member: SpaceMember }
-  | { kind: 'escalate' };
+  | { kind: 'reinstate'; member: SpaceMember };
 
 interface DialogCopy {
   heading: string;
@@ -97,19 +99,24 @@ interface DialogCopy {
   consequence?: string;
   confirmLabel: string;
   announcement: string;
-  reasonLabel?: string;
-  reasonError?: string;
   placeholder?: string;
-  unblockHint?: string;
 }
 
 const REASON_PLACEHOLDER =
   'למה הכרעתם כך? הנימוק נשמר ביומן ואי אפשר לערוך אותו אחר כך.';
 
 /**
- * The action failed on the server. No string in the copy deck covers this
- * case — the deck's error sentence is about a failed *load* — so this one is
- * written in its voice: what did not happen, and where to go if it repeats.
+ * The FALLBACK when the failure carries no sentence of its own — a network
+ * error, or a status whose body is structural English. No string in the copy
+ * deck covers it (the deck's error sentence is about a failed *load*), so this
+ * one is written in its voice: what did not happen, and where to go if it
+ * repeats.
+ *
+ * A 409 does carry a sentence, and it is rendered instead of this one. Those
+ * sentences are the repository's own — `החבר/ה כבר מושעה/ית במרחב הזה.`,
+ * `ההרשאה כבר אינה פעילה.` — and this line would contradict them: they mean
+ * the state already exists, while this one says nothing happened and nothing
+ * was recorded. See `serverSentence` for which codes qualify.
  */
 const ACTION_FAILED_HE =
   'הפעולה לא בוצעה ולא נרשמה ביומן. נסו שוב; אם זה חוזר — פנו למנהל־על.';
@@ -153,18 +160,6 @@ const dialogCopy = (action: PendingAction): DialogCopy => {
         announcement: `ההשעיה של ${action.member.displayName} בוטלה.`,
         placeholder: REASON_PLACEHOLDER,
       };
-    case 'escalate':
-      return {
-        heading: 'פנייה למנהל־על',
-        body: 'הפנייה נשלחת למנהלי הפלטפורמה יחד עם שם המרחב ועם החשבון שלכם.',
-        confirmLabel: 'שלחו פנייה',
-        announcement: 'הפנייה נשלחה. מנהל־על יקבל אותה עם פרטי המרחב.',
-        reasonLabel: 'מה תרצו לבקש? (חובה)',
-        reasonError: 'נדרש תיאור — לפחות 10 תווים.',
-        placeholder:
-          'תארו מה חסם אתכם — למשל הרשאה שאתם צריכים, או השעיה שנראית לכם שגויה.',
-        unblockHint: 'התיאור נדרש כדי להמשיך.',
-      };
   }
 };
 
@@ -206,8 +201,6 @@ const toRequest = (spaceId: string, action: PendingAction, reason: string): Requ
         method: 'DELETE',
         body: { userId: action.member.id, reason },
       };
-    case 'escalate':
-      return { path: `${base}/escalations`, method: 'POST', body: { body: reason } };
   }
 };
 
@@ -216,9 +209,6 @@ const toRequest = (spaceId: string, action: PendingAction, reason: string): Requ
 // ---------------------------------------------------------------------------
 
 const SEARCH_DEBOUNCE_MS = 300;
-
-/** Interaction Contract 2: the decided row flashes for this long, then settles. */
-const ROW_FLASH_MS = 1200;
 
 const PRESET_OPTIONS = (Object.keys(ROLE_PRESETS) as RolePreset[]).map((preset) => ({
   value: preset,
@@ -249,9 +239,11 @@ export function MembersClient({
   const [flashKey, setFlashKey] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  // The affected row settles out of a paper-2 flash after a decision. The
-  // duration is the contract's, and the reduced-motion opt-out is in the
-  // stylesheet rather than here, so the class can be applied unconditionally.
+  // The affected row settles out of a paper-2 flash after a decision. Both the
+  // class and the duration come from `PressTable`, so the timer that clears
+  // the class and the animation that plays under it cannot drift; the
+  // reduced-motion opt-out ships with the class rather than living here, so it
+  // can be applied unconditionally.
   useEffect(() => {
     if (flashKey === null) return;
     const timer = setTimeout(() => setFlashKey(null), ROW_FLASH_MS);
@@ -291,12 +283,16 @@ export function MembersClient({
           body: JSON.stringify(request.body),
         });
         if (!response.ok) {
-          setFailure(ACTION_FAILED_HE);
+          // The dialog stays open with the reason intact and shows the
+          // server's own sentence where it has one — a 409 here means the
+          // state already exists, which the generic line would deny.
+          const payload: unknown = await response.json().catch(() => null);
+          setFailure(serverSentence(payload) ?? ACTION_FAILED_HE);
           return;
         }
         setAction(null);
         setAnnouncement(dialogCopy(pending).announcement);
-        if (pending.kind !== 'escalate') setFlashKey(pending.member.id);
+        setFlashKey(pending.member.id);
         startTransition(() => router.refresh());
       } catch {
         setFailure(ACTION_FAILED_HE);
@@ -306,8 +302,6 @@ export function MembersClient({
     },
     [router, spaceId]
   );
-
-  const escalate = useCallback(() => setAction({ kind: 'escalate' }), []);
 
   const activeCopy = action ? dialogCopy(action) : null;
 
@@ -323,10 +317,7 @@ export function MembersClient({
         body={activeCopy.body}
         consequence={activeCopy.consequence}
         confirmLabel={activeCopy.confirmLabel}
-        reasonLabel={activeCopy.reasonLabel}
-        reasonError={activeCopy.reasonError}
         placeholder={activeCopy.placeholder}
-        unblockHint={activeCopy.unblockHint}
         pending={submitting}
         pendingLabel="…שומר"
         error={failure}
@@ -342,14 +333,12 @@ export function MembersClient({
     </p>
   );
 
+  // The refused surface is `EscalationDialog`'s own `no-permission` shape: it
+  // renders `NoPermissionPanel` and owns the escalation path behind its CTA.
+  // The decision dialog above is not reachable here — none of its four actions
+  // has a trigger on a page with no table.
   if (state.kind === 'denied') {
-    return (
-      <>
-        {live}
-        <NoPermissionPanel onEscalate={escalate} />
-        {dialog}
-      </>
-    );
+    return <EscalationDialog spaceId={spaceId} trigger="no-permission" />;
   }
 
   if (state.kind === 'failed') {
@@ -542,7 +531,7 @@ export function MembersClient({
             expandedKey={expanded}
             onExpandedKeyChange={setExpanded}
             rowClassName={(member) =>
-              member.id === flashKey ? styles.flashRow : undefined
+              member.id === flashKey ? rowFlashClass : undefined
             }
           />
           <p className={styles.total}>{total} חברים במרחב</p>

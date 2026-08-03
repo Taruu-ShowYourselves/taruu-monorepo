@@ -224,6 +224,45 @@
   }
 }
 
+/* ---------- Post-mutation row flash ---------- */
+
+/* Interaction Contract 2: the affected row settles out of a paper-2 flash
+   after a decision. Shipped here rather than per surface (deferred item 8),
+   because getting it right takes two non-obvious facts and both surfaces that
+   need it had to discover them independently:
+
+   1. The flash must target `> th, > td`. This table paints CELL backgrounds,
+      not row backgrounds, so an animation on the `<tr>` is invisible.
+   2. The reduced-motion opt-out needs matching specificity. A surface-level
+      `.surface * { animation: none }` is (0,1,0) and loses to `.rowFlash > td`
+      at (0,1,1); the opt-out below is authored at (0,1,1) and, being later in
+      the same file, wins on source order.
+
+   No specificity contest with the row-hover rule is needed: a keyframed
+   background outranks a normal declaration from the cascade's animation
+   origin. `ROW_FLASH_MS` in `PressTable.tsx` is the same 1200ms, exported so
+   the JS timer that clears the class and this duration cannot drift apart. */
+.rowFlash > th,
+.rowFlash > td {
+  animation: pressTableRowFlash 1200ms var(--np-ease) 1;
+}
+
+@keyframes pressTableRowFlash {
+  from {
+    background-color: var(--np-paper-2);
+  }
+  to {
+    background-color: var(--np-paper-box);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rowFlash > th,
+  .rowFlash > td {
+    animation: none;
+  }
+}
+
 /* ---------- Hints + pagination ---------- */
 
 .scrollHint,

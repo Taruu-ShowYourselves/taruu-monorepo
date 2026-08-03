@@ -40,56 +40,15 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
 import type { SpaceMetric } from '@sync/shared/contracts';
-import {
-  SpaceAdminHeader,
-  SpaceAdminNav,
-  type SpaceAdminNavHref,
-} from '@/components/space-admin';
+import { SpaceAdminHeader, SpaceAdminNav } from '@/components/space-admin';
+import { spaceTypeLabel, visibleNavHrefs } from '@/components/space-admin/chrome';
 import kicker from '@/components/space-admin/kicker.module.css';
 import type { Locale } from '@/lib/i18n';
 import { getSpaceMetrics } from '@/server/app/space-admin/get-metrics';
 import { getSpaceOverview } from '@/server/app/space-admin/get-space-overview';
-import type { Capability } from '@/server/domain/space/capability';
 import { getSessionFromCookies } from '@/services/auth/session';
 import { StatsFallback } from './StatsFallback';
 import styles from './page.module.css';
-
-/** Duplicated from the members surface on purpose — see the note there. */
-const SURFACE_CAPABILITY: Readonly<Record<string, Capability>> = {
-  proposals: 'proposal.read',
-  members: 'member.read',
-  stats: 'metrics.read',
-  dispatch: 'notification.send',
-  audit: 'audit.read',
-};
-
-const NAV_ORDER: readonly SpaceAdminNavHref[] = [
-  '',
-  'proposals',
-  'members',
-  'stats',
-  'dispatch',
-  'audit',
-];
-
-const visibleSurfaces = (
-  capabilities: readonly Capability[]
-): readonly SpaceAdminNavHref[] => {
-  const held = new Set<Capability>(capabilities);
-  return NAV_ORDER.filter((href) => {
-    if (href === '') return true;
-    const required = SURFACE_CAPABILITY[href];
-    return required !== undefined && held.has(required);
-  });
-};
-
-const SPACE_TYPE_LABELS_HE: Readonly<Record<string, string>> = {
-  municipality: 'רשות מקומית',
-  national: 'מרחב ארצי',
-  organization: 'ארגון',
-  urban_area: 'אזור עירוני',
-  nationwide_civic: 'מרחב אזרחי ארצי',
-};
 
 /**
  * The suppressed figure is a literal string, not a computed bound. The client
@@ -184,7 +143,7 @@ export default async function SpaceStatsPage({ params }: SpaceStatsPageProps) {
     <>
       <SpaceAdminHeader
         spaceName={space.nameHe}
-        spaceTypeLabel={SPACE_TYPE_LABELS_HE[space.type] ?? space.type}
+        spaceTypeLabel={spaceTypeLabel(space.type)}
         slug={space.slug}
         spaceId={space.id}
         suspended={space.suspended}
@@ -192,7 +151,7 @@ export default async function SpaceStatsPage({ params }: SpaceStatsPageProps) {
       <SpaceAdminNav
         spaceId={space.id}
         active="stats"
-        visibleHrefs={visibleSurfaces(space.capabilities)}
+        visibleHrefs={visibleNavHrefs(space.capabilities)}
         locale={locale}
       />
     </>
