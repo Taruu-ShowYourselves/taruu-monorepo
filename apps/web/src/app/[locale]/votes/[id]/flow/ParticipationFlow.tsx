@@ -7,7 +7,6 @@ import { NewsButton } from '@/components/press/NewsButton';
 import { Stepper, Receipt } from '@/components/press';
 import { useReducedMotion } from '@/hooks';
 import { useAuthStore } from '@/stores/authStore';
-import { isEligibleToVote } from '@/lib/verification';
 import {
   submitParticipation,
   isTerminalRejection,
@@ -55,11 +54,16 @@ const PENDING_KEY = 'taruu-pending-vote';
 
 /**
  * ParticipationFlow - the press ballot, reshaped (UX flow J2). Choice →
- * confirmation → server-recorded receipt. Participation is free; residency is
- * verified ONCE elsewhere (/verification), so there is no per-vote GPS step.
- * The auth + verified-resident gate sits at confirmation: guests pick freely,
- * and the selected option is persisted across the sign-in / verification
- * round-trip so nothing is lost. The ballot is persisted by
+ * confirmation → server-recorded receipt. Residency is verified ONCE
+ * elsewhere (/verification), so there is no per-vote GPS step.
+ *
+ * Only the sign-in gate is evaluated client-side, because "no session" is
+ * unambiguous here. Residency is decided solely by the server: the client's
+ * `isEligibleToVote` depends on `checkInsCompleted`, which this screen never
+ * loads, so gating on it turned away residents the server accepts. A 403
+ * routes them to /verification instead. Guests pick freely, and the selected
+ * option is persisted across either round-trip so nothing is lost. The ballot
+ * is persisted by
  * `POST /api/votes/[id]/participate` - via `submitParticipation` - before the
  * receipt is shown; nothing here is chain-anchored.
  */
@@ -72,9 +76,7 @@ export function ParticipationFlow({
 }: ParticipationFlowProps) {
   const router = useRouter();
   const reduced = useReducedMotion();
-  const { isAuthenticated, user } = useAuthStore();
-
-  const isVerifiedResident = isEligibleToVote(user);
+  const { isAuthenticated } = useAuthStore();
 
   const [stage, setStage] = useState<Stage>('choice');
   const [selectedOption, setSelectedOption] = useState<string | null>(initialOptionId);
@@ -168,6 +170,19 @@ export function ParticipationFlow({
     const result = await submitParticipation({ voteId, optionId: selectedOption });
     setSubmitting(false);
     if (result.status === 'rejected') {
+      // The server is the only authority on eligibility. When it says the
+      // resident still needs to verify, route them there rather than leaving
+      // them staring at an error they cannot clear from this screen.
+      if (result.code === 'RESIDENCY_NOT_VERIFIED' || result.code === 'IDENTITY_NOT_VERIFIED') {
+        persistPending();
+        router.push(`/verification?redirect=${encodeURIComponent(`/votes/${voteId}`)}`);
+        return;
+      }
+      if (result.code === 'UNAUTHENTICATED') {
+        persistPending();
+        router.push(`/sign-in?redirect=${encodeURIComponent(`/votes/${voteId}`)}`);
+        return;
+      }
       setSubmitError(result.message);
       setSubmitErrorCode(result.code);
       return; // stay on 'confirm'; no receipt, no onComplete
@@ -175,27 +190,31 @@ export function ParticipationFlow({
     setBallot(result.ballot);
     setAlreadyRecorded(result.alreadyRecorded);
     setStage('receipt');
-  }, [selectedOption, submitting, isBlocked, voteId]);
+  }, [selectedOption, submitting, isBlocked, voteId, persistPending, router]);
 
   const handleConfirm = useCallback(async () => {
     if (!selectedOption) return;
 
     const back = encodeURIComponent(`/votes/${voteId}`);
-    // Gate at confirmation: must be signed in AND a verified resident. Persist
-    // the choice so the round-trip returns the user straight to this step.
+    // Sign-in is gated client-side because the answer is unambiguous here: no
+    // session means no request worth making.
+    //
+    // Residency is NOT gated client-side. `isEligibleToVote` reads
+    // `verificationStatus.checkInsCompleted`, which only `/api/verification/status`
+    // ever populates and which the vote page never fetches - so on this screen
+    // it is always undefined and the client rule collapses to "fully verified".
+    // The server's rule is broader (verified OR at least one check-in), which is
+    // the actual product decision. Gating on the narrower client value blocked
+    // residents the server would have accepted. The request is attempted and
+    // the server's 403 routes them, so there is exactly one eligibility rule.
     if (!isAuthenticated) {
       persistPending();
       router.push(`/sign-in?redirect=${back}`);
       return;
     }
-    if (!isVerifiedResident) {
-      persistPending();
-      router.push(`/verification?redirect=${back}`);
-      return;
-    }
 
     await recordVote();
-  }, [selectedOption, voteId, recordVote, isAuthenticated, isVerifiedResident, persistPending, router]);
+  }, [selectedOption, voteId, recordVote, isAuthenticated, persistPending, router]);
 
   /* ------------------------------------------------------------------ */
   return (
@@ -290,18 +309,17 @@ export function ParticipationFlow({
 
             <p className={styles.trust}>מאומת זהות ותושבוּת · נרשם פעם אחת.</p>
 
-            {/* Gate notice - what the confirm button will do next */}
-            {!isAuthenticated ? (
+            {/* Gate notice - only for the one gate this screen can answer.
+                Residency is decided by the server; guessing it here would
+                tell an eligible resident to go verify something they already
+                have. If the server disagrees, it routes them to /verification
+                with the choice preserved. */}
+            {!isAuthenticated && (
               <p className={styles.gateNote}>
                 <span aria-hidden>■ </span>
                 צריך חשבון כדי להשלים. נשמור את הבחירה שלכם ונחזיר אתכם לכאן.
               </p>
-            ) : !isVerifiedResident ? (
-              <p className={styles.gateNote}>
-                <span aria-hidden>■ </span>
-                אימות תושב חד-פעמי לפני ההצבעה. נשמור את הבחירה ונמשיך מכאן.
-              </p>
-            ) : null}
+            )}
 
             {submitError && (
               <p className={styles.errorNote} role="alert">
@@ -323,11 +341,9 @@ export function ParticipationFlow({
                   ? 'ההצבעה סגורה'
                   : !isAuthenticated
                     ? 'התחברו והשלימו'
-                    : !isVerifiedResident
-                      ? 'אמתו תושבוּת והשלימו'
-                      : submitting
-                        ? 'רושמים את הקול…'
-                        : 'אשרו והצביעו'}
+                    : submitting
+                      ? 'רושמים את הקול…'
+                      : 'אשרו והצביעו'}
               </NewsButton>
               <button
                 type="button"

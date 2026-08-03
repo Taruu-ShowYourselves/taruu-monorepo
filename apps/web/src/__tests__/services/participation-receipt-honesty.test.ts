@@ -161,7 +161,7 @@ describe('the receipt shows only server-backed facts', () => {
     expect(flowCode).toContain('נרשם');
   });
 
-  it('says nothing about money at all — not even that it is free', () => {
+  it('says nothing about money at all, not even that it is free', () => {
     // Casting a vote is a civic act, not a transaction. Even the word "free"
     // frames it as one and invites the question "free compared to what?".
     // The flow states who is voting and that the vote is recorded once; cost
@@ -221,6 +221,55 @@ describe('a rejection the resident cannot act on stops inviting retries', () => 
   it('the flow blocks the confirm button on a terminal rejection', () => {
     expect(flowCode).toContain('isTerminalRejection');
     expect(flowCode).toContain('disabled={submitting || isBlocked}');
+  });
+});
+
+describe('eligibility has exactly one authority - the server', () => {
+  it('the flow does not evaluate residency client-side', () => {
+    // isEligibleToVote reads verificationStatus.checkInsCompleted, which only
+    // /api/verification/status populates and which the vote page never
+    // fetches. On this screen it is always undefined, so the client rule
+    // collapsed to "fully verified" and turned away residents whose first
+    // check-in already made them eligible per the server.
+    expect(flowCode).not.toContain('isEligibleToVote');
+    expect(flowCode).not.toContain('isVerifiedResident');
+  });
+
+  it('routes to /verification on the server saying residency is missing', () => {
+    expect(flowCode).toContain("result.code === 'RESIDENCY_NOT_VERIFIED'");
+    expect(flowCode).toContain('/verification?redirect=');
+  });
+
+  it('routes to /sign-in on the server saying the session is missing', () => {
+    expect(flowCode).toContain("result.code === 'UNAUTHENTICATED'");
+    expect(flowCode).toContain('/sign-in?redirect=');
+  });
+
+  it('persists the choice before every redirect so the round-trip loses nothing', () => {
+    const redirects = flowCode.split('router.push(').length - 1;
+    const persists = flowCode.split('persistPending()').length - 1;
+    // One persistPending per router.push, plus the callback's own definition.
+    expect(persists).toBeGreaterThanOrEqual(redirects);
+  });
+});
+
+describe('post-auth redirects are sanitised', () => {
+  const signInCode = code(
+    readFileSync(join(SRC, 'app/[locale]/sign-in/[[...sign-in]]/page.tsx'), 'utf8')
+  );
+  const verificationCode = code(
+    readFileSync(join(SRC, 'app/[locale]/verification/page.tsx'), 'utf8')
+  );
+
+  it('sign-in never pushes a raw redirect param', () => {
+    // An absolute URL here is an open redirect off a successful sign-in.
+    expect(signInCode).toContain('safeRedirect(');
+    expect(signInCode).not.toMatch(/router\.push\(\s*redirect\s*\)/);
+  });
+
+  it('verification sanitises its redirect before using or re-embedding it', () => {
+    expect(verificationCode).toContain('safeRedirect(');
+    expect(verificationCode).not.toMatch(/const redirect = searchParams\.get\('redirect'\) \|\|/);
   });
 });
 
