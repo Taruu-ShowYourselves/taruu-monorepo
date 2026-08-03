@@ -1050,13 +1050,6 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
-      set_claim: {
-        Args: {
-          claim: string;
-          value: string;
-        };
-        Returns: void;
-      };
       increment_vote_option: {
         Args: {
           option_id: string;

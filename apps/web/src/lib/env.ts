@@ -16,6 +16,17 @@ const serverEnvSchema = z.object({
   // JWT Session
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
 
+  // Supabase project JWT secret (RLS transport, RLS-01).
+  // DISTINCT from JWT_SECRET: JWT_SECRET signs the long-lived `sync-session`
+  // cookie, this one signs the short-lived access token PostgREST verifies.
+  // Optional here and guarded at the point of use (see lib/supabase/user-token.ts),
+  // matching the GREENINVOICE_* precedent below — an unset value must not break
+  // routes that never touch the user-scoped client.
+  SUPABASE_JWT_SECRET: z
+    .string()
+    .min(32, 'SUPABASE_JWT_SECRET must be at least 32 characters')
+    .optional(),
+
   // Auth0 (primary login — OIDC Universal Login; federates Google)
   AUTH0_CLIENT_ID: z.string().min(1, 'AUTH0_CLIENT_ID is required'),
   AUTH0_CLIENT_SECRET: z.string().min(1, 'AUTH0_CLIENT_SECRET is required'),

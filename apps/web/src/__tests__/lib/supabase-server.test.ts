@@ -47,7 +47,8 @@ describe('lib/supabase/server lazy initialization', () => {
     const { createClient } = await import('@supabase/supabase-js');
 
     expect(mod.supabaseAdmin).toBeDefined();
-    expect(typeof mod.withUserContext).toBe('function');
+    // RLS-03: the dead `set_claim` transport was deleted in Phase 5.
+    expect('withUserContext' in mod).toBe(false);
     // No client construction happens at import time.
     expect(vi.mocked(createClient)).not.toHaveBeenCalled();
   });
