@@ -23,6 +23,11 @@ import {
   PROPOSAL_STATUS_LABELS_HE,
   proposalChipTone,
 } from '@/components/space-admin/proposalStatusLabels';
+import {
+  DEFAULT_PROPOSAL_FILTER,
+  PROPOSAL_FILTERS,
+  type ProposalsFilter,
+} from './filters';
 import styles from './page.module.css';
 
 /**
@@ -42,25 +47,14 @@ import styles from './page.module.css';
  *    review is the only thing likely to catch drifting.
  */
 
-export type ProposalsFilter =
-  | 'in_review'
-  | 'draft'
-  | 'changes_requested'
-  | 'rejected'
-  | 'active'
-  | 'all';
-
-export const PROPOSAL_FILTERS: readonly ProposalsFilter[] = [
-  'in_review',
-  'draft',
-  'changes_requested',
-  'rejected',
-  'active',
-  'all',
-];
-
-/** The queue opens on what needs a decision. */
-export const DEFAULT_PROPOSAL_FILTER: ProposalsFilter = 'in_review';
+/**
+ * The filter vocabulary lives in `./filters`, a module with no `'use client'`
+ * directive, because `page.tsx` reads it on the server. Re-exported here for
+ * the call sites that already import it from this file — but a Server
+ * Component must import it from `./filters` directly, or React hands it a
+ * client reference instead of the value. See that file's header.
+ */
+export { PROPOSAL_FILTERS, DEFAULT_PROPOSAL_FILTER, type ProposalsFilter };
 
 /** The five chips of the copy deck. `all` is reachable but is not a chip. */
 const FILTER_CHIPS: readonly { value: ProposalsFilter; label: string }[] = [

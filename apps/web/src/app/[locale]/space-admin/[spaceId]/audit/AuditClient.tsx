@@ -17,6 +17,14 @@ import {
 } from '@/components/space-admin';
 import { EscalationDialog } from '@/components/space-admin/EscalationDialog';
 import { CAPABILITY_LABELS_HE } from '@/server/domain/space/capability';
+import {
+  AUDIT_FILTERS,
+  DEFAULT_AUDIT_FILTER,
+  decodeTrail,
+  encodeTrail,
+  isAuditFilter,
+  type AuditFilterValue,
+} from './filters';
 import styles from './page.module.css';
 
 /**
@@ -46,31 +54,21 @@ import styles from './page.module.css';
 // ---------------------------------------------------------------------------
 
 /**
- * The four chips of the copy deck, mapped onto `space_audit_log.object_type`.
- *
- * The column admits seven values; these cover three. `member`, `content`,
- * `space` and `escalation` rows are reachable only under `הכול` — which is the
- * deck's own filter list, not an omission here. Worth knowing when reading the
- * log: a suspension is a `member` row, so it does NOT appear under `הרשאות`,
- * which selects grant rows alone.
+ * The chips, the default, the guard and the trail codec live in `./filters`, a
+ * module with no `'use client'` directive, because `page.tsx` reads all of them
+ * on the server. Re-exported here for the call sites that already import them
+ * from this file — but a Server Component must import from `./filters`
+ * directly, or React hands it a client reference and the call throws. See that
+ * file's header.
  */
-export const AUDIT_FILTERS = [
-  { value: 'all', label: 'הכול', objectType: undefined },
-  { value: 'vote', label: 'הצעות', objectType: 'vote' },
-  { value: 'grant', label: 'הרשאות', objectType: 'grant' },
-  {
-    value: 'notification_campaign',
-    label: 'התראות',
-    objectType: 'notification_campaign',
-  },
-] as const;
-
-export type AuditFilterValue = (typeof AUDIT_FILTERS)[number]['value'];
-
-export const DEFAULT_AUDIT_FILTER: AuditFilterValue = 'all';
-
-export const isAuditFilter = (value: string | null): value is AuditFilterValue =>
-  value !== null && AUDIT_FILTERS.some((filter) => filter.value === value);
+export {
+  AUDIT_FILTERS,
+  DEFAULT_AUDIT_FILTER,
+  isAuditFilter,
+  encodeTrail,
+  decodeTrail,
+  type AuditFilterValue,
+};
 
 // ---------------------------------------------------------------------------
 // Copy
@@ -202,15 +200,6 @@ export interface AuditClientProps {
   trail: readonly string[];
   state: AuditSurfaceState;
 }
-
-/** Cursors are base64url, so `~` cannot occur inside one. */
-const TRAIL_SEPARATOR = '~';
-
-export const encodeTrail = (trail: readonly string[]): string =>
-  trail.join(TRAIL_SEPARATOR);
-
-export const decodeTrail = (raw: string | null): string[] =>
-  raw ? raw.split(TRAIL_SEPARATOR).filter((part) => part.length > 0) : [];
 
 export function AuditClient({
   spaceId,

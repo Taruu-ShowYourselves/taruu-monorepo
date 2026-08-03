@@ -19,9 +19,9 @@ import { getSessionFromCookies, type Session } from '@/services/auth/session';
 import {
   DEFAULT_PROPOSAL_FILTER,
   PROPOSAL_FILTERS,
-  ProposalsClient,
   type ProposalsFilter,
-} from './ProposalsClient';
+} from './filters';
+import { ProposalsClient } from './ProposalsClient';
 import styles from './page.module.css';
 
 /**

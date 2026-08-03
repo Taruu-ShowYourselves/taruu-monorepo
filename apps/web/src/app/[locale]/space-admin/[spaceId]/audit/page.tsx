@@ -8,15 +8,14 @@ import type { Locale } from '@/lib/i18n';
 import { getSpaceOverview } from '@/server/app/space-admin/get-space-overview';
 import { listSpaceAudit } from '@/server/app/space-admin/list-audit';
 import { getSessionFromCookies } from '@/services/auth/session';
+import { AuditClient, type AuditSurfaceState } from './AuditClient';
 import {
   AUDIT_FILTERS,
-  AuditClient,
   DEFAULT_AUDIT_FILTER,
   decodeTrail,
   isAuditFilter,
   type AuditFilterValue,
-  type AuditSurfaceState,
-} from './AuditClient';
+} from './filters';
 import styles from './page.module.css';
 
 /**
