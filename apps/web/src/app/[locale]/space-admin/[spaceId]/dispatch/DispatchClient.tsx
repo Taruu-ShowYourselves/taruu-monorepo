@@ -218,9 +218,13 @@ export function DispatchClient({ spaceId, quota }: DispatchClientProps) {
       setFieldErrors({});
       setDraft((current) => ({ ...current, ...patch }));
 
-      if (preview && !preview.stale) {
+      // An edit also drops a refusal sentence the server sent about the
+      // PREVIOUS text. The shared stale banner still says what to do; keeping
+      // `הקהל השתנה` on screen while the admin rewrites the body would be
+      // answering a question they are no longer asking.
+      if (preview && (!preview.stale || preview.banner !== null)) {
+        if (!preview.stale) setAnnouncement(ANNOUNCE_STALE);
         setPreview({ ...preview, stale: true, banner: null });
-        setAnnouncement(ANNOUNCE_STALE);
       }
     },
     [preview],
