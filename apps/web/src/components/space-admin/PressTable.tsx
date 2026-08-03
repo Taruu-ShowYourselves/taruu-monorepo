@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { NewsButton } from '@/components/press/NewsButton';
+import disabledStyles from './disabledButton.module.css';
 import styles from './PressTable.module.css';
 
 /**
@@ -330,7 +331,7 @@ export function PressTable<Row>({
             <NewsButton
               variant="outline"
               size="sm"
-              className={styles.pageBtn}
+              className={clsx(styles.pageBtn, disabledStyles.control)}
               onClick={pagination.onOlder}
               disabled={pagination.olderDisabled}
             >
@@ -348,7 +349,7 @@ export function PressTable<Row>({
             <NewsButton
               variant="outline"
               size="sm"
-              className={styles.pageBtn}
+              className={clsx(styles.pageBtn, disabledStyles.control)}
               onClick={pagination.onNewer}
               disabled={pagination.newerDisabled}
             >

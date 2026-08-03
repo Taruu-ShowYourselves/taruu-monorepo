@@ -3,6 +3,7 @@
 import React from 'react';
 import clsx from 'clsx';
 import { Receipt } from '@/components/press';
+import { ReceiptKicker } from './ReceiptKicker';
 import styles from './AudiencePreview.module.css';
 
 /**
@@ -83,14 +84,7 @@ export function AudiencePreview({
 
       <Receipt
         className={stale ? styles.stale : undefined}
-        kicker={
-          <>
-            <span aria-hidden className={styles.kickerTick}>
-              ■{' '}
-            </span>
-            <span className={styles.kickerText}>קהל יעד · AUDIENCE</span>
-          </>
-        }
+        kicker={<ReceiptKicker>קהל יעד · AUDIENCE</ReceiptKicker>}
         rows={[
           { label: 'נמענים מאושרים', value: approvedRecipients, strong: true },
           { label: 'הוחרגו — ביטלו הסכמה', value: excludedOptedOut },

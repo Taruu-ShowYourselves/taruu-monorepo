@@ -295,23 +295,10 @@
   letter-spacing: 0.02em;
 }
 
-/* Disabled-state contract (D17/D27). Canonical copy lives in
-   ConfirmDialog.module.css; repeated here so the pagination controls are
-   correct on their own, and authored `:disabled`-qualified because a bare
-   class is (0,1,0) and loses to NewsButton's `.outline:hover` at (0,1,1).
-   `:hover` still fires on a disabled button. No dimming: it would drag
-   `--np-paper-2` below its 0.03 AA margin. */
-.pageBtn:disabled {
-  background: var(--np-paper-2);
-  color: var(--np-ink-faint);
-  border-color: var(--np-ink-faint);
-  cursor: not-allowed;
-}
-
-.pageBtn:disabled:hover {
-  background: var(--np-paper-2);
-  color: var(--np-ink-faint);
-}
+/* The disabled appearance is `disabledButtonClass` from
+   `disabledButton.module.css`, applied alongside `.pageBtn` in the component.
+   It used to be copied here, because the only shared class also carried the
+   `ink` hover fill these `outline` controls must never take. */
 
 /* ---------- Desktop ---------- */
 

@@ -45,6 +45,7 @@ export type { StatusChipProps, StatusChipTone } from './StatusChip';
 export {
   ConfirmDialog,
   confirmButtonClass,
+  disabledButtonClass,
   REASON_MIN_LENGTH,
   REASON_MAX_LENGTH,
 } from './ConfirmDialog';

@@ -4,6 +4,7 @@ import React, { useEffect, useId, useState } from 'react';
 import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import { NewsButton } from '@/components/press/NewsButton';
 import { PressInput } from '@/components/press/PressInput/PressInput';
+import disabledStyles from './disabledButton.module.css';
 import kicker from './kicker.module.css';
 import styles from './ConfirmDialog.module.css';
 
@@ -11,15 +12,25 @@ export const REASON_MIN_LENGTH = 10;
 export const REASON_MAX_LENGTH = 500;
 
 /**
- * The disabled-state contract (D17/D27) plus the dense-`ink` hover fix (D23),
- * as a class the surface plans pass through `NewsButton`'s `className` — the
- * dispatch send button and any pagination that does not go through
- * `PressTable` are the other permitted `disabled` controls in this phase.
+ * The disabled-state contract (D17/D27) on its own, for every permitted
+ * `disabled` control in this phase — including the ones that are not `ink`:
+ * `PressTable`'s `outline` pagination and the dispatch send, which is
+ * `red`/`lg`.
  *
- * Apply it to `variant="ink"` controls ONLY. No `outline` control ever takes
- * a red or red-dark fill, at rest or on hover.
+ * Safe on any variant. It paints only the disabled and disabled-hover states.
  */
-export const confirmButtonClass: string = styles.confirmBtn;
+export const disabledButtonClass: string = disabledStyles.control;
+
+/**
+ * The disabled contract PLUS the dense-`ink` hover fix (D23).
+ *
+ * Apply this one to `variant="ink"` controls ONLY. No `outline` control and no
+ * `red` control ever takes a red or red-dark fill: `outline` already inverts
+ * to ink at 16.66:1, and `red` inverts to ink at the same ratio, so the D23
+ * override would LOWER compliant contrast on both — the mistake the spec
+ * caught and reverted once. Those controls take `disabledButtonClass`.
+ */
+export const confirmButtonClass = `${disabledStyles.control} ${styles.confirmBtn}`;
 
 interface ConfirmDialogBaseProps {
   open: boolean;
@@ -185,7 +196,7 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
             <div className={styles.actions}>
               <NewsButton
                 variant="ink"
-                className={styles.confirmBtn}
+                className={confirmButtonClass}
                 disabled={!valid || pending}
                 onClick={() => onConfirm(trimmed)}
               >
@@ -193,7 +204,16 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
               </NewsButton>
 
               <AlertDialog.Cancel asChild>
-                <NewsButton variant="outline" disabled={pending}>
+                {/* `outline`, so it takes the disabled appearance WITHOUT the
+                    D23 hover fill. Before 05-15 split the two, this button
+                    could not have the appearance at all without also taking a
+                    red hover — so while a request was in flight it looked
+                    exactly like an enabled control. */}
+                <NewsButton
+                  variant="outline"
+                  className={disabledButtonClass}
+                  disabled={pending}
+                >
                   {cancelLabel}
                 </NewsButton>
               </AlertDialog.Cancel>

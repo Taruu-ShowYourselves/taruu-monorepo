@@ -65,15 +65,6 @@
   color: var(--np-ink-faint);
 }
 
-/* Red text on paper-box is `--np-red-ink` (10.32:1), never `--np-red` (D9).
-   The Receipt's own kicker rule paints the accent red at the mono data size,
-   which is 4.03:1; these two classes ride on the node passed INTO it, so the
-   inner colour wins without forking a component the spec lists as
-   reused-as-is. */
-.kickerText {
-  color: var(--np-red-ink);
-}
-
-.kickerTick {
-  color: var(--np-red);
-}
+/* The compliant kicker for a press `Receipt` lives in `ReceiptKicker` and
+   `kicker.module.css`, because the sent-confirmation receipt on the dispatch
+   surface needs the same treatment. */

@@ -1,0 +1,41 @@
+/* ============================================================
+ * THE DISABLED-STATE CONTRACT — D17 + D27, and nothing else.
+ *
+ * `NewsButton.module.css` has no `:disabled` rule at all: a disabled button
+ * renders identically to an enabled one and keeps `cursor: pointer`. Rule B
+ * rests on six enumerated `disabled` states and screenshot #13 has to show a
+ * VISIBLY disabled confirm, so the appearance lives here and is passed through
+ * `NewsButton`'s `className`.
+ *
+ * IT MUST BE AUTHORED `:disabled`-QUALIFIED OR IT SILENTLY LOSES. A bare class
+ * arriving through `className` is specificity (0,1,0), which cannot beat
+ * `.ink:hover` (0,1,1) and only ties `.btn { cursor: pointer }` (0,1,0) on
+ * source order. `:hover` still fires on a disabled button, so the
+ * no-inversion rule needs its own `:disabled:hover` selector.
+ *
+ * DO NOT DIM. Opacity would drag `--np-paper-2` below its 0.03 AA margin, and
+ * that token also carries row hover, the skeletons and the stale preview.
+ *
+ * This file is deliberately SEPARATE from the dense-`ink` hover fix (D23),
+ * which lives next to `.confirmBtn` in `ConfirmDialog.module.css`. The two
+ * were one class until 05-15, and that forced a choice on every non-`ink`
+ * control that needs a disabled appearance: take a red hover fill it must not
+ * have, or copy the block. `PressTable`'s `outline` pagination had already
+ * copied it; the dispatch send is `red`/`lg`, whose own hover inverts to ink
+ * at 16.66:1 and would be made WORSE by a red-dark fill — the same mistake the
+ * spec caught and reverted once for `outline`. Splitting removes the choice.
+ * ============================================================ */
+
+/* (0,2,0) — beats `.btn` and every variant's rest state. */
+.control:disabled {
+  background: var(--np-paper-2);
+  color: var(--np-ink-faint); /* 4.53:1 on paper-2 — AA normal text */
+  border-color: var(--np-ink-faint);
+  cursor: not-allowed;
+}
+
+/* (0,2,1) — beats `.ink:hover` / `.outline:hover` / `.red:hover` at (0,1,1). */
+.control:disabled:hover {
+  background: var(--np-paper-2);
+  color: var(--np-ink-faint);
+}

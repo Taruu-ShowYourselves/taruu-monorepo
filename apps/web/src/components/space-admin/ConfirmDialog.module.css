@@ -1,7 +1,9 @@
 /* ============================================================
  * ConfirmDialog — Radix AlertDialog, press-painted.
- * Also the canonical home of this phase's DISABLED-STATE CONTRACT (D17/D27)
- * and of the dense-`ink` hover fix (D23). Both are at the bottom of the file.
+ * Also the home of the dense-`ink` hover fix (D23), at the bottom of the file.
+ * The disabled-state contract (D17/D27) it used to carry now lives in
+ * `disabledButton.module.css`, so controls that are not `ink` can take the
+ * disabled appearance without the red hover fill.
  * ============================================================ */
 
 .backdrop {
@@ -124,34 +126,14 @@
 }
 
 /* ============================================================
- * DISABLED-STATE CONTRACT — D17 + D27.
+ * D23 — the dense-`ink` hover fix.
  *
- * `NewsButton.module.css` has no `:disabled` rule at all, so this is the
- * whole appearance. It MUST be authored `:disabled`-qualified or it silently
- * loses: a bare class arriving through `className` is specificity (0,1,0),
- * which cannot beat `.ink:hover` (0,1,1) and only ties `.btn { cursor:
- * pointer }` (0,1,0) on source order. `:hover` still fires on a disabled
- * button, so the no-inversion rule needs its own `:disabled:hover` selector.
- *
- * Do not dim the control. Dimming would drag `--np-paper-2` below its 0.03
- * AA margin, and that token also carries row hover and the skeletons.
+ * The disabled appearance is `disabledButton.module.css`, and every consumer
+ * of `confirmButtonClass` gets both class names. Only the hover half is here,
+ * because only the hover half is `ink`-specific.
  * ============================================================ */
 
-/* (0,2,0) — beats `.btn` and `.ink`. */
-.confirmBtn:disabled {
-  background: var(--np-paper-2);
-  color: var(--np-ink-faint); /* 4.53:1 on paper-2 — AA normal text */
-  border-color: var(--np-ink-faint);
-  cursor: not-allowed;
-}
-
-/* (0,2,1) — beats `.ink:hover` (0,1,1). */
-.confirmBtn:disabled:hover {
-  background: var(--np-paper-2);
-  color: var(--np-ink-faint);
-}
-
-/* D23 — dense `ink` hover fix. `NewsButton.module.css:44` inverts `.ink` to a
+/* `NewsButton.module.css:44` inverts `.ink` to a
    red fill with paper text on hover: 4.03:1 at body size, the same defect
    bans the global red-fill block utility. `--np-red-dark` restores it at
    6.03:1. This applies to `ink` ONLY: `.outline:hover` already inverts to
