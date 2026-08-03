@@ -23,7 +23,7 @@ import styles from './ProposalDetailPanel.module.css';
  * The panel is also where the permitted-content controls live, which is what
  * gives the `לנהל תוכן מותר` capability somewhere to act. An admin without
  * that capability still opens the panel and still reads the proposal; the four
- * controls are simply absent (Rule A), never disabled.
+ * controls are simply absent (Rule A), never present-but-inert.
  *
  * The decision actions stay in the ROW, not here — approve, return and reject
  * must be reachable without expanding anything.
@@ -261,7 +261,7 @@ export function ProposalDetailPanel({
 
           <hr className={styles.rule} />
 
-          {/* Rule A: without the capability these are absent, not disabled —
+          {/* Rule A: without the capability these are absent, not greyed out —
               and the panel above still renders, so the proposal is readable. */}
           {canModerate ? (
             <div className={styles.controls}>
