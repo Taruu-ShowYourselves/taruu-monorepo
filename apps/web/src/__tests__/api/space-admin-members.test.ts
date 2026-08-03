@@ -22,8 +22,10 @@ import { errAsync, okAsync } from 'neverthrow';
 import { CAPABILITIES, type Capability } from '@/server/domain/space/capability';
 import { conflict } from '@/server/http/errors';
 import {
+  auditRow,
   MUNICIPALITY_A,
   OTHER_USER_ID,
+  scopeFor,
   SESSION,
   SPACE_A,
   SPACE_B,
@@ -39,6 +41,8 @@ vi.mock('@/server/infra/supabase/space.repo', () => ({
 
 vi.mock('@/server/infra/supabase/space-audit.repo', () => ({
   insertAuditRow: vi.fn(),
+  listAuditRows: vi.fn(),
+  AUDIT_PAGE_MAX: 100,
 }));
 
 vi.mock('@/server/infra/supabase/space-member.repo', () => ({
@@ -58,7 +62,7 @@ vi.mock('@/server/infra/supabase/space-member.repo', () => ({
 
 import { getSessionFromRequest } from '@/services/auth/session';
 import { findActiveGrant } from '@/server/infra/supabase/space.repo';
-import { insertAuditRow } from '@/server/infra/supabase/space-audit.repo';
+import { insertAuditRow, listAuditRows } from '@/server/infra/supabase/space-audit.repo';
 import {
   countSpaceMembers,
   insertGrant,
@@ -158,6 +162,13 @@ beforeEach(() => {
   (setContentModeration as Mock).mockReturnValue(
     okAsync({ id: VOTE_ID, hidden_at: '2026-08-03T09:00:00.000Z', flagged_at: null })
   );
+  (listAuditRows as Mock).mockReturnValue(
+    okAsync({
+      rows: [auditRow({ actor_user_id: OTHER_USER_ID })],
+      nextCursor: null,
+      truncated: false,
+    })
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -215,6 +226,45 @@ describe('GET /api/space-admin/{spaceId}/members', () => {
     const body = await res.json();
 
     expect(body.members[0].suspended).toBe(true);
+  });
+
+  /**
+   * A text-level guard rather than a field-by-field one. Asserting that
+   * `body.members[0].email` is undefined only catches the leak somebody already
+   * thought of; reading the whole serialized response catches the shape nobody
+   * named — a nested object, a renamed column, an accidental spread.
+   */
+  it('serializes nothing resembling an identity document, contact channel or DID', async () => {
+    holds(['member.read']);
+    (listSpaceMembers as Mock).mockReturnValue(
+      okAsync([
+        memberRow(),
+        memberRow({ id: USER_ID, first_name: null, last_name: null }),
+      ])
+    );
+
+    const res = await GET_MEMBERS(
+      new NextRequest(`http://localhost/api/space-admin/${SPACE_A}/members`),
+      ctx(SPACE_A)
+    );
+    const serialized = JSON.stringify(await res.json());
+
+    expect(serialized).not.toMatch(/id_number|dateOfBirth|@|\+972|did:sync|documentExpiry/);
+  });
+
+  it('falls back to a Hebrew label rather than an empty name', async () => {
+    holds(['member.read']);
+    (listSpaceMembers as Mock).mockReturnValue(
+      okAsync([memberRow({ first_name: null, last_name: null })])
+    );
+
+    const res = await GET_MEMBERS(
+      new NextRequest(`http://localhost/api/space-admin/${SPACE_A}/members`),
+      ctx(SPACE_A)
+    );
+    const body = await res.json();
+
+    expect(body.members[0].displayName).toBe('תושב/ת');
   });
 
   it('refuses a caller holding only metrics.read', async () => {
@@ -396,6 +446,72 @@ describe('POST/DELETE /api/space-admin/{spaceId}/members/suspension', () => {
 
     expect(res.status).toBe(409);
     expect(insertAuditRow).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SPACE-09: suspension is immediate and erases nothing
+// ---------------------------------------------------------------------------
+
+describe('suspension preserves history', () => {
+  /**
+   * The whole of SPACE-09 in one case, because the two halves are only
+   * meaningful together: a suspension that stopped access by deleting the
+   * evidence would satisfy the first assertion and fail the requirement.
+   */
+  it('kills the suspended member capabilities on the next request and leaves their audit rows readable', async () => {
+    holds(['member.suspend']);
+
+    const suspend = await POST_SUSPENSION(
+      json('POST', `http://localhost/api/space-admin/${SPACE_A}/members/suspension`, {
+        userId: OTHER_USER_ID,
+        reason: REASON,
+      }),
+      ctx(SPACE_A)
+    );
+    expect(suspend.status).toBe(200);
+
+    // The resolver now reflects what the suspension wrote. Nothing is cached
+    // and the session is unchanged — the very next request re-reads the grant.
+    holds([]);
+    const afterwards = await POST_GRANT(
+      json('POST', `http://localhost/api/space-admin/${SPACE_A}/grants`, {
+        userId: USER_ID,
+        capability: 'member.read',
+        reason: REASON,
+      }),
+      ctx(SPACE_A)
+    );
+    expect(afterwards.status).toBe(403);
+
+    // …and their history is still there.
+    const history = await listAuditRows(scopeFor('audit.read'), {
+      actorId: OTHER_USER_ID,
+    });
+    expect(history.isOk()).toBe(true);
+    expect(history._unsafeUnwrap().rows[0]).toMatchObject({
+      actor_user_id: OTHER_USER_ID,
+      action: 'proposal.approved',
+    });
+  });
+
+  it('gives the application no vocabulary for editing or removing history', async () => {
+    const auditModule = await vi.importActual<Record<string, unknown>>(
+      '@/server/infra/supabase/space-audit.repo'
+    );
+    const memberModule = await vi.importActual<Record<string, unknown>>(
+      '@/server/infra/supabase/space-member.repo'
+    );
+
+    const surface = [...Object.keys(auditModule), ...Object.keys(memberModule)];
+
+    // Guard against the assertion below passing because nothing loaded.
+    expect(surface).toContain('insertAuditRow');
+    expect(surface).toContain('insertMemberSuspension');
+
+    expect(surface.filter((name) => /^(delete|remove|purge|truncate)/i.test(name))).toEqual(
+      []
+    );
   });
 });
 

@@ -11,7 +11,7 @@ import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { NextRequest } from 'next/server';
 import { errAsync, okAsync } from 'neverthrow';
 import { conflict } from '@/server/http/errors';
-import { MUNICIPALITY_A, SESSION, SPACE_A, USER_ID } from '../fixtures/space';
+import { MUNICIPALITY_A, SESSION, SPACE_A, SPACE_B, USER_ID } from '../fixtures/space';
 
 const { limiterCheck } = vi.hoisted(() => ({ limiterCheck: vi.fn() }));
 
@@ -66,6 +66,8 @@ import { ESCALATION_ACKNOWLEDGEMENT } from '@/server/app/space-admin/raise-escal
 const limiterConstruction = [...(createRateLimiter as unknown as Mock).mock.calls];
 
 const VOTE_ID = '55555555-5555-4555-8555-555555555555';
+/** Well-formed, and deliberately matching no row in any fixture. */
+const NONEXISTENT_UUID = '99999999-9999-4999-8999-999999999999';
 const REASON = 'התוכן חורג מכללי המרחב';
 const BODY = 'ההרשאה שלי הושעתה ואני מבקש בירור';
 
@@ -274,6 +276,55 @@ describe('POST /api/space-admin/{spaceId}/escalations', () => {
     expect(res.status).toBe(400);
     expect(insertEscalation).not.toHaveBeenCalled();
   });
+
+  /**
+   * The test that fails if anyone reintroduces an existence check or an audit
+   * write on this path. Each case establishes a baseline — the answer a fully
+   * capable member of their own space gets — and then asserts the target answer
+   * is indistinguishable from it, so all four responses are equal by
+   * construction rather than by a hard-coded expectation somebody could update.
+   */
+  const OPAQUE_TARGETS: Array<[string, string]> = [
+    ['a space they are not a member of', SPACE_B],
+    ['a well-formed uuid matching no space', NONEXISTENT_UUID],
+    ['a malformed space id', 'not-a-uuid'],
+  ];
+
+  const outcomeOf = async (target: string) => {
+    const res = await escalate(target);
+    return { status: res.status, body: await res.text() };
+  };
+
+  it.each(OPAQUE_TARGETS)(
+    'answers %s exactly as it answers their own space',
+    async (_label, target) => {
+      (findGrantsForUser as Mock).mockImplementation((_userId, spaceId) =>
+        okAsync(
+          spaceId === SPACE_A
+            ? [
+                {
+                  space_id: SPACE_A,
+                  municipality_code: MUNICIPALITY_A,
+                  capability: 'member.read',
+                  suspended_at: null,
+                },
+              ]
+            : []
+        )
+      );
+
+      const baseline = await outcomeOf(SPACE_A);
+      expect(insertEscalation).toHaveBeenCalledTimes(1);
+      (insertEscalation as Mock).mockClear();
+
+      const observed = await outcomeOf(target);
+
+      expect(observed).toEqual(baseline);
+      expect(observed.status).toBe(202);
+      expect(insertEscalation).toHaveBeenCalledTimes(1);
+      expect(insertAuditRow).not.toHaveBeenCalled();
+    }
+  );
 
   it('is rate-limited per user, not per space', async () => {
     expect(limiterConstruction).toContainEqual([
