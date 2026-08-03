@@ -44,6 +44,7 @@ vi.mock('@/server/infra/supabase/space.repo', () => ({
   findSpaceSummaryByMembership: vi.fn(),
   listProposals: vi.fn(),
   countProposalsAwaitingDecision: vi.fn(),
+  countActiveVotes: vi.fn(),
 }));
 
 let lastBuilder: QueryBuilderStub | null = null;
@@ -63,6 +64,7 @@ vi.mock('@/lib/supabase/server', () => ({
 
 import { getSessionFromRequest } from '@/services/auth/session';
 import {
+  countActiveVotes,
   countProposalsAwaitingDecision,
   findActiveGrant,
   findGrantsForUser,
@@ -122,6 +124,7 @@ beforeEach(() => {
   (getSessionFromRequest as Mock).mockResolvedValue(SESSION);
   (findSpaceSummaryByMembership as Mock).mockReturnValue(okAsync(spaceRow()));
   (countProposalsAwaitingDecision as Mock).mockReturnValue(okAsync(3));
+  (countActiveVotes as Mock).mockReturnValue(okAsync(2));
   (listProposals as Mock).mockReturnValue(okAsync([proposalRow()]));
   setGrantState(false);
 });

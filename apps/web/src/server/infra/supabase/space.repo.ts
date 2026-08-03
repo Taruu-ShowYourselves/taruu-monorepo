@@ -214,3 +214,25 @@ export function countProposalsAwaitingDecision(
     dbError('votes.countAwaitingDecision', cause)
   );
 }
+
+/**
+ * The overview's `הצבעות פעילות` figure: proposals this space already
+ * published and that residents can still vote on.
+ *
+ * `active` is the published-and-open status, distinct from `pending`
+ * (approved but scheduled to start later) — see `initialStatus` in
+ * server/domain/votes/vote.ts, which is what an approval resolves through.
+ * Counting both would report votes nobody can cast yet as open.
+ */
+export function countActiveVotes(scope: SpaceScope): ResultAsync<number, AppError> {
+  const query = supabaseAdmin
+    .from('votes')
+    .select('id', { head: true, count: 'exact' })
+    .eq('municipality_id', scope.municipalityCode) // scope key, never a caller string
+    .eq('status', 'active')
+    .then(({ count, error }) => {
+      if (error) throw error;
+      return count ?? 0;
+    });
+  return ResultAsync.fromPromise(query, (cause) => dbError('votes.countActive', cause));
+}

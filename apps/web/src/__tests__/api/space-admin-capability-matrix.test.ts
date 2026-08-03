@@ -34,16 +34,33 @@ vi.mock('@/server/infra/supabase/space.repo', () => ({
   findSpaceSummaryByMembership: vi.fn(),
   listProposals: vi.fn(),
   countProposalsAwaitingDecision: vi.fn(),
+  countActiveVotes: vi.fn(),
+}));
+
+/**
+ * The overview now reads three tables through three repositories, one per
+ * figure. Each is mocked here, because a matrix row that holds `member.read`
+ * or `notification.send` reaches the real module otherwise.
+ */
+vi.mock('@/server/infra/supabase/space-member.repo', () => ({
+  countSpaceMembers: vi.fn(),
+}));
+
+vi.mock('@/server/infra/supabase/space-notify.repo', () => ({
+  countCampaignsSentThisMonth: vi.fn(),
 }));
 
 import { getSessionFromRequest } from '@/services/auth/session';
 import {
+  countActiveVotes,
   countProposalsAwaitingDecision,
   findActiveGrant,
   findGrantsForUser,
   findSpaceSummaryByMembership,
   listProposals,
 } from '@/server/infra/supabase/space.repo';
+import { countSpaceMembers } from '@/server/infra/supabase/space-member.repo';
+import { countCampaignsSentThisMonth } from '@/server/infra/supabase/space-notify.repo';
 import { GET as GET_OVERVIEW } from '@/app/api/space-admin/[spaceId]/route';
 import { GET as GET_PROPOSALS } from '@/app/api/space-admin/[spaceId]/proposals/route';
 
@@ -87,7 +104,10 @@ beforeEach(() => {
   (getSessionFromRequest as Mock).mockResolvedValue(SESSION);
   (findSpaceSummaryByMembership as Mock).mockReturnValue(okAsync(spaceRow()));
   (countProposalsAwaitingDecision as Mock).mockReturnValue(okAsync(3));
+  (countActiveVotes as Mock).mockReturnValue(okAsync(2));
   (listProposals as Mock).mockReturnValue(okAsync([proposalRow()]));
+  (countSpaceMembers as Mock).mockReturnValue(okAsync(7));
+  (countCampaignsSentThisMonth as Mock).mockReturnValue(okAsync(1));
 });
 
 /**
@@ -162,17 +182,45 @@ describe('the overview only bills a figure to a caller who may see it', () => {
 
     const body = await (await ENDPOINTS.overview()).json();
 
+    // Both vote figures ride on the one scope: they read the same table under
+    // the same predicate, so they cannot have two different answers.
     expect(body.figures.proposalsAwaitingDecision).toBe(3);
+    expect(body.figures.activeVotes).toBe(2);
     expect(body.recentQueue).toHaveLength(1);
   });
 
-  it('leaves the not-yet-wired figures null rather than inventing a zero', async () => {
+  it('withholds the figures that belong to capabilities the caller lacks', async () => {
     holdsExactly('proposal.read');
 
     const body = await (await ENDPOINTS.overview()).json();
 
+    // Absent, not zero — and the repositories behind them are never called.
     expect(body.figures.membersInSpace).toBeNull();
+    expect(body.figures.notificationsSentThisMonth).toBeNull();
+    expect(countSpaceMembers).not.toHaveBeenCalled();
+    expect(countCampaignsSentThisMonth).not.toHaveBeenCalled();
+  });
+
+  it('fills the member figure for a member.read holder, and only that one', async () => {
+    holdsExactly('member.read');
+
+    const body = await (await ENDPOINTS.overview()).json();
+
+    expect(body.figures.membersInSpace).toBe(7);
+    expect(body.figures.proposalsAwaitingDecision).toBeNull();
     expect(body.figures.activeVotes).toBeNull();
     expect(body.figures.notificationsSentThisMonth).toBeNull();
+    expect(body.recentQueue).toBeNull();
+  });
+
+  it('fills the notification figure for a notification.send holder, and only that one', async () => {
+    holdsExactly('notification.send');
+
+    const body = await (await ENDPOINTS.overview()).json();
+
+    expect(body.figures.notificationsSentThisMonth).toBe(1);
+    expect(body.figures.membersInSpace).toBeNull();
+    expect(body.figures.proposalsAwaitingDecision).toBeNull();
+    expect(body.figures.activeVotes).toBeNull();
   });
 });

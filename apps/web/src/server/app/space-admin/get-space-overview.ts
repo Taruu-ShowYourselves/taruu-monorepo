@@ -22,7 +22,10 @@ import {
 } from '@/server/app/space-admin/authorize';
 import { toProposalSummary } from '@/server/app/space-admin/list-proposals';
 import { forbidden, type AppError } from '@/server/http/errors';
+import { countSpaceMembers } from '@/server/infra/supabase/space-member.repo';
+import { countCampaignsSentThisMonth } from '@/server/infra/supabase/space-notify.repo';
 import {
+  countActiveVotes,
   countProposalsAwaitingDecision,
   findSpaceSummaryByMembership,
   listProposals,
@@ -32,11 +35,19 @@ import type { Session } from '@/services/auth/session';
 /** How many rows the `דורש הכרעה` panel shows before deferring to Surface 2. */
 const OVERVIEW_QUEUE_LIMIT = 5;
 
+/**
+ * `null` on any figure means the caller holds no capability for it, so the UI
+ * renders nothing there — never a zero and never a dash. The capability each
+ * figure is gated on is named beside it.
+ */
 export interface SpaceOverviewFigures {
-  /** null ⇒ the caller holds no proposal.read, so the figure is absent, not zero. */
+  /** proposal.read */
   proposalsAwaitingDecision: number | null;
+  /** member.read */
   membersInSpace: number | null;
+  /** proposal.read — published and open, so it rides with the queue's scope. */
   activeVotes: number | null;
+  /** notification.send */
   notificationsSentThisMonth: number | null;
 }
 
@@ -54,6 +65,7 @@ export interface SpaceOverview {
 
 interface ProposalWidgets {
   awaitingDecision: number;
+  activeVotes: number;
   queue: ProposalSummary[];
 }
 
@@ -67,21 +79,47 @@ const optional = <T>(result: ResultAsync<T, AppError>): ResultAsync<T | null, Ap
     error.kind === 'FORBIDDEN' ? okAsync<T | null, AppError>(null) : errAsync(error)
   );
 
+/**
+ * Both vote figures and the queue ride on one capability and one scope.
+ * `הצבעות פעילות` is a read of the same table under the same predicate as
+ * `הצעות ממתינות להכרעה`, so splitting it onto a second capability would say
+ * that reading this space's votes has two different answers.
+ */
 const proposalWidgets = (
   session: Session,
   rawSpaceId: string
 ): ResultAsync<ProposalWidgets | null, AppError> =>
   optional(
     authorize(session, rawSpaceId, 'proposal.read').andThen((scope) =>
-      countProposalsAwaitingDecision(scope).andThen((awaitingDecision) =>
-        listProposals(scope, { status: 'in_review', limit: OVERVIEW_QUEUE_LIMIT }).map(
-          (rows) => ({
-            awaitingDecision,
-            queue: rows.map((row) => toProposalSummary(row, scope.userId)),
-          })
-        )
-      )
+      ResultAsync.combine([
+        countProposalsAwaitingDecision(scope),
+        countActiveVotes(scope),
+        listProposals(scope, { status: 'in_review', limit: OVERVIEW_QUEUE_LIMIT }),
+      ] as const).map(([awaitingDecision, activeVotes, rows]) => ({
+        awaitingDecision,
+        activeVotes,
+        queue: rows.map((row) => toProposalSummary(row, scope.userId)),
+      }))
     )
+  );
+
+/** `חברים במרחב` — the count 05-06 exposes, behind its own capability. */
+const memberCount = (
+  session: Session,
+  rawSpaceId: string
+): ResultAsync<number | null, AppError> =>
+  optional(authorize(session, rawSpaceId, 'member.read').andThen(countSpaceMembers));
+
+/**
+ * `התראות שנשלחו החודש` — the same count the composer reads its quota against
+ * (05-08), so the overview and the dispatch surface can never disagree.
+ */
+const notificationCount = (
+  session: Session,
+  rawSpaceId: string
+): ResultAsync<number | null, AppError> =>
+  optional(
+    authorize(session, rawSpaceId, 'notification.send').andThen(countCampaignsSentThisMonth)
   );
 
 export function getSpaceOverview(
@@ -96,7 +134,14 @@ export function getSpaceOverview(
 
       const capabilities = [...membership.capabilities];
 
-      return proposalWidgets(session, rawSpaceId).map((widgets) => ({
+      // Each figure earns its own authorize(), so a capability the caller lacks
+      // costs one denial rather than the page. They are resolved together
+      // because they are independent reads with no ordering between them.
+      return ResultAsync.combine([
+        proposalWidgets(session, rawSpaceId),
+        memberCount(session, rawSpaceId),
+        notificationCount(session, rawSpaceId),
+      ] as const).map(([widgets, membersInSpace, notificationsSentThisMonth]) => ({
         space: {
           id: row.id,
           slug: row.slug,
@@ -110,11 +155,9 @@ export function getSpaceOverview(
         capabilities,
         figures: {
           proposalsAwaitingDecision: widgets ? widgets.awaitingDecision : null,
-          // The shape is final now so the UI plan can build against it; the data
-          // lands with the plans that own those tables.
-          membersInSpace: null, // wired in 05-06
-          activeVotes: null, // wired in 05-06
-          notificationsSentThisMonth: null, // wired in 05-08
+          membersInSpace,
+          activeVotes: widgets ? widgets.activeVotes : null,
+          notificationsSentThisMonth,
         },
         recentQueue: widgets ? widgets.queue : null,
       }));
