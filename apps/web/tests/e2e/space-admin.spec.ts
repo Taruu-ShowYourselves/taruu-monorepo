@@ -349,6 +349,81 @@ test.describe('space-admin evidence frames (issue #75)', () => {
   });
 
   // -------------------------------------------------------------------------
+  // No frame — the dispatch staleness rule, which the frames cannot show
+  // -------------------------------------------------------------------------
+  /**
+   * "Staleness fires on change, not on blur."
+   *
+   * The frames above capture the FRESH state; the rule is about a transition,
+   * so a picture cannot show it. 05-15 argued it from the code — every field
+   * routes through one `edit()` that flips `stale` synchronously — and said
+   * plainly that it was argued and not observed, because `apps/web` has no
+   * React harness and the interaction needs a session, a seeded space and a
+   * running Supabase. All three exist here, so it is observed instead.
+   *
+   * The load-bearing part is not that the send ends up disabled — it is that it
+   * gets there with ZERO blur events on the field. A component that invalidated
+   * on blur would also end up disabled by the time an assertion ran, and would
+   * pass a naive version of this test. So the field is focused first, a blur
+   * counter is installed on the element itself, exactly one character is typed
+   * through the keyboard, and the counter is read back afterwards.
+   */
+  test('dispatch staleness fires on change, with no blur — the behaviour no frame can show', async ({
+    page,
+  }) => {
+    await page.goto(`/he/space-admin/${SPACE_A}/dispatch`);
+    await awaitSurface(page);
+
+    const body = page.getByLabel('גוף ההודעה');
+    await page.getByLabel('כותרת ההתראה').fill('עדכון לתושבי המרחב');
+    await body.fill(
+      'ההצבעה על תוספת התאורה בשביל הכניסה לבית הספר נפתחה ותהיה פתוחה עשרים יום.'
+    );
+    await page.getByLabel('קהל יעד').selectOption('all_members');
+
+    await page.getByRole('button', { name: 'חשבו קהל יעד' }).click();
+
+    const send = page.getByRole('button', { name: 'שלחו התראה', exact: true });
+    const staleBanner = page.getByText(
+      'ההודעה שונתה אחרי חישוב הקהל — חשבו שוב לפני שליחה.'
+    );
+
+    // The precondition, asserted so this test cannot pass vacuously: a fresh
+    // preview, a sendable composer, and no stale banner anywhere.
+    await expect(page.getByText('נמענים מאושרים', { exact: true })).toBeVisible();
+    await expect(send).toBeEnabled();
+    await expect(staleBanner).toHaveCount(0);
+
+    // Focus the field, THEN start counting blurs. Clicking into it is itself a
+    // focus change, and counting from before that would record the move away
+    // from the preview button rather than anything the edit caused.
+    await body.click();
+    await expect(body).toBeFocused();
+    await body.evaluate((el) => {
+      el.dataset.blurCount = '0';
+      el.addEventListener('blur', () => {
+        el.dataset.blurCount = String(Number(el.dataset.blurCount ?? '0') + 1);
+      });
+    });
+
+    // One character, through the keyboard, into the already-focused field. No
+    // `fill()` here: fill sets the value programmatically and would not
+    // reproduce a person typing.
+    await page.keyboard.type('.');
+
+    // The send must be gone by now, and the field must still hold focus — which
+    // together are the whole claim.
+    await expect(send).toBeDisabled();
+    await expect(body).toBeFocused();
+    await expect(staleBanner).toBeVisible();
+    // Rule B: a disabled control always says what unblocks it.
+    await expect(page.getByText('חשבו קהל יעד כדי לאפשר שליחה.')).toBeVisible();
+
+    const blurs = await body.evaluate((el) => el.dataset.blurCount);
+    expect(blurs).toBe('0');
+  });
+
+  // -------------------------------------------------------------------------
   // Frames 11-12 — Audit
   // -------------------------------------------------------------------------
   test('frames 11-12 · audit: five or more rows, an expanded reason, and live pagination', async ({
