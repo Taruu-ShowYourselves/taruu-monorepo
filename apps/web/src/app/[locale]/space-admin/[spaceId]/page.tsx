@@ -35,7 +35,9 @@ import styles from './page.module.css';
  */
 
 export const metadata: Metadata = {
-  title: 'לוח ניהול מרחב | תַּרְאוּ',
+  // The locale layout supplies the `| תַּרְאוּ` half through its title template;
+  // repeating it here renders the suffix twice.
+  title: 'לוח ניהול מרחב',
   // An admin console has nothing to gain from being indexed.
   robots: { index: false, follow: false },
 };
