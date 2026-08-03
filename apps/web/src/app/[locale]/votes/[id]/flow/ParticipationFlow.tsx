@@ -8,7 +8,12 @@ import { Stepper, Receipt } from '@/components/press';
 import { useReducedMotion } from '@/hooks';
 import { useAuthStore } from '@/stores/authStore';
 import { isEligibleToVote } from '@/lib/verification';
-import { submitParticipation, type RecordedBallot } from './submitParticipation';
+import {
+  submitParticipation,
+  isTerminalRejection,
+  type ParticipationRejectionCode,
+  type RecordedBallot,
+} from './submitParticipation';
 import styles from './ParticipationFlow.module.css';
 
 /* ------------------------------------------------------------------ */
@@ -77,10 +82,25 @@ export function ParticipationFlow({
   const [alreadyRecorded, setAlreadyRecorded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitErrorCode, setSubmitErrorCode] = useState<ParticipationRejectionCode | null>(null);
+
+  /** A rejection retrying cannot fix - the confirm button stops offering one. */
+  const isBlocked = submitErrorCode !== null && isTerminalRejection(submitErrorCode);
 
   const selectedText = useMemo(
     () => options.find((o) => o.id === selectedOption)?.text ?? '',
     [options, selectedOption]
+  );
+
+  /**
+   * The position the SERVER recorded - which is not always the one just
+   * clicked. On the already-recorded path the API returns the existing
+   * ballot, so a resident who voted differently before would otherwise be
+   * shown a position they never cast. The receipt states server facts only.
+   */
+  const recordedText = useMemo(
+    () => (ballot ? (options.find((o) => o.id === ballot.optionId)?.text ?? '') : ''),
+    [options, ballot]
   );
 
   const recordedAt = useMemo(
@@ -141,19 +161,21 @@ export function ParticipationFlow({
 
   /* ---- Step 2: server-confirmed recording ---- */
   const recordVote = useCallback(async () => {
-    if (!selectedOption || submitting) return;
+    if (!selectedOption || submitting || isBlocked) return;
     setSubmitting(true);
     setSubmitError(null);
+    setSubmitErrorCode(null);
     const result = await submitParticipation({ voteId, optionId: selectedOption });
     setSubmitting(false);
     if (result.status === 'rejected') {
       setSubmitError(result.message);
+      setSubmitErrorCode(result.code);
       return; // stay on 'confirm'; no receipt, no onComplete
     }
     setBallot(result.ballot);
     setAlreadyRecorded(result.alreadyRecorded);
     setStage('receipt');
-  }, [selectedOption, submitting, voteId]);
+  }, [selectedOption, submitting, isBlocked, voteId]);
 
   const handleConfirm = useCallback(async () => {
     if (!selectedOption) return;
@@ -294,16 +316,18 @@ export function ParticipationFlow({
                 size="lg"
                 className={styles.cta}
                 onClick={handleConfirm}
-                disabled={submitting}
-                trailing={<span aria-hidden>←</span>}
+                disabled={submitting || isBlocked}
+                trailing={isBlocked ? undefined : <span aria-hidden>←</span>}
               >
-                {!isAuthenticated
-                  ? 'התחברו והשלימו'
-                  : !isVerifiedResident
-                    ? 'אמתו תושבוּת והשלימו'
-                    : submitting
-                      ? 'רושמים את הקול…'
-                      : 'אשרו והצביעו'}
+                {isBlocked
+                  ? 'ההצבעה סגורה'
+                  : !isAuthenticated
+                    ? 'התחברו והשלימו'
+                    : !isVerifiedResident
+                      ? 'אמתו תושבוּת והשלימו'
+                      : submitting
+                        ? 'רושמים את הקול…'
+                        : 'אשרו והצביעו'}
               </NewsButton>
               <button
                 type="button"
@@ -330,11 +354,11 @@ export function ParticipationFlow({
             <p className={styles.lead}>
               {alreadyRecorded ? (
                 <>
-                  כבר הצבעתם בהצבעה הזו. זה הרישום הקיים שלכם: <strong>{selectedText}</strong>.
+                  כבר הצבעתם בהצבעה הזו. זה הרישום הקיים שלכם: <strong>{recordedText}</strong>.
                 </>
               ) : (
                 <>
-                  הרישום הושלם. בחרתם: <strong>{selectedText}</strong>.
+                  הרישום הושלם. בחרתם: <strong>{recordedText}</strong>.
                 </>
               )}
             </p>
@@ -344,7 +368,7 @@ export function ParticipationFlow({
               kicker="קבלה · RECEIPT"
               title="רישום השתתפות"
               rows={[
-                { label: 'עמדה', value: selectedText || '-' },
+                { label: 'עמדה', value: recordedText || '-' },
                 { label: 'סטטוס', value: 'נרשם', strong: true },
                 { label: 'מספר רישום', value: ballot.id },
               ]}

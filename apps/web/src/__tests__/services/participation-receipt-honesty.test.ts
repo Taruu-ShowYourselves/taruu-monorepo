@@ -174,6 +174,54 @@ describe('the receipt shows only server-backed facts', () => {
   it('renders the server registration number under מספר רישום', () => {
     expect(flowCode).toContain('מספר רישום');
   });
+
+  it('derives the displayed position from the server ballot, not the click', () => {
+    // On the already-recorded path the API returns the EXISTING ballot, which
+    // may be a different option than the one just selected. Rendering
+    // selectedText there would print a position the resident never cast, and
+    // would contradict onComplete(ballot.optionId) one click later.
+    expect(flowCode).toContain('o.id === ballot.optionId');
+    expect(flowCode).toContain('recordedText');
+  });
+
+  it('never renders selectedText inside the receipt step', () => {
+    const receiptStep = flowCode.slice(flowCode.indexOf("stage === 'receipt'"));
+    expect(receiptStep).not.toContain('selectedText');
+  });
+
+  it('hands the server option id to onComplete', () => {
+    expect(flowCode).toContain('onComplete(ballot.optionId)');
+  });
+});
+
+describe('a rejection the resident cannot act on stops inviting retries', () => {
+  it('declares the terminal rejection codes', () => {
+    expect(submitCode).toContain('TERMINAL_REJECTION_CODES');
+    for (const terminal of ['VOTE_ENDED', 'VOTE_NOT_OPEN', 'NOT_FOUND']) {
+      expect(submitCode).toContain(terminal);
+    }
+  });
+
+  it('an ended vote is not told to refresh and try again', () => {
+    // The generic 400 copy says "refresh the page and try again", which is
+    // wrong advice for a vote that has closed - refreshing changes nothing.
+    const endedMessage = submitCode
+      .split('\n')
+      .find((line) => line.trimStart().startsWith('VOTE_ENDED:'));
+    expect(endedMessage).toBeDefined();
+    expect(endedMessage).not.toContain('רעננו את הדף');
+    expect(endedMessage).toContain('ההצבעה נסגרה');
+  });
+
+  it('splits VOTE_ENDED and VOTE_NOT_OPEN out of the generic 400', () => {
+    expect(submitCode).toContain("errorCode === 'VOTE_ENDED'");
+    expect(submitCode).toContain("errorCode === 'VOTE_NOT_OPEN'");
+  });
+
+  it('the flow blocks the confirm button on a terminal rejection', () => {
+    expect(flowCode).toContain('isTerminalRejection');
+    expect(flowCode).toContain('disabled={submitting || isBlocked}');
+  });
 });
 
 describe('scope boundary - marketing surfaces are deliberately out of scope', () => {

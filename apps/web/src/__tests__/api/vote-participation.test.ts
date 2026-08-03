@@ -255,7 +255,7 @@ describe('Vote Participation API Routes', () => {
       expect(data.error).toBe('Vote not found');
     });
 
-    it('returns 400 when vote is not active', async () => {
+    it('returns 400 with code VOTE_NOT_OPEN when the vote has not opened yet', async () => {
       (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
       (voteParticipationLimiter.check as Mock).mockResolvedValue({ limited: false });
       (getVoteWithOptions as Mock).mockResolvedValue({ ...mockVote, status: 'pending' });
@@ -268,15 +268,34 @@ describe('Vote Participation API Routes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('Vote is not active');
+      expect(data.code).toBe('VOTE_NOT_OPEN');
     });
 
-    it('returns 400 when vote has ended', async () => {
+    it('returns 400 with code VOTE_ENDED when the stored status is ended', async () => {
+      (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
+      (voteParticipationLimiter.check as Mock).mockResolvedValue({ limited: false });
+      (getVoteWithOptions as Mock).mockResolvedValue({ ...mockVote, status: 'ended' });
+
+      const request = new NextRequest('http://localhost:3000/api/votes/vote-123/participate', {
+        method: 'POST',
+        body: JSON.stringify(validParticipateData),
+      });
+      const response = await participate(request, { params: createParams('vote-123') });
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.code).toBe('VOTE_ENDED');
+    });
+
+    it('returns 400 with code VOTE_ENDED when end_date has passed but status still says active', async () => {
+      // The realistic race: the resident opened the page while the vote was
+      // live and pressed confirm after it closed. Status lags the clock.
       (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
       (voteParticipationLimiter.check as Mock).mockResolvedValue({ limited: false });
       const pastEndDate = new Date(Date.now() - 86400000).toISOString(); // 1 day ago
       (getVoteWithOptions as Mock).mockResolvedValue({
         ...mockVote,
+        status: 'active',
         end_date: pastEndDate,
       });
 
@@ -289,6 +308,7 @@ describe('Vote Participation API Routes', () => {
 
       expect(response.status).toBe(400);
       expect(data.error).toBe('Vote has ended');
+      expect(data.code).toBe('VOTE_ENDED');
     });
 
     it('returns 400 when option is invalid', async () => {
