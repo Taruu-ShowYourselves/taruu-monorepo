@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: "Completed 05-06-PLAN.md — wave 3 is complete (05-05, 05-06, 05-07, 05-08 all landed)"
-last_updated: "2026-08-03T08:02:00.000Z"
+stopped_at: "Completed 05-09-PLAN.md — the notification send (wave 4, alongside 05-10, 05-12, 05-13, 05-14)"
+last_updated: "2026-08-03T12:10:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 20
-  completed_plans: 13
+  completed_plans: 15
 ---
 
 # Project State
@@ -24,11 +24,11 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 05 (space-governance-substrate-and-space-admin-operations-dashboard) — EXECUTING
-Plan: 10 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several plans in parallel, so this counter is a count of completed plans, not a position in a sequence)
+Plan: 11 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several plans in parallel, so this counter is a count of completed plans, not a position in a sequence)
 
 ## ▶ RESUME HERE (after /clear)
 
-**Phase 5 is EXECUTING** (16 plans, 6 waves). **Waves 1 and 2 are complete** — 05-01, 05-02, 05-03, 05-04 and 05-11 have all landed. **Wave 3 is complete** — 05-05, 05-06, 05-07 and 05-08 have all landed. Wave 4 is next.
+**Phase 5 is EXECUTING** (16 plans, 6 waves). **Waves 1 and 2 are complete** — 05-01, 05-02, 05-03, 05-04 and 05-11 have all landed. **Wave 3 is complete** — 05-05, 05-06, 05-07 and 05-08 have all landed. **Wave 4 is in progress** — 05-09 and 05-10 have landed; 05-12, 05-13 and 05-14 are running.
 
 - 05-01 (governance substrate — DB tables, two-file `vote_status` split, `types.ts`); see `05-01-SUMMARY.md`.
 - 05-02 (capability vocabulary, review transitions, QUOTA_EXCEEDED, rollout flag, full contract surface); see `05-02-SUMMARY.md`.
@@ -36,6 +36,7 @@ Plan: 10 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several
 - 05-04 (**the authorization core** — branded `SpaceScope`, `resolveMembership`, two space repositories, the first two use-cases and routes, 52 tests); see `05-04-SUMMARY.md`. **Plans 05-05…05-09 must read three sections of it before adding a repository function:** the limit of the guarantee (`SpaceScope.capability` is carried but enforced by no repository), the two-token cost (`SpaceMembership` needs its own entry points), and the `optional()` extraction note under "For downstream plans".
 - 05-05 (**the first real writer** — `space-decision.repo.ts`, the six-guard `decideProposal` chain, POST decide + GET detail routes, 29 tests); see `05-05-SUMMARY.md`. **05-10 must read its "Where plan 05-10 inserts the creation-fee charge" section first:** the seam is `decide-proposal.ts:118`, between `resolveDecisionTarget` (116) and `transitionProposal` (123), and moving it after the transition yields publish-then-charge. **05-13** builds Surface 2 against both endpoints; the decision responds with a full `ProposalDetail` carrying the new status.
 - 05-08 (**the notification substrate and the audience preview** — three tables, the one `resolveAudience`, both fingerprints, a calendar-month DB quota, `POST …/notifications/preview`, 29 tests); see `05-08-SUMMARY.md`. **05-09 must read its "For plan 05-09" section before writing the send:** it pins the sha256 join strings for `audience_hash` and `content_hash`, records that `previewToken` **is** `content_hash` rather than something derived from it, and lists the repository surface including `currentMonthStartIso`/`nextMonthStartIso`, which exist so the send and the quota block cannot compute two disagreeing month boundaries.
+- 05-09 (**the send** — dual-fingerprint verification, the DB-counted quota enforced at-or-over the limit, a conditional claim, the in-app rows and the delivery log before any push, `POST …/notifications/send` + `GET …/notifications`, 33 tests); see `05-09-SUMMARY.md`. **05-15 must read its "Error taxonomy the composer must map" table before writing the composer's state machine:** it maps every status code to a composer state and a sentence. Two traps it names — the 429 body carries **no** numbers (the exhausted block reads `{used}/{limit}` and `resetsAt` from `GET …/notifications`), and the two 409s share one code and differ only in their Hebrew string, so the client branches on the string. Note `resolveAudience` now also returns `optedOutUserIds`; the addition is additive and 05-08's 29 tests are unchanged.
 - 05-07 (**the two read-only reporting surfaces** — `space_admin_metrics` RPC with the k-anonymity floor in SQL, `getSpaceMetrics`, `listSpaceAudit`, two GET routes, 30 tests); see `05-07-SUMMARY.md`. **05-14 and 05-15 must read its "For 05-14 and 05-15" section before writing a line:** it names the two use-cases to import (never the repositories), gives the base64url cursor encoding so audit links round-trip, and gives the `available`/`suppressed`/`unavailable` render table. Note `participationRate` can be `unavailable` while its neighbours are `available` — that is the deliberate ratio-suppression fix, not a bug.
 - 05-06 (**people, content and escalation** — `space-member.repo.ts`, five use-cases, five endpoints, 39 tests); see `05-06-SUMMARY.md`. **05-12…05-15 must read its endpoint table:** it names the eight use-cases to import and states plainly that the repository will run without an authorization call in front of it. **05-09 must read its audit-action list** — the nine actions this plan writes, and the standing rule that there is no escalation action and must not be one. The `/escalations` endpoint is the phase's one un-gated route; its constant `{ "accepted": true }` / 202 answer is what makes it not an existence oracle, and four separate properties hold that up.
 - 05-11 (np-native shell + eight UI primitives: `SpaceAdminHeader`, `SpaceAdminNav`, `PressTable`, `StatusChip`, `ConfirmDialog`, three panels); see `05-11-SUMMARY.md`. **Surface plans 05-12…05-15 should read that summary's "Component API" section before writing a line** — it gives every prop signature, and `components/space-admin/index.ts` is a CLOSED barrel they must not reopen (import new components by direct path).
@@ -91,6 +92,7 @@ Open question to resolve before Phase 3 planning: **monthly civic-pool allocatio
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P07 | 12 min | 3 tasks | 8 files |
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P08 | 15 min | 3 tasks | 8 files |
 | Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P06 | 20 min | 3 tasks | 14 files |
+| Phase 05-space-governance-substrate-and-space-admin-operations-dashboard P09 | 22 min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -177,6 +179,14 @@ Recent decisions affecting current work:
 - [Phase 05-space-governance]: A shape written into a `Json` column must be an object TYPE ALIAS, not an interface — TypeScript grants the implicit index signature only to the alias, so an interface makes the audit write `error TS2322`
 - [Phase 05-space-governance]: `optional()` is STILL not extracted after 05-06, deliberately and without a copy: every 05-06 surface is gated on a single capability, so a missing capability is a 403 for the whole endpoint rather than an absent widget. 05-07 is the genuine first reuse
 
+- [Phase 05-space-governance]: The send verifies THREE things against the campaign row, not two: recomputed `contentHash` (catches an edited message), the echoed `previewToken` (catches a replayed token against an unedited message), and the re-resolved `audience_hash` (catches a membership change). Dropping the token comparison as "redundant with the recomputation" removes the only check on replay
+- [Phase 05-space-governance]: `resolveAudience` returns `optedOutUserIds` as well as the count, because `space_notification_deliveries.user_id` is NOT NULL and the send writes one suppressed row per opt-out. The list is deliberately NOT part of `audience_hash` — an opt-out by someone who was never a recipient must not invalidate a correct preview
+- [Phase 05-space-governance]: The campaign is CLAIMED (conditional UPDATE on `status = 'previewed'`) before the first recipient row is written, so a concurrent second send loses before it can duplicate an inbox row. The consequence is a structural window: a failure between the claim and the audit row leaves a `sent` campaign with no recipients and one unit of quota spent. PostgREST offers no cross-statement transaction; 05-16 decides whether that needs an RPC
+- [Phase 05-space-governance]: `GET …/notifications` returns `{ campaigns, quota }` with a TOP-LEVEL quota block, not a per-campaign `quotaRemaining`. Composer state 0 renders before any campaign exists and needs `{used}/{limit}` plus `resetsAt` from `nextMonthStartIso()`. The 429 body carries no numbers, so the exhausted block must read them from here
+- [Phase 05-space-governance]: The two send 409s differ only in their Hebrew sentence — both are `CONFLICT`. 05-15 must branch on the string, not the code: `הקהל השתנה…` is a re-preview, `ההודעה שונתה…` is a re-cost, and `ההתראה כבר נשלחה.` should render the sent receipt rather than the failure copy
+- [Phase 05-space-governance]: Push-channel delivery rows record PEOPLE, not devices. Expo dedups to tokens and returns tickets that cannot be attributed back to a user, so a `push`/`delivered` row means the fan-out was accepted for someone who had a channel — never that a device buzzed. `in_app` remains the delivery of record
+- [Phase 05-space-governance]: CONVENTION UPDATE — the comment-versus-grep collision hit 05-09 twice more, and both were dictated by the plan itself: it asked for a comment naming `createRateLimiter` while its own verification forbade the literal, and the same for `await fanOutCampaignPush`. Nine plans now. When a plan asks for a comment containing a string another criterion counts, the comment loses the literal and keeps the meaning
+
 ### Roadmap Evolution
 
 - Phase 5 added: Space governance substrate and space-admin operations dashboard (issue #75) — out-of-milestone scope from the Grand Release Crunchtime board, appended rather than opened as a new milestone so the incomplete v1.0 payments phases are not archived
@@ -198,10 +208,11 @@ None yet.
 - **05-04's PostgREST embeds are unexecuted.** `spaces!inner(municipality_code)` in the grant resolver, `users(first_name,last_name)` on votes, the actor embed on `space_audit_log`, and the keyset `.or()` predicate in `listAuditRows` are all reviewed but never run — the migrations have never reached a live Postgres. Each fails at runtime, not compile time, if a relationship does not resolve. Add these four to 05-16's checklist.
 - **`space_admin_metrics` (05-07) is unapplied like the rest.** Three probes belong on 05-16's checklist: call it for a real space; for a random uuid (must return **zero rows**, not a row of zeroes); and for a space with a NULL `municipality_code` (must return zero rows). The `WHERE EXISTS` guard is the only thing standing between a nonexistent space and a fabricated `registered_residents: 0, status: 'available'`, and it has never executed.
 - **05-06's repository predicates are unexecuted, and one of them is load-bearing for every 409 in the plan.** Four items for 05-16's checklist: the `or=(first_name.ilike.*t*,last_name.ilike.*t*)` member search; the `23505` code surfacing on the supabase-js error for `uq_active_grant` and `uq_active_member_suspension`; the exact-timestamp match in `liftMemberSuspension` (assumes Postgres returns the ISO string it was given); and — **first priority** — `.select()` after an `UPDATE` returning the affected rows. Every conflict detection in `space-member.repo.ts` reads a zero-length array as "already in that state"; if that returns something else, all of the plan's 409s silently become 200s.
+- **05-09's writes are unexecuted, and one of them shares 05-06's first-priority risk.** Four items for 05-16's checklist: `claimCampaignForSend`'s `.select()` after a conditional `UPDATE` (zero rows *is* the "already sent" 409 — if a conditional update returns something else, every send either always 409s or never detects a double send); `insertDeliveries`' `ignoreDuplicates` against `uq_delivery_once`, whose whole purpose is retry idempotency; the bulk insert into `user_notifications` with its two nullable FKs; and the history query's `.order('sent_at').limit()` against the partial quota index. **Plus a design question 05-16 should rule on:** a failure between the claim and the audit row leaves a `sent` campaign with zero recipients and one unit of quota spent — acceptable, or does the send need an RPC?
 - 05-11 did NOT perform its plan's one manual step — rendering the shell at `/he/space-admin/{uuid}`. No page exists under `[spaceId]` yet and starting `next dev` in a tree with live executors risks clobbering `.next`. 05-12 is the first plan able to load the route and should confirm the masthead/nav/colophon compose with no top offset.
 
 ## Session Continuity
 
-Last session: 2026-08-03T08:55:00.000Z
-Stopped at: Completed 05-10-PLAN.md — the ₪50 moved from submission to approval on both sides of the wire (wave 4 in progress alongside 05-09, 05-12, 05-13, 05-14)
+Last session: 2026-08-03T12:10:00.000Z
+Stopped at: Completed 05-09-PLAN.md — the send enforces "delivered equals previewed" with two fingerprints, a database-counted quota and a delivery log (wave 4 in progress alongside 05-12, 05-13, 05-14; 05-10 has landed)
 Resume file: None
