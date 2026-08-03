@@ -130,6 +130,8 @@ Recent decisions affecting current work:
 - Phase 02.1 inserted after Phase 2 (2026-08-02): **Participation Persistence** — record free votes server-side, drop the participate route's payment-shaped contract, remove the `mockHash()` blockchain-seal claim, reconcile the ₪3 legacy across web and mobile (VOTE-01..05). URGENT — P0 found by the v1.0 milestone audit, live on taruu.co.il, depends on nothing.
 - GitHub issue #76 (municipality onboarding + authority dashboard) triaged 2026-08-02: **belongs to the Phase 5 line, not a new milestone.** Its acceptance criteria — super-admin approval before a verified badge, representative role isolation, append-only official responses, audit log — are RBAC-01..04's infrastructure. Add as a phase after 5 once 5 is planned; do not fork it into a parallel milestone.
 
+- Phase 8 added (2026-08-03): **Municipality Onboarding + Authority Dashboard** — organization verification behind super-admin evidence review, scoped representative invitations, authority-only dashboard over aggregate civic data, append-only versioned official responses, commitment tracking, and aggregate satisfaction. From GitHub issue #76. Built entirely on Phase 5's RBAC primitives (role grants, authorization helper, review console, audit table) — it is a continuation of that line, not an independent milestone. Sequenced after Phase 7 so two organizations' data are not separated by an unenforced RLS boundary.
+
 ### Pending Todos
 
 None yet.

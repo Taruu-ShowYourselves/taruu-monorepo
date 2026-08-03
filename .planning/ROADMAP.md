@@ -166,6 +166,7 @@ Plans:
 | 5. RBAC + Admin Review | 0/9 | Planned — RLS foundation folded in (RLS-01..05); carries issue #76 | - |
 | 6. Manager Billing + Subscription | 0/TBD | Not started | - |
 | 7. Service-Role Migration | 0/TBD | Not started — blocked on Phase 5 RLS foundation | - |
+| 8. Municipality Onboarding + Authority Dashboard | 0/TBD | Not started — blocked on Phase 5 RBAC primitives (issue #76) | - |
 
 ### Phase 7: Service-Role Migration
 
@@ -184,3 +185,23 @@ Plans:
   3. Remaining privileged call sites each carry a written justification; no route uses service-role by habit.
   4. Each migrated table has a test in the RLS-04 harness proving cross-user reads are denied, and the full suite is green.
 **Plans**: TBD
+
+### Phase 8: Municipality Onboarding + Authority Dashboard
+
+**Goal**: A verified municipal authority can onboard, claim its profile behind a human evidence review, invite representatives scoped to that municipality alone, read the aggregate civic activity for its own city, publish versioned official responses residents can tell apart from Taruu's own content, and track commitments and satisfaction across staff turnover.
+**Depends on**: Phase 5 (RBAC-01..04 — the role-grant schema, the single server-side authorization helper, the admin review console, and the append-only audit table are this phase's foundation, not a parallel build). Phase 7 is **not** a hard dependency, but shipping authority access on top of service-role-by-default would put an unenforced RLS boundary between two organizations' data — sequence after 7 unless that risk is accepted in writing.
+**Source**: GitHub issue #76 (`Taruu-ShowYourselves/taruu-monorepo`), triaged 2026-08-02
+**Requirements**: AUTH-01, AUTH-02, AUTH-03, AUTH-04, AUTH-05, AUTH-06
+**Context**: Nothing for this exists today. There is no `/authority` or `/municipality-admin` route in `apps/web/src/app/[locale]/`, no authority API namespace, and no organization, representative, official-response, commitment, or satisfaction table in any of the migrations. The only adjacent surface is the public `municipality/[slug]` page and `/api/municipalities`, which the issue explicitly requires stay public and independent of whether an authority ever joins. The issue's guardrails map one-to-one onto Phase 5 primitives: "super-admin approval before a verified badge" is RBAC-03's review console, "representatives see only their municipality" is RBAC-02's authorization helper, and "histories remain auditable after staff changes" is RBAC-04's append-only audit rows.
+**Success Criteria** (what must be TRUE):
+  1. An organization that has not passed evidence review cannot appear anywhere as the official municipality — no badge, no official-response authorship, no dashboard access. Verification is a super-admin decision with recorded evidence, actor, timestamp, and reason; it is never automatic.
+  2. A representative authenticated against municipality A can read no data belonging to municipality B, and can read only aggregate or explicitly-public resident data for their own — enforced server-side through the Phase 5 authorization helper, never inferred client-side. Aggregates below the minimum cohort size are withheld rather than rounded.
+  3. A resident reading a vote can tell Taruu-generated content from an official authority response at a glance, and official responses are append-only and versioned — every revision retains its author, timestamp, and prior text rather than overwriting it.
+  4. Commitment and satisfaction histories survive representative offboarding: revoking a representative's access removes their ability to act but destroys none of the record they created, and the audit trail outlives the role grant.
+  5. Response deadlines and escalations exist as workflow states with recorded transitions — they carry no legal claim, and no copy implies one.
+  6. Suspending a verified authority or a representative removes access without deleting history, and the municipality's public council page continues to render exactly as it did before the authority joined.
+**Out of scope** (from the issue): government-level dashboard, legal filing, resident identity access, automatic authority verification.
+**Plans**: TBD
+
+Plans:
+- [ ] TBD (run `/gsd:plan-phase 8` to break down — do NOT plan before Phase 5 has executed; every success criterion above depends on primitives Phase 5 has planned but not yet built)

@@ -52,6 +52,17 @@ Free participation shipped in `cfa5d25` without resolving the participate API's 
 - [x] **VOTE-04**: `mockHash()` is removed and no user-facing copy claims a blockchain seal unless an actual chain write backs it; the receipt states only verifiable facts about the recorded ballot. (Client-side work, plan 02.1-05.)
 - [x] **VOTE-05**: The ₪3 legacy is reconciled — the participate route stops minting 3 tokens and emailing `amount: 3` for a free vote, and `packages/shared/src/constants/index.ts` no longer leaves mobile charging ₪3 for what web gives free. (Complete: contract layer in plan 02.1-01, mobile copy in plan 02.1-03, route mint/email removal in plan 02.1-04.)
 
+### Municipality Onboarding + Authority Dashboard (Phase 8 — issue #76, post-launch)
+
+Built entirely on Phase 5's primitives — the role-grant schema, the authorization helper, the review console, and the audit table. Nothing here exists in the codebase today.
+
+- [ ] **AUTH-01**: An organization becomes the official municipality only through super-admin evidence review; approval records actor, timestamp, evidence, and reason, and an unreviewed organization can hold no badge, no dashboard access, and no official-response authorship.
+- [ ] **AUTH-02**: Representatives are invited into a single municipality with a lifecycle (invited, active, suspended, offboarded); the server-side authorization helper is the only enforcement point and denies all cross-municipality reads.
+- [ ] **AUTH-03**: The authority dashboard exposes only aggregate or explicitly-public resident data for its own municipality, and withholds any aggregate below the minimum cohort size rather than rounding it.
+- [ ] **AUTH-04**: Official responses are append-only and versioned — each revision retains author, timestamp, and prior text — and residents can visually distinguish them from Taruu-generated content.
+- [ ] **AUTH-05**: Commitments and satisfaction snapshots are auditable across staff turnover: offboarding a representative revokes access without deleting the record they created.
+- [ ] **AUTH-06**: Response deadlines and escalations are workflow states with recorded transitions, carrying no legal claim in either data model or copy; suspending an authority removes access without deleting history and leaves the public council page unchanged.
+
 ### RBAC + Admin Review (Phase 5 — issue #79a, post-launch)
 
 - [ ] **RBAC-01**: A roles/role-grants schema exists with `super_admin`, `space_admin`, and `community_manager`, scoped per space where applicable — grants are rows with an explicit lifecycle, not a boolean column on `users`.
@@ -155,8 +166,14 @@ Free participation shipped in `cfa5d25` without resolving the participate API's 
 | MIG-02 | Phase 7 | Pending |
 | MIG-03 | Phase 7 | Pending |
 | MIG-04 | Phase 7 | Pending |
+| AUTH-01 | Phase 8 | Pending |
+| AUTH-02 | Phase 8 | Pending |
+| AUTH-03 | Phase 8 | Pending |
+| AUTH-04 | Phase 8 | Pending |
+| AUTH-05 | Phase 8 | Pending |
+| AUTH-06 | Phase 8 | Pending |
 
-**Coverage:** 42/42 v1 requirements mapped — 0 orphaned
+**Coverage:** 48/48 v1 requirements mapped — 0 orphaned
 
 > **Audit note (2026-08-02):** the checkbox and Status columns above predate `.planning/v1.0-MILESTONE-AUDIT.md` and overstate progress. SPIKE-01/02/03 are marked Complete but their artifacts are unfilled templates. SEC-02 reads Pending but shipped out of phase in `35b0709`. PAY-02/03/04/08 and GO-02 are contradicted by shipped free participation and need rewriting rather than building. Audit-verified coverage is 2/28 of the pre-02.1 set.
 
