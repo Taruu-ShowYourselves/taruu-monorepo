@@ -136,9 +136,58 @@ Out-of-scope findings logged during execution. Not fixed by the plan that found 
 - **What it would take to close:** a `distinct actor_user_id` read on `space_audit_log` behind `audit.read`, returned alongside the page. One query, one repository function, one field on `AuditPage`.
 - **Owner:** 05-16, or whoever picks up the audit surface next.
 
+**13-RESIDUAL — CLOSED by 05-16.** 05-15 left one question open: "05-16's evidence pass should confirm no surface prints an English body anywhere." Confirmed, live, and `serverSentence.ts` is correct in both directions. The 45-probe denial transcript (`05-EVIDENCE.md` §3.1) shows every opaque 403 answering the English literal `{"error":"Forbidden","code":"FORBIDDEN"}` — and `serverSentence` returns `null` for exactly that body, so the surface renders its own Hebrew fallback. The self-review refusal in §3.3 answers `403` with a real Hebrew sentence (`הצעה שהגשתם — ההכרעה שמורה למנהל אחר.`), and `serverSentence` passes it through because it is not the default literal. Both branches of the rule are exercised by real responses.
+
 **17. `'צריך למלא את השדה הזה כדי להמשיך.'` is now in five files**
 
 - **Found during:** 05-15 Task 2.
 - **Observed:** the house required-field microcopy already existed as four independent local constants — `votes/create/page.tsx`, `verification/page.tsx`, `verification/components/DocumentScanStep.tsx`, `store/cart/components/CartView.tsx` — before this phase started. The composer needed it too, because Rule B's list of permitted `disabled` controls is exhaustive and does not include "preview CTA disabled until the form is valid", so an empty field has to be answered by a field error rather than by an inert button.
 - **Why not fixed here:** a repo-wide press-microcopy module is a sensible thing to own, and four of the five files are unrelated to phase 5. Starting that from inside a phase-5 plan would put unrelated surfaces in this phase's commits.
 - **Owner:** unassigned. Worth doing next time anything touches press microcopy.
+
+## From 05-16
+
+**18. `anon` and `authenticated` hold UPDATE and DELETE on `space_audit_log` locally, although the migration revokes them — check the hosted project**
+
+- **Found during:** 05-16's append-only pass, extending 05-DB-EVIDENCE's superuser run to the roles the application actually uses.
+- **Observed:** `20260802000001` ends with `REVOKE UPDATE, DELETE, TRUNCATE ON public.space_audit_log FROM anon, authenticated, service_role`. In the local stack after all migrations, `information_schema.role_table_grants` reads:
+
+  ```
+   anon          | DELETE,INSERT,SELECT,UPDATE
+   authenticated | DELETE,INSERT,SELECT,UPDATE
+   service_role  | INSERT,REFERENCES,SELECT,TRIGGER
+  ```
+
+  `service_role` is correct (the seed fixture re-applies the REVOKE after its own blanket local grant). The other two are not.
+- **Why it does not weaken anything here:** immutability holds in three independent layers, and this is the second of them. RLS is enabled on the table with **no policies**, so `anon` and `authenticated` cannot see a row to write to — a PATCH from them matches zero rows and a `set local role authenticated; update …` reports `UPDATE 0`. And the trigger refuses regardless of role, proven against the superuser. See `05-EVIDENCE.md` §4.2.
+- **Why it is still worth checking:** the most likely cause is the local bootstrap re-applying default privileges after migrations, which would be purely local. But if the same profile exists on the hosted project, the migration's second mechanism is not in effect there either, and the phase would be relying on RLS plus a trigger where it believes it has three defences.
+- **Why not fixed here:** re-granting or re-revoking locally would mask the question rather than answer it. The answer needs a look at the production role grants.
+- **Owner:** whoever next touches the hosted database.
+
+**19. `supabase/seed.sql` violates `users_municipality_fk` — local bootstrap has been broken since 20260728000001**
+
+- **Observed:** `supabase db reset` / `supabase start` fails at the seeding step with `insert or update on table "users" violates foreign key constraint "users_municipality_fk" (SQLSTATE 23503)`. The seed inserts users carrying `municipality_id` values absent from `municipalities`; the constraint predates this phase and no phase-5 migration references it.
+- **Why not fixed here:** entirely outside issue #75, and repairing a seed file is a change with its own review. Recorded first in `05-DB-EVIDENCE.md` §6 and again in `05-EVIDENCE.md` §2.4 so it is not rediscovered as a phase-5 regression.
+- **Workaround, and it is committed:** bring the stack up with seeding disabled and apply `apps/web/tests/e2e/fixtures/space-admin-seed.sql`, which is idempotent and namespaced.
+- **Owner:** unassigned.
+
+**20. The site's floating chrome overlays the admin console**
+
+- **Found during:** the screenshot pass — visible in frame 01, where the `וואטסאפ הפיילוט` pill covers the first review-queue row's date.
+- **Observed:** `[locale]/layout.tsx` renders `WhatsAppButton` and the `GeoGate` locality modal on every route, space-admin included. The gate opens for any visitor with no stored town, sits over the console, and intercepts clicks.
+- **A second-order note worth keeping:** the gate's escape hatch is `isAuthenticated` from the **client** auth store, which the sign-in flow populates — not the httpOnly `sync-session` cookie. A session authenticated to the server and anonymous to that store still sees the gate. That is not wrong today, because a real sign-in populates both, but it means server-side and client-side "signed in" can disagree.
+- **Why not fixed here:** whether a marketing CTA and a locality prompt belong on an admin console is a product decision, not a phase-5 one. The evidence spec sets `taruu.municipality` before each navigation, which is the ordinary state of a returning reader.
+- **Owner:** unassigned. **Related:** `05-EVIDENCE.md` §6.2.
+
+**21. Items 14, 15 and 16 name 05-16 as a possible owner; 05-16 declined all three, on purpose**
+
+- **Item 14** (state-0 copy promises a draft the read-only fields do not allow) and **item 15** (the `הרשאות` audit chip selects grant rows only, so a member suspension is invisible under it) are **copy-deck decisions**, not code. A verification plan is the wrong place to invent user-facing Hebrew or to add a fifth filter chip the deck does not have. Item 14 in particular is now visible in a committed frame — `14-quota-exhausted-{desktop,mobile}.png` shows the read-only composer beside the sentence inviting the admin to draft in it — so a copy pass has evidence to work from.
+- **Item 16** (the audit actor filter is built from the rows on screen) needs a `distinct actor_user_id` read behind `audit.read`, which is one query, one repository function and one field on `AuditPage`. That is a feature, and this plan's mandate was evidence rather than features.
+- **Owner:** a copy pass for 14 and 15; whoever next picks up the audit surface for 16.
+
+**22. The 22 evidence frames are 26 MB, committed unmodified**
+
+- **Observed:** `apps/web/tests/e2e/__screenshots__/space-admin/` is 26 MB. Desktop full-page frames run 1.7–3.2 MB each.
+- **What was tried:** lossless recompression through ImageMagick at maximum compression, with and without dropping the alpha channel — both produced **larger** files than Playwright's own output. Quantizing would alter evidence whose colour is part of what it proves (frame 13's whole point is which fill a button carries).
+- **The alternative, if the weight matters more than the completeness:** capture clipped to `<main>` rather than full-page. That drops roughly half the pixels. It also drops the site footer, which checkpoint step 9 asks the reviewer to confirm is intact on the refused surface, and the statistics footer note and the audit pagination, both of which sit below the fold at 900px.
+- **Owner:** the repo owner, if 26 MB of permanent history is not an acceptable price for issue #75's acceptance evidence.

@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: "Completed 05-15-PLAN.md — the notification composer, the audit history, and the dedupe backlog (wave 5 complete)"
-last_updated: "2026-08-03T10:15:00.000Z"
+stopped_at: "05-16 tasks 1-2 complete — evidence captured, three defects found and fixed. BLOCKED on the plan's human-verify checkpoint; no verdict recorded, no requirement ticked."
+last_updated: "2026-08-03T12:15:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 2
@@ -28,7 +28,20 @@ Plan: 15 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several
 
 ## ▶ RESUME HERE (after /clear)
 
-**Phase 5 is EXECUTING** (16 plans, 6 waves). **Waves 1 and 2 are complete** — 05-01, 05-02, 05-03, 05-04 and 05-11 have all landed. **Wave 3 is complete** — 05-05, 05-06, 05-07 and 05-08 have all landed. **Wave 4 is complete** — 05-09, 05-10, 05-12, 05-13 and 05-14 have all landed. **Wave 5 (05-15) is complete — all six surfaces now exist. 05-16 is the last plan.**
+**Phase 5 is EXECUTING** (16 plans, 6 waves). **Waves 1 and 2 are complete** — 05-01, 05-02, 05-03, 05-04 and 05-11 have all landed. **Wave 3 is complete** — 05-05, 05-06, 05-07 and 05-08 have all landed. **Wave 4 is complete** — 05-09, 05-10, 05-12, 05-13 and 05-14 have all landed. **Wave 5 (05-15) is complete — all six surfaces now exist.**
+
+### ⛔ 05-16 IS BLOCKED ON A HUMAN VERDICT — READ THIS FIRST
+
+**Tasks 1 and 2 are done; task 3 is a blocking human-verify checkpoint and has no verdict.** Nothing has been ticked: `REQUIREMENTS.md` is untouched, `05-16-PLAN.md` is still `[ ]` on the roadmap, and **no milestone lifecycle step has been run** (phases 3 and 4 are unbuilt, so auditing or completing the milestone would archive it with them incomplete).
+
+- **What exists:** `05-EVIDENCE.md` (the requirement map with an automated/manual/live split, four live transcripts, the limitations section), 22 assertion-guarded frames under `apps/web/tests/e2e/__screenshots__/space-admin/`, `tests/e2e/space-admin.spec.ts` and its seed fixture. See `05-16-SUMMARY.md`.
+- **What is needed:** a person to walk the ten steps in `05-EVIDENCE.md` §8 and record a verdict at the end of that file, which currently reads `Status: awaiting review.` **Steps 4 and 6 are the two nothing automated covers** — whether the disabled confirm *reads* as disabled and feels inert on hover, and whether the dispatch send disables on change rather than on blur.
+
+**05-16 found and fixed three defects that `tsc` and 987 green tests could not see** (`05-EVIDENCE.md` §2, commits `f28b8b1` and `5591507`):
+
+1. **`PGRST201` on both proposal reads.** This phase's own `20260802000003` gave `votes` a third foreign key into `users` (`hidden_by`, `flagged_by`), so the unqualified `users(first_name, last_name)` embed became ambiguous and the queue and detail panel answered **500**. Fixed by naming `votes_creator_id_fkey`. **Standing rule: a PostgREST embed must name its foreign key whenever the target table has more than one into the same relation.**
+2. **Server Components reading `'use client'` modules.** The audit page threw outright; the proposals page rendered `ErrorPanel` on its own default view. Fixed with a directive-free `filters.ts` beside each surface. **Standing rule: a value a Server Component reads must not live in a client module — only types may cross that line.**
+3. Neither class is catchable here: `apps/web` runs vitest with `environment: 'node'`, mocks Supabase everywhere, and has no React harness. **A phase that adds PostgREST queries or Server Components needs one live pass before it can claim to work.** The committed spec plus fixture is that pass.
 
 - 05-01 (governance substrate — DB tables, two-file `vote_status` split, `types.ts`); see `05-01-SUMMARY.md`.
 - 05-02 (capability vocabulary, review transitions, QUOTA_EXCEEDED, rollout flag, full contract surface); see `05-02-SUMMARY.md`.
@@ -46,10 +59,12 @@ Plan: 15 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several
 
 **Two things from 05-03 need someone's attention before the phase closes** — both detailed in `05-03-SUMMARY.md` and `deferred-items.md`:
 
-1. **CI is red on `apps/mobile`** — 130 `TS2786` errors from a duplicate `@types/react` (18.3.27 and 19.2.7 both installed). Not caused by 05-03; it appeared mid-wave-2 after an install. Root `pnpm.overrides` pin + reinstall on a quiet tree.
+1. ~~**CI is red on `apps/mobile`** — 130 `TS2786` errors from a duplicate `@types/react`.~~ **RESOLVED.** Root `pnpm typecheck` is green across all eight workspace packages, `apps/mobile` included, verified repeatedly during 05-16. No pin was needed; the duplicate resolved on its own once the tree settled. `apps/mobile` was typechecked, not exercised — no mobile screen has been rendered.
 2. **Commit `5979545` has mixed authorship** — it carries 05-04's `apps/web/package.json`/`pnpm-lock.yaml` and seven of 05-11's `space-admin/` files, swept in from a shared git index. No content lost. Later plans in this tree should commit with the path-scoped form `git commit -m "…" -- <path>`, which ignores everything else in the index.
 
-Outstanding from 05-01: the Phase 5 migrations have **never been applied to a live Postgres** (no Docker/psql on the exec machine). `supabase/tests/audit_append_only.sql` is committed but uncaptured. 05-16 owns that verification.
+~~Outstanding from 05-01: the Phase 5 migrations have never been applied to a live Postgres.~~ **RESOLVED.** All 32 migrations apply cleanly from empty (`05-DB-EVIDENCE.md` §1), `audit_append_only.sql` ran 7 PASS / 0 FAIL against the superuser (§2), and 05-16 extended that to the roles the application actually uses (`05-EVIDENCE.md` §4.2). Every phase-5 endpoint has now been executed against a real database — which is how the three defects above were found.
+
+**Still true, and worth carrying:** `supabase/seed.sql` is broken — it inserts users whose `municipality_id` values are absent from `municipalities`, violating `users_municipality_fk` from `20260728000001`. Local developer bootstrap has been broken since that migration, independent of issue #75. Bring a local stack up with seeding disabled and apply `apps/web/tests/e2e/fixtures/space-admin-seed.sql` instead. Fixing it belongs in its own change.
 
 For plans 03–09: import the capability vocabulary from `apps/web/src/server/domain/space/capability.ts`, the review rules from `.../space/review.ts`, and **every** request/response shape from `packages/shared/src/contracts/spaceAdmin.ts`. That contract file is complete for the phase — no later plan should need to edit it, or `apps/web/src/server/http/errors.ts`.
 
