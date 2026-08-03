@@ -55,8 +55,23 @@ export interface PressTableProps<Row> {
    * There is exactly one `<tr>` expansion per row at every width either way.
    */
   renderExpansion?: (row: Row) => React.ReactNode;
+  /**
+   * Replaces the built-in expansion `<tr>` ENTIRELY — the caller returns the
+   * row itself, so it owns the `<td colSpan>`, its `id`, and therefore the
+   * target of its own trigger's `aria-controls`.
+   *
+   * `renderExpansion` cannot serve that case: its result is placed inside a
+   * `<td>` this component owns, and the id of that cell is generated here and
+   * never handed out. The proposals surface needs both — its detail panel is a
+   * component in its own right and its title-cell button must point at it — so
+   * this hook exists for it. Mutually exclusive with `renderExpansion`; still
+   * exactly one `<tr>` expansion per row at every width.
+   */
+  renderExpansionRow?: (row: Row, columnCount: number) => React.ReactNode;
   expandedKey?: string | null;
   onExpandedKeyChange?: (key: string | null) => void;
+  /** Extra class on a body `<tr>` — e.g. the post-decision row flash. */
+  rowClassName?: (row: Row) => string | undefined;
   pagination?: PressTablePagination;
   className?: string;
 }
@@ -103,8 +118,10 @@ export function PressTable<Row>({
   loading = false,
   skeletonRows = 5,
   renderExpansion,
+  renderExpansionRow,
   expandedKey,
   onExpandedKeyChange,
+  rowClassName,
   pagination,
   className,
 }: PressTableProps<Row>) {
@@ -147,7 +164,8 @@ export function PressTable<Row>({
   const detailColumns = columns.filter(
     (column) => column.secondary && !column.omitFromDetails,
   );
-  const hasAutoDisclosure = !renderExpansion && detailColumns.length > 0;
+  const hasAutoDisclosure =
+    !renderExpansion && !renderExpansionRow && detailColumns.length > 0;
 
   const scrollerA11y = overflowing
     ? ({ role: 'region', 'aria-labelledby': captionId, tabIndex: 0 } as const)
@@ -214,7 +232,7 @@ export function PressTable<Row>({
 
                   return (
                     <React.Fragment key={key}>
-                      <tr>
+                      <tr className={rowClassName?.(row)}>
                         {columns.map((column) => {
                           const content = column.cell(row);
                           if (column !== primaryColumn) {
@@ -253,7 +271,9 @@ export function PressTable<Row>({
                         })}
                       </tr>
 
-                      {isExpanded ? (
+                      {isExpanded && renderExpansionRow ? (
+                        renderExpansionRow(row, columnCount)
+                      ) : isExpanded ? (
                         <tr
                           className={clsx(
                             styles.expansionRow,
