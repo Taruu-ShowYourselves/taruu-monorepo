@@ -30,17 +30,17 @@ interface ApiVote {
 
 /** How long each vote holds the front page before rotating. */
 const ROTATE_MS = 8000;
-/** Rotation pool cap — most voted first, one per municipality first. */
+/** Rotation pool cap - most voted first, one per municipality first. */
 const MAX_ROTATION = 6;
 
-/** Total ballots cast — the ranking signal. */
+/** Total ballots cast - the ranking signal. */
 function totalVotes(vote: ApiVote): number {
   return vote.options.reduce((sum, o) => sum + o.voteCount, 0);
 }
 
 /**
  * Top-ranked rotation, spread across municipalities: most voted first
- * (zero-tally votes rank last but still show — real ballots, honest zeros),
+ * (zero-tally votes rank last but still show - real ballots, honest zeros),
  * and each municipality contributes its single top vote before any
  * municipality repeats.
  */
@@ -76,7 +76,7 @@ interface LiveVoteWidgetProps {
 }
 
 /**
- * LiveVoteWidget — the front-page ballot wired to real data. Fetches active
+ * LiveVoteWidget - the front-page ballot wired to real data. Fetches active
  * votes, ranks them (most ballots cast, one per municipality first), and
  * rotates them endlessly: each ballot sweeps in from the right and slides out
  * to the left, vanishing behind the column rule. Tapping an option pauses the
@@ -103,7 +103,7 @@ export function LiveVoteWidget({ issueNo }: LiveVoteWidgetProps) {
         setStatus('ready');
       })
       .catch(() => {
-        // network/DB unavailable — show the pre-launch dispatch, not fake data
+        // network/DB unavailable - show the pre-launch dispatch, not fake data
         if (!cancelled) setStatus('ready');
       });
     return () => {
@@ -155,7 +155,7 @@ export function LiveVoteWidget({ issueNo }: LiveVoteWidgetProps) {
             totalLabel={
               vote.participantCount > 0
                 ? `${vote.participantCount.toLocaleString('he-IL')} קולות מאומתים`
-                : 'עדיין אין קולות — היו ראשונים'
+                : 'עדיין אין קולות - היו ראשונים'
             }
             href={`/votes/${vote.id}`}
             issueNo={issueNo}
@@ -188,7 +188,7 @@ function BallotSkeleton() {
   );
 }
 
-/** No open votes yet — the honest pre-launch dispatch with the founders CTA. */
+/** No open votes yet - the honest pre-launch dispatch with the founders CTA. */
 function PreLaunchDispatch({ issueNo }: { issueNo?: string }) {
   return (
     <section className={styles.widget} aria-label="ההצבעות נפתחות בקרוב">

@@ -8,7 +8,7 @@
     var(--lc-canvas);
 }
 
-/* Soft luminous mesh aura — matches the hero through-line */
+/* Soft luminous mesh aura - matches the hero through-line */
 .mesh {
   position: absolute;
   inset: 0;

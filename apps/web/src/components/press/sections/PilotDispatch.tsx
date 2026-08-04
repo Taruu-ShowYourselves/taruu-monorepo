@@ -54,7 +54,7 @@ export function PilotDispatch({ locale = 'he' }: PilotDispatchProps) {
   return (
     <section className={styles.dispatch} aria-labelledby="pilot-dispatch-headline">
       <div className={styles.inner}>
-        {/* Dateline — top of the dispatch */}
+        {/* Dateline - top of the dispatch */}
         <div className={styles.dateline}>
           <span className={`np-kicker ${styles.kicker}`}>מברק מהשטח · DISPATCH</span>
           <span className={`np-mono ${styles.datelinePlace}`} aria-hidden>
@@ -66,7 +66,7 @@ export function PilotDispatch({ locale = 'he' }: PilotDispatchProps) {
         <hr className="np-rule-heavy" />
 
         <div className={styles.grid}>
-          {/* Editorial column — headline + drop-cap body */}
+          {/* Editorial column - headline + drop-cap body */}
           <div className={styles.story}>
             <h2 id="pilot-dispatch-headline" className={styles.headline}>
               נפתחים בכל הארץ, בבת אחת.
@@ -75,7 +75,7 @@ export function PilotDispatch({ locale = 'he' }: PilotDispatchProps) {
             </h2>
 
             <p className={`np-dropcap ${styles.body}`}>
-              כדי שהכלי הזה יהיה מדויק עבורנו, פתחנו קבוצת וואטסאפ שקטה — שם נדייק
+              כדי שהכלי הזה יהיה מדויק עבורנו, פתחנו קבוצת וואטסאפ שקטה. שם נדייק
               יחד את שלבי הפיתוח, את חוויית המשתמש, ואת הנושאים הראשונים שיעלו
               להצבעה. אתם לא מצטרפים למוצר מוגמר. אתם מעצבים אותו.
             </p>
@@ -97,7 +97,7 @@ export function PilotDispatch({ locale = 'he' }: PilotDispatchProps) {
             </div>
           </div>
 
-          {/* Press furniture — fact strip + proof date + pull-quote */}
+          {/* Press furniture - fact strip + proof date + pull-quote */}
           <aside className={styles.furniture}>
             <div className={styles.factStrip}>
               <span className={`np-mono ${styles.factLabel}`}>עובדות · FACTS</span>
@@ -122,7 +122,7 @@ export function PilotDispatch({ locale = 'he' }: PilotDispatchProps) {
                 </span>
               </div>
 
-              {/* The proof element — headline number */}
+              {/* The proof element - headline number */}
               <div className={styles.proofDate}>
                 <span className={styles.proofNumber}>04.08.26</span>
                 <span className={`np-mono ${styles.proofMeta}`}>

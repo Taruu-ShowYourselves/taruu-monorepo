@@ -8,7 +8,7 @@
     var(--lc-canvas);
 }
 
-/* Soft hue auras — tinted, not neon */
+/* Soft hue auras - tinted, not neon */
 .auraGreen,
 .auraBlue {
   position: absolute;

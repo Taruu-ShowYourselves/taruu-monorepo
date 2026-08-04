@@ -5,7 +5,7 @@ import { WHATSAPP_FOUNDERS_LINK } from '@sync/shared';
 
 const WHATSAPP_LINK = WHATSAPP_FOUNDERS_LINK;
 
-/** Hard-edged ink ballot/coin glyphs for the flow diagram — no rounding. */
+/** Hard-edged ink ballot/coin glyphs for the flow diagram - no rounding. */
 function FlowGlyph({ kind }: { kind: 'vote' | 'fund' | 'impact' }) {
   const common = {
     viewBox: '0 0 40 40',
@@ -38,7 +38,7 @@ function FlowGlyph({ kind }: { kind: 'vote' | 'fund' | 'impact' }) {
       );
     case 'impact':
     default:
-      // Ascending bars — real resources.
+      // Ascending bars - real resources.
       return (
         <svg {...common}>
           <path d="M5 35 H35" />

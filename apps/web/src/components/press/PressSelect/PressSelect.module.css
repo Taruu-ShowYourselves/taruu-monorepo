@@ -6,7 +6,7 @@
 }
 
 .label {
-  font-family: var(--np-font-mono);
+  font-family: var(--np-font-meta);
   font-size: var(--text-sm);
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -21,13 +21,16 @@
 
 .control {
   width: 100%;
-  font-family: var(--np-font-mono);
+  font-family: var(--np-font-meta);
   font-size: var(--text-base);
   line-height: 1.4;
   color: var(--np-ink);
-  background: var(--np-paper-box);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 45%),
+    var(--np-paper-box);
   border: var(--np-rule) solid var(--np-ink);
-  border-radius: 0;
+  border-radius: var(--np-radius-card);
+  box-shadow: var(--np-shadow-soft);
   /* extra inline-end room for the caret (RTL-aware via logical padding) */
   padding: var(--space-3) var(--space-4);
   padding-inline-end: var(--space-12);
@@ -35,7 +38,10 @@
   cursor: pointer;
   -webkit-appearance: none;
   appearance: none;
-  transition: border-color var(--np-dur-snap) var(--np-ease);
+  transition:
+    border-color var(--np-dur-snap) var(--np-ease),
+    box-shadow var(--np-dur) var(--np-ease),
+    transform var(--np-dur) var(--np-ease);
 }
 
 .caret {
@@ -43,24 +49,36 @@
   inset-inline-end: var(--space-4);
   top: 50%;
   transform: translateY(-50%);
-  font-family: var(--np-font-mono);
+  font-family: var(--np-font-meta);
   color: var(--np-ink);
   pointer-events: none;
+  transition: transform var(--np-dur) var(--np-ease), color var(--np-dur-snap) var(--np-ease);
+}
+
+.control:hover:not(:disabled) {
+  border-color: var(--np-ink-soft);
 }
 
 .control:focus-visible {
   outline: none;
   border-color: var(--np-red);
-  box-shadow: inset 0 0 0 1px var(--np-red);
+  box-shadow: var(--np-shadow-soft), var(--np-focus-ring);
+  transform: translateY(-1px);
+}
+
+.wrap:focus-within .caret {
+  color: var(--np-red);
+  transform: translateY(calc(-50% + 2px));
 }
 
 .invalid .control {
   border-color: var(--np-red);
+  box-shadow: var(--np-shadow-soft), var(--np-focus-ring);
 }
 
 .error,
 .hint {
-  font-family: var(--np-font-mono);
+  font-family: var(--np-font-meta);
   font-size: var(--text-sm);
   line-height: 1.35;
   margin: 0;
@@ -76,7 +94,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .control {
+  .control,
+  .caret {
     transition: none;
+  }
+  .control:focus-visible {
+    transform: none;
   }
 }

@@ -24,7 +24,7 @@ interface Step {
   icon: IconName;
 }
 
-/** Hard-edged ink glyphs — crisp strokes, no rounding. */
+/** Hard-edged ink glyphs - crisp strokes, no rounding. */
 function Glyph({ name }: { name: IconName }) {
   const common = {
     viewBox: '0 0 24 24',
@@ -217,7 +217,7 @@ export function HowItWorks() {
           />
         </div>
 
-        {/* Fee split — ink block callout */}
+        {/* Fee split - ink block callout */}
         <div className={styles.feeNote}>
           <span className={styles.feeNum}>70%</span>
           <div className={styles.feeBody}>

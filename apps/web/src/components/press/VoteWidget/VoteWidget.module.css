@@ -188,7 +188,7 @@
   .live { animation: none; }
 }
 
-/* --- Municipality card — the arena this vote belongs to --- */
+/* --- Municipality card - the arena this vote belongs to --- */
 .muniCard {
   display: flex;
   align-items: baseline;
@@ -223,7 +223,7 @@ a.muniCard:hover .muniMore { color: var(--np-ink); }
   white-space: nowrap;
 }
 
-/* Live rotation viewport — ballots sweep in from the right and slide out
+/* Live rotation viewport - ballots sweep in from the right and slide out
    left, clipped here so they vanish behind the column rule. */
 .carousel {
   position: relative;

@@ -268,7 +268,7 @@ export default async function LocaleLayout({
   const { locale: rawLocale } = await params;
   const locale = rawLocale as Locale;
 
-  // Validate locale (Hebrew-only — anything else 404s; middleware already redirects)
+  // Validate locale (Hebrew-only - anything else 404s; middleware already redirects)
   if (!(i18n.locales as readonly string[]).includes(locale)) {
     notFound();
   }
@@ -297,7 +297,7 @@ export default async function LocaleLayout({
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            // send_page_view:false — page_view fired manually on route change
+            // send_page_view:false - page_view fired manually on route change
             // (with explicit page_title) by AnalyticsEvents to avoid (not set).
             gtag('config', '${GA_MEASUREMENT_ID}', { send_page_view: false });
           `}

@@ -38,7 +38,7 @@ export default function PaymentReturnPage() {
 
     const raw = sessionStorage.getItem('pendingVote');
     if (!raw) {
-      // Not a vote-creation return — just acknowledge the payment.
+      // Not a vote-creation return - just acknowledge the payment.
       setPhase('received');
       return;
     }
@@ -85,7 +85,7 @@ export default function PaymentReturnPage() {
           }
           // 402 = payment still settling; 400 = payment already consumed, which
           // most often means a prior attempt already created the vote (e.g. a
-          // network blip after the server committed). Neither is a hard error —
+          // network blip after the server committed). Neither is a hard error -
           // send the user to their dashboard to find the vote.
           setPhase(res.status === 402 || res.status === 400 ? 'processing' : 'error');
           return;
@@ -105,7 +105,7 @@ export default function PaymentReturnPage() {
     finalising: {
       kicker: 'מעבדים · PROCESSING',
       title: <>רושמים את ההצבעה<span className={styles.red}>…</span></>,
-      body: 'התשלום התקבל. אנחנו מפרסמים את הנושא שלכם — רגע אחד.',
+      body: 'התשלום התקבל. אנחנו מפרסמים את הנושא שלכם, רגע אחד.',
     },
     created: {
       kicker: 'פורסם · PUBLISHED',
@@ -115,7 +115,7 @@ export default function PaymentReturnPage() {
     processing: {
       kicker: 'כמעט שם · PENDING',
       title: <>מאמתים את <span className={styles.red}>התשלום.</span></>,
-      body: 'התשלום עדיין נחתם. ההצבעה תפורסם תוך רגעים — אפשר לבדוק בלוח שלי.',
+      body: 'התשלום עדיין נחתם. ההצבעה תפורסם תוך רגעים. אפשר לבדוק בלוח שלי.',
     },
     received: {
       kicker: 'התקבל · RECEIVED',
@@ -125,7 +125,7 @@ export default function PaymentReturnPage() {
     error: {
       kicker: 'תקלה · ERROR',
       title: <>משהו <span className={styles.red}>השתבש.</span></>,
-      body: 'לא הצלחנו לסיים את הרישום. אם חויבתם, פנו אלינו ונסדר — לא תחויבו פעמיים.',
+      body: 'לא הצלחנו לסיים את הרישום. אם חויבתם, פנו אלינו ונסדר. לא תחויבו פעמיים.',
     },
   };
 

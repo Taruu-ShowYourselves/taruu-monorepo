@@ -30,7 +30,7 @@ const PILLARS: Pillar[] = [
     key: 'measure',
     index: '01',
     title: 'מודדים',
-    line: 'כמה באמת תומכים, כמה מתנגדים. לא תחושת בטן ולא מי שצועק חזק — מספר מדויק.',
+    line: 'כמה באמת תומכים, כמה מתנגדים. לא תחושת בטן ולא מי שצועק חזק, אלא מספר מדויק.',
     accent: 'blue',
     glyph: (
       <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
@@ -44,7 +44,7 @@ const PILLARS: Pillar[] = [
     key: 'verify',
     index: '02',
     title: 'מאמתים',
-    line: 'כל קול הוא תושב אמיתי אחד — זהות ו-GPS, חתום בבלוקצ׳יין. בלי בוטים, בלי כפילויות, בלי לערער.',
+    line: 'כל קול הוא תושב אמיתי אחד: זהות ו-GPS, חתום בבלוקצ׳יין. בלי בוטים, בלי כפילויות, בלי לערער.',
     accent: 'green',
     glyph: (
       <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
@@ -66,7 +66,7 @@ const PILLARS: Pillar[] = [
     key: 'surface',
     index: '03',
     title: 'מנגישים',
-    line: 'התמונה המלאה פתוחה לכולם — לתושבים ולמועצה כאחד. שקיפות מלאה, בלי חדרים סגורים.',
+    line: 'התמונה המלאה פתוחה לכולם, לתושבים ולמועצה כאחד. שקיפות מלאה, בלי חדרים סגורים.',
     accent: 'purple',
     glyph: (
       <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
@@ -91,7 +91,7 @@ export function Manifesto(_props: ManifestoProps) {
   return (
     <section className={`${styles.manifesto} lc-band-tint`} aria-label="מנגנון הקונצנזוס">
       <div className={styles.inner}>
-        {/* Editorial lead — asymmetric, anchored to inline-start */}
+        {/* Editorial lead - asymmetric, anchored to inline-start */}
         <div className={styles.lead}>
           <Eyebrow className={styles.eyebrow}>מנגנון קונצנזוס ציבורי</Eyebrow>
           <AnimatedFadeInUp>
@@ -101,13 +101,13 @@ export function Manifesto(_props: ManifestoProps) {
           </AnimatedFadeInUp>
           <AnimatedFadeInUp delay={0.1}>
             <p className={styles.sub}>
-              תַּרְאוּ הופך רצון ציבורי מעורפל למספר אחד, ברור ובלתי ניתן לערעור — ומעביר
+              תַּרְאוּ הופכת רצון ציבורי מעורפל למספר אחד, ברור ובלתי ניתן לערעור, ומעבירה
               אותו מקולה של עיר אל קולה של מדינה.
             </p>
           </AnimatedFadeInUp>
         </div>
 
-        {/* Three pillars — scroll-drawn rail + hue-owned glass cards */}
+        {/* Three pillars - scroll-drawn rail + hue-owned glass cards */}
         <div className={styles.pillars} ref={railRef}>
           <span className={styles.railTrack} aria-hidden="true" />
           <motion.span

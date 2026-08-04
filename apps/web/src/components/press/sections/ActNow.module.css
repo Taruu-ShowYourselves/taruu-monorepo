@@ -87,9 +87,18 @@
 
 @media (min-width: 900px) {
   .doors { grid-template-columns: 1fr 1fr 1fr; }
+  .doors.doorsTwo { grid-template-columns: 1.2fr 1fr; }
   .door {
     border-block-end: 0;
     border-inline-end: var(--np-rule) solid var(--np-ink);
   }
   .door:last-child { border-inline-end: 0; }
+}
+
+/* Tertiary slot row (explore variant) - subordinate strip under the doors. */
+.slotRow {
+  margin-block-start: var(--space-4);
+  border: var(--np-rule) solid var(--np-ink);
+  border-block-start-width: var(--np-rule-hair);
+  background: var(--np-paper);
 }

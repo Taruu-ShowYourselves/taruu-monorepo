@@ -10,7 +10,7 @@ interface CartLinkProps {
 }
 
 /**
- * Mono cart indicator — a hard-edged press tab showing the live line count.
+ * Mono cart indicator - a hard-edged press tab showing the live line count.
  * Hydration-safe: count renders from the persisted store after mount.
  */
 export function CartLink({ href }: CartLinkProps) {

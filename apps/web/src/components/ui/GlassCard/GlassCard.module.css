@@ -16,6 +16,24 @@
   height: 100%;
 }
 
+/* Press glass - newsprint edition (--np-glass-* tokens). Frosted paper over
+   the halftone band; hard ink border and square-ish corners keep the press
+   discipline. Declared after .card so it wins the tie. */
+.press {
+  background: var(--np-glass-fill);
+  backdrop-filter: blur(var(--np-glass-blur)) saturate(120%);
+  -webkit-backdrop-filter: blur(var(--np-glass-blur)) saturate(120%);
+  border: var(--np-rule) solid var(--np-glass-stroke);
+  border-radius: var(--np-radius-card);
+  box-shadow: var(--np-glass-inner), var(--np-glass-shadow);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .press {
+    background: var(--np-paper-box);
+  }
+}
+
 .interactive {
   transition:
     transform var(--duration-normal) var(--lc-ease-brand),

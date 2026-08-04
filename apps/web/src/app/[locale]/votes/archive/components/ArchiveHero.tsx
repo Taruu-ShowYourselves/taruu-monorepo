@@ -3,9 +3,9 @@
 import styles from './ArchiveHero.module.css';
 
 const heroStats = [
-  { value: '—', label: 'הצבעות שהסתיימו' },
-  { value: '—', label: 'NFTs שהונפקו' },
-  { value: '—', label: 'כספים שנאספו' },
+  { value: '-', label: 'הצבעות שהסתיימו' },
+  { value: '-', label: 'NFTs שהונפקו' },
+  { value: '-', label: 'כספים שנאספו' },
 ];
 
 export function ArchiveHero() {
@@ -22,8 +22,8 @@ export function ArchiveHero() {
         </h1>
 
         <p className={styles.deck}>
-          הצבעות שהסתיימו, תוצאות שהושגו. כל רשומה חתומה בבלוקצ׳יין —
-          מהרעיון הראשוני ועד להחלטה הסופית, פתוחה לכולם.
+          הצבעות שהסתיימו והתוצאות שנקבעו. כל רשומה חתומה בבלוקצ׳יין,
+          מהשאלה ועד ההחלטה, ופתוחה לכולם.
         </p>
 
         <dl className={styles.stats}>

@@ -17,7 +17,7 @@ interface VoteWidgetProps {
   kicker?: string;
   /** Plain string or a node (e.g. MunicipalityLink) shown in the header. */
   place?: ReactNode;
-  /** Arena the vote belongs to — rendered as a card between header and question. */
+  /** Arena the vote belongs to - rendered as a card between header and question. */
   municipality?: string;
   /** Where the municipality card leads (profile page). Card is static without it. */
   municipalityHref?: string;
@@ -27,17 +27,17 @@ interface VoteWidgetProps {
   /** Vote-page destination for the CTA. */
   href: string;
   /**
-   * Editorial issue number shown after the place (· גיליון NN). Optional —
+   * Editorial issue number shown after the place (· גיליון NN). Optional -
    * omitted for votes that have none; front-page placements pass one
    * explicitly to keep the broadsheet flavor.
    */
   issueNo?: string;
-  /** Fired when an option is tapped — lets live wrappers pause rotation. */
+  /** Fired when an option is tapped - lets live wrappers pause rotation. */
   onSelectOption?: (id: string) => void;
 }
 
 /**
- * The participation control surface — a live ballot rendered as press
+ * The participation control surface - a live ballot rendered as press
  * furniture. Interactive selection + animated tallies; this is the styling/
  * surface, not the full multi-step flow.
  */

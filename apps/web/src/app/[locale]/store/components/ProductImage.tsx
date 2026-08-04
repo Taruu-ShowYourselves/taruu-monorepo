@@ -15,7 +15,7 @@ interface ProductImageProps {
 /**
  * Hard-edged product plate. Renders the POD art when it loads; on a missing
  * or broken source falls back to an ink/halftone placeholder stamped with the
- * product name — never a broken-image glyph. Plain <img> (not next/image) so
+ * product name - never a broken-image glyph. Plain <img> (not next/image) so
  * onError works for arbitrary, possibly-absent press art.
  */
 export function ProductImage({

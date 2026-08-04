@@ -14,7 +14,7 @@ interface ProblemProps {
 }
 
 /**
- * Problem — the quieter, emotional "why this exists" beat.
+ * Problem - the quieter, emotional "why this exists" beat.
  *
  * Asymmetric split: argument inline-start, the NOISE -> SIGNAL visual inline-end.
  * Climax is the bridge line (the single gradient moment of the viewport),
@@ -47,8 +47,8 @@ export function Problem(_props: ProblemProps) {
 
           <AnimatedFadeInUp delay={0.2}>
             <p className={styles.body}>
-              ההחלטות הכי משפיעות על היום-יום שלנו — תנועה, חינוך, שטחים ירוקים,
-              תקציב — נופלות לפי מי שצעק הכי חזק בקבוצת הפייסבוק, או מי שהגיע לישיבה.
+              תנועה, חינוך, שטחים ירוקים, תקציב: ההחלטות הכי משפיעות על היום-יום
+              שלנו נופלות לפי מי שצעק הכי חזק בקבוצת הפייסבוק, או מי שהגיע לישיבה.
               רוב התושבים השקטים? לא נספרים. התוצאה: מועצה שמנחשת, וקהילה שמרגישה
               שלא שומעים אותה.
             </p>
@@ -67,7 +67,7 @@ export function Problem(_props: ProblemProps) {
           >
             <span className={styles.bridgeRule} aria-hidden />
             <GradientText animated>
-              תַּרְאוּ נותן לרוב השקט הזה מספר.
+              תַּרְאוּ נותנת לרוב השקט הזה מספר.
             </GradientText>
           </motion.p>
         </div>

@@ -1,5 +1,5 @@
 /* ==================================================================
- * Vote detail — Brutalist Tech-Press
+ * Vote detail - Brutalist Tech-Press
  * Newsprint cream + ink + one red accent. Heebo 900 headline, IBM Plex
  * Sans Hebrew control surfaces, Assistant editorial body. Hard corners.
  * ================================================================== */
@@ -19,7 +19,7 @@
 }
 
 /* ------------------------------------------------------------------ */
-/* Top bar — back + edition status                                    */
+/* Top bar - back + edition status                                    */
 /* ------------------------------------------------------------------ */
 .topBar {
   display: flex;
@@ -304,7 +304,7 @@
   color: var(--np-ink);
 }
 
-/* ---------- Context — what this civic vote measures ---------- */
+/* ---------- Context - what this civic vote measures ---------- */
 .contextBox {
   margin-block-start: var(--space-6);
   border-block-start: var(--np-rule) solid var(--np-ink);

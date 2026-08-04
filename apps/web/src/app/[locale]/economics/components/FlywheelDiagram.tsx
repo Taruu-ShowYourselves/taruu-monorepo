@@ -15,7 +15,7 @@ interface FlywheelStep {
   icon: IconName;
 }
 
-/** Hard-edged ink ledger glyphs — crisp strokes, no rounding. */
+/** Hard-edged ink ledger glyphs - crisp strokes, no rounding. */
 function StepIcon({ name }: { name: IconName }) {
   const common = {
     viewBox: '0 0 32 32',
@@ -115,7 +115,7 @@ export function FlywheelDiagram() {
           </h2>
         </header>
 
-        {/* Numbered cyclical ledger — boxed nodes connected by red arrows */}
+        {/* Numbered cyclical ledger - boxed nodes connected by red arrows */}
         <ol className={styles.steps}>
           {flywheelSteps.map((step, index) => (
             <motion.li
@@ -147,7 +147,7 @@ export function FlywheelDiagram() {
           ))}
         </ol>
 
-        {/* Result highlight — ink block callout */}
+        {/* Result highlight - ink block callout */}
         <div className={styles.result}>
           <span className={styles.resultLabel}>התוצאה</span>
           <p className={styles.resultValue}>
@@ -156,7 +156,7 @@ export function FlywheelDiagram() {
           </p>
         </div>
 
-        {/* Revenue streams — boxed ledger table */}
+        {/* Revenue streams - boxed ledger table */}
         <div className={styles.revenue}>
           <h3 className={styles.sectionTitle}>זרמי הכנסה</h3>
           <div className={styles.table} role="table" aria-label="זרמי הכנסה">
@@ -175,7 +175,7 @@ export function FlywheelDiagram() {
           </div>
         </div>
 
-        {/* Sustainability note — red block pull-quote + checklist */}
+        {/* Sustainability note - red block pull-quote + checklist */}
         <div className={styles.note}>
           <span className={styles.noteHead}>ללא תלות במשקיעים חיצוניים</span>
           <ul className={styles.noteList}>

@@ -121,7 +121,7 @@ export function StoryScene({ variant, title }: StorySceneProps) {
       {variant === 'proof' && <ProofScene float={float} pulse={pulse} />}
       {variant === 'impact' && <ImpactScene float={float} pulse={pulse} spin={spin} />}
 
-      {/* Grain overlay — faint print texture. Keep low: a higher opacity here
+      {/* Grain overlay - faint print texture. Keep low: a higher opacity here
           darkens the whole scene (the rect has no fill → black base). */}
       <rect width="320" height="200" fill="none" filter="url(#ts-grain)" opacity="0.1" pointerEvents="none" />
     </svg>
@@ -135,7 +135,7 @@ interface SceneProps {
   spin?: (duration?: number) => Anim;
 }
 
-/** Chapter 1 — identity shield on a phone, location halo */
+/** Chapter 1 - identity shield on a phone, location halo */
 function VerifyScene({ float, pulse }: SceneProps) {
   return (
     <g>
@@ -177,7 +177,7 @@ function VerifyScene({ float, pulse }: SceneProps) {
   );
 }
 
-/** Chapter 2 — ballot gliding into a translucent box, shekel orbit */
+/** Chapter 2 - ballot gliding into a translucent box, shekel orbit */
 function VoteScene({ float, pulse }: SceneProps) {
   return (
     <g>
@@ -217,7 +217,7 @@ function VoteScene({ float, pulse }: SceneProps) {
   );
 }
 
-/** Chapter 3 — chain of blocks rising toward the council skyline */
+/** Chapter 3 - chain of blocks rising toward the council skyline */
 function ProofScene({ float, pulse }: SceneProps) {
   return (
     <g>
@@ -267,7 +267,7 @@ function ProofScene({ float, pulse }: SceneProps) {
   );
 }
 
-/** Chapter 4 — coin medallion rising like a sun over a renewed park */
+/** Chapter 4 - coin medallion rising like a sun over a renewed park */
 function ImpactScene({ float, pulse, spin }: SceneProps) {
   return (
     <g>

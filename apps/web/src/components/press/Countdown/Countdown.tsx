@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import styles from './Countdown.module.css';
 
-/** National grand opening — 04.08.26, midnight Israel time (IDT, UTC+3). */
+/** National grand opening - 04.08.26, midnight Israel time (IDT, UTC+3). */
 const LAUNCH_AT = Date.parse('2026-08-04T00:00:00+03:00');
 
 interface Remaining {
@@ -57,7 +57,7 @@ interface CountdownClockProps {
 }
 
 /**
- * The digits row alone — mono tabular digits with Hebrew unit labels,
+ * The digits row alone - mono tabular digits with Hebrew unit labels,
  * inheriting the surrounding text color so it reads on paper and ink alike.
  * Renders nothing once the launch has passed.
  */
@@ -92,7 +92,7 @@ export function CountdownClock({ className }: CountdownClockProps) {
 }
 
 /**
- * Grand-opening countdown strip — press furniture. Full-width band under the
+ * Grand-opening countdown strip - press furniture. Full-width band under the
  * ticker: launch kicker, date stamp and the live clock.
  */
 export function Countdown() {

@@ -40,12 +40,12 @@ function content(locale: Locale): { title: string; intro: string; updated: strin
         {
           heading: '3. Service Providers',
           bullets: [
-            'Supabase — database and authentication.',
-            'Green Invoice — payment processing (Merchant of Record).',
-            'bags.fm — BAG memecoin infrastructure (the per-vote bags.fm token) on Solana.',
-            'Resend — transactional email.',
-            'Twilio — SMS verification.',
-            'Vercel — hosting.',
+            'Supabase: database and authentication.',
+            'Green Invoice: payment processing (Merchant of Record).',
+            'bags.fm: BAG memecoin infrastructure (the per-vote bags.fm token) on Solana.',
+            'Resend: transactional email.',
+            'Twilio: SMS verification.',
+            'Vercel: hosting.',
           ],
         },
         {
@@ -92,12 +92,12 @@ function content(locale: Locale): { title: string; intro: string; updated: strin
       {
         heading: '3. ספקי שירות',
         bullets: [
-          'Supabase — בסיס נתונים ואימות.',
-          'Green Invoice — עיבוד תשלומים (Merchant of Record).',
-          'bags.fm — תשתית ה-BAG (מטבע ב-bags.fm לכל הצבעה) על רשת Solana.',
-          'Resend — דוא״ל טרנזקציוני.',
-          'Twilio — אימות SMS.',
-          'Vercel — אחסון.',
+          'Supabase: בסיס נתונים ואימות.',
+          'Green Invoice: עיבוד תשלומים (Merchant of Record).',
+          'bags.fm: תשתית ה-BAG (מטבע ב-bags.fm לכל הצבעה) על רשת Solana.',
+          'Resend: דוא״ל טרנזקציוני.',
+          'Twilio: אימות SMS.',
+          'Vercel: אחסון.',
         ],
       },
       {

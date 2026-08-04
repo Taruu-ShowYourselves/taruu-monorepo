@@ -20,7 +20,7 @@ const RULES: Rule[] = [
   {
     no: '01',
     title: 'שקיפות מלאה',
-    text: 'כל הכנסה וכל הוצאה מתועדות בזמן אמת — פתוחות לבדיקה של כל תושב, בלי חדרים סגורים.',
+    text: 'כל הכנסה וכל הוצאה מתועדות בזמן אמת ופתוחות לבדיקה של כל תושב, בלי חדרים סגורים.',
     icon: (
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden>
         <path
@@ -60,7 +60,7 @@ const RULES: Rule[] = [
   {
     no: '03',
     title: 'ביקורת עצמאית',
-    text: 'הקרן עוברת ביקורת חשבונאית עצמאית מדי שנה — גורם חיצוני שמאמת שכל שקל במקומו.',
+    text: 'הקרן עוברת ביקורת חשבונאית עצמאית מדי שנה: גורם חיצוני מאמת שכל שקל במקומו.',
     icon: (
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden>
         <path
@@ -95,7 +95,7 @@ export function TreasuryHero() {
           </span>
 
           <h2 id="treasury-hero-title" className={styles.headline}>
-            כל שקל בקרן — <span className={styles.red}>גלוי לעין.</span>
+            כל שקל בקרן <span className={styles.red}>גלוי לעין.</span>
           </h2>
 
           <p className={styles.standfirst}>
@@ -141,7 +141,7 @@ export function TreasuryHero() {
           <span className={styles.trustMark} aria-hidden>
             ₪
           </span>
-          הכסף שלכם נשאר בקהילה — ואתם רואים בדיוק לאן הוא הולך.
+          הכסף נשאר בקהילה, ואתם רואים בדיוק לאן הוא הולך.
         </p>
       </div>
     </section>

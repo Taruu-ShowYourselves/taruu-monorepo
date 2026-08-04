@@ -67,7 +67,7 @@ export function Header({ locale = 'he' }: HeaderProps) {
     >
       <div className={styles.bar}>
         <div className={styles.container}>
-          <Link href={`/${locale}`} className={styles.logo} aria-label="תַּרְאוּ — דף הבית">
+          <Link href={`/${locale}`} className={styles.logo} aria-label="תַּרְאוּ, דף הבית">
             <span className={`${styles.logoText} logo-text`}>תַּרְאוּ</span>
           </Link>
 

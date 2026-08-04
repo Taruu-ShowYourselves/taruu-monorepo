@@ -30,7 +30,7 @@ export function VotesHero({ activeFilter, onFilterChange }: VotesHeroProps) {
         </h1>
 
         <p className={styles.deck}>
-          כל הנושאים הפעילים במקום אחד — תוצאות בזמן אמת, גלויות לכולם.
+          כל הנושאים הפעילים במקום אחד. תוצאות בזמן אמת, גלויות לכולם.
         </p>
 
         <div className={styles.byline}>

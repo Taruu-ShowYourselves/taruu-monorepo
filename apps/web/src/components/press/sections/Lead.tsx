@@ -23,7 +23,7 @@ export function Lead({ locale = 'he' }: LeadProps) {
   return (
     <section className={styles.lead}>
       <div className={styles.grid}>
-        {/* Live ballot — participation control surface */}
+        {/* Live ballot - participation control surface */}
         <aside className={styles.colBallot}>
           <LiveVoteWidget issueNo="04" />
         </aside>
@@ -40,7 +40,7 @@ export function Lead({ locale = 'he' }: LeadProps) {
           </h1>
 
           <p className={styles.standfirst}>
-            תַּרְאוּ מודד את עמדת רוב התושבים בנושאים המקומיים: כל קול מאומת,
+            תַּרְאוּ מודדת את עמדת רוב התושבים בנושאים המקומיים: כל קול מאומת,
             הספירה גלויה. תמונת מצב אחת שהמועצה לא יכולה להתעלם ממנה.
             כאן לא רק קוראים את העיתון. מצביעים בתוכו.
           </p>
@@ -76,7 +76,7 @@ export function Lead({ locale = 'he' }: LeadProps) {
           </div>
         </div>
 
-        {/* Side briefs — "also in this issue" */}
+        {/* Side briefs - "also in this issue" */}
         <aside className={styles.colBriefs}>
           <span className={styles.briefHead}>עוד בגיליון</span>
           <ul className={styles.briefs}>

@@ -9,7 +9,7 @@ import styles from './NoiseSignalVisual.module.css';
  *
  * Scattered, muted, slightly-rotated chat/shout bubbles (the loud, overlapping
  * crowd nobody can read) sit above. As the section scrolls into view they soften
- * and recede, while a single calm measured bar + number sharpens below — the
+ * and recede, while a single calm measured bar + number sharpens below - the
  * "quiet majority finally given a number" moment.
  *
  * Isolated client leaf. The noise drift, fade-resolve and number count-up all
@@ -23,11 +23,11 @@ interface Bubble {
   y: number;
   scale: number;
   rotate: number;
-  /** dim chatter glyph — three muted dots */
+  /** dim chatter glyph - three muted dots */
   tone: 'a' | 'b' | 'c';
 }
 
-// Organic, hand-placed scatter — deliberately uneven, never a grid.
+// Organic, hand-placed scatter - deliberately uneven, never a grid.
 const BUBBLES: Bubble[] = [
   { x: 10, y: 6, scale: 0.78, rotate: -8, tone: 'a' },
   { x: 58, y: 2, scale: 0.92, rotate: 6, tone: 'b' },
@@ -39,7 +39,7 @@ const BUBBLES: Bubble[] = [
   { x: 88, y: 40, scale: 0.62, rotate: 11, tone: 'b' },
 ];
 
-const TARGET = 73; // illustrative — the quiet majority, not a platform stat.
+const TARGET = 73; // illustrative - the quiet majority, not a platform stat.
 
 export function NoiseSignalVisual() {
   const reduced = useFramerReducedMotion();
@@ -72,7 +72,7 @@ export function NoiseSignalVisual() {
 
   return (
     <div className={styles.wrap}>
-      {/* NOISE layer — scattered loud chatter that recedes */}
+      {/* NOISE layer - scattered loud chatter that recedes */}
       <motion.div
         className={styles.noise}
         aria-hidden
@@ -125,7 +125,7 @@ export function NoiseSignalVisual() {
         ))}
       </motion.div>
 
-      {/* SIGNAL layer — one clean measured element that sharpens */}
+      {/* SIGNAL layer - one clean measured element that sharpens */}
       <motion.div
         className={styles.signal}
         initial={reduced ? false : { opacity: 0, y: 20, filter: 'blur(6px)' }}

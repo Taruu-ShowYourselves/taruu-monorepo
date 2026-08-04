@@ -1,5 +1,5 @@
 /* ============================================================
-   Issue-Coin market index — brutalist tech-press
+   Issue-Coin market index - brutalist tech-press
    Mobile-first stacked cards → ≥768 ruled broadsheet table.
    ============================================================ */
 
@@ -91,7 +91,7 @@
   background: var(--np-paper-box);
 }
 
-/* Column header — desktop only */
+/* Column header - desktop only */
 .colHead {
   display: none;
 }

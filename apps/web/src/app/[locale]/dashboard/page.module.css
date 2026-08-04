@@ -1,5 +1,5 @@
 /* ============================================================
- * Dashboard — Brutalist Tech-Press "personal ledger"
+ * Dashboard - Brutalist Tech-Press "personal ledger"
  * Newsprint cream + ink + one red accent. Mobile-first.
  * ============================================================ */
 
@@ -560,7 +560,7 @@
   .certGrid { grid-template-columns: repeat(3, 1fr); }
 }
 
-/* Retention callout — open votes in the reader's city (J7) */
+/* Retention callout - open votes in the reader's city (J7) */
 .cityCallout {
   display: flex;
   flex-wrap: wrap;

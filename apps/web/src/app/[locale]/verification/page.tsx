@@ -14,17 +14,17 @@ import styles from './page.module.css';
 /* ------------------------------ reassurance data --------------------------- */
 
 const LEDGER_ITEMS = [
-  { mark: '✕', tone: 'red' as const, text: 'לא שומרים את צילום התעודה — הסריקה על המכשיר בלבד' },
-  { mark: '✕', tone: 'red' as const, text: 'לא שומרים סלפי או חתימה ביומטרית — רק תוצאת התאמה' },
-  { mark: '✕', tone: 'red' as const, text: 'לא שומרים את מספר הזהות — רק הצפנה חד-כיוונית שלו' },
+  { mark: '✕', tone: 'red' as const, text: 'לא שומרים את צילום התעודה: הסריקה על המכשיר בלבד' },
+  { mark: '✕', tone: 'red' as const, text: 'לא שומרים סלפי או חתימה ביומטרית: רק תוצאת התאמה' },
+  { mark: '✕', tone: 'red' as const, text: 'לא שומרים את מספר הזהות: רק הצפנה חד-כיוונית שלו' },
   { mark: '✕', tone: 'red' as const, text: 'לא שומרים מיקום' },
   { mark: '✕', tone: 'red' as const, text: 'לא עוקבים אחריכם בין הצבעה להצבעה' },
   { mark: '✓', tone: 'ink' as const, text: 'בדיקה חד-פעמית ברגע ההצבעה בלבד' },
   { mark: '✓', tone: 'ink' as const, text: 'מוודאים רק שאתם בתחום הרשות' },
-  { mark: '✓', tone: 'ink' as const, text: 'כל קול בשכונה הוא של תושב אמיתי' },
+  { mark: '✓', tone: 'ink' as const, text: 'כל קול בעיר הוא של תושב אמיתי' },
 ];
 
-/* Press flow steps — identity → document → presence → confirmation. */
+/* Press flow steps - identity → document → presence → confirmation. */
 const STEPS = [
   { label: 'זהות' },
   { label: 'תעודה' },
@@ -239,9 +239,9 @@ function VerificationView() {
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
         });
-        // start may legitimately 400 ("already in progress") — proceed regardless.
+        // start may legitimately 400 ("already in progress") - proceed regardless.
       } catch {
-        /* non-fatal — the check-in below will surface any real problem */
+        /* non-fatal - the check-in below will surface any real problem */
       }
     }
 
@@ -294,7 +294,7 @@ function VerificationView() {
                 if (when) setNextWindow(when);
               }
             } catch {
-              /* ignore — fall back to the generic message */
+              /* ignore - fall back to the generic message */
             }
             setGpsError(
               data?.error || 'הבדיקה זמינה רק בחלון הזמן הקבוע.'
@@ -311,7 +311,7 @@ function VerificationView() {
         }
       },
       (err) => {
-        // Hard-fail on denied/error — clear message + retry button.
+        // Hard-fail on denied/error - clear message + retry button.
         setGpsError(
           err.code === err.PERMISSION_DENIED ? COPY.gpsDenied : COPY.general
         );
@@ -387,14 +387,14 @@ function VerificationView() {
               שקיפות · פרטיות · אמון
             </span>
             <h1 className={styles.heading}>
-              מאמתים שאתם מכאן —{' '}
+              מאמתים שאתם מכאן.{' '}
               <span className={styles.headingAccent}>לא עוקבים אחריכם.</span>
             </h1>
             <p className={styles.lead_p}>
-              שלושה שלבים פשוטים: אימות טלפון, סריקת תעודה על המכשיר שלכם,
-              ובדיקת מיקום חד-פעמית. זה מוודא שאתם תושבי הרשות — בלי שצילום
-              התעודה או מספר הזהות נשמרים אצלנו, בלי מסלולים ובלי מעקב. זה מה
-              שמבטיח שכל קול בשכונה הוא של תושב אמיתי.
+              שלושה שלבים: אימות טלפון, סריקת תעודה על המכשיר שלכם ובדיקת
+              מיקום חד-פעמית. כך מוודאים שאתם תושבי הרשות, בלי שצילום התעודה
+              או מספר הזהות נשמרים אצלנו, בלי מסלולים ובלי מעקב. התוצאה: כל
+              קול בעיר הוא של תושב אמיתי.
             </p>
           </header>
 
@@ -404,7 +404,7 @@ function VerificationView() {
           {/* Two-column spread: state panel + reassurance ledger sidebar */}
           <div className={styles.spread}>
             <section className={styles.panelCol}>
-              {/* ---- STEP 1 — זהות (phone) ---- */}
+              {/* ---- STEP 1 - זהות (phone) ---- */}
               {flow === 'phone' && (
                 <article className={styles.panel}>
                   <header className={styles.panelHead}>
@@ -448,7 +448,7 @@ function VerificationView() {
                 </article>
               )}
 
-              {/* ---- STEP 1b — קוד (OTP) ---- */}
+              {/* ---- STEP 1b - קוד (OTP) ---- */}
               {flow === 'otp' && (
                 <article className={styles.panel}>
                   <header className={styles.panelHead}>
@@ -502,7 +502,7 @@ function VerificationView() {
                 </article>
               )}
 
-              {/* ---- STEP 2 — תעודה (document scan) ---- */}
+              {/* ---- STEP 2 - תעודה (document scan) ---- */}
               {flow === 'document' && (
                 <DocumentScanStep
                   profileFirstName={user?.firstName}
@@ -514,7 +514,7 @@ function VerificationView() {
                 />
               )}
 
-              {/* ---- STEP 3 — נוכחות (GPS check-in) ---- */}
+              {/* ---- STEP 3 - נוכחות (GPS check-in) ---- */}
               {flow === 'gps' && (
                 <article className={styles.panel}>
                   <header className={styles.panelHead}>
@@ -559,12 +559,12 @@ function VerificationView() {
                 </article>
               )}
 
-              {/* ---- STEP 4 — אישור (eligible / verified) ---- */}
+              {/* ---- STEP 4 - אישור (eligible / verified) ---- */}
               {flow === 'done' && (
                 <article className={styles.panel}>
                   <header className={styles.panelHead}>
                     <span className={styles.panelTag}>שלב 4 · אישור</span>
-                    <h2 className={styles.panelTitle}>אתם מאומתים — אפשר להצביע</h2>
+                    <h2 className={styles.panelTitle}>אתם מאומתים. אפשר להצביע</h2>
                   </header>
 
                   <SealCard
@@ -587,12 +587,12 @@ function VerificationView() {
                   {docStatus === 'pending_review' && (
                     <p className={styles.panelText}>
                       פרטי התעודה נקלטו ונמצאים בבדיקה ידנית. נעדכן אתכם אם יידרש
-                      משהו נוסף — בינתיים אפשר להמשיך.
+                      משהו נוסף. בינתיים אפשר להמשיך.
                     </p>
                   )}
 
                   <p className={styles.panelText}>
-                    סיימתם את האימות. הקול שלכם נספר כקול של תושב אמיתי — אפשר
+                    סיימתם את האימות. הקול שלכם נספר כקול של תושב אמיתי, ואפשר
                     להמשיך ולהצביע.
                   </p>
 
@@ -612,7 +612,7 @@ function VerificationView() {
               )}
             </section>
 
-            {/* Reassurance ledger — "מה אנחנו לא עושים" */}
+            {/* Reassurance ledger - "מה אנחנו לא עושים" */}
             <aside className={styles.ledgerCol}>
               <div className={styles.ledger}>
                 <h2 className={styles.ledgerTitle}>מה אנחנו לא עושים</h2>

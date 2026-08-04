@@ -22,7 +22,7 @@ const CONSENSUS_BARS: ConsensusBar[] = [
 ];
 
 /**
- * Participate — the control-surfaces showcase. The brand idea, made literal:
+ * Participate - the control-surfaces showcase. The brand idea, made literal:
  * you don't just read the paper, you participate inside it. The participation
  * control surfaces are laid out as styled press furniture (a technical spec
  * page), each captioned like a figure plate. Surfaces are interactive/styled,
@@ -34,7 +34,7 @@ export function Participate({ locale = 'he' }: ParticipateProps) {
   return (
     <section id="participate" className={styles.participate}>
       <div className={styles.inner}>
-        {/* Section header — kicker, headline, standfirst */}
+        {/* Section header - kicker, headline, standfirst */}
         <header className={styles.header}>
           <span className={styles.kicker}>
             <span aria-hidden className={styles.kickerTick} />
@@ -55,7 +55,7 @@ export function Participate({ locale = 'he' }: ParticipateProps) {
 
         {/* Spec-sheet gallery of control surfaces */}
         <div className={styles.specSheet}>
-          {/* FIG. 1 — הצבעה חיה (live ballot) */}
+          {/* FIG. 1 - הצבעה חיה (live ballot) */}
           <figure className={`${styles.fig} ${styles.figBallot}`}>
             <figcaption className={styles.figHead}>
               <span className={styles.figNo}>FIG. 1</span>
@@ -69,7 +69,7 @@ export function Participate({ locale = 'he' }: ParticipateProps) {
             </p>
           </figure>
 
-          {/* FIG. 2 — כפתורי פעולה (action surfaces) */}
+          {/* FIG. 2 - כפתורי פעולה (action surfaces) */}
           <figure className={`${styles.fig} ${styles.figButtons}`}>
             <figcaption className={styles.figHead}>
               <span className={styles.figNo}>FIG. 2</span>
@@ -100,7 +100,7 @@ export function Participate({ locale = 'he' }: ParticipateProps) {
             <p className={styles.figNote}>FIG. 2 · משטחי פעולה.</p>
           </figure>
 
-          {/* FIG. 3 — מד תמיכה (consensus meter) */}
+          {/* FIG. 3 - מד תמיכה (consensus meter) */}
           <figure className={`${styles.fig} ${styles.figMeter}`}>
             <figcaption className={styles.figHead}>
               <span className={styles.figNo}>FIG. 3</span>
@@ -126,7 +126,7 @@ export function Participate({ locale = 'he' }: ParticipateProps) {
             <p className={styles.figNote}>FIG. 3 · מד קונצנזוס.</p>
           </figure>
 
-          {/* FIG. 4 — הצעת נושא (readers' column input) */}
+          {/* FIG. 4 - הצעת נושא (readers' column input) */}
           <figure className={`${styles.fig} ${styles.figInput}`}>
             <figcaption className={styles.figHead}>
               <span className={styles.figNo}>FIG. 4</span>

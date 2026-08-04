@@ -6,7 +6,7 @@
 }
 
 .label {
-  font-family: var(--np-font-mono);
+  font-family: var(--np-font-meta);
   font-size: var(--text-sm);
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -16,17 +16,24 @@
 
 .control {
   width: 100%;
-  font-family: var(--np-font-mono);
+  font-family: var(--np-font-meta);
   font-size: var(--text-base);
   line-height: 1.4;
   color: var(--np-ink);
-  background: var(--np-paper-box);
+  /* Soft top-light so the surface reads dimensional, not flat die-cut */
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 45%),
+    var(--np-paper-box);
   border: var(--np-rule) solid var(--np-ink);
-  border-radius: 0;
+  border-radius: var(--np-radius-card);
+  box-shadow: var(--np-shadow-soft);
   padding: var(--space-3) var(--space-4);
   /* comfortable mobile tap target */
   min-height: 3rem;
-  transition: border-color var(--np-dur-snap) var(--np-ease);
+  transition:
+    border-color var(--np-dur-snap) var(--np-ease),
+    box-shadow var(--np-dur) var(--np-ease),
+    transform var(--np-dur) var(--np-ease);
   -webkit-appearance: none;
   appearance: none;
 }
@@ -40,19 +47,25 @@ textarea.control {
   color: var(--np-ink-faint);
 }
 
+.control:hover:not(:disabled) {
+  border-color: var(--np-ink-soft);
+}
+
 .control:focus-visible {
   outline: none;
   border-color: var(--np-red);
-  box-shadow: inset 0 0 0 1px var(--np-red);
+  box-shadow: var(--np-shadow-soft), var(--np-focus-ring);
+  transform: translateY(-1px);
 }
 
 .invalid .control {
   border-color: var(--np-red);
+  box-shadow: var(--np-shadow-soft), var(--np-focus-ring);
 }
 
 .error,
 .hint {
-  font-family: var(--np-font-mono);
+  font-family: var(--np-font-meta);
   font-size: var(--text-sm);
   line-height: 1.35;
   margin: 0;
@@ -70,5 +83,8 @@ textarea.control {
 @media (prefers-reduced-motion: reduce) {
   .control {
     transition: none;
+  }
+  .control:focus-visible {
+    transform: none;
   }
 }

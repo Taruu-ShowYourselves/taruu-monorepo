@@ -24,7 +24,7 @@ const MSG_REQUIRED = 'צריך למלא את השדה הזה כדי להמשיך
 const MSG_GENERAL = 'משהו השתבש אצלנו, לא אצלכם. נסו שוב בעוד רגע.';
 
 // Press wizard is 4 editorial steps; the underlying validation stays 3-staged
-// (details → options → payment) — duration lives on the payment plate.
+// (details → options → payment) - duration lives on the payment plate.
 const STEP_LABELS = [
   { label: 'נושא' },
   { label: 'אפשרויות' },
@@ -59,7 +59,7 @@ export default function CreateVotePage() {
   // Success surface (graceful in-page fallback when no redirect URL is issued)
   const [sealHash, setSealHash] = useState<string | null>(null);
 
-  // Form state — unchanged
+  // Form state - unchanged
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [options, setOptions] = useState(['', '']);
@@ -127,7 +127,7 @@ export default function CreateVotePage() {
     } else if (step === 2 && validateStep2()) {
       setStep(3);
     } else if (step === 3) {
-      // Duration always has a value — straight through to payment.
+      // Duration always has a value - straight through to payment.
       setStep(4);
     }
   };
@@ -174,7 +174,7 @@ export default function CreateVotePage() {
 
       const data = await response.json();
 
-      // Persist pending vote for post-payment finalisation — unchanged.
+      // Persist pending vote for post-payment finalisation - unchanged.
       const pendingVote = {
         title,
         description,

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { NewsButton } from '@/components/press/NewsButton';
 import { Stepper, Receipt } from '@/components/press';
 import { useReducedMotion } from '@/hooks';
@@ -77,6 +77,11 @@ export function ParticipationFlow({
   const router = useRouter();
   const reduced = useReducedMotion();
   const { isAuthenticated } = useAuthStore();
+  // Locale-less detour targets get a 307 from the locale middleware, and the
+  // redirect back here is dropped with the query string - so build them
+  // already localised.
+  const params = useParams<{ locale?: string }>();
+  const locale = params?.locale ?? 'he';
 
   const [stage, setStage] = useState<Stage>('choice');
   const [selectedOption, setSelectedOption] = useState<string | null>(initialOptionId);
@@ -175,12 +180,16 @@ export function ParticipationFlow({
       // them staring at an error they cannot clear from this screen.
       if (result.code === 'RESIDENCY_NOT_VERIFIED' || result.code === 'IDENTITY_NOT_VERIFIED') {
         persistPending();
-        router.push(`/verification?redirect=${encodeURIComponent(`/votes/${voteId}`)}`);
+        router.push(
+          `/${locale}/verification?redirect=${encodeURIComponent(`/${locale}/votes/${voteId}`)}`
+        );
         return;
       }
       if (result.code === 'UNAUTHENTICATED') {
         persistPending();
-        router.push(`/sign-in?redirect=${encodeURIComponent(`/votes/${voteId}`)}`);
+        router.push(
+          `/${locale}/sign-in?redirect=${encodeURIComponent(`/${locale}/votes/${voteId}`)}`
+        );
         return;
       }
       setSubmitError(result.message);
@@ -190,12 +199,12 @@ export function ParticipationFlow({
     setBallot(result.ballot);
     setAlreadyRecorded(result.alreadyRecorded);
     setStage('receipt');
-  }, [selectedOption, submitting, isBlocked, voteId, persistPending, router]);
+  }, [selectedOption, submitting, isBlocked, voteId, locale, persistPending, router]);
 
   const handleConfirm = useCallback(async () => {
     if (!selectedOption) return;
 
-    const back = encodeURIComponent(`/votes/${voteId}`);
+    const back = encodeURIComponent(`/${locale}/votes/${voteId}`);
     // Sign-in is gated client-side because the answer is unambiguous here: no
     // session means no request worth making.
     //
@@ -209,12 +218,12 @@ export function ParticipationFlow({
     // the server's 403 routes them, so there is exactly one eligibility rule.
     if (!isAuthenticated) {
       persistPending();
-      router.push(`/sign-in?redirect=${back}`);
+      router.push(`/${locale}/sign-in?redirect=${back}`);
       return;
     }
 
     await recordVote();
-  }, [selectedOption, voteId, recordVote, isAuthenticated, persistPending, router]);
+  }, [selectedOption, voteId, locale, recordVote, isAuthenticated, persistPending, router]);
 
   /* ------------------------------------------------------------------ */
   return (

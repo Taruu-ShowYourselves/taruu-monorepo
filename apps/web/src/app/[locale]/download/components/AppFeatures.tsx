@@ -33,7 +33,7 @@ const features: Feature[] = [
     label: 'GPS',
     title: 'אימות מיקום',
     description:
-      'אימות GPS פשוט מבטיח שרק תושבי המקום מצביעים — בלי זיופים, בלי כפילויות.',
+      'אימות GPS פשוט מבטיח שרק תושבי המקום מצביעים - בלי זיופים, בלי כפילויות.',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" aria-hidden focusable="false">
         <path
@@ -51,7 +51,7 @@ const features: Feature[] = [
     label: 'CHAIN',
     title: 'מאומת ובלתי ניתן לזיוף',
     description:
-      'כל הצבעה נחתמת ונרשמת בשרשרת ציבורית פתוחה לביקורת — שקיפות מלאה, מקצה לקצה.',
+      'כל הצבעה נחתמת ונרשמת בשרשרת ציבורית פתוחה לביקורת - שקיפות מלאה, מקצה לקצה.',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" aria-hidden focusable="false">
         <path
@@ -75,7 +75,7 @@ const features: Feature[] = [
     label: 'RTL',
     title: 'בעברית, על המובייל',
     description:
-      'ממשק נקי ומלא בעברית, מותאם RTL ולכף היד — להשפיע על הקהילה בכמה הקשות.',
+      'ממשק נקי ומלא בעברית, מותאם RTL ולכף היד - להשפיע על הקהילה בכמה הקשות.',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" aria-hidden focusable="false">
         <rect x="7" y="3" width="10" height="18" stroke="currentColor" strokeWidth="2" />
@@ -100,7 +100,7 @@ export function AppFeatures() {
             כל מה שצריך כדי שהקול שלכם <span className={styles.red}>ייספר.</span>
           </h2>
           <p className={`np-mono ${styles.standfirst}`}>
-            השתתפות בקבלת החלטות מקומיות — מאומתת, שקופה ובקצות האצבעות.
+            השתתפות בקבלת החלטות מקומיות - מאומתת, שקופה ובקצות האצבעות.
           </p>
         </div>
 

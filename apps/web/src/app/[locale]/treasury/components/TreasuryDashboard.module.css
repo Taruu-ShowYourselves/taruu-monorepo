@@ -78,7 +78,7 @@
   color: var(--np-ink-faint);
 }
 
-/* ---------- Stats — boxed mono figures ---------- */
+/* ---------- Stats - boxed mono figures ---------- */
 .statsGrid {
   display: grid;
   grid-template-columns: 1fr;

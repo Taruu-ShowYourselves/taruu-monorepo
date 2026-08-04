@@ -62,7 +62,7 @@
   margin-block-start: clamp(var(--space-6), 3vw, var(--space-12));
 }
 
-/* Press notice — the "in preparation" plate */
+/* Press notice - the "in preparation" plate */
 .notice {
   border: var(--np-rule) solid var(--np-ink);
   background: var(--np-paper-box);

@@ -77,14 +77,14 @@ export function Footer({ locale = 'he' }: FooterProps) {
 
   return (
     <footer className={styles.footer}>
-      {/* Brand-gradient consensus line — recurring divider motif */}
+      {/* Brand-gradient consensus line - recurring divider motif */}
       <span aria-hidden className={`${styles.rule} lc-rule`} />
 
       <div className={styles.container}>
         <div className={styles.grid}>
           {/* Brand Column */}
           <AnimatedFadeInUp className={styles.brandColumn}>
-            <Link href={`/${locale}`} className={styles.logo} aria-label="תַּרְאוּ — דף הבית">
+            <Link href={`/${locale}`} className={styles.logo} aria-label="תַּרְאוּ, דף הבית">
               <span className={`${styles.logoText} logo-text`}>תַּרְאוּ</span>
             </Link>
             <p className={styles.tagline}>{tagline}</p>

@@ -6,9 +6,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
 import styles from '../../sign-in/[[...sign-in]]/page.module.css';
 
-// Reuse the membership-desk styles — sign-up shares the press desk.
+// Reuse the membership-desk styles - sign-up shares the press desk.
 
-// Google "G" mark — monochrome, inherits the button text colour (brutalist
+// Google "G" mark - monochrome, inherits the button text colour (brutalist
 // mono palette: ink/paper/red only; no off-system brand colour or white seat).
 function GoogleIcon() {
   return (
@@ -46,7 +46,7 @@ export default function SignUpPage() {
       };
       setError(
         errorMessages[errorParam] ||
-          'משהו השתבש אצלנו, לא אצלכם. נסו שוב בעוד רגע.'
+          'לא הצלחנו להשלים את ההרשמה. נסו שוב בעוד רגע.'
       );
     }
   }, [searchParams]);
@@ -65,15 +65,15 @@ export default function SignUpPage() {
 
         <span className={styles.kicker}>
           <span aria-hidden className={styles.kickerTick} />
-          דלפק החברים · SIGN UP
+          דלפק המשתתפים · פתיחת חשבון
         </span>
 
         <h1 className={styles.title}>
-          הצטרפו <span className={styles.red}>לתַּרְאוּ.</span>
+          הקול שלכם <span className={styles.red}>נכנס למניין.</span>
         </h1>
         <p className={styles.standfirst}>
-          יצרו חשבון והתחילו להצביע על נושאים מקומיים — מאומת, שקוף, בלתי ניתן
-          לזיוף.
+          פתחו חשבון בחינם והצביעו על מה שקורה בעיר, בכנסת ובממשלה. הקול שלכם
+          יצטרף לקולות מאומתים אחרים וייכלל בתוצאה גלויה שאפשר לבדוק.
         </p>
 
         <div className={styles.rule} aria-hidden />
@@ -95,27 +95,31 @@ export default function SignUpPage() {
             <GoogleIcon />
           </span>
           <span className={styles.googleLabel}>
-            {isLoading ? 'נרשם…' : 'הרשמה עם Google'}
+            {isLoading ? 'פותחים חשבון…' : 'פתיחת חשבון עם Google'}
           </span>
         </button>
+
+        <p className={styles.freeNote}>
+          ההרשמה וההשתתפות חינם. האימות מתבצע בעת ההצבעה.
+        </p>
 
         <p className={styles.terms}>
           בהרשמה אתם מסכימים{' '}
           <Link href="/terms" className={styles.link}>
             לתנאי השימוש
           </Link>{' '}
-          ו
+          ול
           <Link href="/privacy" className={styles.link}>
             מדיניות הפרטיות
           </Link>
         </p>
 
         <div className={styles.divider}>
-          <span>יש לכם חשבון?</span>
+          <span>כבר יש לכם חשבון?</span>
         </div>
 
         <Link href="/sign-in" className={styles.switchLink}>
-          התחברות לחשבון קיים ←
+          להתחברות ←
         </Link>
 
         <ul className={styles.features}>
@@ -123,39 +127,46 @@ export default function SignUpPage() {
             <span aria-hidden className={styles.featGlyph}>
               ●
             </span>
-            <span>מאובטח בבלוקצ׳יין</span>
+            <span>עיר · כנסת · ממשלה</span>
           </li>
           <li className={styles.feature}>
             <span aria-hidden className={styles.featGlyph}>
               ■
             </span>
-            <span>אימות מיקום</span>
+            <span>אדם אחד, קול אחד בכל הצבעה</span>
           </li>
           <li className={styles.feature}>
             <span aria-hidden className={styles.featGlyph}>
               ▍
             </span>
-            <span>טוקנים לתרומה</span>
+            <span>תוצאות שקופות</span>
           </li>
         </ul>
 
-        <p className={styles.trust}>הקול שלכם. הקהילה שלכם.</p>
+        <p className={styles.trust}>
+          פותחים חשבון. בוחרים רשות. מצביעים.
+        </p>
       </div>
 
       <aside className={styles.brand} aria-hidden>
         <span className={styles.brandWordmark}>תַּרְאוּ</span>
         <p className={styles.brandLine}>
-          הצטרפו <span className={styles.brandRed}>לרשת.</span>
+          כתבתם. שיתפתם. צעקתם.{' '}
+          <span className={styles.brandRed}>מי ספר אתכם בכנסת ובממשלה?</span>
+        </p>
+        <p className={styles.brandSub}>
+          פוסט בודד נעלם בפיד. תַּרְאוּ מרכזת קולות מאומתים על מה שקורה בעיר,
+          בכנסת ובממשלה, ומציגה את תוצאת המשתתפים בגלוי.
         </p>
         <ul className={styles.brandTrust}>
           <li>
-            <span className={styles.brandTrustGlyph}>●</span> מאומת · חתום בבלוקצ׳יין
+            <span className={styles.brandTrustGlyph}>●</span> מה קורה בעיר
           </li>
           <li>
-            <span className={styles.brandTrustGlyph}>■</span> אימות תושב לפי מיקום
+            <span className={styles.brandTrustGlyph}>■</span> מה עולה בכנסת
           </li>
           <li>
-            <span className={styles.brandTrustGlyph}>▍</span> ₪2 מכל ₪3 לקרן הקהילתית
+            <span className={styles.brandTrustGlyph}>▍</span> מה עושה הממשלה
           </li>
         </ul>
       </aside>

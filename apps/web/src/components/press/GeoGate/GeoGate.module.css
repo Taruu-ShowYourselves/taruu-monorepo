@@ -13,7 +13,8 @@
   width: 100%;
   background: var(--np-paper);
   border: var(--np-rule-heavy) solid var(--np-ink);
-  box-shadow: 8px 8px 0 color-mix(in srgb, var(--np-ink) 80%, transparent);
+  border-radius: var(--np-radius-card);
+  box-shadow: var(--np-shadow-float);
   padding: clamp(var(--space-5), 3vw, var(--space-8));
   display: grid;
   gap: var(--space-3);

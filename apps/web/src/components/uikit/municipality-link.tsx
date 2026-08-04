@@ -7,7 +7,7 @@ interface MunicipalityLinkProps {
   /** Municipality display name (Hebrew, as stored on votes/users). */
   name: string | null | undefined;
   className?: string;
-  /** Rendered when `name` is empty. Pass '—' where call sites showed a dash. */
+  /** Rendered when `name` is empty. Pass '-' where call sites showed a dash. */
   fallback?: string;
 }
 
@@ -43,7 +43,7 @@ export function MunicipalityLink({
         'underline-offset-2 hover:underline focus-visible:underline',
         className
       )}
-      title={`פרופיל רשות — ${name}`}
+      title={`פרופיל רשות - ${name}`}
     >
       {name}
     </Link>

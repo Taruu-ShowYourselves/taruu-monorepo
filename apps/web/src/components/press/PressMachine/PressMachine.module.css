@@ -1,0 +1,93 @@
+/* PressLoader - schematic web press as the paper's loading indicator. */
+
+.loader {
+  inline-size: clamp(220px, 55vw, 340px);
+  overflow: hidden;
+}
+
+.machine {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+}
+
+.frame rect {
+  fill: var(--np-ink);
+  opacity: 0.85;
+}
+
+/* The web: ink edge under a paper ribbon */
+.webEdge {
+  fill: none;
+  stroke: var(--np-ink);
+  stroke-width: 30;
+  stroke-linecap: round;
+}
+
+.webPaper {
+  fill: none;
+  stroke: var(--np-paper-box);
+  stroke-width: 24;
+  stroke-linecap: round;
+}
+
+/* Printed columns crawling along the web (animejs shifts the dash offset) */
+.webPrint {
+  fill: none;
+  stroke: var(--np-ink);
+  stroke-width: 9;
+  stroke-dasharray: 26 18;
+  opacity: 0.55;
+}
+
+.roller {
+  transform-box: view-box;
+}
+
+.rollerBody {
+  fill: var(--np-paper-box);
+  stroke: var(--np-ink);
+  stroke-width: 5;
+}
+
+.rollerInk {
+  fill: var(--np-red);
+  stroke: var(--np-ink);
+  stroke-width: 5;
+}
+
+.spoke {
+  stroke: var(--np-ink);
+  stroke-width: 4;
+}
+
+.spokePaper {
+  stroke: var(--np-paper);
+  stroke-width: 4;
+}
+
+.hub {
+  fill: var(--np-ink);
+}
+
+.hubPaper {
+  fill: var(--np-paper);
+}
+
+.sheet {
+  fill: var(--np-paper-box);
+  stroke: var(--np-ink);
+  stroke-width: 2.5;
+  opacity: 0;
+}
+
+.stack {
+  fill: var(--np-ink);
+  opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet {
+    opacity: 1;
+  }
+}

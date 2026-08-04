@@ -8,6 +8,7 @@ import { Footer } from '@/components/layout/Footer';
 import { NewsButton } from '@/components/press/NewsButton';
 import { Segmented } from '@/components/press/Segmented/Segmented';
 import type { NotificationSettings, UserProfile } from '@sync/shared';
+import { PressLoader } from '@/components/press/PressMachine';
 import styles from './page.module.css';
 
 const REDIRECT = '/sign-in?redirect=/settings/notifications';
@@ -49,7 +50,7 @@ const ROWS: NotificationRow[] = [
   {
     key: 'marketing',
     label: 'עדכוני מוצר',
-    description: 'חדשות, פיצ׳רים ומבצעים מתַּרְאוּ.',
+    description: 'הודעות על שינויים ותכונות חדשות בתַּרְאוּ.',
   },
 ];
 
@@ -123,7 +124,7 @@ function NotificationsContent() {
   if (isLoading || dataLoading) {
     return (
       <div className={styles.loadingContainer}>
-        <div className={styles.spinner} aria-hidden />
+        <PressLoader />
         <p>טוען…</p>
       </div>
     );
@@ -223,7 +224,7 @@ export default function NotificationsSettingsPage() {
     <SuspenseWrapper
       fallback={
         <div className={styles.loadingContainer}>
-          <div className={styles.spinner} aria-hidden />
+          <PressLoader />
           <p>טוען…</p>
         </div>
       }

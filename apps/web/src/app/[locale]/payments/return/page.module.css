@@ -54,7 +54,7 @@
   margin: 0;
 }
 
-/* Indeterminate finalising bar — mechanical, reduced-motion safe. */
+/* Indeterminate finalising bar - mechanical, reduced-motion safe. */
 .bar {
   block-size: var(--np-rule-heavy);
   background: var(--np-paper-2);

@@ -10,12 +10,12 @@ interface TickerProps {
 const DEFAULT_ITEMS = [
   'נפתחים בכל הארץ, בבת אחת · 04.08.26',
   '1,247 קולות מאומתים נחתמו השבוע',
-  'כל קול חתום בבלוקצ׳יין — בלתי ניתן לזיוף',
+  'כל קול חתום בבלוקצ׳יין · בלתי ניתן לזיוף',
   '₪2 מכל הצבעה נצברים לקרן הקהילתית',
   'מודדים · מאמתים · מנגישים',
 ];
 
-/** Breaking-news ticker strip — ink bar, mono uppercase, marquee scroll. */
+/** Breaking-news ticker strip - ink bar, mono uppercase, marquee scroll. */
 export function Ticker({ items = DEFAULT_ITEMS, label = 'LIVE' }: TickerProps) {
   const row = [...items, ...items];
   return (

@@ -14,7 +14,7 @@ export function AnalyticsEvents() {
 
   // Manual page_view on every route change. send_page_view is false in the
   // base config, so this is the single source of page_view. Double rAF lets
-  // Next apply the new <title> before we read it — otherwise page_title lands
+  // Next apply the new <title> before we read it - otherwise page_title lands
   // as (not set) in GA4.
   useEffect(() => {
     const g = (window as unknown as { gtag?: (...a: unknown[]) => void }).gtag;

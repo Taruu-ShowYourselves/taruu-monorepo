@@ -96,12 +96,12 @@ const TOPICS: Topic[] = [
   },
   {
     label: 'כסף',
-    blurb: 'לאן הולך התשלום ומה מקבלים בתמורה.',
+    blurb: 'ההצבעה חינם. מה כן עולה ולאן הכסף הולך.',
     icon: CoinIcon,
   },
   {
     label: 'פרטיות',
-    blurb: 'מה אנחנו יודעים עליכם — ומה לא.',
+    blurb: 'מה אנחנו יודעים עליכם ומה לא.',
     icon: LockIcon,
   },
 ];
@@ -130,7 +130,7 @@ export function SupportFlow({ locale = 'he' }: SupportFlowProps) {
             </span>
             <h2 className={styles.pathTitle}>דברו איתנו בוואטסאפ</h2>
             <p className={styles.pathText}>
-              אין רובוטים ואין תורים. כתבו לנו בקבוצת הפיילוט — אנשים אמיתיים
+              אין רובוטים ואין תורים. כתבו לנו בקבוצת הפיילוט. אנשים אמיתיים
               עונים, בדרך כלל מהר.
             </p>
             <NewsButton
@@ -163,7 +163,7 @@ export function SupportFlow({ locale = 'he' }: SupportFlowProps) {
               </span>
               <h2 className={styles.pathTitle}>שאלות נפוצות</h2>
               <p className={styles.pathText}>
-                התשובות הברורות לשאלות שכולם שואלים — הצבעה, אימות, כסף ופרטיות,
+                תשובות ברורות לשאלות שכולם שואלים: הצבעה, אימות, כסף ופרטיות,
                 בלי ז&apos;רגון.
               </p>
               <span className={styles.pathMore}>

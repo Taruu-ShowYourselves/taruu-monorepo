@@ -1,5 +1,5 @@
 /*
- * Tailwind v4 — utilities only, no preflight. The site's base styles live in
+ * Tailwind v4 - utilities only, no preflight. The site's base styles live in
  * globals.css/tokens.css (CSS Modules everywhere else); preflight would
  * clobber them. Utilities are additive and only used by src/components/ui
  * and the newer pages built on them.
@@ -8,8 +8,12 @@
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities);
 
+/* Explicit source root - Turbopack's cwd differs from webpack's, which broke
+   v4's automatic content detection and silently dropped every utility. */
+@source "../";
+
 @theme {
-  /* Press palette — resolved through the --np-* tokens in tokens.css so the
+  /* Press palette - resolved through the --np-* tokens in tokens.css so the
      locked design system stays the single source of truth. */
   --color-*: initial;
   --color-ink: var(--np-ink);
@@ -25,10 +29,15 @@
   --color-current: currentColor;
 
   --font-mono: var(--np-font-mono);
+  --font-meta: var(--np-font-meta);
   --font-display: var(--np-font-display);
   --font-body: var(--np-font-body);
 
-  /* Brutalist: nothing rounds. */
+  /* Brutalist baseline: nothing rounds by default. Deliberate theme
+     breakage is allowed through exactly two shapes: soft card corners
+     and full circles/pills. */
   --radius-*: initial;
   --radius-none: 0;
+  --radius-card: 0.625rem;
+  --radius-full: 9999px;
 }

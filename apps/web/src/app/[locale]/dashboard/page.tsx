@@ -15,6 +15,7 @@ import {
   getIdentityLevelLabel,
   getIdentityLevelDescription,
 } from '@sync/shared';
+import { PressLoader } from '@/components/press/PressMachine';
 import styles from './page.module.css';
 
 interface DashboardStats {
@@ -150,9 +151,9 @@ export default function DashboardPage() {
     // NOTE: the MVP is free, so this dashboard deliberately fetches no billing,
     // token or personal-contribution data. GET /api/user/treasury-contributions
     // is intentionally retained server-side (with its SQL-enforced ownership)
-    // for when the fund opens — it is simply not called from here.
+    // for when the fund opens - it is simply not called from here.
 
-    // Community registration figures — public aggregate counts, no per-user
+    // Community registration figures - public aggregate counts, no per-user
     // data. Left null on failure so the panel can say so instead of showing a
     // zero that reads as "nobody registered".
     const fetchRegistrations = async () => {
@@ -179,7 +180,7 @@ export default function DashboardPage() {
       }
     };
 
-    // Civic certificates (NFTs) — auto-issued on resolution, view-only.
+    // Civic certificates (NFTs) - auto-issued on resolution, view-only.
     const fetchCertificates = async () => {
       try {
         const res = await fetch('/api/user/nfts');
@@ -222,7 +223,7 @@ export default function DashboardPage() {
   if (isLoading || dataLoading) {
     return (
       <div className={styles.loadingContainer}>
-        <div className={styles.spinner} aria-hidden />
+        <PressLoader />
         <p className={styles.loadingText}>טוען את הגיליון…</p>
       </div>
     );
@@ -235,7 +236,10 @@ export default function DashboardPage() {
   const isVerified = verificationPhase === 'completed';
   const locationState = resolveLocationState(user?.municipality, isVerified);
 
-  const issueNo = (user?.id || 'GUEST').slice(0, 6).toUpperCase();
+  // Real newspaper issue number: days since the paper's epoch - same for
+  // every reader on a given day, counts up daily like a printed daily.
+  const PAPER_EPOCH = Date.UTC(2025, 0, 1);
+  const issueNo = Math.floor((Date.now() - PAPER_EPOCH) / 86_400_000);
   const today = new Date().toLocaleDateString('he-IL');
 
   const reveal = (delay = 0) =>
@@ -262,7 +266,7 @@ export default function DashboardPage() {
               שלום, <span className={styles.red}>{user?.firstName || 'משתמש'}</span>.
             </h1>
             <div className={styles.editionMeta}>
-              {/* Location. Never falls back to a default town — see
+              {/* Location. Never falls back to a default town - see
                   resolveLocationState. Each state carries its own way forward. */}
               {locationState === 'unset' ? (
                 <button
@@ -280,7 +284,7 @@ export default function DashboardPage() {
               <span className={styles.sep} aria-hidden>■</span>
               <span>{today}</span>
               {/* Verification slot. Omitted while the town is unset, because
-                  residency cannot be verified before a town is chosen — the
+                  residency cannot be verified before a town is chosen - the
                   "הגדר מיקום" CTA above is the real next step, and a second
                   competing CTA would only split it. */}
               {locationState === 'verified' && (
@@ -316,7 +320,7 @@ export default function DashboardPage() {
                   {verificationPhase === 'not_started'
                     ? 'התחילו את תהליך אימות התושבות כדי שהקול שלכם ייספר.'
                     : verificationPhase === 'in_progress'
-                      ? `בתהליך — ${user?.verificationStatus?.checkInsCompleted || 0}/${user?.verificationStatus?.checkInsTotal || 0} צ׳ק-אינים הושלמו.`
+                      ? `בתהליך: ${user?.verificationStatus?.checkInsCompleted || 0}/${user?.verificationStatus?.checkInsTotal || 0} צ׳ק-אינים הושלמו.`
                       : 'האימות נכשל. אפשר לנסות שוב.'}
                 </p>
               </div>
@@ -388,7 +392,7 @@ export default function DashboardPage() {
             </span>
 
             <div className={styles.statsGrid}>
-              {/* Registered residents — real figures, never fabricated. */}
+              {/* Registered residents - real figures, never fabricated. */}
               <div className={styles.statCard}>
                 <span className={styles.statLabel}>נרשמו לפלטפורמה</span>
                 {registrations ? (
@@ -410,7 +414,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Community fund + Issue Coins are not live in the MVP. Render an
-                  honest placeholder rather than a zero or an invented figure —
+                  honest placeholder rather than a zero or an invented figure -
                   no endpoint is called for these cards on purpose. */}
               <ComingSoonStat
                 label="הקרן הקהילתית"
@@ -489,7 +493,7 @@ export default function DashboardPage() {
                 {recentVotes.length === 0 ? (
                   <div className={styles.emptyState}>
                     <p className={styles.emptyText}>
-                      עוד לא הצבעתם. הנושא הראשון שלכם מחכה — בואו נתחיל.
+                      עוד לא הצבעתם. הצבעות שתשתתפו בהן יירשמו כאן.
                     </p>
                     <NewsButton variant="red" size="md" onClick={() => router.push('/votes')}>
                       התחילו להצביע
@@ -542,8 +546,8 @@ export default function DashboardPage() {
                 {certificates.length === 0 ? (
                   <div className={styles.emptyState}>
                     <p className={styles.emptyText}>
-                      תעודה אזרחית מונפקת אוטומטית בכל פעם שהצבעה שהשתתפתם בה
-                      מסתיימת — שיא חתום של ההשתתפות שלכם. עוד אין לכם תעודות.
+                      עוד אין לכם תעודות. תעודה אזרחית מונפקת אוטומטית כשהצבעה
+                      שהשתתפתם בה מסתיימת, כרישום חתום של ההשתתפות.
                     </p>
                     <NewsButton variant="red" size="md" onClick={() => router.push('/votes')}>
                       להצבעות הפעילות
@@ -562,7 +566,7 @@ export default function DashboardPage() {
             {/* --- COMMUNITY FUND --- */}
             {/* UI-only. The fund is not live in the MVP, so the reader's
                 contribution ledger is deliberately NOT fetched or rendered
-                here — no totals, no rows, no zero balance. */}
+                here - no totals, no rows, no zero balance. */}
             {tab === 'fund' && (
               <div className={styles.panel}>
                 <span className={styles.panelKicker}>
@@ -609,7 +613,7 @@ export default function DashboardPage() {
                 <ul className={styles.settingsList}>
                   {[
                     { label: 'פרופיל אישי', meta: 'שם, טלפון, תמונה', href: '/settings/profile' },
-                    { label: 'רשות מקומית', meta: user?.municipality || '—', href: '/settings/municipality' },
+                    { label: 'רשות מקומית', meta: user?.municipality || 'לא נבחרה', href: '/settings/municipality' },
                     { label: 'התראות', meta: 'דוא״ל, פוש, עדכוני הצבעות', href: '/settings/notifications' },
                     { label: 'חשבונות מקושרים', meta: 'שיפור ציון הזהות', href: '/settings/social-connections' },
                   ].map((s) => (

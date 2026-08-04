@@ -8,7 +8,7 @@ import styles from './PricingContent.module.css';
 
 const WHATSAPP_URL = WHATSAPP_FOUNDERS_LINK;
 
-/** Mono trust line items — the "no fine print" rate-card footer. */
+/** Mono trust line items - the "no fine print" rate-card footer. */
 const TRUST_ITEMS = ['אין מנוי', 'אין דמי חבר', 'אין אותיות קטנות'] as const;
 
 /** Spec-sheet line items under each rate block. ✓ = included. */
@@ -25,7 +25,7 @@ const CREATE_SPEC = [
 ] as const;
 
 /**
- * Pricing — Brutalist Tech-Press "rate card / spec sheet". Two hard-edged
+ * Pricing - Brutalist Tech-Press "rate card / spec sheet". Two hard-edged
  * boxed rate blocks (free participation, ₪50 create-vote) with BIG mono
  * figures and ink-ruled line items. A mono trust strip kills fine-print
  * anxiety; one red primary "join the pilot" NewsButton closes.
@@ -70,7 +70,7 @@ export function PricingContent() {
 
         {/* ---------- Two rate blocks ---------- */}
         <div className={styles.cards}>
-          {/* RATE 01 — free participation */}
+          {/* RATE 01 - free participation */}
           <section className={styles.card}>
             <header className={styles.cardHead}>
               <span className={styles.rateNo}>01</span>
@@ -104,7 +104,7 @@ export function PricingContent() {
             </div>
           </section>
 
-          {/* RATE 02 — ₪50 create a vote */}
+          {/* RATE 02 - ₪50 create a vote */}
           <section className={styles.card}>
             <header className={styles.cardHead}>
               <span className={styles.rateNo}>02</span>

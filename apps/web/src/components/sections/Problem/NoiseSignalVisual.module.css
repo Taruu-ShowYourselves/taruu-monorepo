@@ -15,7 +15,7 @@
 .noise {
   position: relative;
   block-size: clamp(11rem, 28vw, 13rem);
-  /* muted ink — loud but unreadable, deliberately desaturated */
+  /* muted ink - loud but unreadable, deliberately desaturated */
   color: var(--lc-ink-faint);
 }
 
@@ -107,7 +107,7 @@
   color: var(--lc-ink-faint);
 }
 
-/* Calming aura — soft brand glow centered behind the resolved signal */
+/* Calming aura - soft brand glow centered behind the resolved signal */
 .aura {
   position: absolute;
   inset-block-end: -8%;
