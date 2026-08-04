@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Segmented, Receipt, TallyBar } from '@/components/press';
+import { Segmented, TallyBar } from '@/components/press';
 import { staggerContainer, fadeInUp } from '@/lib/animations';
 import { useReducedMotion } from '@/hooks';
 import { formatCurrency, formatDate, MUNICIPALITIES } from '@sync/shared';
@@ -303,7 +303,7 @@ export function TreasuryDashboard() {
           </motion.div>
         </motion.div>
 
-        {/* Allocation breakdown - ledger split + receipt */}
+        {/* Allocation breakdown - ledger split, real figures only */}
         <motion.div
           className={styles.board}
           initial={reduced ? false : { opacity: 0, y: 16 }}
@@ -321,26 +321,20 @@ export function TreasuryDashboard() {
             external={treasury.externalContributions}
           />
 
-          <Receipt
-            className={styles.allocReceipt}
-            kicker="חלוקה · ALLOCATION"
-            rows={[
-              {
-                label: '70% לקרן הרשות',
-                value: formatCurrency(treasury.totalILS * 0.7),
-              },
-              {
-                label: '30% תפעול הפלטפורמה',
-                value: formatCurrency(treasury.totalILS * 0.3),
-              },
-              {
-                label: 'סך הקרן',
-                value: formatCurrency(treasury.totalILS),
-                strong: true,
-              },
-            ]}
-            footer="כל סכום מתועד · חתום בבלוקצ׳יין · ביקורת חשבונאית עצמאית"
-          />
+          {/*
+            An allocation Receipt stood here, multiplying the fund balance by
+            two fixed percentages and printing the products as if the ledger
+            had produced them. Nothing implements that split - the payments
+            webhook credits the treasury the full amount. A real allocation
+            ledger is COIN-02's to establish, and it is gated on COIN-01's
+            written legal sign-off, so until that ledger exists nothing on this
+            board may assert a split. The ledger split above is the one
+            breakdown the data supports, and the stat cards already carry the
+            fund total. The receipt's footer went with it rather than being
+            reworded: it claimed an independent accounting audit that has never
+            been commissioned, and a chain signature over ILS figures that live
+            in Postgres.
+          */}
         </motion.div>
 
         {/* Activity counters */}
