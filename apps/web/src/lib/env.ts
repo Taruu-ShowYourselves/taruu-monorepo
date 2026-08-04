@@ -9,9 +9,15 @@ import { z } from 'zod';
 // === Server-side Environment Variables ===
 
 const serverEnvSchema = z.object({
-  // Supabase
-  SUPABASE_URL: z.string().url('SUPABASE_URL must be a valid URL'),
-  SUPABASE_SERVICE_KEY: z.string().min(1, 'SUPABASE_SERVICE_KEY is required'),
+  // Supabase.
+  // These are the names the runtime actually reads: lib/supabase/server.ts:22-23
+  // reads NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY, and
+  // lib/supabase/user-client.ts:37-38 reads the URL + the anon key. The two
+  // un-prefixed Supabase entries that used to sit here had zero readers anywhere
+  // and would have rejected a correctly configured production environment.
+  NEXT_PUBLIC_SUPABASE_URL: z.string().url('NEXT_PUBLIC_SUPABASE_URL must be a valid URL'),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'SUPABASE_SERVICE_ROLE_KEY is required'),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, 'NEXT_PUBLIC_SUPABASE_ANON_KEY is required'),
 
   // JWT Session
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
@@ -33,12 +39,6 @@ const serverEnvSchema = z.object({
     .min(1, 'SUPABASE_TP_PRIVATE_JWK must be a private JWK as JSON')
     .optional(),
 
-  // Auth0 (primary login - OIDC Universal Login; federates Google)
-  AUTH0_CLIENT_ID: z.string().min(1, 'AUTH0_CLIENT_ID is required'),
-  AUTH0_CLIENT_SECRET: z.string().min(1, 'AUTH0_CLIENT_SECRET is required'),
-  NEXT_PUBLIC_AUTH0_DOMAIN: z.string().min(1, 'NEXT_PUBLIC_AUTH0_DOMAIN is required'),
-  NEXT_PUBLIC_AUTH0_CLIENT_ID: z.string().min(1, 'NEXT_PUBLIC_AUTH0_CLIENT_ID is required'),
-
   // Green Invoice (Merchant of Record - vote fees + merch)
   // Optional so dev/build without creds doesn't fail; the payment service guards on
   // isGreenInvoiceConfigured() and fails closed in production when the secret is unset.
@@ -48,8 +48,11 @@ const serverEnvSchema = z.object({
   GREENINVOICE_PLUGIN_ID: z.string().optional(),
   GREENINVOICE_WEBHOOK_SECRET: z.string().optional(),
 
-  // Resend Email
-  RESEND_API_KEY: z.string().min(1, 'RESEND_API_KEY is required'),
+  // Resend Email.
+  // Optional on purpose: one reader (services/email/index.ts:32) which already
+  // falls back to '' and every send site treats email as best-effort. A missing
+  // key must degrade one notification, not refuse the whole isolate.
+  RESEND_API_KEY: z.string().optional(),
 
   // Qubik Blockchain (optional for dev)
   QUBIK_API_KEY: z.string().optional(),
@@ -68,9 +71,6 @@ const clientEnvSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url('NEXT_PUBLIC_APP_URL must be a valid URL'),
   NEXT_PUBLIC_SUPABASE_URL: z.string().url('NEXT_PUBLIC_SUPABASE_URL must be a valid URL'),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, 'NEXT_PUBLIC_SUPABASE_ANON_KEY is required'),
-  // Auth0 public config (used client-side to build the /authorize URL)
-  NEXT_PUBLIC_AUTH0_DOMAIN: z.string().min(1, 'NEXT_PUBLIC_AUTH0_DOMAIN is required'),
-  NEXT_PUBLIC_AUTH0_CLIENT_ID: z.string().min(1, 'NEXT_PUBLIC_AUTH0_CLIENT_ID is required'),
 });
 
 // === Type Exports ===
@@ -125,8 +125,6 @@ export function getClientEnv(): ClientEnv {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    NEXT_PUBLIC_AUTH0_DOMAIN: process.env.NEXT_PUBLIC_AUTH0_DOMAIN,
-    NEXT_PUBLIC_AUTH0_CLIENT_ID: process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID,
   });
 
   if (!result.success) {
@@ -142,6 +140,60 @@ export function getClientEnv(): ClientEnv {
 
   cachedClientEnv = result.data;
   return cachedClientEnv;
+}
+
+// === Runtime Gate (SEC-05) ===
+
+/**
+ * Variables without which NO server request path can work. Each name below has
+ * at least one `process.env` reader in apps/web/src - keep this list and the
+ * readers in step. `session.ts:13` and `greenInvoice/index.ts:43` capture at
+ * MODULE SCOPE and silently fall back to '', which is precisely the failure
+ * mode this gate exists to convert into a loud one.
+ */
+export const ALWAYS_REQUIRED_SERVER_VARS = [
+  'NEXT_PUBLIC_APP_URL',
+  'NEXT_PUBLIC_SUPABASE_URL',
+  'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'JWT_SECRET',
+] as const;
+
+/** Required only once GREENINVOICE_ENV is `production` - real money, real receipts. */
+export const PRODUCTION_PAYMENT_VARS = [
+  'GREENINVOICE_API_KEY_ID',
+  'GREENINVOICE_API_SECRET',
+  'GREENINVOICE_PLUGIN_ID',
+  'GREENINVOICE_WEBHOOK_SECRET',
+] as const;
+
+/** Names only. A value NEVER appears in this result, so it is safe to log. */
+export type RuntimeEnvCheck =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly missing: readonly string[] };
+
+/**
+ * Pure runtime-environment gate.
+ *
+ * Deliberately NOT the Zod schema above: this runs in `worker.ts`, before the
+ * Next.js bundle boots, against the Cloudflare `env` binding rather than
+ * `process.env`. It answers one question - "can this isolate serve traffic at
+ * all?" - and it must never throw, never allocate a Supabase client, and never
+ * read a secret's value into anything it returns.
+ */
+export function checkRuntimeEnv(source: Record<string, unknown>): RuntimeEnvCheck {
+  const present = (name: string): boolean => {
+    const value = source[name];
+    return typeof value === 'string' && value.length > 0;
+  };
+
+  const missing = ALWAYS_REQUIRED_SERVER_VARS.filter((name) => !present(name)) as string[];
+
+  if (String(source.GREENINVOICE_ENV ?? '').toLowerCase() === 'production') {
+    missing.push(...PRODUCTION_PAYMENT_VARS.filter((name) => !present(name)));
+  }
+
+  return missing.length === 0 ? { ok: true } : { ok: false, missing };
 }
 
 /**
