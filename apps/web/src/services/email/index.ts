@@ -165,7 +165,7 @@ class EmailService {
   /**
    * Notify support that a user requested a refund. Refunds are issued manually
    * in Green Invoice (a credit note, per the published policy), so this is the
-   * intake channel — reply-to is the requester so support can respond directly.
+   * intake channel - reply-to is the requester so support can respond directly.
    */
   async sendRefundRequestNotification(params: {
     paymentId: string;
@@ -178,13 +178,13 @@ class EmailService {
   }): Promise<void> {
     const rows = [
       ['תשלום', params.paymentId],
-      ['מסמך Green Invoice', params.providerId || '—'],
+      ['מסמך Green Invoice', params.providerId || '-'],
       ['משתמש', `${params.userId} (${params.userEmail})`],
       ['סוג', params.type],
       ['סכום', `₪${params.amountILS}`],
       ['סיבה', params.reason],
     ]
-      // Escape every value — `reason`/`userEmail` are user-controlled.
+      // Escape every value - `reason`/`userEmail` are user-controlled.
       .map(([k, v]) => `<tr><td style="padding:4px 12px;font-weight:700">${escapeHtml(k)}</td><td style="padding:4px 12px">${escapeHtml(v)}</td></tr>`)
       .join('');
 
@@ -192,7 +192,7 @@ class EmailService {
       from: this.getFromAddress(),
       to: 'support@taruu.co.il',
       replyTo: params.userEmail,
-      subject: `בקשת החזר — תשלום ${params.paymentId}`,
+      subject: `בקשת החזר - תשלום ${params.paymentId}`,
       html: `<!DOCTYPE html><html dir="rtl" lang="he"><body style="font-family:'Heebo',Arial,sans-serif">
         <h2>בקשת החזר חדשה</h2>
         <table style="border-collapse:collapse">${rows}</table>
@@ -200,7 +200,7 @@ class EmailService {
       </body></html>`,
       text:
         `בקשת החזר חדשה\n` +
-        `תשלום: ${params.paymentId}\nמסמך Green Invoice: ${params.providerId || '—'}\n` +
+        `תשלום: ${params.paymentId}\nמסמך Green Invoice: ${params.providerId || '-'}\n` +
         `משתמש: ${params.userId} (${params.userEmail})\nסוג: ${params.type}\n` +
         `סכום: ₪${params.amountILS}\nסיבה: ${params.reason}\n`,
     });

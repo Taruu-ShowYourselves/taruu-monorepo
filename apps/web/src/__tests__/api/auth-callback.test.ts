@@ -39,7 +39,7 @@ vi.mock('@/services/qubik', () => ({
   },
 }));
 
-// Mock DID utils only — the rest of @sync/shared must stay real, because the
+// Mock DID utils only - the rest of @sync/shared must stay real, because the
 // canonical profile mapper computes the identity score with it.
 vi.mock('@sync/shared', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@sync/shared')>()),
@@ -239,7 +239,7 @@ describe('Auth Callback API Routes', () => {
       });
       const data = await (await POST(request)).json();
 
-      // Objects, not raw DB scalars — the OAuth callback is the very first
+      // Objects, not raw DB scalars - the OAuth callback is the very first
       // response the browser stores, so it must already be canonical.
       expect(typeof data.user.verificationStatus).toBe('object');
       expect(data.user.verificationStatus.phase).toBe('not_started');
@@ -264,7 +264,7 @@ describe('Auth Callback API Routes', () => {
       });
       (getGoogleUserInfo as Mock).mockResolvedValue(mockGoogleUser);
       (getUserByGoogleId as Mock).mockResolvedValue(mockDbUser);
-      // The update returns the fresh row — including a municipality set on
+      // The update returns the fresh row - including a municipality set on
       // another device since this row was last read.
       (updateUser as Mock).mockResolvedValue({
         ...mockDbUser,

@@ -1,5 +1,5 @@
 /**
- * Keyed hashing for identifier dedup (Web Crypto — Workers-safe).
+ * Keyed hashing for identifier dedup (Web Crypto - Workers-safe).
  *
  * The ID number is never persisted in cleartext; only this HMAC lands in the
  * database, so the raw number cannot be recovered while dedup (one person,

@@ -60,7 +60,7 @@ export async function GET(
       endDate: voteData.end_date,
       participantCount: voteData.participant_count,
       // Note: vote_options table doesn't have description field.
-      // `text`/`votes` are the contract's aliases for label/voteCount —
+      // `text`/`votes` are the contract's aliases for label/voteCount -
       // the detail page consumes them directly.
       options: voteData.options.map((opt) => ({
         id: opt.id,

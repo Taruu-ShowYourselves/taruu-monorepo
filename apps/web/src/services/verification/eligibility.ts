@@ -1,5 +1,5 @@
 /**
- * Server-side voter eligibility — the enforcement point.
+ * Server-side voter eligibility - the enforcement point.
  *
  * `apps/web/src/lib/verification.ts` (`isEligibleToVote`) is what the CLIENT
  * shows: residency is met by a completed program OR at least one successful

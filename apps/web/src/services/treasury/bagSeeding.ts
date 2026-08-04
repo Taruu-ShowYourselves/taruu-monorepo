@@ -68,7 +68,7 @@ async function getVote(voteId: string) {
  * Idempotent: if a bag already exists for the vote, it is left untouched.
  */
 export async function seedVoteBag(voteId: string): Promise<BagSeedResult> {
-  // Idempotency — never create two bags for one vote
+  // Idempotency - never create two bags for one vote
   const existing = await getIssueCoinByVoteId(voteId);
   if (existing) {
     return { voteId, seeded: false, reason: 'bag_already_exists', tokenMint: existing.token_mint };
@@ -80,7 +80,7 @@ export async function seedVoteBag(voteId: string): Promise<BagSeedResult> {
   }
 
   if (!bagsService.isConfigured()) {
-    logger.warn('Bags.fm not configured — skipping bag seed', { voteId });
+    logger.warn('Bags.fm not configured - skipping bag seed', { voteId });
     return { voteId, seeded: false, reason: 'bags_not_configured', accruedIlsAgorot: accruedAgorot };
   }
 
@@ -130,7 +130,7 @@ export async function seedVoteBag(voteId: string): Promise<BagSeedResult> {
       logger.error('Fee share configuration failed', { voteId, error: e });
     }
   } else {
-    logger.warn('BAGS_PLATFORM_PROVIDER_ID not set — launching without fee share', { voteId });
+    logger.warn('BAGS_PLATFORM_PROVIDER_ID not set - launching without fee share', { voteId });
   }
 
   // 4. Build the launch transaction (signed by master wallet downstream)

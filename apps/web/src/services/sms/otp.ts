@@ -79,7 +79,7 @@ export async function sendVerificationCode(phone: string): Promise<SendVerificat
     await sender.send(phone, `קוד האימות שלך לתַּרְאוּ: ${code}`);
     return { success: true, status: 'pending' };
   } catch (error: unknown) {
-    // Delivery failed — drop the stored code so a retry issues a fresh one.
+    // Delivery failed - drop the stored code so a retry issues a fresh one.
     await store.delete(phone);
     console.error('Error sending verification SMS:', error);
     return {
@@ -128,7 +128,7 @@ export async function checkVerificationCode(
     return { success: true, verified: true, status: 'approved' };
   }
 
-  // Wrong code — increment attempts, preserving the remaining TTL window.
+  // Wrong code - increment attempts, preserving the remaining TTL window.
   const remaining = Math.max(
     1,
     CODE_TTL_SECONDS - Math.floor((Date.now() - record.createdAt) / 1000)

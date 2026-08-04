@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const votesWithDetails = await getUserVotesWithDetails(session.userId);
 
     // Transform to the Participation shape (@sync/shared). Ballots carry no
-    // payment, no chain hash and no coordinates — emitting zeroed placeholders
+    // payment, no chain hash and no coordinates - emitting zeroed placeholders
     // for those made the history look chain-anchored when it never was.
     const participations = votesWithDetails.map((item) => ({
       id: item.id,

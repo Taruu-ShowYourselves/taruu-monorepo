@@ -178,7 +178,7 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    // municipality_id is FK-constrained to the municipalities table — reject
+    // municipality_id is FK-constrained to the municipalities table - reject
     // unknown values here with a 400 instead of surfacing a DB error.
     if (
       updates.municipality_id !== undefined &&

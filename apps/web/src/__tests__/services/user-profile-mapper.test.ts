@@ -250,7 +250,7 @@ describe('getTokenBalanceSafe', () => {
   });
 
   it('degrades to 0 when Qubik hangs, so authentication cannot stall', async () => {
-    // A request that never settles — the failure mode a bare `fetch` with no
+    // A request that never settles - the failure mode a bare `fetch` with no
     // timeout exposes on the auth hot path.
     (qubikService.getTokenBalance as Mock).mockReturnValue(new Promise(() => {}));
 

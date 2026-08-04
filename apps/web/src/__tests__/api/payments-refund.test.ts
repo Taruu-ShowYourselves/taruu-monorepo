@@ -1,5 +1,5 @@
 /**
- * Refund request route tests — POST /api/payments/refund.
+ * Refund request route tests - POST /api/payments/refund.
  *
  * Request flow (per policy): records the request + notifies support; never moves
  * money. Covers auth, validation, ownership/eligibility mapping, latest-payment

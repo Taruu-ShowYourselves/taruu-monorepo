@@ -1,5 +1,5 @@
 /**
- * Identity-document domain — pure functions only. No IO, no framework.
+ * Identity-document domain - pure functions only. No IO, no framework.
  *
  * Decides what happens to a submitted document: auto-verify, queue for
  * manual review, or reject. The caller has already zod-validated shape;
@@ -24,7 +24,7 @@ const AUTO_VERIFY_MIN_CONFIDENCE = 60;
  */
 const AUTO_VERIFY_MIN_FACE_MATCH = 55;
 
-/** Antispoof floor — below this the frame looks like a replay/print attack. */
+/** Antispoof floor - below this the frame looks like a replay/print attack. */
 const AUTO_VERIFY_MIN_ANTISPOOF = 50;
 
 /** Voting-age floor (municipal elections in Israel allow voting from 17). */
@@ -73,7 +73,7 @@ export function decideDocument(
   }
   if (submission.ocr.fieldsEdited) reviewReasons.push('fields_hand_edited');
 
-  // Face signals are soft: they route to manual review, never to rejection —
+  // Face signals are soft: they route to manual review, never to rejection -
   // old document photos and low-end cameras produce honest false negatives.
   const { face } = submission;
   if (!face.checked) reviewReasons.push('face_not_checked');

@@ -1,7 +1,7 @@
 /**
  * Use-case: create a vote.
  *
- * Orchestration only — gates, payment, persistence. Notification fan-out is
+ * Orchestration only - gates, payment, persistence. Notification fan-out is
  * handed to `deps.defer` so it runs after the response is sent.
  */
 
@@ -55,7 +55,7 @@ export function createVote(
   return findUserById(cmd.userId)
     .andThen((creator) => {
       // Only a fully verified resident may raise a vote, and always for
-      // their OWN municipality — a local issue is raised by a local.
+      // their OWN municipality - a local issue is raised by a local.
       if (creator.verification_status !== 'verified') {
         return errAsync<typeof creator, AppError>(
           forbidden('Only verified residents may create a vote')

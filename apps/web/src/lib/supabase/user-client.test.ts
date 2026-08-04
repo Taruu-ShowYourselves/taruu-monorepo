@@ -4,7 +4,7 @@
  * The single property that makes RLS real: this client is built on the ANON
  * key, so the database enforces policies against it. If it ever picks up the
  * service-role key, every policy in the schema silently stops applying and
- * nothing fails — which is why the key assertion here is negative as well as
+ * nothing fails, which is why the key assertion here is negative as well as
  * positive.
  */
 
@@ -79,7 +79,7 @@ describe('createUserScopedClient', () => {
     expect(await accessToken!()).toBe(await accessToken!());
   });
 
-  it('gives each client its own token — one user cannot inherit another', async () => {
+  it('gives each client its own token so one user cannot inherit another', async () => {
     const OTHER_ID = '22222222-2222-4222-8222-222222222222';
 
     createUserScopedClient(USER_ID);

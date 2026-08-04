@@ -51,7 +51,7 @@ describe('mintSupabaseAccessToken', () => {
     expect(payload.aud).toBe('authenticated');
   });
 
-  it('does NOT verify against the session secret — the two are independent', async () => {
+  it('does NOT verify against the session secret because the two are independent', async () => {
     // If these ever became the same value, a stolen `sync-session` cookie would
     // be a valid database credential.
     stubSecrets();

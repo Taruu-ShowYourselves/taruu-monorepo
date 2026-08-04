@@ -93,7 +93,7 @@ describe('lib/supabase/server lazy initialization', () => {
       { auth: { persistSession: false, autoRefreshToken: false } }
     );
 
-    // Subsequent accesses reuse the same client — no re-creation.
+    // Subsequent accesses reuse the same client - no re-creation.
     supabaseAdmin.from('votes');
     supabaseAdmin.rpc;
     expect(vi.mocked(createClient)).toHaveBeenCalledTimes(1);

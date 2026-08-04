@@ -9,7 +9,7 @@ import type { GoogleOAuthTokens } from '@sync/shared';
 
 /**
  * OIDC standard claims from Google's v3 userinfo endpoint (scope
- * "openid profile email"). `sub` is the stable external identity key —
+ * "openid profile email"). `sub` is the stable external identity key -
  * unlike the legacy v2 endpoint's `id` shape in @sync/shared.
  */
 export interface GoogleUserInfo {

@@ -196,7 +196,7 @@ export async function sendVoteResultsNotification(
 ): Promise<SendNotificationResult> {
   return sendPushNotification(pushToken, {
     title: '📊 התוצאות בפנים',
-    body: `ההצבעה "${data.voteTitle}" הוכרעה — הבחירה: ${data.winningOption}.`,
+    body: `ההצבעה "${data.voteTitle}" הוכרעה - הבחירה: ${data.winningOption}.`,
     data: { type: 'vote_results', voteId: data.voteId, screen: `/votes/${data.voteId}` },
     channelId: 'votes',
     priority: 'high',

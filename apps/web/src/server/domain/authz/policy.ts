@@ -2,8 +2,8 @@
  * Pure authorization decisions (RBAC-02).
  *
  * Two decisions live here and nowhere else:
- *   evaluateAuthorization() — may this caller act as <role> in <space>?
- *   canReview()             — may this reviewer decide on this target?
+ *   evaluateAuthorization(): may this caller act as <role> in <space>?
+ *   canReview(): may this reviewer decide on this target?
  *
  * evaluateAuthorization runs a LIST of independent requirements against
  * already-fetched facts. Phase 6 adds an active-billing prerequisite by making
@@ -26,7 +26,7 @@ export interface AuthzFacts {
   /** The caller's live grant for the requested (role, space), or null. */
   grant: GrantFacts | null;
   /**
-   * Phase 5 always passes `true` — there is no billing table yet. Phase 6
+   * Phase 5 always passes `true`; there is no billing table yet. Phase 6
    * replaces the constant in require-role.ts with a real lookup. Tests pass
    * `false` here today to prove the composition already denies.
    */
@@ -83,8 +83,8 @@ export interface ReviewerFacts {
 /**
  * PHASE DECISION (resolves 05-RESEARCH.md Open Question 1):
  *
- *   super_admin  — every action, every space, every target role.
- *   space_admin  — every action, but only inside its OWN space, and only
+ *   super_admin: every action, every space, every target role.
+ *   space_admin: every action, but only inside its OWN space, and only
  *                  against community_manager targets (or an application,
  *                  targetRole === null).
  *

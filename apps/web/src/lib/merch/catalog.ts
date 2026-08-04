@@ -4,7 +4,7 @@
  * Static source of truth for the store. Prices are absolute ILS per variant.
  * The checkout route re-prices every line against this catalogue, so the
  * client can never set its own price. Images live under /public/images/merch/
- * (press art — generate/replace as needed).
+ * (press art - generate/replace as needed).
  */
 
 import type { Product } from '@sync/shared';
@@ -13,9 +13,9 @@ export const MERCH_CATALOG: Product[] = [
   {
     id: 'tee-press',
     slug: 'press-tee',
-    name: 'חולצת "הקול של השכונה"',
+    name: 'חולצת "הקול של האזרחים"',
     description:
-      'חולצת כותנה כבדה בהדפס מערכת — כותרת ראשית על החזה, דיו על קרם. הצהרת אזרחות שלובשים.',
+      'חולצת כותנה כבדה בהדפס מערכת: כותרת ראשית על החזה, דיו על קרם.',
     category: 'apparel',
     basePriceILS: 89,
     images: ['/images/merch/press-tee.png'],
@@ -32,7 +32,7 @@ export const MERCH_CATALOG: Product[] = [
     slug: 'sticker-pack',
     name: 'חבילת מדבקות ■',
     description:
-      'שש מדבקות ויניל עמידות — גליפים, כותרות וטיק אדום. להדביק על המחשב, על הקלמר, על הקיר.',
+      'שש מדבקות ויניל עמידות: גליפים, כותרות וטיק אדום. להדביק על המחשב, על הקלמר, על הקיר.',
     category: 'sticker',
     basePriceILS: 24,
     images: ['/images/merch/sticker-pack.png'],
@@ -76,7 +76,7 @@ export const MERCH_CATALOG: Product[] = [
     slug: 'manifesto-poster',
     name: 'כרזת המניפסט',
     description:
-      'הדפס ארכיון A2 — כותרת ענק, חיתוך לינו אזרחי, דיו אדום. למסגר ולתלות.',
+      'הדפס ארכיון A2: כותרת ענק, חיתוך לינו אזרחי, דיו אדום. למסגר ולתלות.',
     category: 'print',
     basePriceILS: 69,
     images: ['/images/merch/manifesto-poster.png'],

@@ -1,5 +1,5 @@
 /**
- * Identity-document repository — Result-typed access to identity_documents.
+ * Identity-document repository - Result-typed access to identity_documents.
  *
  * Only extracted fields ever reach this layer; images never leave the client.
  */

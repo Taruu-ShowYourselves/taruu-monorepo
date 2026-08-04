@@ -1,7 +1,7 @@
 /**
  * Knesset Day-Order Sync Tests
  *
- * Tests for @/services/knesset — mirroring the plenum agenda
+ * Tests for @/services/knesset - mirroring the plenum agenda
  * (KNS_PlenumSession + KNS_PlmSessionItem) into votable topics.
  */
 

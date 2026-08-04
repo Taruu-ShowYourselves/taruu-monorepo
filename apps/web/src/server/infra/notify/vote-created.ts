@@ -1,5 +1,5 @@
 /**
- * Vote-creation notifications — runs OFF the request path (callers hand this
+ * Vote-creation notifications - runs OFF the request path (callers hand this
  * to `after()` so the response never waits on email/push fan-out).
  */
 

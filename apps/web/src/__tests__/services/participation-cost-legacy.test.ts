@@ -19,7 +19,7 @@
  * `/payment/checkout`. It calls `votesApi.participate({ voteId, optionId })`,
  * the same endpoint the web flow records through, so both surfaces share one
  * contract and one server-side eligibility rule. The assertions below hold
- * that line. Note this is still source-level proof only — the mobile app has
+ * that line. Note this is still source-level proof only. The mobile app has
  * not been exercised end to end against a running API.
  */
 

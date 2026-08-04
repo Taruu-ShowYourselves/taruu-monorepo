@@ -9,7 +9,7 @@ import { MUNICIPALITY_MIN_COHORT, MAX_MUNICIPALITY_LENGTH } from '@/lib/stats';
  * GET /api/stats/registrations
  *
  * How many people have registered on the platform, optionally narrowed to one
- * municipality. Public endpoint — no authentication required, matching
+ * municipality. Public endpoint - no authentication required, matching
  * /api/stats/network.
  *
  * Aggregate counts only. No user row, id, name or any other per-user field is

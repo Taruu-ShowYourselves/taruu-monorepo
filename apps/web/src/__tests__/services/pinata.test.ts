@@ -1,5 +1,5 @@
 /**
- * Pinata IPFS service tests — pins NFT metadata JSON, returns ipfs:// URI.
+ * Pinata IPFS service tests - pins NFT metadata JSON, returns ipfs:// URI.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';

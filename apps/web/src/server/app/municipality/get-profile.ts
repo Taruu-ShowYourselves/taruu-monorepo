@@ -1,5 +1,5 @@
 /**
- * Use-case: municipality civic profile — metrics + open/closed votes.
+ * Use-case: municipality civic profile - metrics + open/closed votes.
  */
 
 import { errAsync, ResultAsync } from 'neverthrow';

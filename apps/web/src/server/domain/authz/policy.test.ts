@@ -2,8 +2,8 @@
  * Pure authorization decisions (RBAC-02).
  *
  * The load-bearing test in this file is the `billingActive: false` denial. It
- * proves ROADMAP criterion 4 — an approved applicant with no billing has no
- * manager access — before any billing code exists, and it is what stops Phase 6
+ * proves ROADMAP criterion 4: an approved applicant with no billing has no
+ * manager access before any billing code exists, and it is what stops Phase 6
  * from having to redesign the authorization model to add its prerequisite.
  */
 
@@ -65,13 +65,13 @@ describe('evaluateAuthorization', () => {
   });
 
   it('composes requirements as a list Phase 6 can append to', () => {
-    // If this count changes, a requirement was added or removed — which is
+    // If this count changes, a requirement was added or removed, which is
     // fine, but it must be a deliberate edit, not a silent one.
     expect(AUTHZ_REQUIREMENTS).toHaveLength(4);
   });
 });
 
-describe('canReview — super_admin', () => {
+describe('canReview: super_admin', () => {
   const superAdmin = grant({ role: 'super_admin', spaceId: null });
 
   it('may act in any space, on any target role, for every action', () => {
@@ -88,7 +88,7 @@ describe('canReview — super_admin', () => {
   });
 });
 
-describe('canReview — space_admin', () => {
+describe('canReview: space_admin', () => {
   const spaceAdmin = grant({ role: 'space_admin', spaceId: SPACE });
 
   it('may act inside its own space on an application (targetRole null)', () => {
@@ -120,7 +120,7 @@ describe('canReview — space_admin', () => {
     ).toBe(false);
   });
 
-  it('may NOT act on a space_admin grant — admins cannot neutralize each other', () => {
+  it('may NOT act on a space_admin grant; admins cannot neutralize each other', () => {
     expect(
       canReview(
         { actorGrants: [spaceAdmin], targetSpaceId: SPACE, targetRole: 'space_admin' },
@@ -152,7 +152,7 @@ describe('canReview — space_admin', () => {
   });
 });
 
-describe('canReview — no authority', () => {
+describe('canReview: no authority', () => {
   it('denies an actor holding no grants', () => {
     expect(
       canReview({ actorGrants: [], targetSpaceId: SPACE, targetRole: null }, 'approve')

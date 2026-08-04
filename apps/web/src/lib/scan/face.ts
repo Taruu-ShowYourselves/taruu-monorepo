@@ -1,7 +1,7 @@
 /**
- * Face pipeline (selfie match, issue #32) — @vladmandic/human, fully
+ * Face pipeline (selfie match, issue #32) - @vladmandic/human, fully
  * self-hosted (/models/human): detection, mesh gestures (active liveness),
- * faceres embedding (match) and antispoof — all on-device.
+ * faceres embedding (match) and antispoof - all on-device.
  *
  * Nothing biometric leaves the browser: embeddings and frames stay in
  * memory; only derived scores are ever submitted.
@@ -9,7 +9,7 @@
 
 import type { Observation } from './liveness';
 
-// Human is ~1.5MB + tfjs — loaded only when the selfie phase starts.
+// Human is ~1.5MB + tfjs - loaded only when the selfie phase starts.
 type HumanModule = typeof import('@vladmandic/human');
 type HumanInstance = InstanceType<HumanModule['Human']>;
 
@@ -20,7 +20,7 @@ function loadHuman(): Promise<{ human: HumanInstance; mod: HumanModule }> {
   if (existing) return existing;
 
   const attempt = (async () => {
-      // next.config aliases this specifier to the browser ESM bundle — the
+      // next.config aliases this specifier to the browser ESM bundle - the
       // package's own `node` export condition would break Next's SSR compile.
       const mod = await import('@vladmandic/human');
       const human = new mod.Human({
@@ -59,7 +59,7 @@ export function preloadFace(): void {
 }
 
 export interface FaceReading {
-  /** faceres descriptor — kept in memory only, never submitted. */
+  /** faceres descriptor - kept in memory only, never submitted. */
   embedding: number[] | null;
   /** Antispoof "real" score 0-1 (null when the model gave none). */
   real: number | null;
@@ -84,7 +84,7 @@ export async function readFace(
 /**
  * The selfie preview is CSS-mirrored (standard selfie UX), so users follow
  * prompts relative to their mirror image while human.js sees the unmirrored
- * frame — swap left/right when reporting facing.
+ * frame - swap left/right when reporting facing.
  */
 const MIRRORED_PREVIEW = true;
 

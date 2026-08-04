@@ -1,5 +1,5 @@
 /**
- * E2E — Identity-document verification (issue #32).
+ * E2E - Identity-document verification (issue #32).
  *
  * Runs against `next dev` + the real (dev) Supabase project:
  *  - unauthenticated guards and self-hosted OCR/face assets
@@ -15,7 +15,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
 
-// Fake camera for the whole file — launchOptions must be top-level.
+// Fake camera for the whole file - launchOptions must be top-level.
 test.use({
   launchOptions: {
     args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'],
@@ -43,7 +43,7 @@ function parseEnvFile(file: string): Record<string, string> {
   }
 }
 
-// `next dev` gives .env.local precedence over the .dev.vars shim — mirror that.
+// `next dev` gives .env.local precedence over the .dev.vars shim - mirror that.
 const vars = { ...parseEnvFile('.dev.vars'), ...parseEnvFile('.env.local') };
 const BASE = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000';
 
@@ -182,7 +182,7 @@ test.describe('authenticated API round-trip', () => {
       extraHTTPHeaders: { Cookie: `sync-session=${rival.cookie}` },
     });
 
-    // Submit a clean document — auto-verifies.
+    // Submit a clean document - auto-verifies.
     const submit = await asUser.post('/api/verification/document', {
       data: VALID_SUBMISSION,
     });
@@ -254,7 +254,7 @@ test.describe('authenticated UI walk', () => {
     ]);
 
     // Keep the municipality GeoGate dialog from covering the flow, and seed
-    // the zustand auth store — the SPA authenticates with a Bearer token from
+    // the zustand auth store - the SPA authenticates with a Bearer token from
     // localStorage ('sync-auth-storage'), not with the cookies alone.
     await page.addInitScript(
       ([token, refresh, userId, email]) => {
@@ -278,13 +278,13 @@ test.describe('authenticated UI walk', () => {
 
     await page.goto('/he/verification');
 
-    // Step 1 — phone (SMS service absent in dev → mock-degrades forward).
+    // Step 1 - phone (SMS service absent in dev → mock-degrades forward).
     await page.getByPlaceholder('05X-XXXXXXX').fill('0501234567');
     await page.getByRole('button', { name: 'שלחו קוד' }).click();
     await page.getByPlaceholder('------').fill('123456');
     await page.getByRole('button', { name: 'אמתו קוד' }).click();
 
-    // Step 2 — document consent: both boxes required.
+    // Step 2 - document consent: both boxes required.
     await expect(
       page.getByRole('heading', { name: /סריקת תעודה/ })
     ).toBeVisible({ timeout: 20000 });
@@ -297,8 +297,8 @@ test.describe('authenticated UI walk', () => {
     await consentBoxes.nth(1).check();
     await continueBtn.click();
 
-    // Details — a checksum-invalid ID is refused inline.
-    const idInput = page.getByPlaceholder('—————————');
+    // Details - a checksum-invalid ID is refused inline.
+    const idInput = page.getByPlaceholder('---------');
     await idInput.fill('123456789');
     await page.getByRole('button', { name: 'לצילום התעודה' }).click();
     await expect(page.getByText(/ספרת ביקורת/)).toBeVisible();
@@ -306,7 +306,7 @@ test.describe('authenticated UI walk', () => {
     await idInput.fill('123456782');
     await page.getByRole('button', { name: 'לצילום התעודה' }).click();
 
-    // Capture — take the upload fallback with the official specimen image.
+    // Capture - take the upload fallback with the official specimen image.
     await expect(page.getByRole('button', { name: /צלמו/ })).toBeVisible();
     const specimen = path.join(__dirname, 'fixtures', 'tz_front.jpg');
     await page.locator('input[type=file]').setInputFiles(specimen);
@@ -327,7 +327,7 @@ test.describe('authenticated UI walk', () => {
 
     // Continue into the selfie phase: human.js models load in-browser and the
     // observation loop runs. The fake camera feeds faceless frames, so the
-    // honest outcome is the "lost you" recovery prompt — which proves the
+    // honest outcome is the "lost you" recovery prompt - which proves the
     // face pipeline booted, detected nothing, and the liveness machine wired.
     await page.getByRole('button', { name: 'אישור והמשך לסלפי' }).click();
     await expect(

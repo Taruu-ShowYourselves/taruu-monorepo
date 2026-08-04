@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
   const session = await getSessionFromRequest(request);
   if (!session) return respond(errAsync(unauthorized()));
 
-  // after() needs a live request scope (unavailable in unit tests) — fall
+  // after() needs a live request scope (unavailable in unit tests) - fall
   // back to fire-and-forget so notification fan-out never blocks/breaks.
   const defer = (task: () => Promise<void>) => {
     try {

@@ -300,7 +300,7 @@ export function verifyWebhookSignature(
     .digest('hex');
 
   // Decode both from hex and length-guard before timingSafeEqual (which THROWS
-  // on length mismatch) — a forged/short signature must return false, not crash.
+  // on length mismatch) - a forged/short signature must return false, not crash.
   const a = Buffer.from(signature, 'hex');
   const b = Buffer.from(expectedSignature, 'hex');
   return a.length === b.length && crypto.timingSafeEqual(a, b);

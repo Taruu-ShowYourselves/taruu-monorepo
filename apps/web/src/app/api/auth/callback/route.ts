@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     }
 
     // Exchange code for tokens. The redirect_uri must byte-match the one the
-    // authorize request used — the sign-in page, never this API route.
+    // authorize request used - the sign-in page, never this API route.
     const redirectUri = `${(process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '')}${GOOGLE_REDIRECT_PATH}`;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
 
     // The Google `sub` is the external identity key, stored on
     // `users.google_id` and looked up via getUserByGoogleId. (Any rows
-    // written during the Auth0 era hold `google-oauth2|<sub>` values — auth
+    // written during the Auth0 era hold `google-oauth2|<sub>` values - auth
     // never completed in that era, so no real accounts carry them.)
     const externalSubject = googleUser.sub;
 
@@ -120,7 +120,7 @@ export async function POST(request: Request) {
     // Set session cookies
     await setSessionCookies(sessionToken, refreshToken);
 
-    // Canonical profile shape — shared with /api/user/profile and the other
+    // Canonical profile shape - shared with /api/user/profile and the other
     // auth routes so the client only ever sees one user shape.
     const proofs = await getSocialProofsByUserId(user.id);
     const userResponse = await buildUserProfile(user, proofs);

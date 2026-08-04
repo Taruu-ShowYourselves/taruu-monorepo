@@ -1,5 +1,5 @@
 /**
- * Knesset day-order sync — pulls the plenum agenda (סדר יום המליאה) from the
+ * Knesset day-order sync - pulls the plenum agenda (סדר יום המליאה) from the
  * official Knesset OData API and mirrors each agenda item as an active vote
  * scoped to KNESSET_SCOPE, so the civic position on it is measurable.
  *
@@ -73,7 +73,7 @@ function describeItem(
   if (date) sitting.push(date);
   const ordinal = parseOrdinal(item.Ordinal);
   if (ordinal) sitting.push(`סעיף ${ordinal} בסדר היום`);
-  if (sitting.length > 0) parts.push(` — ${sitting.join(', ')}`);
+  if (sitting.length > 0) parts.push(` - ${sitting.join(', ')}`);
 
   parts.push('. ההצבעה כאן מודדת את עמדת הרוב האזרחי: בעד, נגד או נמנע.');
   return parts.join('');
@@ -124,7 +124,7 @@ async function syncItem(
 
   const existing = await getKnessetItemByItemId(item.ItemID);
   if (existing) {
-    // Known item — sitting metadata may have shifted (reschedule, reorder).
+    // Known item - sitting metadata may have shifted (reschedule, reorder).
     const updated = await upsertKnessetItem({
       ...metadata,
       vote_id: existing.vote_id,
@@ -134,7 +134,7 @@ async function syncItem(
     return;
   }
 
-  // The same question can reappear under a new ItemID in a later sitting —
+  // The same question can reappear under a new ItemID in a later sitting -
   // don't open a second ballot for it while the first is still live.
   const titleDup = await findVoteByMunicipalityAndTitle(KNESSET_SCOPE, title);
   if (titleDup) {
@@ -155,7 +155,7 @@ async function syncItem(
     VOTE_OPTIONS.map((text) => ({ vote_id: vote.id, text }))
   );
 
-  // The vote and its agenda link are two writes — retry the link once so a
+  // The vote and its agenda link are two writes - retry the link once so a
   // transient failure doesn't leave the vote without sitting metadata.
   const linked =
     (await upsertKnessetItem({ ...metadata, vote_id: vote.id })) ??
@@ -181,7 +181,7 @@ export async function syncKnessetAgenda(): Promise<KnessetSyncResult> {
 
   if (CREATOR_ID === DEFAULT_CREATOR_ID) {
     log.warn(
-      'Knesset sync using the default desk seed user as vote creator — set KNESSET_CREATOR_ID (or INGEST_CREATOR_ID) to silence this'
+      'Knesset sync using the default desk seed user as vote creator - set KNESSET_CREATOR_ID (or INGEST_CREATOR_ID) to silence this'
     );
   }
 
@@ -203,7 +203,7 @@ export async function syncKnessetAgenda(): Promise<KnessetSyncResult> {
     for (const item of items) {
       if (budget <= 0) {
         result.errors.push(
-          `item budget (${MAX_ITEMS_PER_RUN}) exhausted — remainder next run`
+          `item budget (${MAX_ITEMS_PER_RUN}) exhausted - remainder next run`
         );
         log.warn('Knesset sync item budget exhausted', {
           session: session.PlenumSessionID,

@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     // Get social proofs to calculate identity score
     const proofs = await getSocialProofsByUserId(user.id);
 
-    // Canonical profile shape — shared with /api/user/profile and the other
+    // Canonical profile shape - shared with /api/user/profile and the other
     // auth routes so the client only ever sees one user shape.
     const userResponse = await buildUserProfile(user, proofs);
 

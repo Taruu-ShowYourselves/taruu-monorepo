@@ -377,7 +377,7 @@ export function isAccuracyAcceptable(accuracy: number): boolean {
 }
 
 /**
- * National bounding box — Knesset-scoped votes are open to any location
+ * National bounding box - Knesset-scoped votes are open to any location
  * inside Israel rather than a single municipality's polygon.
  */
 const ISRAEL_BOUNDS = {
@@ -424,7 +424,7 @@ export function verifyCheckIn(
   }
 
   // National scope (Knesset day-order votes): any location inside Israel
-  // qualifies — there is no single municipality polygon to test against.
+  // qualifies - there is no single municipality polygon to test against.
   if (expectedMunicipality === KNESSET_SCOPE) {
     const inIsrael = isWithinIsrael(latitude, longitude);
     return {

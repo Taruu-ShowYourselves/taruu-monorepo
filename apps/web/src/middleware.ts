@@ -7,7 +7,7 @@ export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // Canonical host: www → apex. Among other things, OAuth redirect URIs are
-  // exchanged against the apex origin — a www visitor signing in would
+  // exchanged against the apex origin - a www visitor signing in would
   // otherwise hit a redirect_uri mismatch at the token endpoint.
   const host = request.headers.get('host') || '';
   if (host.startsWith('www.')) {
@@ -26,7 +26,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Already under /he — serve as-is
+  // Already under /he - serve as-is
   if (pathname === `/${LOCALE}` || pathname.startsWith(`/${LOCALE}/`)) {
     return NextResponse.next();
   }

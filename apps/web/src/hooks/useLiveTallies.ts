@@ -5,7 +5,7 @@
  *
  * Subscribes to vote_options row changes (the tables are in the
  * supabase_realtime publication; RLS limits events to active votes) and
- * merges them over the server-rendered snapshot — so tallies tick live
+ * merges them over the server-rendered snapshot - so tallies tick live
  * without polling and without the Cloudflare worker holding sockets.
  */
 

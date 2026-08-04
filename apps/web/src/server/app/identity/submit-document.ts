@@ -1,7 +1,7 @@
 /**
  * Use-case: submit an on-device-scanned identity document (issue #32).
  *
- * The client sends extracted fields only — the document image never leaves
+ * The client sends extracted fields only - the document image never leaves
  * the device. This use-case re-runs every check the server can perform
  * (checksum, dates, age), dedups the ID number across accounts via HMAC,
  * persists the document row + audit event, and flips the user's cheap

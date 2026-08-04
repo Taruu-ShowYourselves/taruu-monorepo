@@ -10,7 +10,7 @@ import { NextRequest } from 'next/server';
 import { GET } from '@/app/api/votes/[id]/route';
 
 // Mock database functions. The route also enriches Knesset votes with their
-// plenum context and, for signed-in callers, their existing choice — both
+// plenum context and, for signed-in callers, their existing choice - both
 // default to "nothing found" here so the plain-vote cases stay focused.
 vi.mock('@/lib/supabase/db', () => ({
   getVoteWithOptions: vi.fn(),

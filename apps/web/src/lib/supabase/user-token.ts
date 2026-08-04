@@ -4,7 +4,7 @@
  * Issues a SHORT-LIVED token, signed with the Supabase project's JWT secret,
  * from a session this server has ALREADY verified. PostgREST verifies it and
  * exposes `sub` as `request.jwt.claims->>'sub'`, which is exactly what
- * `public.user_id()` reads — so per-user RLS policies finally match rows.
+ * `public.user_id()` reads, so per-user RLS policies finally match rows.
  *
  * Three deliberate properties:
  *
@@ -27,7 +27,7 @@ const UUID_RE =
 
 /**
  * The Supabase project's JWT secret. Distinct from the session secret by
- * design — see the module header. Throws rather than silently minting a token
+ * design. See the module header. Throws rather than silently minting a token
  * no database will accept.
  */
 export function getSupabaseJwtSecret(): Uint8Array {
@@ -48,7 +48,7 @@ export interface MintOptions {
 /**
  * Mint a Supabase access token for an already-authenticated user.
  *
- * @param userId `users.id` — a UUID, which is also the shape `public.user_id()` casts to.
+ * @param userId `users.id`, a UUID, which is also the shape `public.user_id()` casts to.
  */
 export async function mintSupabaseAccessToken(
   userId: string,

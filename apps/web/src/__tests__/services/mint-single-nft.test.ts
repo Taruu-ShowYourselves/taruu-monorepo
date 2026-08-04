@@ -1,5 +1,5 @@
 /**
- * mintSingleNft orchestration tests — pin metadata → mint cNFT → persist, with
+ * mintSingleNft orchestration tests - pin metadata → mint cNFT → persist, with
  * clean skips when there's no recipient wallet or the chain/IPFS isn't configured.
  * The chain + IPFS + DB are mocked; this verifies the wiring, not the SDK.
  */

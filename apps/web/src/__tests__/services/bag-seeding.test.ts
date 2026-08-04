@@ -62,7 +62,7 @@ describe('seedVoteBag', () => {
     (bagsService.isConfigured as Mock).mockReturnValue(true);
   });
 
-  it('is idempotent — skips when a bag already exists for the vote', async () => {
+  it('is idempotent - skips when a bag already exists for the vote', async () => {
     (getIssueCoinByVoteId as Mock).mockResolvedValue({ token_mint: 'existing-mint' });
 
     const result = await seedVoteBag('vote-1');

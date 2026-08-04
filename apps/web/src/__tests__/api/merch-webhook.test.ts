@@ -1,7 +1,7 @@
 /**
  * Merch Webhook API Route Tests
  *
- * Tests for POST /api/merch/webhook — the Green Invoice paid-notification
+ * Tests for POST /api/merch/webhook - the Green Invoice paid-notification
  * endpoint. Focus on the security hardening:
  * - shared-secret authentication (reject forged POSTs)
  * - atomic pending→paid transition (idempotent under replay / races)

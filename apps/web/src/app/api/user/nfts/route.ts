@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     // Get user's NFTs directly from database
     const { supabaseAdmin } = await import('@/lib/supabase/server');
 
-    // Certificates are auto-issued on resolution (view-only) — return every
+    // Certificates are auto-issued on resolution (view-only) - return every
     // record, not just on-chain-minted ones. The UI shows a status badge
     // (issued / pending-chain) so a not-yet-minted certificate still appears.
     let query = supabaseAdmin

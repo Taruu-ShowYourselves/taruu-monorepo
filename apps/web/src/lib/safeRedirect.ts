@@ -19,13 +19,13 @@
  * `fallback`.
  *
  * Rejected, with the attack each rejection closes:
- * - `null` / empty — nothing to honour.
- * - `https://evil.example`, `//evil.example` — absolute and
+ * - `null` / empty: nothing to honour.
+ * - `https://evil.example`, `//evil.example`: absolute and
  *   protocol-relative URLs both navigate off-origin.
- * - `/\evil.example`, `/\/evil.example` — browsers normalise backslashes to
+ * - `/\evil.example`, `/\/evil.example`: browsers normalise backslashes to
  *   forward slashes, so these are protocol-relative URLs in disguise.
- * - `javascript:…`, `data:…` — non-navigational schemes.
- * - anything not starting with `/` — a bare `evil.example` resolves relative
+ * - `javascript:…`, `data:…`: non-navigational schemes.
+ * - anything not starting with `/`: a bare `evil.example` resolves relative
  *   to the current path and is not a target we ever generate.
  */
 export function safeRedirect(candidate: string | null | undefined, fallback: string): string {

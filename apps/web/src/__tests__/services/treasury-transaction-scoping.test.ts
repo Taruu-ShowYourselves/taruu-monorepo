@@ -8,8 +8,8 @@
  *   .eq('user_id', userId)
  *
  * Because SQL equality never matches NULL, this also means rows with a NULL
- * `user_id` — treasury movements that belong to nobody, e.g. platform-side
- * allocations — can never be attributed to the caller. The dashboard used to
+ * `user_id` - treasury movements that belong to nobody, e.g. platform-side
+ * allocations - can never be attributed to the caller. The dashboard used to
  * get this wrong by filtering in the browser with
  * `!t.userId || t.userId === user.id`, which counted every ownerless row as the
  * reader's own contribution.
@@ -79,7 +79,7 @@ describe('getUserTreasuryTransactions', () => {
     expect(filteredColumns).not.toContain('treasury_id');
   });
 
-  it('applies the type filter in addition to — never instead of — the owner filter', async () => {
+  it('applies the type filter in addition to - never instead of - the owner filter', async () => {
     await getUserTreasuryTransactions('user-123', { type: 'deposit' });
 
     expect(eq).toHaveBeenCalledWith('user_id', 'user-123');

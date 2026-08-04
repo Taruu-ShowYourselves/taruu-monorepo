@@ -1,5 +1,5 @@
 /**
- * Vote repository — Result-typed access to the votes/vote_options tables.
+ * Vote repository - Result-typed access to the votes/vote_options tables.
  *
  * Delegates to the db.ts query helpers (single query surface, mockable in
  * tests) and converts their throw/null conventions into explicit Results.
@@ -13,7 +13,12 @@ import {
   createVote as dbCreateVote,
   createVoteOptions as dbCreateVoteOptions,
 } from '@/lib/supabase/db';
-import type { Vote, VoteOption, InsertTables } from '@/lib/supabase/types';
+import type {
+  Vote,
+  VoteOption,
+  VoteSource,
+  InsertTables,
+} from '@/lib/supabase/types';
 import { dbError, type AppError } from '@/server/http/errors';
 
 type VoteStatus = 'pending' | 'active' | 'ended';
@@ -28,10 +33,13 @@ export function listVotes(filter: {
   return ResultAsync.fromPromise(query, (cause) => dbError('votes.list', cause));
 }
 
-/** Active votes with their option tallies (for list views that need them). */
+/** Active votes with option tallies + source engagement (list views). */
 export function listActiveVotesWithOptions(
   municipality?: string
-): ResultAsync<(Vote & { options: VoteOption[] })[], AppError> {
+): ResultAsync<
+  (Vote & { options: VoteOption[]; source: VoteSource | null })[],
+  AppError
+> {
   return ResultAsync.fromPromise(getActiveVotesWithOptions(municipality), (cause) =>
     dbError('votes.listWithOptions', cause)
   );

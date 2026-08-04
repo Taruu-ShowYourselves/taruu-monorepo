@@ -7,7 +7,7 @@
  * fabricated fact, not a placeholder.
  *
  * The rule is deliberately pure and lives outside the component so the three
- * states can be tested in the existing node test environment — this codebase
+ * states can be tested in the existing node test environment - this codebase
  * has no component-testing setup.
  *
  * Every state must leave the reader an action:

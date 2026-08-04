@@ -1,11 +1,11 @@
 /**
  * Unit proof for the two participation primitives added in phase 02.1-02:
  *
- * - `recordUserVoteOnce` (apps/web/src/lib/supabase/db.ts) — an insert that
+ * - `recordUserVoteOnce` (apps/web/src/lib/supabase/db.ts) - an insert that
  *   survives a duplicate submit by keying off SQLSTATE 23505 and reading the
  *   existing ballot back instead of throwing.
  * - the voter-eligibility truth table (apps/web/src/services/verification/eligibility.ts)
- *   — a pure mirror of the client's `isEligibleToVote` plus the pre-existing
+ *   - a pure mirror of the client's `isEligibleToVote` plus the pre-existing
  *   `identity_score >= 40` server gate.
  */
 
@@ -13,7 +13,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock only the Supabase client. `recordUserVoteOnce` and `getUserVote` run
 // for real against this mock, following the bags-trending.test.ts chained-mock
-// shape — this is what proves the duplicate path reads the existing ballot
+// shape - this is what proves the duplicate path reads the existing ballot
 // back through the real code path rather than through a stubbed function.
 const mockFrom = vi.fn();
 vi.mock('@/lib/supabase/server', () => ({

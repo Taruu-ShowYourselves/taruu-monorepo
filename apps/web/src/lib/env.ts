@@ -20,20 +20,20 @@ const serverEnvSchema = z.object({
   // DISTINCT from JWT_SECRET: JWT_SECRET signs the long-lived `sync-session`
   // cookie, this one signs the short-lived access token PostgREST verifies.
   // Optional here and guarded at the point of use (see lib/supabase/user-token.ts),
-  // matching the GREENINVOICE_* precedent below — an unset value must not break
+  // matching the GREENINVOICE_* precedent below. An unset value must not break
   // routes that never touch the user-scoped client.
   SUPABASE_JWT_SECRET: z
     .string()
     .min(32, 'SUPABASE_JWT_SECRET must be at least 32 characters')
     .optional(),
 
-  // Auth0 (primary login — OIDC Universal Login; federates Google)
+  // Auth0 (primary login - OIDC Universal Login; federates Google)
   AUTH0_CLIENT_ID: z.string().min(1, 'AUTH0_CLIENT_ID is required'),
   AUTH0_CLIENT_SECRET: z.string().min(1, 'AUTH0_CLIENT_SECRET is required'),
   NEXT_PUBLIC_AUTH0_DOMAIN: z.string().min(1, 'NEXT_PUBLIC_AUTH0_DOMAIN is required'),
   NEXT_PUBLIC_AUTH0_CLIENT_ID: z.string().min(1, 'NEXT_PUBLIC_AUTH0_CLIENT_ID is required'),
 
-  // Green Invoice (Merchant of Record — vote fees + merch)
+  // Green Invoice (Merchant of Record - vote fees + merch)
   // Optional so dev/build without creds doesn't fail; the payment service guards on
   // isGreenInvoiceConfigured() and fails closed in production when the secret is unset.
   GREENINVOICE_ENV: z.enum(['sandbox', 'production']).default('sandbox'),

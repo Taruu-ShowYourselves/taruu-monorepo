@@ -1,7 +1,7 @@
 /**
  * Knesset agenda grouping tests
  *
- * buildKnessetAgenda — grouping national votes into sittings by their
+ * buildKnessetAgenda - grouping national votes into sittings by their
  * knesset_items metadata, ordinal ordering, and the extras bucket.
  */
 
