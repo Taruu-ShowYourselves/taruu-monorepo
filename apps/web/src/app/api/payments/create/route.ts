@@ -9,6 +9,7 @@ import {
   paymentService,
   getPaymentAmounts,
 } from '@/services/payments/greenInvoice';
+import { resolveIdempotencyKey } from '@/services/payments/idempotency';
 
 /** The only payment this product can create. Participation is free (cfa5d25). */
 const CREATABLE_PAYMENT_TYPE = 'vote_creation' as const;
@@ -24,14 +25,16 @@ interface CreatePaymentRequest {
   voteId?: string;
   optionId?: string;
   voteTitle?: string;
-  idempotencyKey?: string;
+  // No `idempotencyKey`. A client-supplied key is deliberately NOT accepted
+  // (SEC-04): the server derives it from the request's own identity, so a caller
+  // cannot pin a key belonging to somebody else's flow.
 }
 
 /**
  * POST /api/payments/create
  * Create a Green Invoice hosted payment page for a ₪50 vote creation.
  * Participation is free, so `vote_participation` is rejected rather than priced.
- * Supports idempotency via idempotency_key
+ * Idempotency is server-derived and deterministic - see services/payments/idempotency.ts.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -42,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body: CreatePaymentRequest = await request.json();
-    const { voteId, optionId, voteTitle, idempotencyKey } = body;
+    const { voteId, optionId, voteTitle } = body;
     const requestedType: string = body.type;
 
     // The participation rail is retired, not merely unpriced: say so instead of
@@ -75,24 +78,37 @@ export async function POST(request: NextRequest) {
     // creation has its own, stricter server-side gate at publish time
     // (server/app/votes/create-vote.ts) requiring a verified user with a municipality.
 
-    // Generate or use provided idempotency key
-    const paymentIdempotencyKey = idempotencyKey || `${user.id}-${type}-${voteId || 'create'}-${Date.now()}`;
+    // Derive the idempotency key from the request's own identity (SEC-04). Whatever
+    // the client sent is ignored, and no clock is read, so a retry lands on the same
+    // key and the UNIQUE constraint on payments.idempotency_key can do its job.
+    const resolution = await resolveIdempotencyKey(getPaymentByIdempotencyKey, {
+      userId: user.id,
+      type,
+      voteTitle,
+    });
 
-    // Check for existing payment with same idempotency key
-    const existingPayment = await getPaymentByIdempotencyKey(paymentIdempotencyKey);
-    if (existingPayment) {
-      // Return existing payment (idempotent response)
+    if (resolution.kind === 'exhausted') {
+      return NextResponse.json(
+        { error: 'לא הצלחנו לפתוח תשלום חדש. נסו שוב עם כותרת אחרת או פנו לתמיכה.' },
+        { status: 409 }
+      );
+    }
+
+    if (resolution.kind === 'reuse') {
+      // Idempotent retry: same draft, same user, payment still pending.
       return NextResponse.json({
         success: true,
         idempotent: true,
         payment: {
-          id: existingPayment.id,
-          status: existingPayment.status,
-          amount: existingPayment.amount,
-          currency: existingPayment.currency,
+          id: resolution.existing.id,
+          status: resolution.existing.status,
+          amount: resolution.existing.amount,
+          currency: resolution.existing.currency,
         },
       });
     }
+
+    const paymentIdempotencyKey = resolution.key;
 
     const amounts = getPaymentAmounts();
     const amount = amounts.voteCreation;
