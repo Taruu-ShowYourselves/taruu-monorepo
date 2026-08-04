@@ -42,7 +42,6 @@ vi.mock('@/lib/supabase/db', () => ({
 // Mock Green Invoice payment service
 vi.mock('@/services/payments/greenInvoice', () => ({
   paymentService: {
-    createVotePayment: vi.fn(),
     createVoteCreationPayment: vi.fn(),
     getPaymentStatus: vi.fn(),
     verifyWebhook: vi.fn(),
@@ -268,34 +267,6 @@ describe('Payments API Routes (Green Invoice)', () => {
       expect(data.success).toBe(true);
       expect(data.idempotent).toBe(true);
       expect(data.payment.id).toBe('existing-payment');
-    });
-
-    it('should create checkout successfully for vote participation', async () => {
-      (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
-      (getUserById as Mock).mockResolvedValue(mockUser);
-      (getPaymentByIdempotencyKey as Mock).mockResolvedValue(null);
-      (dbCreatePayment as Mock).mockResolvedValue(mockPayment);
-      (paymentService.createVotePayment as Mock).mockResolvedValue({
-        paymentUrl: 'https://sandbox.d.greeninvoice.co.il/form/123',
-        expiresAt: new Date(Date.now() + 3600000),
-      });
-
-      const request = new NextRequest('http://localhost:3000/api/payments/create', {
-        method: 'POST',
-        body: JSON.stringify({
-          type: 'vote_participation',
-          voteId: 'vote-123',
-          voteTitle: 'Test Vote',
-        }),
-      });
-      const response = await createPayment(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-      expect(data.payment.paymentUrl).toBe('https://sandbox.d.greeninvoice.co.il/form/123');
-      expect(data.payment.amount).toBe(3);
-      expect(paymentService.createVotePayment).toHaveBeenCalled();
     });
 
     it('should create checkout successfully for vote creation', async () => {
