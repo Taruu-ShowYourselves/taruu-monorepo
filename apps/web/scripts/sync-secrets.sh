@@ -19,7 +19,7 @@ WRANGLER="node_modules/.bin/wrangler"
 
 [ -f "$ENV_FILE" ] || { echo "missing $ENV_FILE"; exit 1; }
 
-# Vars that live in wrangler.jsonc `vars` (NOT secrets) — never push as secrets.
+# Vars that live in wrangler.jsonc `vars` (NOT secrets) - never push as secrets.
 SKIP="GREENINVOICE_ENV QUBIK_NETWORK"
 
 pushed=0; skipped=0

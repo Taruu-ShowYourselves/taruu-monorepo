@@ -19,7 +19,7 @@
 import { unzipSync, strFromU8 } from 'fflate';
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { createSupabase, isEntryPoint, loadAgentEnv } from './env.js';
+import { createSupabase, isEntryPoint, loadAgentEnv, numberArg } from './env.js';
 import {
   fetchAgendaDocuments,
   fetchBillDocuments,
@@ -66,7 +66,7 @@ function parseArgs(argv: string[]): CliOptions {
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === '--limit') options.limit = Number(argv[++i]) || options.limit;
+    if (arg === '--limit') options.limit = numberArg(argv[++i], options.limit);
     else if (arg === '--dry-run') options.dryRun = true;
     else if (arg === '--model') options.model = argv[++i] || options.model;
   }

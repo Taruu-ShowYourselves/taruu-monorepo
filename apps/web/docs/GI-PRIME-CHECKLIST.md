@@ -1,6 +1,6 @@
 # GI Prime + Credentials + Clearing Terms Checklist (SPIKE-03)
 
-> **Status: PENDING** — external human track; gates Phase 4 go-live, not Phase 3 build.
+> **Status: PENDING** - external human track; gates Phase 4 go-live, not Phase 3 build.
 > Work through this with the Green Invoice account rep when staging production secrets.
 
 ## Context
@@ -10,7 +10,7 @@ breakdown: ₪6 membership → ₪2.10 civic pool + ₪3.90 platform (net ~₪2.
 the ₪0.15 receipt fee + clearing). A standard per-receipt fee above ₪0.15, or a
 percentage-based clearing cost the model did not assume, collapses the platform margin.
 Additionally, a **~3.5% tourist/foreign-card surcharge** on the ₪6 charge erodes more
-than half the ₪3.90 platform margin — this must be resolved (block or flag) before
+than half the ₪3.90 platform margin - this must be resolved (block or flag) before
 go-live. Prime rate + clearing terms must be confirmed in writing before any production
 traffic is enabled.
 
@@ -22,7 +22,7 @@ traffic is enabled.
   contract, or GI account portal export) from the GI account rep confirming the
   **Prime plan is active**, the per-receipt fee is exactly **₪0.15**, and no
   percentage-of-transaction fee applies on top of it.
-- [ ] **Effective date:** Confirm in writing the date from which the Prime rate applies —
+- [ ] **Effective date:** Confirm in writing the date from which the Prime rate applies -
   specifically that it is in effect from the first go-live transaction, not from a later
   billing cycle.
 - [ ] **Volume minimum / monthly platform fee:** Confirm in writing whether Prime carries
@@ -31,7 +31,7 @@ traffic is enabled.
   that in writing.
 - [ ] **Both receipt types at Prime rate:** Explicitly confirm that both the **₪6
   membership charge receipt** (חשבונית קבלה, first vote of the month) and the **₪50
-  vote-creation receipt** are billed at the ₪0.15 Prime rate — not at a higher tier,
+  vote-creation receipt** are billed at the ₪0.15 Prime rate - not at a higher tier,
   a percentage rate, or a different plan tier.
 
 ---
@@ -43,20 +43,20 @@ Stage all of the following in the Cloudflare Workers secret store via
 `node_modules/.bin/wrangler secret list` confirms the key is present.
 
 **Green Invoice production credentials:**
-- [ ] `GREENINVOICE_API_KEY_ID` — production API key ID from GI Settings → API
-- [ ] `GREENINVOICE_API_SECRET` — production API secret from GI Settings → API
-- [ ] `GREENINVOICE_PLUGIN_ID` — production plugin ID from GI account settings
-- [ ] `GREENINVOICE_WEBHOOK_SECRET` — regenerated for production (do not reuse the
+- [ ] `GREENINVOICE_API_KEY_ID` - production API key ID from GI Settings → API
+- [ ] `GREENINVOICE_API_SECRET` - production API secret from GI Settings → API
+- [ ] `GREENINVOICE_PLUGIN_ID` - production plugin ID from GI account settings
+- [ ] `GREENINVOICE_WEBHOOK_SECRET` - regenerated for production (do not reuse the
   sandbox value; update the webhook endpoint in GI dashboard to match)
 
-**Green Invoice runtime flag (wrangler.jsonc `vars` block — not a secret):**
-- [ ] `GREENINVOICE_ENV=production` — flip from `sandbox` in `wrangler.jsonc` before
+**Green Invoice runtime flag (wrangler.jsonc `vars` block - not a secret):**
+- [ ] `GREENINVOICE_ENV=production` - flip from `sandbox` in `wrangler.jsonc` before
   deploying; `sync-secrets.sh` skips `GREENINVOICE_ENV` by design (it is in `SKIP`)
 
 **Supabase production credentials:**
-- [ ] `NEXT_PUBLIC_SUPABASE_URL` — production Supabase project URL
-- [ ] `NEXT_PUBLIC_SUPABASE_ANON_KEY` — production anon key (build-time; push for parity)
-- [ ] `SUPABASE_SERVICE_ROLE_KEY` — production service-role key (server-side only; never
+- [ ] `NEXT_PUBLIC_SUPABASE_URL` - production Supabase project URL
+- [ ] `NEXT_PUBLIC_SUPABASE_ANON_KEY` - production anon key (build-time; push for parity)
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` - production service-role key (server-side only; never
   exposed to the client)
 
 **Verification steps:**
@@ -79,7 +79,7 @@ Leave blank lines filled in once confirmed.
   receipt fee or substitutes it for percentage-billed transactions.
 - [ ] **Hard minimum per transaction:** Is there a minimum clearing fee per transaction
   regardless of amount? Record: ₪____. A hard minimum above ~₪0.15 breaks the ₪6
-  unit economics at low volumes — confirm the figure and model the impact.
+  unit economics at low volumes - confirm the figure and model the impact.
 - [ ] **Card-brand surcharges:** Does the clearing rate vary by card brand (Visa,
   Mastercard, Diners, Amex)? Obtain the surcharge schedule for each brand the platform
   will accept and record them.

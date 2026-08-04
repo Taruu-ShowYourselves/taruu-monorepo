@@ -33,6 +33,9 @@ importers:
       dotenv:
         specifier: ^16.4.5
         version: 16.4.7
+      fflate:
+        specifier: ^0.8.3
+        version: 0.8.3
     devDependencies:
       '@types/node':
         specifier: ^22.10.2
@@ -260,6 +263,9 @@ importers:
       framer-motion:
         specifier: ^11.11.0
         version: 11.18.2(@emotion/is-prop-valid@1.4.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      gsap:
+        specifier: ^3.13.0
+        version: 3.13.0
       jose:
         specifier: ^5.2.0
         version: 5.10.0
@@ -2226,7 +2232,7 @@ packages:
 
   '@expo/bunyan@4.0.1':
     resolution: {integrity: sha512-+Lla7nYSiHZirgK+U/uYzsLv/X+HaJienbD5AKX1UQZHYfWaP+9uuQluRB4GrEVWF0GZ7vEVp/jzaOT9k/SQlg==}
-    engines: {'0': node >=0.10.0}
+    engines: {node: '>=0.10.0'}
 
   '@expo/cli@0.22.27':
     resolution: {integrity: sha512-MZ3s68+OFQZWljAiCdwL+dL+xZudpkmhq0A2Qb4+p6MNp386WJyAYineXtiLJVww/8ohIfUxOL10vnaPdDVl4w==}
@@ -6239,6 +6245,9 @@ packages:
         optional: true
       react-dom:
         optional: true
+
+  gsap@3.13.0:
+    resolution: {integrity: sha512-QL7MJ2WMjm1PHWsoFrAQH/J8wUeqZvMtHO58qdekHpCfhvhSL4gSiz6vJf5EeMP0LOn3ZCprL2ki/gjED8ghVw==}
 
   freeport-async@2.0.0:
     resolution: {integrity: sha512-K7od3Uw45AJg00XUmy15+Hae2hOcgKcmN3/EF6Y7i01O0gaqiRx8sUSpsb9+BRNL8RPBrhzPsVfy8q9ADlJuWQ==}
@@ -17006,6 +17015,8 @@ snapshots:
       '@emotion/is-prop-valid': 1.4.0
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
+
+  gsap@3.13.0: {}
 
   freeport-async@2.0.0: {}
 

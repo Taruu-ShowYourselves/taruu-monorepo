@@ -4,7 +4,7 @@
  * Re-exports the OpenNext-generated fetch handler and adds a `scheduled`
  * handler so Cloudflare Cron Triggers can drive the app's existing HTTP cron
  * routes (guarded by CRON_SECRET). The cron expression that fired is matched to
- * its route via CRON_ROUTES — keep these in sync with `triggers.crons` in
+ * its route via CRON_ROUTES - keep these in sync with `triggers.crons` in
  * wrangler.jsonc.
  *
  * Types are declared locally on purpose: importing @cloudflare/workers-types
@@ -14,7 +14,7 @@
  * @see https://opennext.js.org/cloudflare/howtos/custom-worker
  */
 
-// @ts-ignore — generated at build time by `opennextjs-cloudflare build`
+// @ts-ignore - generated at build time by `opennextjs-cloudflare build`
 import { default as handler } from './.open-next/worker.js';
 
 interface ScheduledEvent {

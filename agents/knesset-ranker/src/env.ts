@@ -66,3 +66,14 @@ export function isEntryPoint(moduleUrl: string): boolean {
     process.argv[1] && resolve(process.argv[1]) === fileURLToPath(moduleUrl)
   );
 }
+
+/**
+ * Numeric CLI argument. `Number(x) || fallback` silently swallows 0 — which
+ * made `--stale-hours 0` (rank everything now) fall back to 24 and look like
+ * a no-op run.
+ */
+export function numberArg(raw: string | undefined, fallback: number): number {
+  if (raw === undefined) return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : fallback;
+}

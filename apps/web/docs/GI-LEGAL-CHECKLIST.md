@@ -1,6 +1,6 @@
-# GI Legal & Accountant — Merchant-of-Record Checklist (SPIKE-02)
+# GI Legal & Accountant - Merchant-of-Record Checklist (SPIKE-02)
 
-> **Status: PENDING** — external human track; gates Phase 4 go-live, not Phase 3 build.
+> **Status: PENDING** - external human track; gates Phase 4 go-live, not Phase 3 build.
 > Hand this document to the accountant/lawyer for written sign-off before go-live.
 
 ## Context
@@ -10,7 +10,7 @@ calendar month costs ₪6** (all subsequent votes that month are free), and a se
 **₪50 fee** applies per vote created. Of each ₪6 membership charge, **₪2.10 routes to
 a monthly civic pool** (held in fiat, allocated to that month's executed city decisions)
 and **₪3.90 remains on the platform**. The payment rail is Green Invoice (GI)
-card-on-file — the platform charges the consumer's saved card off-session
+card-on-file - the platform charges the consumer's saved card off-session
 (Merchant-Initiated Transaction / MIT) and issues a GI document for each settled charge.
 The payer is an Israeli private individual (פרטי, not a business).
 
@@ -24,7 +24,7 @@ The accountant must confirm in writing which GI document type is correct for eac
   document a **חשבונית קבלה** (combined invoice-receipt), a **חשבונית מס** (tax invoice
   only, requiring a separate קבלה), or a plain **קבלה** (receipt only)? Provide the
   answer in writing with reference to Israeli invoicing law.
-- [ ] **₪50 vote-creation charge (private payer, 100% platform):** Same question — which
+- [ ] **₪50 vote-creation charge (private payer, 100% platform):** Same question - which
   document type applies, and does the higher amount or the fact that it is a one-time
   (non-recurring) charge change the answer?
 - [ ] **₪2.10 civic-pool portion of the ₪6 charge:** Is the pool split purely an internal
@@ -43,10 +43,10 @@ The accountant must confirm in writing which GI document type is correct for eac
 - [ ] **Inclusion:** Is VAT (מע״מ) already included in the ₪6 and ₪50 figures (consumer
   pays ₪6 total, of which X% is VAT), or must VAT be added on top? Confirm the current
   Israeli VAT rate (17% as of writing) and whether it has changed.
-- [ ] **Display on document:** How must VAT appear on the issued חשבונית/קבלה — as a
+- [ ] **Display on document:** How must VAT appear on the issued חשבונית/קבלה - as a
   separate line item (₪X VAT on a ₪Y base), or is a VAT-inclusive total acceptable
   for a private payer with no independent VAT deduction right?
-- [ ] **Civic-pool portion:** Does the ₪2.10 civic-pool split affect VAT in any way — for
+- [ ] **Civic-pool portion:** Does the ₪2.10 civic-pool split affect VAT in any way - for
   example, if the pool is held by a non-profit or municipal-adjacent entity, is there
   an exemption or reduced rate for that portion? Confirm whether the platform must account
   for this on the GI document, or whether it is immaterial (internal ledger only).
@@ -67,7 +67,7 @@ The accountant must confirm in writing which GI document type is correct for eac
 - [ ] **Civic-pool impact on refund:** When a ₪6 charge is refunded, the ₪2.10 already
   accrued to the monthly pool must be reversed. Confirm whether issuing the credit note
   causes an automatic reversal in GI's records, or whether the platform must also post an
-  internal ledger reversal separately. (Forward-looking: ties to v2 BAG-04 / HARD-02 —
+  internal ledger reversal separately. (Forward-looking: ties to v2 BAG-04 / HARD-02 -
   note timeline for resolution.)
 - [ ] **Chargeback handling:** If the consumer's bank initiates a chargeback, does GI
   automatically issue a חשבונית זיכוי, or must the platform issue one manually? Confirm
@@ -85,9 +85,9 @@ The accountant must confirm in writing which GI document type is correct for eac
   If so, what is the window (typically 14 days for digital subscriptions in Israel), and
   what disclosure is required at the point of card entry?
 - [ ] **Off-session / card-on-file consent:** The platform stores the consumer's card
-  token and charges it off-session on the first vote of each calendar month (MIT — no
+  token and charges it off-session on the first vote of each calendar month (MIT - no
   consumer interaction at charge time). Confirm the exact pre-charge disclosure language
-  and consent mechanism required under Israeli law — specifically whether a checkbox at
+  and consent mechanism required under Israeli law - specifically whether a checkbox at
   card-entry time is sufficient, or whether a written notice must be sent before each
   recurring charge.
 - [ ] **Receipt-delivery obligation:** Under Israeli law, is the platform required to
