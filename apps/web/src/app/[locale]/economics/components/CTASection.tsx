@@ -13,7 +13,7 @@ interface CTASectionProps {
 
 const trustStats = [
   { value: 'חינם', label: 'עלות הצבעה' },
-  { value: '70%', label: 'לקרן הקהילתית' },
+  { value: '₪50', label: 'ליצירת הצבעה' },
   { value: 'תעודה', label: 'לכל משתתף' },
 ];
 
