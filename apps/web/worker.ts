@@ -16,6 +16,7 @@
 
 // @ts-ignore - generated at build time by `opennextjs-cloudflare build`
 import { default as handler } from './.open-next/worker.js';
+import { checkRuntimeEnv } from '@/lib/env';
 
 interface ScheduledEvent {
   readonly cron: string;
@@ -41,8 +42,48 @@ const CRON_ROUTES: Record<string, string> = {
   '0 */6 * * *': '/api/cron/knesset-agenda',
 };
 
+/**
+ * Per-isolate configuration gate (SEC-05).
+ *
+ * This is the closest thing to "app startup" that exists on Workers: module
+ * scope runs once per isolate, on the real runtime, with the `env` binding in
+ * hand - and it sits OUTSIDE the Next build graph, so it cannot reintroduce the
+ * `next build` failure that forced lib/supabase/server.ts to go lazy.
+ *
+ * We validate the `env` binding merged over `process.env`: on Cloudflare the
+ * secrets arrive as bindings and `process.env` may not be populated yet at this
+ * point; under `next dev` the OpenNext shim populates `process.env` instead.
+ *
+ * Fails CLOSED. The response names nothing - a 503 that enumerated the missing
+ * secrets would hand an attacker a configuration map. The names go to the log.
+ */
+let envGate: ReturnType<typeof checkRuntimeEnv> | null = null;
+
+function gateEnv(env: Env): ReturnType<typeof checkRuntimeEnv> {
+  if (envGate) return envGate;
+  envGate = checkRuntimeEnv({
+    ...(process.env as unknown as Record<string, unknown>),
+    ...(env as Record<string, unknown>),
+  });
+  if (!envGate.ok) {
+    // Names only. Never a value.
+    console.error(
+      `[env] refusing to serve - missing required configuration: ${envGate.missing.join(', ')}`
+    );
+  }
+  return envGate;
+}
+
 export default {
-  fetch: handler.fetch,
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    if (!gateEnv(env).ok) {
+      return new Response('Service unavailable', {
+        status: 503,
+        headers: { 'content-type': 'text/plain; charset=utf-8' },
+      });
+    }
+    return handler.fetch(request, env, ctx);
+  },
 
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
     const path = CRON_ROUTES[event.cron];

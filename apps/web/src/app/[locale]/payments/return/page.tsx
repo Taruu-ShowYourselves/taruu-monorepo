@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { NewsButton } from '@/components/press';
+import {
+  decideReturnPhase,
+  classifyFinalizeResponse,
+} from '@/services/payments/createVoteCheckout';
 import styles from './page.module.css';
 
 interface PendingVote {
@@ -16,7 +20,7 @@ interface PendingVote {
   orderId?: string;
 }
 
-type Phase = 'finalising' | 'created' | 'processing' | 'received' | 'error';
+type Phase = 'finalising' | 'created' | 'processing' | 'received' | 'failed' | 'error';
 
 const SLEEP = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -37,7 +41,24 @@ export default function PaymentReturnPage() {
     ran.current = true;
 
     const raw = sessionStorage.getItem('pendingVote');
-    if (!raw) {
+
+    // Green Invoice's failureUrl sends a declined buyer back with
+    // `?status=failed`. Read it off the location rather than with the Next
+    // search-params hook: this client page has no Suspense boundary, and that
+    // hook would force a client-side-rendering bailout at build time.
+    const statusParam = new URLSearchParams(window.location.search).get('status');
+    const decided = decideReturnPhase({ statusParam, hasDraft: Boolean(raw) });
+
+    if (decided === 'failed') {
+      // The payment did not go through. Drop the draft and stop here: the
+      // finalisation POST must never run on this path, and the resident must
+      // never be told their vote is on its way.
+      sessionStorage.removeItem('pendingVote');
+      setPhase('failed');
+      return;
+    }
+
+    if (decided === 'received' || !raw) {
       // Not a vote-creation return - just acknowledge the payment.
       setPhase('received');
       return;
@@ -72,22 +93,24 @@ export default function PaymentReturnPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
           });
-          if (res.ok) {
+          const reaction = classifyFinalizeResponse(res.status);
+          if (reaction === 'created') {
             const data = await res.json();
             sessionStorage.removeItem('pendingVote');
             setVoteId(data.vote?.id ?? null);
             setPhase('created');
             return;
           }
-          if (res.status === 402 && attempt < 3) {
+          if (reaction === 'retry' && attempt < 3) {
             await SLEEP(2000);
             continue;
           }
-          // 402 = payment still settling; 400 = payment already consumed, which
-          // most often means a prior attempt already created the vote (e.g. a
-          // network blip after the server committed). Neither is a hard error -
-          // send the user to their dashboard to find the vote.
-          setPhase(res.status === 402 || res.status === 400 ? 'processing' : 'error');
+          // A retry with no attempts left = payment still settling; 'processing'
+          // = payment already consumed, which most often means a prior attempt
+          // already created the vote (e.g. a network blip after the server
+          // committed). Neither is a hard error - send the user to their
+          // dashboard to find the vote.
+          setPhase(reaction === 'error' ? 'error' : 'processing');
           return;
         } catch {
           if (attempt < 3) {
@@ -121,6 +144,11 @@ export default function PaymentReturnPage() {
       kicker: 'התקבל · RECEIVED',
       title: <>התשלום <span className={styles.red}>התקבל.</span></>,
       body: 'תודה. אפשר להמשיך מהלוח האישי.',
+    },
+    failed: {
+      kicker: 'לא בוצע · DECLINED',
+      title: <>התשלום <span className={styles.red}>לא עבר.</span></>,
+      body: 'התשלום לא הושלם, וההצבעה לא נוצרה. אין חיוב. אפשר לנסות שוב, ואם חויבתם בטעות פנו אלינו ונסדר.',
     },
     error: {
       kicker: 'תקלה · ERROR',
@@ -161,7 +189,7 @@ export default function PaymentReturnPage() {
                 ללוח שלי
               </NewsButton>
             )}
-            {phase === 'error' && (
+            {(phase === 'error' || phase === 'failed') && (
               <>
                 <NewsButton variant="ink" size="md" onClick={() => router.push('/votes/create')}>
                   לניסיון נוסף

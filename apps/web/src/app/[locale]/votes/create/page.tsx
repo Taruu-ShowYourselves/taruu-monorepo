@@ -11,9 +11,9 @@ import {
   Segmented,
   Stepper,
   Receipt,
-  SealCard,
 } from '@/components/press';
 import { useAuth } from '@/providers/AuthProvider';
+import { startVoteCreationCheckout } from '@/services/payments/createVoteCheckout';
 import { CREATE_VOTE_COST, formatCurrency } from '@sync/shared';
 import styles from './page.module.css';
 
@@ -56,8 +56,8 @@ export default function CreateVotePage() {
   const [descriptionError, setDescriptionError] = useState('');
   const [optionsError, setOptionsError] = useState('');
 
-  // Success surface (graceful in-page fallback when no redirect URL is issued)
-  const [sealHash, setSealHash] = useState<string | null>(null);
+  // There is no in-page success surface. A vote exists only after Green Invoice
+  // settles the fee and the return page finalises it against the server.
 
   // Form state - unchanged
   const [title, setTitle] = useState('');
@@ -154,58 +154,34 @@ export default function CreateVotePage() {
     setSubmitting(true);
     setError('');
 
-    try {
-      // Create Green Invoice payment session
-      const response = await fetch('/api/payments/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'vote_creation',
-          voteTitle: title,
-        }),
-      });
+    // The only success path is a real Green Invoice checkout. A response that
+    // issues no hosted-form URL leaves the resident on the form with their
+    // draft intact and an honest error - it never renders a receipt, because
+    // nothing was charged and no vote was created.
+    const result = await startVoteCreationCheckout(
+      { fetch: globalThis.fetch.bind(globalThis) },
+      { voteTitle: title },
+    );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create payment');
-      }
-
-      const data = await response.json();
-
-      // Persist pending vote for post-payment finalisation - unchanged.
-      const pendingVote = {
-        title,
-        description,
-        options: filledOptions,
-        duration,
-        paymentId: data.payment?.id,
-        orderId: data.payment?.orderId,
-      };
-
-      // Real flow: redirect to the Green Invoice checkout when a URL is issued.
-      if (data.payment?.paymentUrl) {
-        sessionStorage.setItem('pendingVote', JSON.stringify(pendingVote));
-        window.location.href = data.payment.paymentUrl;
-        return;
-      }
-
-      // Graceful MOCK fallback: API succeeded but issued no checkout URL
-      // (e.g. sandbox without Green Invoice). Render the in-page seal instead of
-      // erroring, so the press success surface is reachable.
-      sessionStorage.setItem('pendingVote', JSON.stringify(pendingVote));
-      setSealHash(
-        data.payment?.id
-          ? String(data.payment.id)
-          : `0x${Math.random().toString(16).slice(2).padEnd(40, '0').slice(0, 40)}`,
-      );
+    if (result.kind === 'error') {
+      setError(result.message);
       setSubmitting(false);
-    } catch (err: unknown) {
-      console.error('Payment error:', err);
-      setError(MSG_GENERAL);
-      setSubmitting(false);
+      return;
     }
+
+    // Persist the pending vote for post-payment finalisation - same key and
+    // same shape the return page reads.
+    const pendingVote = {
+      title,
+      description,
+      options: filledOptions,
+      duration,
+      paymentId: result.payment.id,
+      orderId: result.payment.orderId,
+    };
+
+    sessionStorage.setItem('pendingVote', JSON.stringify(pendingVote));
+    window.location.href = result.payment.paymentUrl;
   };
 
   // ----- Loading skeleton (press furniture) ------------------------------
@@ -218,61 +194,6 @@ export default function CreateVotePage() {
             <span className={`${styles.shimmer} ${styles.skHead}`} />
             <span className={`${styles.shimmer} ${styles.skBar}`} />
             <span className={`${styles.shimmer} ${styles.skCard}`} />
-          </div>
-        </main>
-        <Footer />
-      </>
-    );
-  }
-
-  // ----- Success surface (seal) ------------------------------------------
-  if (sealHash) {
-    return (
-      <>
-        <Header />
-        <main className={styles.main}>
-          <div className={styles.container}>
-            <header className={styles.head}>
-              <span className={styles.kicker}>
-                <span aria-hidden className={styles.kickerTick} />
-                הצבעה נוצרה · CREATED
-              </span>
-              <h1 className={styles.headline}>
-                ההצבעה שלכם <span className={styles.red}>בדרך לדפוס.</span>
-              </h1>
-            </header>
-
-            <div className={styles.successGrid}>
-              <Receipt
-                kicker="קבלה · RECEIPT"
-                title={title}
-                rows={[
-                  { label: 'משך הצבעה', value: `${duration} ימים` },
-                  { label: 'אפשרויות', value: String(filledOptions.length) },
-                  { label: 'דמי יצירה', value: formatCurrency(CREATE_VOTE_COST), strong: true },
-                ]}
-                footer="תַּרְאוּ · כל הארץ · המהדורה הקהילתית"
-              />
-              <SealCard
-                hash={sealHash}
-                status="sealed"
-                meta={[
-                  { label: 'STATUS', value: 'CREATED' },
-                  { label: 'DURATION', value: `${duration}D` },
-                ]}
-              />
-            </div>
-
-            <div className={styles.actionBar}>
-              <NewsButton
-                variant="red"
-                size="lg"
-                onClick={() => router.push('/votes')}
-                trailing={<span aria-hidden>←</span>}
-              >
-                לכל ההצבעות
-              </NewsButton>
-            </div>
           </div>
         </main>
         <Footer />
