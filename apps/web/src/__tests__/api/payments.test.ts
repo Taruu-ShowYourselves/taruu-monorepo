@@ -141,14 +141,15 @@ describe('Payments API Routes (Green Invoice)', () => {
   });
 
   describe('GET /api/payments/create', () => {
-    it('should return pricing information', async () => {
+    it('publishes creation pricing only - there is no participation price', async () => {
       const response = await getPricing();
       const data = await response.json();
 
       expect(response.status).toBe(200);
       expect(data.pricing).toBeDefined();
-      expect(data.pricing.voteParticipation.amount).toBe(3);
       expect(data.pricing.voteCreation.amount).toBe(50);
+      // Not "priced at zero" - absent. A published ₪0 would still be a price.
+      expect('voteParticipation' in data.pricing).toBe(false);
       expect(data.tokenRate.rate).toBe(1);
       expect(data.paymentProvider).toBe('green_invoice');
     });
@@ -160,7 +161,7 @@ describe('Payments API Routes (Green Invoice)', () => {
 
       const request = new NextRequest('http://localhost:3000/api/payments/create', {
         method: 'POST',
-        body: JSON.stringify({ type: 'vote_participation', voteId: 'vote-123' }),
+        body: JSON.stringify({ type: 'vote_creation', voteTitle: 'Test Vote' }),
       });
       const response = await createPayment(request);
       const data = await response.json();
@@ -183,18 +184,23 @@ describe('Payments API Routes (Green Invoice)', () => {
       expect(data.error).toBe('Invalid payment type');
     });
 
-    it('should return 400 when voteId missing for participation', async () => {
+    it('rejects a vote_participation request - participation is free', async () => {
       (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
+      (getUserById as Mock).mockResolvedValue(mockUser);
 
       const request = new NextRequest('http://localhost:3000/api/payments/create', {
         method: 'POST',
-        body: JSON.stringify({ type: 'vote_participation' }),
+        body: JSON.stringify({ type: 'vote_participation', voteId: 'vote-123' }),
       });
       const response = await createPayment(request);
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('Vote ID is required for participation payment');
+      // Hebrew, because this reaches a resident: the rail is retired, not priced.
+      expect(data.error).toMatch(/[֐-׿]/);
+      expect(data.error).toContain('חינם');
+      // Never priced and never persisted - no payment row is opened.
+      expect(dbCreatePayment).not.toHaveBeenCalled();
     });
 
     it('should return 404 when user not found', async () => {
@@ -212,35 +218,10 @@ describe('Payments API Routes (Green Invoice)', () => {
       expect(data.error).toBe('User not found');
     });
 
-    it('should return 403 when identity score too low for voting', async () => {
-      (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
-      (getUserById as Mock).mockResolvedValue({ ...mockUser, identity_score: 30 });
-
-      const request = new NextRequest('http://localhost:3000/api/payments/create', {
-        method: 'POST',
-        body: JSON.stringify({ type: 'vote_participation', voteId: 'vote-123' }),
-      });
-      const response = await createPayment(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(403);
-      expect(data.error).toContain('Insufficient identity score');
-    });
-
-    it('should return 403 when not verified for voting', async () => {
-      (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
-      (getUserById as Mock).mockResolvedValue({ ...mockUser, verification_status: 'pending' });
-
-      const request = new NextRequest('http://localhost:3000/api/payments/create', {
-        method: 'POST',
-        body: JSON.stringify({ type: 'vote_participation', voteId: 'vote-123' }),
-      });
-      const response = await createPayment(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(403);
-      expect(data.error).toContain('GPS verification required');
-    });
+    // The identity-score and GPS-verification 403s that used to live here were
+    // participation gates. They now sit on the free path
+    // (services/verification/eligibility.ts), and vote creation has its own
+    // stricter gate at publish time (server/app/votes/create-vote.ts).
 
     it('should return existing payment when idempotency key matches', async () => {
       (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
@@ -252,12 +233,14 @@ describe('Payments API Routes (Green Invoice)', () => {
         currency: 'ILS',
       });
 
+      // No client-supplied idempotencyKey: the mocked lookup returns the existing
+      // row regardless of the key, so this holds both before and after plan 03-08
+      // removes the client override.
       const request = new NextRequest('http://localhost:3000/api/payments/create', {
         method: 'POST',
         body: JSON.stringify({
-          type: 'vote_participation',
-          voteId: 'vote-123',
-          idempotencyKey: 'key-123',
+          type: 'vote_creation',
+          voteTitle: 'Test Vote',
         }),
       });
       const response = await createPayment(request);
@@ -541,26 +524,32 @@ describe('Payments API Routes (Green Invoice)', () => {
       expect(data.replay).toBe(true);
     });
 
-    it('should handle transaction.completed: complete payment, accrue treasury, mint, record vote', async () => {
+    /** A settled ₪50 creation fee: the only payment that can reach this route. */
+    const mockCreationPayment = {
+      ...mockPayment,
+      type: 'vote_creation',
+      amount: 5000, // ₪50 in agorot
+      vote_id: null,
+      option_id: null,
+    };
+
+    it('a settled creation fee completes the payment, mints and emails - and credits no treasury', async () => {
       (paymentService.verifyWebhook as Mock).mockReturnValue(true);
       (paymentService.parseWebhookEvent as Mock).mockReturnValue({
         type: 'payment.succeeded',
         paymentId: 'txn_123',
-        amount: 300,
+        amount: 5000,
         metadata: { orderId: 'payment-123' },
       });
       (getWebhookEventByEventId as Mock).mockResolvedValue(null);
       (createWebhookEvent as Mock).mockResolvedValue(undefined);
-      (getPaymentById as Mock).mockResolvedValue(mockPayment);
+      (getPaymentById as Mock).mockResolvedValue(mockCreationPayment);
       (updatePaymentStatus as Mock).mockResolvedValue(undefined);
       (getUserById as Mock).mockResolvedValue(mockUser);
-      (recordTreasuryDeposit as Mock).mockResolvedValue('tx-1');
       (createEntitlement as Mock).mockResolvedValue(undefined);
       (qubikService.mintTokens as Mock).mockResolvedValue(undefined);
       (paymentService.getPaymentStatus as Mock).mockResolvedValue({ receiptUrl: 'https://greeninvoice.co.il/doc/123' });
       (emailService.sendPaymentReceiptEmail as Mock).mockResolvedValue(undefined);
-      (recordUserVote as Mock).mockResolvedValue(undefined);
-      (incrementVoteOption as Mock).mockResolvedValue(undefined);
       (updateWebhookEventStatus as Mock).mockResolvedValue(undefined);
 
       const request = createWebhookRequest({
@@ -573,23 +562,57 @@ describe('Payments API Routes (Green Invoice)', () => {
 
       expect(response.status).toBe(200);
       expect(data.received).toBe(true);
+      expect(markPaymentCompleted).toHaveBeenCalledTimes(1);
       expect(markPaymentCompleted).toHaveBeenCalledWith('payment-123', 'txn_123');
-      expect(recordTreasuryDeposit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          municipalityId: 'tel-aviv',
-          amountAgorot: 100,
-          paymentId: 'payment-123',
-          userId: 'user-123',
-          voteId: 'vote-123',
-        })
+      expect(createEntitlement).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'create_vote' })
       );
-      expect(createEntitlement).toHaveBeenCalled();
       expect(qubikService.mintTokens).toHaveBeenCalledWith({
         walletAddress: 'wallet-123',
-        amount: 1,
-        reason: 'vote_participation',
+        amount: 50,
+        reason: 'vote_creation',
       });
-      expect(recordUserVote).toHaveBeenCalled();
+      expect(emailService.sendPaymentReceiptEmail).toHaveBeenCalled();
+
+      // PAY-06: the ₪50 creation fee is 100% platform. The civic pool is funded by
+      // the vote's Bags.fm token, never by a fee.
+      expect(recordTreasuryDeposit).not.toHaveBeenCalled();
+      // A payment must never be the thing that records a ballot.
+      expect(recordUserVote).not.toHaveBeenCalled();
+      expect(incrementVoteOption).not.toHaveBeenCalled();
+    });
+
+    it('a legacy vote_participation payment settles without fulfilment', async () => {
+      (paymentService.verifyWebhook as Mock).mockReturnValue(true);
+      (paymentService.parseWebhookEvent as Mock).mockReturnValue({
+        type: 'payment.succeeded',
+        paymentId: 'txn_legacy',
+        amount: 300,
+        metadata: { orderId: 'payment-123' },
+      });
+      (getWebhookEventByEventId as Mock).mockResolvedValue(null);
+      (createWebhookEvent as Mock).mockResolvedValue(undefined);
+      // A pre-cfa5d25 row: still carries a vote_id and option_id.
+      (getPaymentById as Mock).mockResolvedValue(mockPayment);
+      (getUserById as Mock).mockResolvedValue(mockUser);
+      (updateWebhookEventStatus as Mock).mockResolvedValue(undefined);
+
+      const request = createWebhookRequest({
+        event_type: 'transaction.completed',
+        event_id: 'evt_legacy',
+        data: { id: 'txn_legacy', custom_data: { orderId: 'payment-123' } },
+      });
+      const response = await handleWebhook(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.received).toBe(true);
+      // Recognised, logged, and fulfilled in no way at all.
+      expect(recordUserVote).not.toHaveBeenCalled();
+      expect(incrementVoteOption).not.toHaveBeenCalled();
+      expect(recordTreasuryDeposit).not.toHaveBeenCalled();
+      expect(createEntitlement).not.toHaveBeenCalled();
+      expect(qubikService.mintTokens).not.toHaveBeenCalled();
     });
 
     it('should handle transaction.payment_failed event', async () => {
