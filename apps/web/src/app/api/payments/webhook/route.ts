@@ -11,9 +11,6 @@ import {
   updatePaymentStatus,
   createEntitlement,
   getUserById,
-  recordUserVote,
-  incrementVoteOption,
-  recordTreasuryDeposit,
   getWebhookEventByEventId,
   createWebhookEvent,
   updateWebhookEventStatus,
@@ -33,8 +30,12 @@ import { webhookLogger as log } from '@/lib/logger';
  *
  * Fulfilment on a successful payment notification (document issued):
  * - mark payment completed
- * - accrue ILS into the per-vote treasury ledger (funds the Bags.fm bag at resolution)
- * - mint SYNC tokens, record the vote, email a receipt
+ * - create the create_vote entitlement
+ * - mint SYNC tokens and email a receipt
+ *
+ * The only payment that can reach this route is a ₪50 vote creation. It credits no
+ * civic pool and records no ballot - free ballots are recorded by
+ * /api/votes/[id]/participate, never by a payment.
  */
 export async function POST(request: NextRequest) {
   let eventId: string | null = null;
@@ -117,37 +118,26 @@ export async function POST(request: NextRequest) {
           break;
         }
 
+        if (payment.type === 'vote_participation') {
+          // Participation has been free since cfa5d25; this rail can no longer create
+          // payments. A settled row here is a pre-cfa5d25 leftover. Mark it complete
+          // (already done by the atomic claim above) and fulfil nothing - the ballot,
+          // if any, was recorded by /api/votes/[id]/participate, not by this webhook.
+          log.warn('Legacy vote_participation payment settled - no fulfilment', { paymentId: payment.id });
+          break;
+        }
+
         // 1 ILS = 1 SYNC token; payment.amount is in agorot
         const tokensToMint = Math.floor(payment.amount / 100);
 
-        // === Treasury accrual (fiat ledger) ===
-        // Vote-participation money carries the vote_id so it can be batch-seeded
-        // into that vote's Bags.fm bag at resolution. Creation fees have no vote yet.
-        try {
-          const municipalityId = user.municipality_id || 'unassigned';
-          await recordTreasuryDeposit({
-            municipalityId,
-            amountAgorot: payment.amount,
-            paymentId: payment.id,
-            userId: user.id,
-            voteId: payment.type === 'vote_participation' ? payment.vote_id : null,
-            description:
-              payment.type === 'vote_participation'
-                ? `Vote participation deposit (vote ${payment.vote_id})`
-                : 'Vote creation fee deposit',
-          });
-        } catch (treasuryError) {
-          log.error('Failed to accrue treasury deposit', {
-            error: treasuryError,
-            paymentId: payment.id,
-          });
-          // Non-fatal: reconciliation can replay from payments + webhook_events
-        }
+        // No treasury accrual here. The ₪50 creation fee is 100% platform (PAY-06);
+        // the civic pool is funded by the vote's Bags.fm token, not by fees. Wiring a
+        // pool credit to a creation charge is what PAY-04 used to say and it is retired.
 
         // Entitlement
         await createEntitlement({
           user_id: user.id,
-          type: payment.type === 'vote_participation' ? 'vote' : 'create_vote',
+          type: 'create_vote',
           payment_id: payment.id,
           vote_id: payment.vote_id || null,
           amount: tokensToMint,
@@ -183,22 +173,6 @@ export async function POST(request: NextRequest) {
           });
         } catch (emailError) {
           log.error('Error sending receipt email', { error: emailError, userId: user.id });
-        }
-
-        // Record the vote
-        if (payment.type === 'vote_participation' && payment.vote_id && payment.option_id) {
-          try {
-            await recordUserVote({
-              user_id: user.id,
-              vote_id: payment.vote_id,
-              option_id: payment.option_id,
-              payment_id: payment.id,
-            });
-            await incrementVoteOption(payment.option_id);
-            log.info('Vote recorded', { voteId: payment.vote_id, optionId: payment.option_id, userId: user.id });
-          } catch (voteError) {
-            log.error('Error recording vote', { error: voteError, voteId: payment.vote_id, optionId: payment.option_id });
-          }
         }
 
         break;

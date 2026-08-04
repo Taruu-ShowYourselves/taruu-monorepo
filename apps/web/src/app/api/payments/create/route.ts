@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { randomUUID } from 'crypto';
 import { getSessionFromRequest } from '@/services/auth/session';
 import {
   getUserById,
@@ -11,8 +10,17 @@ import {
   getPaymentAmounts,
 } from '@/services/payments/greenInvoice';
 
+/** The only payment this product can create. Participation is free (cfa5d25). */
+const CREATABLE_PAYMENT_TYPE = 'vote_creation' as const;
+
+/**
+ * Retired rail. `payments.type` keeps this value in its database enum because
+ * historical rows exist, but no new participation payment can be created.
+ */
+const RETIRED_PAYMENT_TYPE = 'vote_participation';
+
 interface CreatePaymentRequest {
-  type: 'vote_participation' | 'vote_creation';
+  type: 'vote_creation';
   voteId?: string;
   optionId?: string;
   voteTitle?: string;
@@ -21,7 +29,8 @@ interface CreatePaymentRequest {
 
 /**
  * POST /api/payments/create
- * Create a Green Invoice hosted payment page for vote participation or creation
+ * Create a Green Invoice hosted payment page for a ₪50 vote creation.
+ * Participation is free, so `vote_participation` is rejected rather than priced.
  * Supports idempotency via idempotency_key
  */
 export async function POST(request: NextRequest) {
@@ -33,23 +42,27 @@ export async function POST(request: NextRequest) {
     }
 
     const body: CreatePaymentRequest = await request.json();
-    const { type, voteId, optionId, voteTitle, idempotencyKey } = body;
+    const { voteId, optionId, voteTitle, idempotencyKey } = body;
+    const requestedType: string = body.type;
+
+    // The participation rail is retired, not merely unpriced: say so instead of
+    // quoting ₪0, so a stale client learns the contract changed.
+    if (requestedType === RETIRED_PAYMENT_TYPE) {
+      return NextResponse.json(
+        { error: 'ההשתתפות בהצבעה חינם - אין תשלום ליצור.' },
+        { status: 400 }
+      );
+    }
 
     // Validate payment type
-    if (!type || !['vote_participation', 'vote_creation'].includes(type)) {
+    if (requestedType !== CREATABLE_PAYMENT_TYPE) {
       return NextResponse.json(
         { error: 'Invalid payment type' },
         { status: 400 }
       );
     }
 
-    // For vote participation, voteId is required
-    if (type === 'vote_participation' && !voteId) {
-      return NextResponse.json(
-        { error: 'Vote ID is required for participation payment' },
-        { status: 400 }
-      );
-    }
+    const type = CREATABLE_PAYMENT_TYPE;
 
     const user = await getUserById(session.userId);
 
@@ -57,21 +70,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Check identity score for voting
-    if (type === 'vote_participation' && user.identity_score < 40) {
-      return NextResponse.json(
-        { error: 'Insufficient identity score to vote. Minimum 40 required.' },
-        { status: 403 }
-      );
-    }
-
-    // Check verification status for voting
-    if (type === 'vote_participation' && user.verification_status !== 'verified') {
-      return NextResponse.json(
-        { error: 'GPS verification required before voting' },
-        { status: 403 }
-      );
-    }
+    // No identity/verification gate here. Those were participation gates and they
+    // now live on the free path (services/verification/eligibility.ts). Vote
+    // creation has its own, stricter server-side gate at publish time
+    // (server/app/votes/create-vote.ts) requiring a verified user with a municipality.
 
     // Generate or use provided idempotency key
     const paymentIdempotencyKey = idempotencyKey || `${user.id}-${type}-${voteId || 'create'}-${Date.now()}`;
@@ -93,14 +95,12 @@ export async function POST(request: NextRequest) {
     }
 
     const amounts = getPaymentAmounts();
-    const amount = type === 'vote_participation'
-      ? amounts.voteParticipation
-      : amounts.voteCreation;
+    const amount = amounts.voteCreation;
 
     // Create payment record in Supabase first (with pending status)
     const payment = await createPayment({
       user_id: user.id,
-      type: type as 'vote_participation' | 'vote_creation',
+      type,
       amount: amount * 100, // Store in agorot (cents)
       currency: 'ILS',
       status: 'pending',
@@ -117,27 +117,14 @@ export async function POST(request: NextRequest) {
     // Create Green Invoice hosted payment page
     const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
 
-    let paymentIntent;
-    if (type === 'vote_participation') {
-      paymentIntent = await paymentService.createVotePayment({
-        orderId: payment.id, // Use our payment ID as the order ID
-        voteId: voteId!,
-        voteTitle,
-        userId: user.id,
-        email: user.email,
-        name: userName,
-        municipality: user.municipality_id || undefined,
-      });
-    } else {
-      paymentIntent = await paymentService.createVoteCreationPayment({
-        orderId: payment.id,
-        voteTitle: voteTitle || 'הצבעה חדשה',
-        userId: user.id,
-        email: user.email,
-        name: userName,
-        municipality: user.municipality_id || undefined,
-      });
-    }
+    const paymentIntent = await paymentService.createVoteCreationPayment({
+      orderId: payment.id, // Use our payment ID as the order ID
+      voteTitle: voteTitle || 'הצבעה חדשה',
+      userId: user.id,
+      email: user.email,
+      name: userName,
+      municipality: user.municipality_id || undefined,
+    });
 
     return NextResponse.json({
       success: true,
@@ -153,10 +140,7 @@ export async function POST(request: NextRequest) {
         amount,
         currency: amounts.currency,
         syncTokens: amount,
-        description:
-          type === 'vote_participation'
-            ? 'השתתפות בהצבעה'
-            : 'יצירת הצבעה חדשה',
+        description: 'יצירת הצבעה חדשה',
       },
     });
   } catch (error) {
@@ -170,19 +154,14 @@ export async function POST(request: NextRequest) {
 
 /**
  * GET /api/payments/create
- * Get payment pricing information
+ * Get payment pricing information. Creation is the only priced action - there is
+ * no participation price to publish, because participation is free.
  */
 export async function GET() {
   const amounts = getPaymentAmounts();
 
   return NextResponse.json({
     pricing: {
-      voteParticipation: {
-        amount: amounts.voteParticipation,
-        currency: amounts.currency,
-        syncTokens: amounts.voteParticipation,
-        description: 'השתתפות בהצבעה',
-      },
       voteCreation: {
         amount: amounts.voteCreation,
         currency: amounts.currency,
