@@ -111,6 +111,8 @@ systemctl stop taruu-project-watcher.service >/dev/null 2>&1 || true
 rm -f /etc/systemd/system/taruu-project-watcher.timer \
   /etc/systemd/system/taruu-project-watcher.service
 rm -f /opt/taruu-agent/scripts/watch-project.mjs
+rm -rf /srv/taruu-agent/project-watcher
+sed -i '/^AGENT_PROJECT_WATCHER_STATE=/d' /etc/taruu-agent/agent.env 2>/dev/null || true
 systemctl daemon-reload
 
 install -d -o root -g root -m 0755 /opt/taruu-agent
