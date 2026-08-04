@@ -6,8 +6,21 @@
  */
 
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { NextRequest } from 'next/server';
 import { GET } from '@/app/api/treasury/[municipality]/transactions/route';
+
+const SRC = join(process.cwd(), 'src');
+
+/** Strip // and block comments so prose about the change is not read as code. */
+function code(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('//'))
+    .join('\n');
+}
 
 // Mock session service
 vi.mock('@/services/auth/session', () => ({
@@ -431,5 +444,48 @@ describe('Treasury Transactions API Routes', () => {
       expect(response.status).toBe(500);
       expect(data.error).toBe('Failed to fetch treasury transactions');
     });
+  });
+});
+
+/**
+ * Guarding SEC-02 at the source.
+ *
+ * The behavioural test above ('must not leak per-user identifiers on the
+ * municipality ledger', :158) proves the identifiers are absent from a MOCKED
+ * response. That is the right test for the behaviour, but it is not the test
+ * that catches the realistic regression: someone adding `userId: tx.user_id`
+ * back into the response mapping while extending the endpoint, and updating the
+ * mock fixture alongside it.
+ *
+ * So this asserts on the SOURCE. `readFileSync` + comment stripping follows the
+ * `dashboard-free-mvp.test.ts` precedent - the repo has no component-test setup
+ * and every requirement here is "this string must not exist", which is exactly
+ * what a regression would reintroduce.
+ *
+ * Shipped out of phase in 35b0709. This block is the lock, not the fix; the
+ * route is deliberately NOT modified.
+ */
+describe('SEC-02 source guard', () => {
+  const routeSource = code(
+    readFileSync(join(SRC, 'app/api/treasury/[municipality]/transactions/route.ts'), 'utf8')
+  );
+
+  it('does not map per-user identifiers into the response', () => {
+    expect(routeSource).not.toContain('userId:');
+    expect(routeSource).not.toContain('paymentId:');
+  });
+
+  it('does not read the per-user columns off a transaction row', () => {
+    expect(routeSource).not.toContain('tx.user_id');
+    expect(routeSource).not.toContain('tx.payment_id');
+  });
+
+  it('keeps the fail-closed metadata whitelist as the only path metadata takes', () => {
+    expect(routeSource).toContain('PUBLIC_METADATA_KEYS');
+    expect(routeSource).toContain('redactMetadata');
+  });
+
+  it('keeps the prototype-pollution guard on the whitelist lookup', () => {
+    expect(routeSource).toContain('Object.prototype.hasOwnProperty.call');
   });
 });
