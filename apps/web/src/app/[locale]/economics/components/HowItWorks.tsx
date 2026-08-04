@@ -217,14 +217,16 @@ export function HowItWorks() {
           />
         </div>
 
-        {/* Fee split - ink block callout */}
+        {/* Creation fee - ink block callout */}
         <div className={styles.feeNote}>
-          <span className={styles.feeNum}>70%</span>
+          <span className={styles.feeNum}>₪50</span>
           <div className={styles.feeBody}>
             <p className={styles.feeTitle}>
-              מכל עמלות המסחר זורמים לקרן הקהילתית של הרשות
+              עלות יצירת הצבעה חדשה, שמממנת את תפעול הפלטפורמה
             </p>
-            <span className={styles.feeSub}>30% מממנים את התחזוקה והפיתוח של הפלטפורמה</span>
+            <span className={styles.feeSub}>
+              הקרן הקהילתית מתמלאת מהשקעות חיצוניות ב-BAG של ההצבעה, לא מכסף של תושבים
+            </span>
           </div>
         </div>
       </div>

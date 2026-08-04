@@ -82,14 +82,14 @@ const flywheelSteps: FlywheelStep[] = [
   { id: 'coin', title: 'BAG נוצר ב-bags.fm', description: 'ההצבעה נרשמת בבלוקצ\'יין', icon: 'coin' },
   { id: 'external', title: 'תומך חיצוני', description: 'מזהה נושא שחשוב לו', icon: 'globe' },
   { id: 'trade', title: 'קונה את ה-BAG', description: 'תמיכה שמייצרת עמלות', icon: 'trade' },
-  { id: 'fees', title: 'עמלות מחולקות', description: '70% לקרן הרשות, 30% לפלטפורמה', icon: 'split' },
+  { id: 'fees', title: 'עמלות לקרן ההצבעה', description: 'עמלות המסחר ב-BAG מיועדות לקרן של אותה הצבעה', icon: 'split' },
   { id: 'result', title: 'תוצאה נקבעת', description: 'תעודה דיגיטלית לכל משתתף', icon: 'award' },
 ];
 
 const revenueStreams = [
   { stream: 'יצירת הצבעה', source: '₪50 להצבעה חדשה', allocation: 'תפעול הפלטפורמה' },
-  { stream: 'עמלות מסחר', source: '1% על כל עסקה', allocation: '70% לקרן · 30% לפלטפורמה' },
-  { stream: 'רכישות חיצוניות', source: 'תמיכה → BAGS ב-bags.fm', allocation: '100% לקופת הקרן' },
+  { stream: 'עמלות מסחר', source: 'מסחר ב-BAG של ההצבעה', allocation: 'מיועד לקרן ההצבעה' },
+  { stream: 'רכישות חיצוניות', source: 'תמיכה → BAGS ב-bags.fm', allocation: 'מזין את קופת הקרן' },
 ];
 
 const sustainabilityPoints = [
