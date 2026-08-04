@@ -35,6 +35,30 @@ The accountant must confirm in writing which GI document type is correct for eac
   payment-request flow (already live for merch). Confirm whether this document type is
   appropriate for off-session MIT charges against a private payer, or whether a different
   GI document type or API flow is required for recurring card-on-file charges.
+- [ ] **Private-payer fields on the ₪50 vote-creation document (PAY-07):** These are the
+  **only** fields the app sends today when it opens the hosted form for the ₪50 charge
+  (`services/payments/greenInvoice.ts`, `createPaymentForm`):
+
+  | Field | Value sent |
+  |---|---|
+  | `type` | `320` (payment request) |
+  | `lang` | `he` |
+  | `currency` | `ILS` |
+  | `sum` | `50` |
+  | `description` | `יצירת הצבעה: <vote title>` |
+  | `client` | `{ name: <user's name>, emails: [<user's email>] }` |
+  | `income[0]` | `{ description: <same as above>, quantity: 1, price: 50, currency: 'ILS', vatType: 0 }` |
+  | `remarks` | `Payment <our internal payment id>` |
+  | `custom` | `<our internal payment id>` |
+
+  Two questions, both requiring a written answer:
+  1. Which **additional** fields (if any) must the document carry for a **private** (non-
+     business) Israeli payer for the receipt to be lawful and complete? Name each required
+     field exactly as Green Invoice's API names it - the app will send whatever is listed
+     and invents nothing.
+  2. Is **`vatType: 0`** correct for this charge? State which VAT treatment applies to a
+     ₪50 one-time platform fee charged to a private Israeli payer, and which `vatType`
+     value expresses it. If ₪50 is VAT-inclusive, state the VAT component in ₪.
 
 ---
 

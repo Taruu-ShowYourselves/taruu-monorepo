@@ -9,7 +9,7 @@
  * - POST /api/payments/webhook - Handle Green Invoice notifications
  */
 
-import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import { NextRequest } from 'next/server';
 import { POST as createPayment, GET as getPricing } from '@/app/api/payments/create/route';
 import { GET as getPaymentStatus } from '@/app/api/payments/[id]/status/route';
@@ -45,6 +45,8 @@ vi.mock('@/services/payments/greenInvoice', () => ({
     createVoteCreationPayment: vi.fn(),
     getPaymentStatus: vi.fn(),
     verifyWebhook: vi.fn(),
+    confirmDocumentIssued: vi.fn(),
+    extractDocumentId: vi.fn(),
     parseWebhookEvent: vi.fn(),
   },
   getPaymentAmounts: vi.fn(() => ({
@@ -68,9 +70,16 @@ vi.mock('@/services/email', () => ({
   },
 }));
 
-// Mock logger
+// Mock logger. `logger` is exported too: the SEC-03 describe below exercises the
+// REAL greenInvoice service, which logs through it.
 vi.mock('@/lib/logger', () => ({
   webhookLogger: {
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+  },
+  logger: {
+    debug: vi.fn(),
     error: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
@@ -490,15 +499,171 @@ describe('Payments API Routes (Green Invoice)', () => {
       });
     };
 
-    it('should return 401 when signature verification fails', async () => {
-      (paymentService.verifyWebhook as Mock).mockReturnValue(false);
+    /** A delivery that presents NO header - the shape Green Invoice's hosted form sends. */
+    const createHeaderlessRequest = (payload: object, url = 'http://localhost:3000/api/payments/webhook') =>
+      new NextRequest(url, { method: 'POST', body: JSON.stringify(payload) });
 
-      const request = createWebhookRequest({ event_type: 'transaction.completed' }, 'bad');
-      const response = await handleWebhook(request);
+    beforeEach(() => {
+      // Default: the payload carries a real Green Invoice document id, and Green
+      // Invoice does NOT vouch for it unless a test says so. Fail-closed default.
+      (paymentService.extractDocumentId as Mock).mockReturnValue('txn_123');
+      (paymentService.confirmDocumentIssued as Mock).mockResolvedValue(false);
+    });
+
+    /** Mocks for a delivery that reaches fulfilment, so auth is the only variable. */
+    const stubSettledDelivery = (documentId: string | null = 'txn_123') => {
+      (paymentService.parseWebhookEvent as Mock).mockReturnValue({
+        type: 'payment.succeeded',
+        paymentId: documentId ?? 'payment-123',
+        amount: 5000,
+        metadata: { orderId: 'payment-123' },
+      });
+      (paymentService.extractDocumentId as Mock).mockReturnValue(documentId);
+      (getWebhookEventByEventId as Mock).mockResolvedValue(null);
+      (createWebhookEvent as Mock).mockResolvedValue(undefined);
+      (getPaymentById as Mock).mockResolvedValue({
+        ...mockPayment,
+        type: 'vote_creation',
+        amount: 5000,
+        vote_id: null,
+        option_id: null,
+      });
+      (getUserById as Mock).mockResolvedValue(mockUser);
+      (createEntitlement as Mock).mockResolvedValue(undefined);
+      (qubikService.mintTokens as Mock).mockResolvedValue(undefined);
+      (paymentService.getPaymentStatus as Mock).mockResolvedValue({ receiptUrl: 'https://x/1' });
+      (emailService.sendPaymentReceiptEmail as Mock).mockResolvedValue(undefined);
+      (updateWebhookEventStatus as Mock).mockResolvedValue(undefined);
+    };
+
+    it('accepts a delivery carrying a valid x-greeninvoice-token header', async () => {
+      (paymentService.verifyWebhook as Mock).mockReturnValue(true);
+      stubSettledDelivery();
+
+      const response = await handleWebhook(
+        createWebhookRequest({ event_id: 'evt_hdr', id: 'txn_123', custom: 'payment-123' })
+      );
+
+      expect(response.status).toBe(200);
+      expect(markPaymentCompleted).toHaveBeenCalledTimes(1);
+      // The header short-circuits factor 2: no Green Invoice round-trip at all.
+      expect(paymentService.confirmDocumentIssued).not.toHaveBeenCalled();
+    });
+
+    it('accepts a header-less delivery whose document Green Invoice confirms', async () => {
+      (paymentService.verifyWebhook as Mock).mockReturnValue(false);
+      stubSettledDelivery('gi-doc-9');
+      (paymentService.confirmDocumentIssued as Mock).mockResolvedValue(true);
+
+      const response = await handleWebhook(
+        createHeaderlessRequest({ event_id: 'evt_conf', id: 'gi-doc-9', custom: 'payment-123' })
+      );
+
+      expect(response.status).toBe(200);
+      expect(paymentService.confirmDocumentIssued).toHaveBeenCalledWith('gi-doc-9');
+      expect(markPaymentCompleted).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects a header-less delivery with no confirmable document', async () => {
+      (paymentService.verifyWebhook as Mock).mockReturnValue(false);
+      stubSettledDelivery('gi-doc-forged');
+      (paymentService.confirmDocumentIssued as Mock).mockResolvedValue(false);
+
+      const response = await handleWebhook(
+        createHeaderlessRequest({ event_id: 'evt_forged', id: 'gi-doc-forged', custom: 'payment-123' })
+      );
       const data = await response.json();
 
       expect(response.status).toBe(401);
-      expect(data.error).toBe('Invalid token');
+      expect(data.error).toBe('Unauthorized');
+      // Guessing an order id must mutate nothing.
+      expect(markPaymentCompleted).not.toHaveBeenCalled();
+      expect(createWebhookEvent).not.toHaveBeenCalled();
+    });
+
+    it('rejects a delivery whose secret arrives as a ?token= query parameter', async () => {
+      // The regression that would reintroduce the forbidden transport. verifyWebhook
+      // is held to its real header-only contract: a query parameter never matches.
+      const secret = 'shared-secret-value';
+      (paymentService.verifyWebhook as Mock).mockImplementation(
+        (req: Request) => req.headers.get('x-greeninvoice-token') === secret
+      );
+      stubSettledDelivery('gi-doc-9');
+      (paymentService.confirmDocumentIssued as Mock).mockResolvedValue(false);
+
+      const response = await handleWebhook(
+        createHeaderlessRequest(
+          { event_id: 'evt_qs', id: 'gi-doc-9', custom: 'payment-123' },
+          `http://localhost:3000/api/payments/webhook?token=${secret}`
+        )
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.error).toBe('Unauthorized');
+      expect(markPaymentCompleted).not.toHaveBeenCalled();
+    });
+
+    it('a duplicate webhook_events insert (23505) is a replay', async () => {
+      (paymentService.verifyWebhook as Mock).mockReturnValue(true);
+      stubSettledDelivery();
+      (createWebhookEvent as Mock).mockRejectedValue(
+        Object.assign(new Error('duplicate key value violates unique constraint'), { code: '23505' })
+      );
+
+      const response = await handleWebhook(
+        createWebhookRequest({ event_id: 'evt_dup', id: 'txn_123', custom: 'payment-123' })
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.replay).toBe(true);
+      expect(data.idempotent).toBe(true);
+    });
+
+    it('a non-23505 database failure returns 5xx so Green Invoice retries', async () => {
+      (paymentService.verifyWebhook as Mock).mockReturnValue(true);
+      stubSettledDelivery();
+      (createWebhookEvent as Mock).mockRejectedValue(
+        Object.assign(new Error('connection failure'), { code: '08006' })
+      );
+
+      const response = await handleWebhook(
+        createWebhookRequest({ event_id: 'evt_down', id: 'txn_123', custom: 'payment-123' })
+      );
+
+      // A 200 here would tell Green Invoice to stop retrying and the delivery
+      // would be lost. An outage is not a replay.
+      expect(response.status).toBeGreaterThanOrEqual(500);
+      expect(markPaymentCompleted).not.toHaveBeenCalled();
+    });
+
+    it('stores the Green Invoice document id, not our order id', async () => {
+      (paymentService.verifyWebhook as Mock).mockReturnValue(true);
+      stubSettledDelivery('gi-doc-9');
+
+      const response = await handleWebhook(
+        createWebhookRequest({ event_id: 'evt_doc', id: 'gi-doc-9', custom: 'order-1' })
+      );
+
+      expect(response.status).toBe(200);
+      expect(markPaymentCompleted).toHaveBeenCalledWith('payment-123', 'gi-doc-9');
+    });
+
+    it('leaves provider_id untouched when the payload carries no document id', async () => {
+      (paymentService.verifyWebhook as Mock).mockReturnValue(true);
+      // Only `custom` - Green Invoice sent no document id at all.
+      stubSettledDelivery(null);
+
+      const response = await handleWebhook(
+        createWebhookRequest({ event_id: 'evt_nodoc', custom: 'order-1' })
+      );
+
+      expect(response.status).toBe(200);
+      // `undefined`, never 'order-1': markPaymentCompleted only writes provider_id
+      // when the argument is truthy, so the column stays empty rather than holding
+      // our own id (PAY-07).
+      expect(markPaymentCompleted).toHaveBeenCalledWith('payment-123', undefined);
     });
 
     it('should return success on replay (idempotent)', async () => {
@@ -734,6 +899,113 @@ describe('Payments API Routes (Green Invoice)', () => {
 
       expect(response.status).toBe(500);
       expect(data.error).toBe('Webhook processing failed');
+    });
+  });
+
+  /**
+   * The two authenticity factors themselves, exercised against the REAL service
+   * (the rest of this file mocks it). These are the assertions that would fail if
+   * anyone reintroduced the secret-in-a-URL transport.
+   */
+  describe('webhook authenticity factors (SEC-03)', () => {
+    type GreenInvoiceModule = typeof import('@/services/payments/greenInvoice');
+    const SECRET = 'unit-test-webhook-secret';
+    let actual: GreenInvoiceModule;
+
+    beforeAll(async () => {
+      // Credentials must exist before the real module graph is first imported:
+      // services/greenInvoice reads them into a module-level config.
+      vi.stubEnv('GREENINVOICE_API_KEY_ID', 'test-key-id');
+      vi.stubEnv('GREENINVOICE_API_SECRET', 'test-api-secret');
+      actual = await vi.importActual<GreenInvoiceModule>('@/services/payments/greenInvoice');
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    const requestWith = (init: { header?: string; url?: string }) =>
+      new Request(init.url ?? 'http://localhost:3000/api/payments/webhook', {
+        method: 'POST',
+        headers: init.header === undefined ? {} : { 'x-greeninvoice-token': init.header },
+      });
+
+    describe('verifyWebhook', () => {
+      it('accepts a matching x-greeninvoice-token header', () => {
+        vi.stubEnv('GREENINVOICE_WEBHOOK_SECRET', SECRET);
+        expect(actual.verifyWebhook(requestWith({ header: SECRET }))).toBe(true);
+      });
+
+      it('rejects a secret that arrives as a ?token= query parameter', () => {
+        vi.stubEnv('GREENINVOICE_WEBHOOK_SECRET', SECRET);
+        const request = requestWith({
+          url: `http://localhost:3000/api/payments/webhook?token=${SECRET}`,
+        });
+        // The header is the only accepted transport. A URL secret leaks through
+        // referrers, proxy logs and edge request logging, so it must never match.
+        expect(actual.verifyWebhook(request)).toBe(false);
+      });
+
+      it('rejects a wrong header of the same length, and one of a different length', () => {
+        vi.stubEnv('GREENINVOICE_WEBHOOK_SECRET', SECRET);
+        expect(actual.verifyWebhook(requestWith({ header: 'x'.repeat(SECRET.length) }))).toBe(false);
+        expect(actual.verifyWebhook(requestWith({ header: SECRET + 'extra' }))).toBe(false);
+        expect(actual.verifyWebhook(requestWith({ header: undefined }))).toBe(false);
+      });
+
+      it('fails closed in production when no secret is configured, open outside it', () => {
+        vi.stubEnv('GREENINVOICE_WEBHOOK_SECRET', '');
+        vi.stubEnv('NODE_ENV', 'production');
+        expect(actual.verifyWebhook(requestWith({ header: 'anything' }))).toBe(false);
+
+        vi.stubEnv('NODE_ENV', 'development');
+        expect(actual.verifyWebhook(requestWith({ header: 'anything' }))).toBe(true);
+        vi.unstubAllEnvs();
+      });
+    });
+
+    describe('extractDocumentId', () => {
+      it('returns the Green Invoice document id across the fields GI may use', () => {
+        expect(actual.extractDocumentId({ id: 'doc-1', custom: 'order-1' })).toBe('doc-1');
+        expect(actual.extractDocumentId({ documentId: 'doc-2' })).toBe('doc-2');
+        expect(actual.extractDocumentId({ paymentId: 'doc-3' })).toBe('doc-3');
+      });
+
+      it('returns null rather than falling back to our own order id', () => {
+        expect(actual.extractDocumentId({ custom: 'order-1' })).toBeNull();
+        expect(actual.extractDocumentId({ id: '', custom: 'order-1' })).toBeNull();
+        expect(actual.extractDocumentId({})).toBeNull();
+      });
+    });
+
+    describe('confirmDocumentIssued', () => {
+      it('resolves true when Green Invoice returns the document', async () => {
+        vi.stubGlobal(
+          'fetch',
+          vi.fn(async (input: unknown) =>
+            String(input).includes('/account/token')
+              ? { ok: true, headers: { get: () => 'jwt-for-tests' }, json: async () => ({}) }
+              : { ok: true, json: async () => ({ id: 'doc-1' }) }
+          )
+        );
+
+        await expect(actual.confirmDocumentIssued('doc-1')).resolves.toBe(true);
+      });
+
+      it('resolves false without throwing when the lookup fails', async () => {
+        vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('network down'); }));
+
+        // Best-effort by design: the caller fails closed on false.
+        await expect(actual.confirmDocumentIssued('doc-1')).resolves.toBe(false);
+      });
+
+      it('resolves false for an empty document id without calling Green Invoice', async () => {
+        const fetchMock = vi.fn();
+        vi.stubGlobal('fetch', fetchMock);
+
+        await expect(actual.confirmDocumentIssued('')).resolves.toBe(false);
+        expect(fetchMock).not.toHaveBeenCalled();
+      });
     });
   });
 });
