@@ -21,10 +21,23 @@ import { webhookLogger as log } from '@/lib/logger';
  * POST /api/payments/webhook
  * Handle Green Invoice payment notifications.
  *
- * Security:
- * - Shared-secret token auth (`?token=` query or `x-greeninvoice-token` header;
- *   constant-time compare, fail-closed in production). Green Invoice's hosted-form
- *   notify supports only a URL, so the secret rides in the query string.
+ * Security - a delivery must satisfy ONE of two independent factors (SEC-03):
+ * - Factor 1: the shared secret in the `x-greeninvoice-token` header, compared in
+ *   constant time. The header is the only accepted transport; no secret is ever
+ *   placed in the notify URL, and a secret arriving as a query parameter is
+ *   ignored. Unset secret = fail closed in production, open outside it (dev).
+ * - Factor 2: Green Invoice vouches for the document. The hosted form cannot
+ *   attach a header, so a real notify is treated as an untrusted ping: the route
+ *   re-fetches the claimed document over the authenticated Green Invoice API
+ *   before mutating anything. Guessing an order id achieves nothing, because an
+ *   attacker cannot make Green Invoice produce a document that was never issued.
+ * Neither factor holding is a 401 and nothing is mutated.
+ *
+ * Fail closed on the database too: only SQLSTATE 23505 (a concurrent delivery won
+ * the `webhook_events` insert) is a replay. Any other database failure returns 5xx
+ * so Green Invoice retries - a 200 would tell it to stop and the delivery would be
+ * lost.
+ *
  * - event_id tracking (uniqueness - prevents duplicate processing).
  * - Idempotent payment processing (safe retries).
  *
@@ -41,15 +54,29 @@ export async function POST(request: NextRequest) {
   let eventId: string | null = null;
 
   try {
-    // Verify webhook authenticity (shared secret) BEFORE reading the body.
-    if (!paymentService.verifyWebhook(request)) {
-      log.error('Webhook auth failed - bad or missing token');
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
+    // The body must be read before the second factor can run: factor 2 needs the
+    // document id the payload claims. A malformed body still lands in the catch.
     const payload = await request.text();
     const rawPayload = JSON.parse(payload);
     const event: PaymentWebhookEvent = paymentService.parseWebhookEvent(rawPayload);
+    const documentId = paymentService.extractDocumentId(rawPayload) ?? null;
+
+    // Factor 1: the shared secret, constant-time, HEADER ONLY (never a query
+    // parameter). Factor 2: make Green Invoice vouch for the document over the
+    // authenticated API. The hosted form cannot attach a header, so factor 2 is
+    // what actually authenticates production notifies; factor 1 covers any caller
+    // that can. verifyWebhook already fails open outside production when no secret
+    // is configured, so local mock checkout keeps working without a Green Invoice
+    // round-trip - there is deliberately no second dev escape hatch here.
+    const headerOk = paymentService.verifyWebhook(request);
+    const authenticated =
+      headerOk ||
+      (documentId !== null && (await paymentService.confirmDocumentIssued(documentId)));
+
+    if (!authenticated) {
+      log.error('Webhook auth failed - no valid header and no confirmable document');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     // === REPLAY / DUPLICATE PREVENTION ===
     const payloadHash = createHash('sha256').update(payload).digest('hex');
@@ -79,13 +106,17 @@ export async function POST(request: NextRequest) {
           status: 'pending',
         });
       } catch (insertError) {
-        // Unique-constraint race: a concurrent delivery of the same event won the
-        // insert. Treat this delivery as a replay and let the winner process it.
-        log.info('Concurrent webhook insert detected - treating as replay', {
-          eventId: generatedEventId,
-          error: insertError instanceof Error ? insertError.message : insertError,
-        });
-        return NextResponse.json({ received: true, idempotent: true, replay: true });
+        const code = (insertError as { code?: string })?.code;
+        if (code === '23505') {
+          // A concurrent delivery of the same event won the insert. Let the winner
+          // process it; this delivery is a genuine replay.
+          log.info('Concurrent webhook insert - treating as replay', { eventId: generatedEventId });
+          return NextResponse.json({ received: true, idempotent: true, replay: true });
+        }
+        // Any other database failure must NOT look like a replay: a 200 tells Green
+        // Invoice to stop retrying and the delivery is lost. Fail closed and let it retry.
+        log.error('Webhook event insert failed', { eventId: generatedEventId, code });
+        return NextResponse.json({ error: 'Webhook processing failed' }, { status: 503 });
       }
     }
 
@@ -106,10 +137,20 @@ export async function POST(request: NextRequest) {
         // that flips the row runs fulfilment - Green Invoice retries the notify on
         // any non-2xx, so a TOCTOU status read would double-credit treasury +
         // double-mint tokens. The loser is idempotent.
-        const claimed = await markPaymentCompleted(payment.id, event.paymentId);
+        // provider_id gets a REAL Green Invoice document id or nothing at all.
+        // `event.paymentId` falls back to our own order id (see parseWebhookEvent),
+        // and seeding the column with our own id would make Phase 4's
+        // reconciliation match our id against itself (PAY-07).
+        const claimed = await markPaymentCompleted(payment.id, documentId ?? undefined);
         if (!claimed) {
           log.info('Payment already processed (idempotent)', { paymentId: payment.id });
           return NextResponse.json({ received: true, idempotent: true });
+        }
+
+        if (!documentId) {
+          log.warn('Settled payment has no Green Invoice document id - reconciliation will flag it', {
+            paymentId: payment.id,
+          });
         }
 
         const user = await getUserById(payment.user_id);
@@ -160,9 +201,11 @@ export async function POST(request: NextRequest) {
           log.warn('User has no wallet address - cannot mint tokens', { userId: user.id, tokensToMint });
         }
 
-        // Receipt email (best-effort)
+        // Receipt email (best-effort). getPaymentStatus expects a Green Invoice
+        // document id, so prefer the real one; `event.paymentId` may be our own
+        // order id, which GI cannot resolve.
         try {
-          const paymentStatus = await paymentService.getPaymentStatus(event.paymentId);
+          const paymentStatus = await paymentService.getPaymentStatus(documentId ?? event.paymentId);
           await emailService.sendPaymentReceiptEmail({
             to: user.email,
             firstName: user.first_name || 'משתמש',

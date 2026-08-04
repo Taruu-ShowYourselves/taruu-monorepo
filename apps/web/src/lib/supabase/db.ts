@@ -1259,6 +1259,13 @@ export async function getWebhookEventByEventId(
 /**
  * Record a new webhook event before processing.
  * This creates a pending record that blocks duplicate processing.
+ *
+ * The thrown error carries Postgres's SQLSTATE on `.code`. The payments webhook
+ * discriminates `23505` - a concurrent delivery won the `UNIQUE(event_id)` insert,
+ * which is a genuine replay - from every other failure, which must produce a 5xx so
+ * Green Invoice retries instead of treating a database outage as a duplicate. Same
+ * discrimination as `recordUserVoteOnce`; without propagating the code, the caller
+ * cannot tell the two apart.
  */
 export async function createWebhookEvent(
   eventData: InsertTables<'webhook_events'>
@@ -1269,7 +1276,13 @@ export async function createWebhookEvent(
     .select()
     .single();
 
-  if (error) throw new Error(`Failed to create webhook event: ${error.message}`);
+  if (error) {
+    const failure: Error & { code?: string } = new Error(
+      `Failed to create webhook event: ${error.message}`
+    );
+    failure.code = error.code;
+    throw failure;
+  }
   return data;
 }
 
