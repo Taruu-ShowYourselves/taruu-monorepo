@@ -86,5 +86,5 @@ try {
 }
 
 process.stdout.write(
-  `${issueUrl}\nMove the Project #${projectNumber} card from Todo to In Progress when OpenClaw should start.\n`,
+  `${issueUrl}\nAdded to Project #${projectNumber} as Todo. Nothing starts on its own: assign the issue to yourself and comment "openclaw work" on it when OpenClaw should begin.\n`,
 );

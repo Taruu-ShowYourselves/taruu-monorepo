@@ -1,6 +1,6 @@
 ---
 name: dispatch-prd
-description: Turn the current Claude session into a complete implementation PRD, create a GitHub issue, and add it to the delivery project for manual In Progress dispatch.
+description: Turn the current Claude session into a complete implementation PRD, create a GitHub issue, and add it to the delivery project. Work starts only when the owner comments openclaw work on the issue.
 argument-hint: "[short issue title]"
 disable-model-invocation: true
 allowed-tools:
@@ -34,8 +34,10 @@ hint, not a replacement for the requirements discussed in the session.
    ```
 
 7. Report the issue URL and tell the user that the card is waiting in **Todo**.
-   Moving the Project #2 card to **In Progress** is the only implementation
-   dispatch signal. Do not call OpenClaw or move the card yourself.
+   An `openclaw work` comment written by the assigned owner on the issue is
+   the only implementation dispatch signal. Do not call OpenClaw, do not post
+   that comment yourself, and do not rely on the board: moving a card starts
+   nothing.
 
 Never include API keys, tokens, private credentials, raw production data, or
 personal identity documents in the PRD.
