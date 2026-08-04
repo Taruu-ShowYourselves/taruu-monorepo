@@ -117,14 +117,15 @@ completed: 2026-08-04
 
 ## Issues Encountered
 
-**Eight tests in `payments.test.ts` are red at handoff, and none of them are mine.** All eight are in the `POST /api/payments/webhook` describe — plan 03-07's surface, being rewritten by a concurrent executor in this same worktree right now. The causal chain is measured, not assumed:
+**A transient 8-test red window in `payments.test.ts`, none of it mine — resolved before handoff.** All eight were in the `POST /api/payments/webhook` describe — plan 03-07's surface, being rewritten by a concurrent executor in this same worktree. They went green on their own the moment 03-07 landed its Task 3 test rewrite; the final full suite is **75 files, 968 tests, all passing**. The causal chain is measured, not assumed:
 
 - Immediately after my Task 2 commit, `payments.test.ts` ran **28/28 green**.
 - The sibling then committed `73a3663` (`fix(03-07): take the webhook secret out of the URL…`) and left `apps/web/src/app/api/payments/webhook/route.ts` with 63 uncommitted insertions.
 - The failures are of the form `expected 500 to be 404` — the rewritten route now calls `confirmDocumentIssued`, which the not-yet-rewritten test file does not mock. Plan 03-07's Task 3 rewrites exactly these cases; this is its RED window, anticipated by `03-VALIDATION.md`.
-- My changes touch the **create** route only. All 7 tests in the `POST /api/payments/create` describe pass (`-t "POST /api/payments/create"` → 7 passed, 21 skipped).
+- My changes touch the **create** route only. All 7 tests in the `POST /api/payments/create` describe passed throughout (`-t "POST /api/payments/create"` → 7 passed, 21 skipped).
+- 03-07 then rewrote the webhook cases and the whole suite went green without a single change from me.
 
-Per the scope-boundary rule I did not touch them. `git diff apps/web/src/__tests__/api/payments.test.ts` is **empty** — the file 03-07 owns this wave was never opened for writing.
+Per the scope-boundary rule I did not touch them, and did not restart the build hunting for more. **The last commit to touch `apps/web/src/__tests__/api/payments.test.ts` is `b2f10d1` (plan 03-02).** None of my three commits appear in that file's history; `git show --stat` on each confirms one file per commit, all mine. (The file now carries 170 uncommitted insertions in the shared worktree — that is 03-07's in-flight rewrite, not mine.)
 
 ## Out of Scope — Observed, Not Fixed
 
@@ -137,7 +138,7 @@ None — no external service configuration required.
 ## Next Phase Readiness
 
 - **SEC-04 is closed in code.** The one behaviour a unit test cannot prove is genuine concurrency against the real `UNIQUE(idempotency_key)` constraint; `03-VALIDATION.md` already records it as a manual check ("double-click the create button; confirm exactly one `payments` row and one redirect").
-- **Plan 03-07 is unaffected by this work** and its files are untouched: `payments.test.ts`, `greenInvoice.ts` and `webhook/route.ts` carry zero changed lines from any of my three commits. Its Task 3 rewrite will take the suite green again.
+- **Plan 03-07 is unaffected by this work** and its files are untouched: `payments.test.ts`, `greenInvoice.ts` and `webhook/route.ts` carry zero changed lines from any of my three commits. Its Task 3 rewrite landed during my run and the suite is green.
 - **Phase 4 GO-02 reconciliation gets a cleaner ledger**: a retried creation no longer leaves an orphan pending row behind.
 
 ## Verification
@@ -147,7 +148,7 @@ None — no external service configuration required.
 | `pnpm --filter @sync/web typecheck` | exit 0 |
 | `pnpm --filter @sync/web test -- src/__tests__/services/payment-idempotency.test.ts` | 23 passed (≥12 required) |
 | `pnpm --filter @sync/web test -- src/__tests__/api/payments.test.ts` (after Task 2) | 28 passed |
-| `pnpm --filter @sync/web test` (full, at handoff) | 953 passed / 8 failed — all 8 in 03-07's webhook describe, mid-rewrite |
+| `pnpm --filter @sync/web test` (full, at handoff) | **exit 0 — 75 files, 968 tests, all passing** (baseline was 74/938; my delta is +1 file, +23 tests) |
 | `grep -rn "Date.now()" apps/web/src/app/api/payments/` | no matches |
 | `grep -c "Date.now"` in `idempotency.ts` | 0 |
 | `grep -cE "Math.random\|randomUUID\|crypto.getRandomValues"` in `idempotency.ts` | 0 |
