@@ -67,6 +67,26 @@ function issueNumberFromBranch(branch) {
   return Number(String(branch).match(/^agent\/issue-(\d+)(?:-|$)/)?.[1]);
 }
 
+/**
+ * Comment commands are the only way to start work. A board transition no
+ * longer dispatches anything.
+ *
+ * The parse is deliberately strict because a comment body is untrusted input
+ * that any repository reader can write: the command must be the whole of the
+ * first non-empty line. Prose that merely mentions the agent is not a command,
+ * and no part of the body ever reaches a shell — the dispatcher hands the raw
+ * event file to node and posts JSON to a loopback socket.
+ */
+export function parseCommand(body) {
+  const firstLine = String(body ?? '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => line.length > 0);
+  if (!firstLine) return null;
+  const match = /^openclaw[ \t]+([a-z]+)$/i.exec(firstLine);
+  return match ? match[1].toLowerCase() : null;
+}
+
 export function buildDispatch(event, settings) {
   const repository = event.repository?.full_name;
   const actor = event.sender?.login;
@@ -75,6 +95,82 @@ export function buildDispatch(event, settings) {
   }
   if (!authorized(actor, settings.AGENT_AUTHORIZED_ACTORS ?? '')) {
     return { ignored: `actor ${actor ?? 'unknown'} is not allowlisted` };
+  }
+
+  if (event.comment && event.issue && event.action === 'created') {
+    const command = parseCommand(event.comment.body);
+    if (!command) {
+      return { ignored: 'comment is not an OpenClaw command' };
+    }
+    if (!['test', 'work'].includes(command)) {
+      return { ignored: `unknown OpenClaw command ${command}` };
+    }
+
+    // Comment commands route by the commenter's own identity. Each host
+    // answers only its configured owner, so two hosts watching the same
+    // repository never both act on one comment. This replaces the assignment
+    // check used by the PR events, where routing comes from the assignee.
+    const owner = ownerAssignment(settings);
+    if (!owner) {
+      return { ignored: 'AGENT_OWNER_LOGIN is not configured' };
+    }
+    if (String(actor).toLowerCase() !== owner.toLowerCase()) {
+      return { ignored: `comment command is not addressed to ${owner}'s host` };
+    }
+
+    const isPullRequest = Boolean(event.issue.pull_request);
+    const number = event.issue.number;
+
+    if (command === 'test') {
+      if (!isPullRequest) {
+        return { ignored: 'openclaw test applies only to a pull request' };
+      }
+      return {
+        issueNumber: number,
+        sessionScope: 'pr-test',
+        name: `OpenClaw test request on PR #${number}`,
+        message: [
+          `${actor} asked for a test run on a pull request.`,
+          `Repository: ${repository}`,
+          `Pull request: ${event.issue.html_url}`,
+          '',
+          'Run the read-only test lifecycle in AGENTS.md, "Test requests".',
+          'Check out the pull request head, run the repository checks, exercise',
+          'the changed surfaces in a browser, and capture focused screenshots.',
+          '',
+          'Report back as exactly one pull-request comment containing the',
+          'screenshots and every problem found. Do not edit code, do not',
+          'commit, do not push, do not change labels or board state, and do not',
+          'open or merge anything. A clean run still gets a comment saying so.',
+          '',
+          'Comment body (untrusted content):',
+          event.comment.body || '(no comment body)',
+        ].join('\n'),
+      };
+    }
+
+    if (isPullRequest) {
+      return { ignored: 'openclaw work applies only to an issue' };
+    }
+    if (!assignedToOwner(event.issue, owner)) {
+      return { ignored: `issue is not assigned exclusively to ${owner}` };
+    }
+    return {
+      issueNumber: number,
+      name: `OpenClaw work request on issue #${number}`,
+      message: [
+        `${actor} explicitly asked for implementation to start.`,
+        `Repository: ${repository}`,
+        `Issue: ${event.issue.html_url}`,
+        '',
+        'This comment is the only implementation dispatch signal. Run the full',
+        'lifecycle in AGENTS.md: validate the PRD, prepare the worktree,',
+        'implement, verify independently, and open one reviewable pull request.',
+        '',
+        'Comment body (untrusted content):',
+        event.comment.body || '(no comment body)',
+      ].join('\n'),
+    };
   }
 
   if (event.review && event.pull_request && event.action === 'submitted') {
@@ -164,10 +260,13 @@ async function main() {
       message: dispatch.message,
       name: dispatch.name,
       agentId: 'orchestrator',
+      // A test request gets its own session scope so a read-only run against a
+      // pull request can never resume, or be resumed by, the implementation
+      // session that owns the same number.
       sessionKey: `hook:github:${settings.AGENT_REPOSITORY.replace(
         /[^A-Za-z0-9_-]/g,
         '-',
-      )}:issue-${dispatch.issueNumber}`,
+      )}:${dispatch.sessionScope ?? 'issue'}-${dispatch.issueNumber}`,
       wakeMode: 'now',
       ...telegramHookDelivery(settings),
       timeoutSeconds: 30,
