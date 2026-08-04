@@ -6,7 +6,8 @@ import {
 } from '@/lib/supabase/db';
 import { NewsButton } from '@/components/press/NewsButton';
 import type { Locale } from '@/lib/i18n';
-import { DeskTopicRow } from './DeskTopicRow';
+import { formatBillTitle } from '@/lib/knesset/billTitle';
+import { DeskTopicRow, slotVariant } from './DeskTopicRow';
 import { DeskCarousel } from './DeskCarousel';
 import { toDeskTopic } from './deskData';
 import styles from './ConsensusDesk.module.css';
@@ -18,7 +19,7 @@ interface KnessetDeskProps {
 /**
  * Distinct verified outlets behind a ranking's media score, from the
  * ranker's stored evidence. Rows written before the ranker counted its
- * coverage carry no evidence — they report null and the strip falls back
+ * coverage carry no evidence - they report null and the strip falls back
  * to the opaque sub-score.
  */
 function outletsCountedOf(evidence: unknown): number | null {
@@ -28,23 +29,29 @@ function outletsCountedOf(evidence: unknown): number | null {
 }
 
 /**
- * KnessetDesk — the national desk on the front page. Knesset-agenda topics
+ * KnessetDesk - the national desk on the front page. Knesset-agenda topics
  * (votes scoped to KNESSET_SCOPE) with the same meters and engagement heat
  * as the municipal desk. Server component; shares the desk furniture.
  */
 export async function KnessetDesk({ locale = 'he' }: KnessetDeskProps) {
-  // Degrade to the empty-state desk when the DB is unreachable — notably at
+  // Degrade to the empty-state desk when the DB is unreachable - notably at
   // build-time prerender in CI, where the service-role key deliberately does
   // not exist (#39); ISR refills real data at runtime on the Worker.
   const votes = await getActiveVotesWithOptions(KNESSET_SCOPE).catch(() => []);
   // Editorial hotness from the ranker agent orders the desk; social-source
   // engagement is the fallback signal for unranked items. (The helper
-  // degrades to an empty map on DB failure — no catch needed.)
+  // degrades to an empty map on DB failure - no catch needed.)
   const rankings = await getKnessetRankingsByVoteIds(votes.map((v) => v.id));
   const heatOf = (topicId: string, sourceHotness: number) =>
     rankings.get(topicId)?.hotness ?? sourceHotness;
   const topics = votes
-    .map(toDeskTopic)
+    // Agenda titles arrive as legal citations (`הצעת חוק X (תיקון מס' N), התשפ"ו-2026`),
+    // sometimes truncated mid-clause by the sync. Split them so the tile can
+    // set the instrument, the subject and the qualifier as separate furniture.
+    .map((vote) => {
+      const topic = toDeskTopic(vote);
+      return { ...topic, titleParts: formatBillTitle(topic.title) };
+    })
     .sort(
       (a, b) =>
         heatOf(b.id, b.source?.hotness ?? 0) - heatOf(a.id, a.source?.hotness ?? 0)
@@ -58,6 +65,7 @@ export async function KnessetDesk({ locale = 'he' }: KnessetDeskProps) {
     if (!row) return null;
     return {
       hotness: row.hotness,
+      headline: row.headline,
       relevance: row.relevance,
       media: row.media,
       outletsCounted: outletsCountedOf(row.media_evidence),
@@ -125,6 +133,7 @@ export async function KnessetDesk({ locale = 'he' }: KnessetDeskProps) {
                       ? rankedIds.indexOf(topic.id) + 1
                       : undefined
                   }
+                  variant={slotVariant(i)}
                   locale={locale}
                 />
               ))}

@@ -33,7 +33,7 @@ export interface Database {
           google_id: string | null;
           avatar_url: string | null;
           identity_score: number;
-          verification_status: 'none' | 'pending' | 'verified' | 'failed';
+          verification_status: "none" | "pending" | "verified" | "failed";
           qubik_wallet_address: string | null;
           identity_verified_at: string | null;
           created_at: string;
@@ -56,7 +56,7 @@ export interface Database {
           google_id?: string | null;
           avatar_url?: string | null;
           identity_score?: number;
-          verification_status?: 'none' | 'pending' | 'verified' | 'failed';
+          verification_status?: "none" | "pending" | "verified" | "failed";
           qubik_wallet_address?: string | null;
           identity_verified_at?: string | null;
           created_at?: string;
@@ -79,7 +79,7 @@ export interface Database {
           google_id?: string | null;
           avatar_url?: string | null;
           identity_score?: number;
-          verification_status?: 'none' | 'pending' | 'verified' | 'failed';
+          verification_status?: "none" | "pending" | "verified" | "failed";
           qubik_wallet_address?: string | null;
           identity_verified_at?: string | null;
           created_at?: string;
@@ -96,7 +96,13 @@ export interface Database {
           shipping_ils: number;
           total_ils: number;
           currency: string;
-          status: 'pending' | 'paid' | 'fulfilling' | 'shipped' | 'cancelled' | 'failed';
+          status:
+            | "pending"
+            | "paid"
+            | "fulfilling"
+            | "shipped"
+            | "cancelled"
+            | "failed";
           shipping: Record<string, unknown>;
           payment_id: string | null;
           created_at: string;
@@ -110,14 +116,26 @@ export interface Database {
           shipping_ils: number;
           total_ils: number;
           currency?: string;
-          status?: 'pending' | 'paid' | 'fulfilling' | 'shipped' | 'cancelled' | 'failed';
+          status?:
+            | "pending"
+            | "paid"
+            | "fulfilling"
+            | "shipped"
+            | "cancelled"
+            | "failed";
           shipping: Record<string, unknown>;
           payment_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
-          status?: 'pending' | 'paid' | 'fulfilling' | 'shipped' | 'cancelled' | 'failed';
+          status?:
+            | "pending"
+            | "paid"
+            | "fulfilling"
+            | "shipped"
+            | "cancelled"
+            | "failed";
           payment_id?: string | null;
           updated_at?: string;
         };
@@ -128,7 +146,7 @@ export interface Database {
           id: string;
           user_id: string;
           token: string;
-          device_type: 'ios' | 'android' | null;
+          device_type: "ios" | "android" | null;
           device_name: string | null;
           is_active: boolean;
           last_used: string | null;
@@ -139,7 +157,7 @@ export interface Database {
           id?: string;
           user_id: string;
           token: string;
-          device_type?: 'ios' | 'android' | null;
+          device_type?: "ios" | "android" | null;
           device_name?: string | null;
           is_active?: boolean;
           last_used?: string | null;
@@ -150,7 +168,7 @@ export interface Database {
           id?: string;
           user_id?: string;
           token?: string;
-          device_type?: 'ios' | 'android' | null;
+          device_type?: "ios" | "android" | null;
           device_name?: string | null;
           is_active?: boolean;
           last_used?: string | null;
@@ -163,7 +181,7 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          provider: 'google' | 'facebook' | 'instagram';
+          provider: "google" | "facebook" | "instagram";
           provider_id: string;
           provider_email: string | null;
           provider_name: string | null;
@@ -175,7 +193,7 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
-          provider: 'google' | 'facebook' | 'instagram';
+          provider: "google" | "facebook" | "instagram";
           provider_id: string;
           provider_email?: string | null;
           provider_name?: string | null;
@@ -187,7 +205,7 @@ export interface Database {
         Update: {
           id?: string;
           user_id?: string;
-          provider?: 'google' | 'facebook' | 'instagram';
+          provider?: "google" | "facebook" | "instagram";
           provider_id?: string;
           provider_email?: string | null;
           provider_name?: string | null;
@@ -203,7 +221,7 @@ export interface Database {
           id: string;
           user_id: string;
           municipality_id: string;
-          status: 'active' | 'verified' | 'failed' | 'cancelled';
+          status: "active" | "verified" | "failed" | "cancelled";
           started_at: string;
           completed_at: string | null;
           total_check_ins: number;
@@ -216,7 +234,7 @@ export interface Database {
           id?: string;
           user_id: string;
           municipality_id: string;
-          status?: 'active' | 'verified' | 'failed' | 'cancelled';
+          status?: "active" | "verified" | "failed" | "cancelled";
           started_at?: string;
           completed_at?: string | null;
           total_check_ins?: number;
@@ -229,7 +247,7 @@ export interface Database {
           id?: string;
           user_id?: string;
           municipality_id?: string;
-          status?: 'active' | 'verified' | 'failed' | 'cancelled';
+          status?: "active" | "verified" | "failed" | "cancelled";
           started_at?: string;
           completed_at?: string | null;
           total_check_ins?: number;
@@ -313,11 +331,11 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          type: 'vote_participation' | 'vote_creation';
+          type: "vote_participation" | "vote_creation";
           amount: number;
           currency: string;
-          status: 'pending' | 'completed' | 'failed' | 'refunded';
-          provider: 'paddle' | 'green_invoice';
+          status: "pending" | "completed" | "failed" | "refunded";
+          provider: "paddle" | "green_invoice";
           provider_id: string | null;
           idempotency_key: string;
           vote_id: string | null;
@@ -329,11 +347,11 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
-          type: 'vote_participation' | 'vote_creation';
+          type: "vote_participation" | "vote_creation";
           amount: number;
           currency?: string;
-          status?: 'pending' | 'completed' | 'failed' | 'refunded';
-          provider?: 'paddle' | 'green_invoice';
+          status?: "pending" | "completed" | "failed" | "refunded";
+          provider?: "paddle" | "green_invoice";
           provider_id?: string | null;
           idempotency_key: string;
           vote_id?: string | null;
@@ -345,11 +363,11 @@ export interface Database {
         Update: {
           id?: string;
           user_id?: string;
-          type?: 'vote_participation' | 'vote_creation';
+          type?: "vote_participation" | "vote_creation";
           amount?: number;
           currency?: string;
-          status?: 'pending' | 'completed' | 'failed' | 'refunded';
-          provider?: 'paddle' | 'green_invoice';
+          status?: "pending" | "completed" | "failed" | "refunded";
+          provider?: "paddle" | "green_invoice";
           provider_id?: string | null;
           idempotency_key?: string;
           vote_id?: string | null;
@@ -364,7 +382,7 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          type: 'vote' | 'create_vote' | 'tokens';
+          type: "vote" | "create_vote" | "tokens";
           payment_id: string | null;
           vote_id: string | null;
           amount: number | null;
@@ -375,7 +393,7 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
-          type: 'vote' | 'create_vote' | 'tokens';
+          type: "vote" | "create_vote" | "tokens";
           payment_id?: string | null;
           vote_id?: string | null;
           amount?: number | null;
@@ -386,7 +404,7 @@ export interface Database {
         Update: {
           id?: string;
           user_id?: string;
-          type?: 'vote' | 'create_vote' | 'tokens';
+          type?: "vote" | "create_vote" | "tokens";
           payment_id?: string | null;
           vote_id?: string | null;
           amount?: number | null;
@@ -403,12 +421,23 @@ export interface Database {
           title: string;
           description: string;
           municipality_id: string;
-          status: 'pending' | 'active' | 'ended' | 'resolving' | 'resolved' | 'failed';
+          status:
+            | "pending"
+            | "active"
+            | "ended"
+            | "resolving"
+            | "resolved"
+            | "failed";
           start_date: string;
           end_date: string;
           participant_count: number;
           resolved_at: string | null;
-          resolution_status: 'pending' | 'resolving' | 'resolved' | 'failed' | null;
+          resolution_status:
+            | "pending"
+            | "resolving"
+            | "resolved"
+            | "failed"
+            | null;
           created_at: string;
           updated_at: string;
         };
@@ -418,12 +447,23 @@ export interface Database {
           title: string;
           description: string;
           municipality_id: string;
-          status?: 'pending' | 'active' | 'ended' | 'resolving' | 'resolved' | 'failed';
+          status?:
+            | "pending"
+            | "active"
+            | "ended"
+            | "resolving"
+            | "resolved"
+            | "failed";
           start_date?: string;
           end_date: string;
           participant_count?: number;
           resolved_at?: string | null;
-          resolution_status?: 'pending' | 'resolving' | 'resolved' | 'failed' | null;
+          resolution_status?:
+            | "pending"
+            | "resolving"
+            | "resolved"
+            | "failed"
+            | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -433,12 +473,23 @@ export interface Database {
           title?: string;
           description?: string;
           municipality_id?: string;
-          status?: 'pending' | 'active' | 'ended' | 'resolving' | 'resolved' | 'failed';
+          status?:
+            | "pending"
+            | "active"
+            | "ended"
+            | "resolving"
+            | "resolved"
+            | "failed";
           start_date?: string;
           end_date?: string;
           participant_count?: number;
           resolved_at?: string | null;
-          resolution_status?: 'pending' | 'resolving' | 'resolved' | 'failed' | null;
+          resolution_status?:
+            | "pending"
+            | "resolving"
+            | "resolved"
+            | "failed"
+            | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -450,10 +501,10 @@ export interface Database {
           vote_id: string;
           user_id: string | null;
           wallet_address: string | null;
-          type: 'verified_voter' | 'civic_patron';
+          type: "verified_voter" | "civic_patron";
           mint_address: string | null;
           metadata_uri: string | null;
-          status: 'pending' | 'minting' | 'minted' | 'failed';
+          status: "pending" | "minting" | "minted" | "failed";
           minted_at: string | null;
           mint_tx_hash: string | null;
           error_message: string | null;
@@ -467,10 +518,10 @@ export interface Database {
           vote_id: string;
           user_id?: string | null;
           wallet_address?: string | null;
-          type: 'verified_voter' | 'civic_patron';
+          type: "verified_voter" | "civic_patron";
           mint_address?: string | null;
           metadata_uri?: string | null;
-          status?: 'pending' | 'minting' | 'minted' | 'failed';
+          status?: "pending" | "minting" | "minted" | "failed";
           minted_at?: string | null;
           mint_tx_hash?: string | null;
           error_message?: string | null;
@@ -484,10 +535,10 @@ export interface Database {
           vote_id?: string;
           user_id?: string | null;
           wallet_address?: string | null;
-          type?: 'verified_voter' | 'civic_patron';
+          type?: "verified_voter" | "civic_patron";
           mint_address?: string | null;
           metadata_uri?: string | null;
-          status?: 'pending' | 'minting' | 'minted' | 'failed';
+          status?: "pending" | "minting" | "minted" | "failed";
           minted_at?: string | null;
           mint_tx_hash?: string | null;
           error_message?: string | null;
@@ -598,6 +649,7 @@ export interface Database {
           hotness: number;
           relevance: number | null;
           media: number | null;
+          headline: string | null;
           rationale: string | null;
           media_refs: string[];
           media_evidence: Record<string, unknown>;
@@ -612,6 +664,7 @@ export interface Database {
           hotness: number;
           relevance?: number | null;
           media?: number | null;
+          headline?: string | null;
           rationale?: string | null;
           media_refs?: string[];
           media_evidence?: Record<string, unknown>;
@@ -626,6 +679,7 @@ export interface Database {
           hotness?: number;
           relevance?: number | null;
           media?: number | null;
+          headline?: string | null;
           rationale?: string | null;
           media_refs?: string[];
           media_evidence?: Record<string, unknown>;
@@ -699,6 +753,27 @@ export interface Database {
         };
         Relationships: [];
       };
+      municipalities: {
+        Row: {
+          code: string;
+          name_he: string;
+          kind: "municipality" | "national";
+          created_at: string;
+        };
+        Insert: {
+          code: string;
+          name_he: string;
+          kind?: "municipality" | "national";
+          created_at?: string;
+        };
+        Update: {
+          code?: string;
+          name_he?: string;
+          kind?: "municipality" | "national";
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       webhook_events: {
         Row: {
           id: string;
@@ -708,7 +783,7 @@ export interface Database {
           payload_hash: string;
           received_at: string;
           processed_at: string | null;
-          status: 'pending' | 'processed' | 'failed' | 'skipped';
+          status: "pending" | "processed" | "failed" | "skipped";
           error_message: string | null;
           idempotency_key: string | null;
           created_at: string;
@@ -721,7 +796,7 @@ export interface Database {
           payload_hash: string;
           received_at?: string;
           processed_at?: string | null;
-          status?: 'pending' | 'processed' | 'failed' | 'skipped';
+          status?: "pending" | "processed" | "failed" | "skipped";
           error_message?: string | null;
           idempotency_key?: string | null;
           created_at?: string;
@@ -734,7 +809,7 @@ export interface Database {
           payload_hash?: string;
           received_at?: string;
           processed_at?: string | null;
-          status?: 'pending' | 'processed' | 'failed' | 'skipped';
+          status?: "pending" | "processed" | "failed" | "skipped";
           error_message?: string | null;
           idempotency_key?: string | null;
           created_at?: string;
@@ -793,7 +868,13 @@ export interface Database {
         Row: {
           id: string;
           treasury_id: string;
-          type: 'deposit' | 'allocation' | 'withdrawal' | 'fee_claim' | 'token_purchase' | 'nft_mint';
+          type:
+            | "deposit"
+            | "allocation"
+            | "withdrawal"
+            | "fee_claim"
+            | "token_purchase"
+            | "nft_mint";
           vote_id: string | null;
           user_id: string | null;
           payment_id: string | null;
@@ -801,14 +882,20 @@ export interface Database {
           amount_sol: string | null;
           description: string;
           bags_tx_hash: string | null;
-          status: 'pending' | 'confirmed' | 'failed';
+          status: "pending" | "confirmed" | "failed";
           metadata: Record<string, unknown> | null;
           created_at: string;
         };
         Insert: {
           id?: string;
           treasury_id: string;
-          type: 'deposit' | 'allocation' | 'withdrawal' | 'fee_claim' | 'token_purchase' | 'nft_mint';
+          type:
+            | "deposit"
+            | "allocation"
+            | "withdrawal"
+            | "fee_claim"
+            | "token_purchase"
+            | "nft_mint";
           vote_id?: string | null;
           user_id?: string | null;
           payment_id?: string | null;
@@ -816,14 +903,20 @@ export interface Database {
           amount_sol?: string | null;
           description: string;
           bags_tx_hash?: string | null;
-          status?: 'pending' | 'confirmed' | 'failed';
+          status?: "pending" | "confirmed" | "failed";
           metadata?: Record<string, unknown> | null;
           created_at?: string;
         };
         Update: {
           id?: string;
           treasury_id?: string;
-          type?: 'deposit' | 'allocation' | 'withdrawal' | 'fee_claim' | 'token_purchase' | 'nft_mint';
+          type?:
+            | "deposit"
+            | "allocation"
+            | "withdrawal"
+            | "fee_claim"
+            | "token_purchase"
+            | "nft_mint";
           vote_id?: string | null;
           user_id?: string | null;
           payment_id?: string | null;
@@ -831,7 +924,7 @@ export interface Database {
           amount_sol?: string | null;
           description?: string;
           bags_tx_hash?: string | null;
-          status?: 'pending' | 'confirmed' | 'failed';
+          status?: "pending" | "confirmed" | "failed";
           metadata?: Record<string, unknown> | null;
           created_at?: string;
         };
@@ -946,7 +1039,7 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          document_type: 'id_card' | 'drivers_license';
+          document_type: "id_card" | "drivers_license";
           id_number_hash: string;
           id_number_last2: string;
           first_name: string;
@@ -961,7 +1054,7 @@ export interface Database {
           face_match_score: number | null;
           face_liveness_passed: boolean;
           face_antispoof_score: number | null;
-          status: 'verified' | 'pending_review' | 'rejected';
+          status: "verified" | "pending_review" | "rejected";
           consent_version: string;
           consent_at: string;
           verified_at: string | null;
@@ -971,7 +1064,7 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
-          document_type: 'id_card' | 'drivers_license';
+          document_type: "id_card" | "drivers_license";
           id_number_hash: string;
           id_number_last2: string;
           first_name: string;
@@ -986,7 +1079,7 @@ export interface Database {
           face_match_score?: number | null;
           face_liveness_passed?: boolean;
           face_antispoof_score?: number | null;
-          status?: 'verified' | 'pending_review' | 'rejected';
+          status?: "verified" | "pending_review" | "rejected";
           consent_version: string;
           consent_at?: string;
           verified_at?: string | null;
@@ -994,7 +1087,7 @@ export interface Database {
           updated_at?: string;
         };
         Update: {
-          document_type?: 'id_card' | 'drivers_license';
+          document_type?: "id_card" | "drivers_license";
           id_number_hash?: string;
           id_number_last2?: string;
           first_name?: string;
@@ -1009,7 +1102,7 @@ export interface Database {
           face_match_score?: number | null;
           face_liveness_passed?: boolean;
           face_antispoof_score?: number | null;
-          status?: 'verified' | 'pending_review' | 'rejected';
+          status?: "verified" | "pending_review" | "rejected";
           consent_version?: string;
           consent_at?: string;
           verified_at?: string | null;
@@ -1022,12 +1115,12 @@ export interface Database {
           id: string;
           user_id: string;
           event:
-            | 'submitted'
-            | 'auto_verified'
-            | 'queued_review'
-            | 'approved'
-            | 'rejected'
-            | 'deleted';
+            | "submitted"
+            | "auto_verified"
+            | "queued_review"
+            | "approved"
+            | "rejected"
+            | "deleted";
           detail: Json | null;
           created_at: string;
         };
@@ -1035,12 +1128,12 @@ export interface Database {
           id?: string;
           user_id: string;
           event:
-            | 'submitted'
-            | 'auto_verified'
-            | 'queued_review'
-            | 'approved'
-            | 'rejected'
-            | 'deleted';
+            | "submitted"
+            | "auto_verified"
+            | "queued_review"
+            | "approved"
+            | "rejected"
+            | "deleted";
           detail?: Json | null;
           created_at?: string;
         };
@@ -1051,10 +1144,10 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          role: 'super_admin' | 'space_admin' | 'community_manager';
+          role: "super_admin" | "space_admin" | "community_manager";
           space_id: string | null;
-          status: 'active' | 'suspended' | 'revoked';
-          source: 'manual' | 'application';
+          status: "active" | "suspended" | "revoked";
+          source: "manual" | "application";
           source_id: string | null;
           granted_by: string | null;
           granted_at: string;
@@ -1065,10 +1158,10 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
-          role: 'super_admin' | 'space_admin' | 'community_manager';
+          role: "super_admin" | "space_admin" | "community_manager";
           space_id?: string | null;
-          status?: 'active' | 'suspended' | 'revoked';
-          source?: 'manual' | 'application';
+          status?: "active" | "suspended" | "revoked";
+          source?: "manual" | "application";
           source_id?: string | null;
           granted_by?: string | null;
           granted_at?: string;
@@ -1077,10 +1170,10 @@ export interface Database {
           updated_at?: string;
         };
         Update: {
-          role?: 'super_admin' | 'space_admin' | 'community_manager';
+          role?: "super_admin" | "space_admin" | "community_manager";
           space_id?: string | null;
-          status?: 'active' | 'suspended' | 'revoked';
-          source?: 'manual' | 'application';
+          status?: "active" | "suspended" | "revoked";
+          source?: "manual" | "application";
           source_id?: string | null;
           granted_by?: string | null;
           granted_at?: string;
@@ -1097,7 +1190,7 @@ export interface Database {
           motivation: string;
           contact_phone: string | null;
           evidence_urls: Json;
-          status: 'submitted' | 'approved' | 'rejected' | 'withdrawn';
+          status: "submitted" | "approved" | "rejected" | "withdrawn";
           reviewed_by: string | null;
           reviewed_at: string | null;
           review_reason: string | null;
@@ -1111,7 +1204,7 @@ export interface Database {
           motivation: string;
           contact_phone?: string | null;
           evidence_urls?: Json;
-          status?: 'submitted' | 'approved' | 'rejected' | 'withdrawn';
+          status?: "submitted" | "approved" | "rejected" | "withdrawn";
           reviewed_by?: string | null;
           reviewed_at?: string | null;
           review_reason?: string | null;
@@ -1122,7 +1215,7 @@ export interface Database {
           motivation?: string;
           contact_phone?: string | null;
           evidence_urls?: Json;
-          status?: 'submitted' | 'approved' | 'rejected' | 'withdrawn';
+          status?: "submitted" | "approved" | "rejected" | "withdrawn";
           reviewed_by?: string | null;
           reviewed_at?: string | null;
           review_reason?: string | null;
@@ -1133,16 +1226,16 @@ export interface Database {
       role_grant_events: {
         Row: {
           id: string;
-          subject_type: 'role_grant' | 'community_manager_application';
+          subject_type: "role_grant" | "community_manager_application";
           subject_id: string;
           event:
-            | 'submitted'
-            | 'approved'
-            | 'rejected'
-            | 'granted'
-            | 'suspended'
-            | 'reinstated'
-            | 'revoked';
+            | "submitted"
+            | "approved"
+            | "rejected"
+            | "granted"
+            | "suspended"
+            | "reinstated"
+            | "revoked";
           subject_user_id: string | null;
           actor_user_id: string | null;
           role: string | null;
@@ -1153,16 +1246,16 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          subject_type: 'role_grant' | 'community_manager_application';
+          subject_type: "role_grant" | "community_manager_application";
           subject_id: string;
           event:
-            | 'submitted'
-            | 'approved'
-            | 'rejected'
-            | 'granted'
-            | 'suspended'
-            | 'reinstated'
-            | 'revoked';
+            | "submitted"
+            | "approved"
+            | "rejected"
+            | "granted"
+            | "suspended"
+            | "reinstated"
+            | "revoked";
           subject_user_id?: string | null;
           actor_user_id?: string | null;
           role?: string | null;
@@ -1249,47 +1342,54 @@ export interface Database {
       };
     };
     Enums: {
-      verification_status: 'none' | 'pending' | 'verified' | 'failed';
-      payment_status: 'pending' | 'completed' | 'failed' | 'refunded';
-      payment_type: 'vote_participation' | 'vote_creation';
-      social_provider: 'google' | 'facebook' | 'instagram';
-      vote_status: 'pending' | 'active' | 'ended' | 'resolving' | 'resolved' | 'failed';
-      entitlement_type: 'vote' | 'create_vote' | 'tokens';
-      nft_type: 'verified_voter' | 'civic_patron';
+      verification_status: "none" | "pending" | "verified" | "failed";
+      payment_status: "pending" | "completed" | "failed" | "refunded";
+      payment_type: "vote_participation" | "vote_creation";
+      social_provider: "google" | "facebook" | "instagram";
+      vote_status:
+        | "pending"
+        | "active"
+        | "ended"
+        | "resolving"
+        | "resolved"
+        | "failed";
+      entitlement_type: "vote" | "create_vote" | "tokens";
+      nft_type: "verified_voter" | "civic_patron";
     };
   };
 }
 
 // Utility types for easier access
-export type Tables<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Row'];
+export type Tables<T extends keyof Database["public"]["Tables"]> =
+  Database["public"]["Tables"][T]["Row"];
 
-export type InsertTables<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Insert'];
+export type InsertTables<T extends keyof Database["public"]["Tables"]> =
+  Database["public"]["Tables"][T]["Insert"];
 
-export type UpdateTables<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Update'];
+export type UpdateTables<T extends keyof Database["public"]["Tables"]> =
+  Database["public"]["Tables"][T]["Update"];
 
 // Exported types for use in the app
-export type User = Tables<'users'>;
-export type SocialProof = Tables<'social_proofs'>;
-export type VerificationRun = Tables<'verification_runs'>;
-export type VerificationSchedule = Tables<'verification_schedule'>;
-export type VerificationAttempt = Tables<'verification_attempts'>;
-export type Payment = Tables<'payments'>;
-export type Entitlement = Tables<'entitlements'>;
-export type Vote = Tables<'votes'>;
-export type VoteOption = Tables<'vote_options'>;
-export type UserVote = Tables<'user_votes'>;
-export type PushToken = Tables<'push_tokens'>;
-export type WebhookEvent = Tables<'webhook_events'>;
-export type VoteNft = Tables<'vote_nfts'>;
-export type MerchOrderRow = Tables<'merch_orders'>;
-export type VoteSource = Tables<'vote_sources'>;
-export type IdentityDocument = Tables<'identity_documents'>;
-export type IdentityDocumentEvent = Tables<'identity_document_events'>;
-export type RoleGrant = Tables<'role_grants'>;
-export type CommunityManagerApplication = Tables<'community_manager_applications'>;
-export type RoleGrantEvent = Tables<'role_grant_events'>;
-export type KnessetItem = Tables<'knesset_items'>;
-export type KnessetRanking = Tables<'knesset_rankings'>;
+export type User = Tables<"users">;
+export type SocialProof = Tables<"social_proofs">;
+export type VerificationRun = Tables<"verification_runs">;
+export type VerificationSchedule = Tables<"verification_schedule">;
+export type VerificationAttempt = Tables<"verification_attempts">;
+export type Payment = Tables<"payments">;
+export type Entitlement = Tables<"entitlements">;
+export type Vote = Tables<"votes">;
+export type VoteOption = Tables<"vote_options">;
+export type UserVote = Tables<"user_votes">;
+export type PushToken = Tables<"push_tokens">;
+export type WebhookEvent = Tables<"webhook_events">;
+export type VoteNft = Tables<"vote_nfts">;
+export type MerchOrderRow = Tables<"merch_orders">;
+export type VoteSource = Tables<"vote_sources">;
+export type IdentityDocument = Tables<"identity_documents">;
+export type IdentityDocumentEvent = Tables<"identity_document_events">;
+export type RoleGrant = Tables<"role_grants">;
+export type CommunityManagerApplication =
+  Tables<"community_manager_applications">;
+export type RoleGrantEvent = Tables<"role_grant_events">;
+export type KnessetItem = Tables<"knesset_items">;
+export type KnessetRanking = Tables<"knesset_rankings">;

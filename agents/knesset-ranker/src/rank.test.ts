@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { isFatalAgentFailure, parseFindings } from './rank.js';
+import { cleanHeadline, isFatalAgentFailure, parseFindings } from './rank.js';
 
 const BATCH = [
   { id: 'aaaa', title: 'חוק א', itemType: 'הצעת חוק', summary: null },
@@ -82,5 +82,31 @@ describe('isFatalAgentFailure', () => {
     assert.equal(isFatalAgentFailure('Unexpected token < in JSON at position 0'), false);
     assert.equal(isFatalAgentFailure('agent stream ended without a result message'), false);
     assert.equal(isFatalAgentFailure('agent output is not an array'), false);
+  });
+});
+
+describe('cleanHeadline', () => {
+  it('keeps a headline the desk can set', () => {
+    assert.equal(
+      cleanHeadline('הארכת הוראת השעה לגיוס חובה'),
+      'הארכת הוראת השעה לגיוס חובה'
+    );
+  });
+
+  it('strips wrapping quotes, a trailing stop and stray whitespace', () => {
+    assert.equal(cleanHeadline('  "ביטול פטור המע"מ  לדירה ראשונה."  '), 'ביטול פטור המע"מ לדירה ראשונה');
+    assert.equal(cleanHeadline('הרחבת חוק חינוך חינם\u05c3'), 'הרחבת חוק חינוך חינם');
+  });
+
+  /** A cut-off headline reads worse than the citation the app falls back to. */
+  it('drops an over-long headline rather than truncating it', () => {
+    assert.equal(cleanHeadline('א'.repeat(91)), '');
+    assert.equal(cleanHeadline('א'.repeat(90)).length, 90);
+  });
+
+  it('drops empty and non-string values', () => {
+    for (const value of ['', '   ', null, undefined, 42, {}]) {
+      assert.equal(cleanHeadline(value), '');
+    }
   });
 });

@@ -1,16 +1,8 @@
+import { hotnessOf, reactionsTotalOf } from '@sync/shared';
 import type { Vote, VoteOption, VoteSource } from '@/lib/supabase/types';
-import type { DeskTopic } from './DeskTopicRow';
+import type { DeskRanking, DeskTopic } from './DeskTopicRow';
 
-/**
- * Hotness — saturating engagement score (0–100). Comments weigh 3× a
- * reaction (writing > clicking). 400 engagement points ≈ 50°, curve
- * flattens toward 100° so one viral post doesn't dwarf the scale.
- */
-export function hotnessOf(commentsCount: number, reactionsTotal: number): number {
-  const engagement = commentsCount * 3 + reactionsTotal;
-  if (engagement <= 0) return 0;
-  return Math.min(100, Math.round((100 * engagement) / (engagement + 400)));
-}
+export { hotnessOf };
 
 export type VoteWithRelations = Vote & {
   options: VoteOption[];
@@ -21,7 +13,7 @@ export type VoteWithRelations = Vote & {
 export function toDeskTopic(vote: VoteWithRelations): DeskTopic {
   const totalBallots = vote.options.reduce((sum, o) => sum + o.votes, 0);
   const reactions = (vote.source?.reactions ?? {}) as Record<string, number>;
-  const reactionsTotal = Object.values(reactions).reduce((s, n) => s + n, 0);
+  const reactionsTotal = reactionsTotalOf(reactions);
   const commentsCount = vote.source?.comments_count ?? 0;
 
   return {
@@ -45,8 +37,29 @@ export function toDeskTopic(vote: VoteWithRelations): DeskTopic {
           reactions,
           reactionsTotal,
           url: vote.source.source_url,
+          fetchedAt: vote.source.fetched_at,
           hotness: hotnessOf(commentsCount, reactionsTotal),
         }
       : null,
   };
+}
+
+/**
+ * The title to print for a topic, best source first.
+ *
+ * Three grades, and every surface must pick the same one or the desk and the
+ * feed disagree about what a bill is called:
+ *
+ *  1. the ranker's curated headline - what the item *does*;
+ *  2. the subject of the legal citation, split out by `formatBillTitle`;
+ *  3. the raw title, for municipal topics that were written as headlines
+ *     already and for anything the split could not improve.
+ */
+export function topicHeadline(
+  topic: DeskTopic,
+  ranking?: DeskRanking | null
+): string {
+  const curated = ranking?.headline?.trim();
+  if (curated) return curated;
+  return topic.titleParts?.headline || topic.title;
 }

@@ -16,7 +16,7 @@
  */
 
 import { query } from '@anthropic-ai/claude-agent-sdk';
-import { createSupabase, isEntryPoint, loadAgentEnv } from './env.js';
+import { createSupabase, isEntryPoint, loadAgentEnv, numberArg } from './env.js';
 import {
   FRESH_DAYS,
   MAX_COVERAGE_PER_VOTE,
@@ -72,6 +72,8 @@ interface RankableVote {
 export interface AgentFinding {
   voteId: string;
   relevance: number;
+  /** Curated Hebrew headline; empty when the agent declined to write one. */
+  headline: string;
   rationale: string;
   queries: string[];
   coverage: CoverageClaim[];
@@ -86,9 +88,9 @@ function parseArgs(argv: string[]): CliOptions {
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === '--limit') options.limit = Number(argv[++i]) || options.limit;
+    if (arg === '--limit') options.limit = numberArg(argv[++i], options.limit);
     else if (arg === '--stale-hours')
-      options.staleHours = Number(argv[++i]) || options.staleHours;
+      options.staleHours = numberArg(argv[++i], options.staleHours);
     else if (arg === '--dry-run') options.dryRun = true;
     else if (arg === '--model') options.model = argv[++i] || options.model;
   }
@@ -97,6 +99,27 @@ function parseArgs(argv: string[]): CliOptions {
 
 const clamp = (n: unknown): number =>
   Math.max(0, Math.min(100, Math.round(Number(n) || 0)));
+
+/** Headlines longer than a tile can set are the model ignoring the brief. */
+const HEADLINE_MAX = 90;
+
+/**
+ * A headline the desk is willing to print: one line, no trailing full stop,
+ * no wrapping quotes. Anything empty or over-long is dropped rather than
+ * truncated - a half-sentence headline is worse than the citation fallback.
+ */
+export function cleanHeadline(value: unknown): string {
+  // Only a string is a headline. `String(42)` would coerce a model slip into
+  // a plausible-looking `"42"` and print it as the tile's title.
+  if (typeof value !== 'string') return '';
+  const text = value
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^["'\u201c\u201d\u05f4]+|["'\u201c\u201d\u05f4]+$/g, '')
+    .replace(/[.\u05c3]+$/, '')
+    .trim();
+  return text.length > 0 && text.length <= HEADLINE_MAX ? text : '';
+}
 
 function buildPrompt(votes: RankableVote[]): string {
   const items = votes
@@ -111,18 +134,20 @@ function buildPrompt(votes: RankableVote[]): string {
     })
     .join('\n\n');
 
-  return `אתה עורך ראשי בדסק פרלמנטרי של עיתון אזרחי ישראלי. לפניך סעיפים מסדר היום של מליאת הכנסת. לכל סעיף בצע שתי משימות:
+  return `אתה עורך ראשי בדסק פרלמנטרי של עיתון אזרחי ישראלי. לפניך סעיפים מסדר היום של מליאת הכנסת. לכל סעיף בצע שלוש משימות:
 
 1. relevance (0–100): שפוט עד כמה הנושא רלוונטי ודוחק לציבור הישראלי הרחב — השפעה ישירה על חיי היומיום, היקף האוכלוסייה המושפעת, דחיפות בזמן. נושאים טכניים/פרוצדורליים (הצהרות אמונים, הארכות תוקף שגרתיות) נמוכים אלא אם יש סערה ציבורית סביבם.
 
-2. איסוף סיקור: חפש באמצעות WebSearch סיקור עיתונאי ישראלי מה־${FRESH_DAYS} הימים האחרונים (חפש בעברית: מילות מפתח מהכותרת, עם "חדשות" או שם אתר). לפחות חיפוש אחד לכל סעיף. החזר אך ורק כתובות URL אמיתיות שהופיעו בתוצאות החיפוש — לעולם אל תמציא ואל תשחזר כתובת מהזיכרון. לכל כתובת צרף תאריך פרסום בפורמט YYYY-MM-DD אם הוא מופיע בתוצאה (אחרת null). עד ${MAX_COVERAGE_PER_VOTE} כתובות לסעיף, מאתרי חדשות ישראליים בלבד. כלול גם את שאילתות החיפוש שהרצת (עד ${MAX_QUERIES}).
+2. headline: כתוב כותרת עיתונאית בעברית שמתארת מה הסעיף *עושה*, לא איך הוא נקרא. עד 9 מילים, בלי שנה עברית, בלי "הצעת חוק"/"תיקון מס'", בלי נקודה בסוף. אל תמציא עובדות שאינן בכותרת או בתקציר — אם אין מספיק מידע, החזר את נושא הסעיף בניסוח קצר. דוגמה: "חוק שירות ביטחון (תיקון מס' 29 - הוראת שעה)" → "הארכת הוראת השעה לגיוס חובה".
+
+3. איסוף סיקור: חפש באמצעות WebSearch סיקור עיתונאי ישראלי מה־${FRESH_DAYS} הימים האחרונים (חפש בעברית: מילות מפתח מהכותרת, עם "חדשות" או שם אתר). לפחות חיפוש אחד לכל סעיף. החזר אך ורק כתובות URL אמיתיות שהופיעו בתוצאות החיפוש — לעולם אל תמציא ואל תשחזר כתובת מהזיכרון. לכל כתובת צרף תאריך פרסום בפורמט YYYY-MM-DD אם הוא מופיע בתוצאה (אחרת null). עד ${MAX_COVERAGE_PER_VOTE} כתובות לסעיף, מאתרי חדשות ישראליים בלבד. כלול גם את שאילתות החיפוש שהרצת (עד ${MAX_QUERIES}).
 
 אל תחשב ציון תקשורת ואל תחשב hotness — המערכת סופרת את הסיקור המאומת ומחשבת בעצמה.
 
 חשוב: המענה האחרון שלך חייב להיות ה-JSON המלא. אל תחזיר הודעת ביניים כמו "החיפושים רצים ברקע" או "ממתין לתוצאות" — סיים את כל החיפושים ורק אז ענה. אין דרך להשלים תשובה אחר כך.
 
 החזר JSON בלבד — מערך, בלי טקסט נוסף ובלי גדרות קוד:
-[{"voteId": "...", "relevance": 0, "rationale": "משפט אחד בעברית", "queries": ["..."], "coverage": [{"url": "https://...", "publishedAt": "YYYY-MM-DD או null"}]}]
+[{"voteId": "...", "relevance": 0, "headline": "כותרת קצרה בעברית", "rationale": "משפט אחד בעברית", "queries": ["..."], "coverage": [{"url": "https://...", "publishedAt": "YYYY-MM-DD או null"}]}]
 
 הסעיפים:
 
@@ -175,6 +200,7 @@ export function parseFindings(raw: string, batch: RankableVote[]): AgentFinding[
     findings.push({
       voteId,
       relevance: clamp(e.relevance),
+      headline: cleanHeadline(e.headline),
       rationale: String(e.rationale ?? '').slice(0, 500),
       queries: (Array.isArray(e.queries) ? e.queries : [])
         .map((q) => String(q).trim())
@@ -288,6 +314,12 @@ async function main(): Promise<void> {
       console.log(
         `  ${String(hotness).padStart(3)}° (rel ${finding.relevance}, media ${media} ← ${evidence.outletsCounted} outlets, ${evidence.hits.length} refs${dead ? `, ${dead} dead` : ''}) ${title.slice(0, 60)}`
       );
+      // The headline is the one output a human has to judge rather than read
+      // off a score, so a dry run has to show it - otherwise the only way to
+      // review the curation is to write it to the table first.
+      console.log(
+        `       → ${finding.headline || '(none — tile falls back to the citation split)'}`
+      );
       if (options.dryRun) continue;
 
       const { error } = await supabase.from('knesset_rankings').upsert(
@@ -296,6 +328,8 @@ async function main(): Promise<void> {
           hotness,
           relevance: finding.relevance,
           media,
+          // Null, not '', so the app's `?? fallback` sees an absent headline.
+          headline: finding.headline || null,
           rationale: finding.rationale,
           media_refs: refsForDisplay(evidence),
           media_evidence: evidence,
