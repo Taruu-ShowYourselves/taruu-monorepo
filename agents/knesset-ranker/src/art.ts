@@ -6,27 +6,42 @@
  * line (objects only, no typography) → the scene is wrapped in the house
  * style — two-colour risograph, black ink + pillarbox red on newsprint cream,
  * halftone (the recipe behind the merch/certificate plates, commit c84fe55)
- * → Seedream (fal.ai) renders it → sharp downscales to a web-weight WebP →
- * uploaded to the public `vote-art` bucket and recorded in vote_card_art.
+ * → the Higgsfield CLI renders it (same account that produced those assets)
+ * → sharp downscales to a web-weight WebP → uploaded to the public
+ * `vote-art` bucket and recorded in vote_card_art.
  *
- * The scene step runs on the Claude Agent SDK with local Claude Code
- * credentials (no API key); the render step needs FAL_KEY. Safe to re-run:
+ * Both AI steps use local CLI credentials — Claude Code for scenes,
+ * `higgsfield auth login` for renders; no API keys. Renders run
+ * SEQUENTIALLY: the account caps concurrent jobs at 4 and the desk shares
+ * it with hand-run generations (HANDOVER.md asset note). Safe to re-run:
  * plates already generated are permanent, failed attempts retry once stale.
  *
- * Cost: Seedream v4 text-to-image ≈ $0.03/plate; --limit caps a run's spend.
+ * Cost: credits per render vary by model (gpt_image_2 ≈ 7); --image-model
+ * picks the model, --limit caps a run's spend.
  */
 
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import sharp from 'sharp';
 import { createSupabase, isEntryPoint, loadAgentEnv, numberArg } from './env.js';
 import { isFatalAgentFailure } from './rank.js';
 
+const exec = promisify(execFile);
+
 loadAgentEnv();
 
 const BATCH_SIZE = 8;
-const FAL_MODEL = 'fal-ai/bytedance/seedream/v4/text-to-image';
-const MODEL_TAG = `${FAL_MODEL}+claude-scene/v1`;
+/**
+ * z_image: 0.15 credits/render vs gpt_image_2's 7 — and its ink+red
+ * screenprint output holds the house style (checked 2026-08-05). Careful
+ * renaming: on Higgsfield, `nano_banana_2` is Nano Banana PRO; the cheap
+ * Nano Banana tiers are `nano_banana_flash` / `nano_banana_2_lite`.
+ */
+const DEFAULT_IMAGE_MODEL = process.env.HIGGSFIELD_IMAGE_MODEL || 'z_image';
 const BUCKET = 'vote-art';
+/** One render can sit in the queue behind hand-run jobs — wait generously. */
+const RENDER_TIMEOUT = '10m';
 /** Web weight: tiles print the plate at ~14% opacity — 800px WebP is plenty. */
 const PLATE_SIZE = 800;
 const WEBP_QUALITY = 72;
@@ -41,7 +56,7 @@ const STYLE_PREFIX =
   'coarse halftone dots, brutalist civic linocut engraving style, bold flat shapes, ' +
   'high contrast, grainy paper texture.';
 const STYLE_SUFFIX =
-  'No text, no letters, no words, no numbers, no typography, no watermark.';
+  'All surfaces blank — no text, no letters, no words, no numbers, no inscriptions, no typography, no watermark.';
 
 export function buildPlatePrompt(scene: string): string {
   return `${STYLE_PREFIX} ${scene.trim().replace(/\.?$/, '.')} ${STYLE_SUFFIX}`;
@@ -54,6 +69,8 @@ interface CliOptions {
   dryRun: boolean;
   /** Scene-writer model override (Agent SDK). */
   model?: string;
+  /** Higgsfield image model (job_set_type). */
+  imageModel: string;
 }
 
 interface ArtableVote {
@@ -68,6 +85,7 @@ function parseArgs(argv: string[]): CliOptions {
     retryHours: 24,
     dryRun: false,
     model: process.env.RANKER_MODEL,
+    imageModel: DEFAULT_IMAGE_MODEL,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -76,6 +94,8 @@ function parseArgs(argv: string[]): CliOptions {
       options.retryHours = numberArg(argv[++i], options.retryHours);
     else if (arg === '--dry-run') options.dryRun = true;
     else if (arg === '--model') options.model = argv[++i] || options.model;
+    else if (arg === '--image-model')
+      options.imageModel = argv[++i] || options.imageModel;
   }
   return options;
 }
@@ -154,43 +174,106 @@ export function parseScenes(
   return scenes;
 }
 
-/** Render one plate through fal.ai's synchronous endpoint. */
-async function renderPlate(prompt: string, falKey: string): Promise<Buffer> {
-  const res = await fetch(`https://fal.run/${FAL_MODEL}`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Key ${falKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      prompt,
-      image_size: { width: 1024, height: 1024 },
-      num_images: 1,
-      enable_safety_checker: true,
-    }),
-  });
-  if (!res.ok) {
-    throw new Error(`fal.ai ${res.status}: ${(await res.text()).slice(0, 200)}`);
+/** First https URL that looks like an image result in a CLI JSON payload. */
+export function findImageUrl(value: unknown): string | null {
+  if (typeof value === 'string') {
+    return /^https:\/\//.test(value) &&
+      /\.(png|jpe?g|webp)(\?|$)|image/i.test(value)
+      ? value
+      : null;
   }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const url = findImageUrl(item);
+      if (url) return url;
+    }
+    return null;
+  }
+  if (value && typeof value === 'object') {
+    // Prefer the conventional keys before sweeping the whole object.
+    const record = value as Record<string, unknown>;
+    for (const key of ['url', 'image_url', 'result_url', 'raw_url']) {
+      const url = findImageUrl(record[key]);
+      if (url) return url;
+    }
+    for (const nested of Object.values(record)) {
+      const url = findImageUrl(nested);
+      if (url) return url;
+    }
+  }
+  return null;
+}
 
-  const body = (await res.json()) as { images?: Array<{ url?: string }> };
-  const url = body.images?.[0]?.url;
-  if (!url) throw new Error('fal.ai returned no image url');
+/**
+ * Render one plate through the Higgsfield CLI and return the image bytes.
+ *
+ * `--wait --json` blocks until the job settles and prints the job payload;
+ * the result URL is fished out of the JSON rather than grepped from stdout
+ * (HANDOVER.md: the --wait stdout grep is flaky).
+ */
+async function renderPlate(prompt: string, imageModel: string): Promise<Buffer> {
+  const { stdout } = await exec(
+    'higgsfield',
+    [
+      'generate',
+      'create',
+      imageModel,
+      '--prompt',
+      prompt,
+      '--wait',
+      '--wait-timeout',
+      RENDER_TIMEOUT,
+      '--json',
+    ],
+    { timeout: 12 * 60_000, maxBuffer: 8 * 1024 * 1024 }
+  );
+
+  // The CLI pretty-prints one JSON document across many lines; parse the
+  // whole stream first and only fall back to line-scanning for the case of
+  // several concatenated documents with noise between them.
+  let url: string | null = null;
+  try {
+    url = findImageUrl(JSON.parse(stdout));
+  } catch {
+    for (const line of stdout.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) continue;
+      try {
+        url = findImageUrl(JSON.parse(trimmed)) ?? url;
+      } catch {
+        // Non-JSON noise between documents — ignore.
+      }
+    }
+  }
+  if (!url) {
+    throw new Error(
+      `no image url in higgsfield output: "${stdout.slice(0, 200)}"`
+    );
+  }
 
   const image = await fetch(url);
   if (!image.ok) throw new Error(`plate download failed: ${image.status}`);
   return Buffer.from(await image.arrayBuffer());
 }
 
+/** Fail the run up front when the render CLI is missing or logged out. */
+async function assertHiggsfieldReady(): Promise<void> {
+  try {
+    await exec('higgsfield', ['account', 'status'], { timeout: 30_000 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(
+      `higgsfield CLI not ready (install + \`higgsfield auth login\`): ${message.slice(0, 200)}`
+    );
+    process.exit(1);
+  }
+}
+
 async function main(): Promise<void> {
   const options = parseArgs(process.argv.slice(2));
   const supabase = createSupabase();
 
-  const falKey = process.env.FAL_KEY;
-  if (!falKey && !options.dryRun) {
-    console.error('Missing FAL_KEY (set in env, agents/knesset-ranker/.env, or apps/web/.dev.vars)');
-    process.exit(1);
-  }
+  if (!options.dryRun) await assertHiggsfieldReady();
 
   const { data: votes, error: votesError } = await supabase
     .from('votes')
@@ -225,7 +308,7 @@ async function main(): Promise<void> {
     }));
 
   console.log(
-    `card-art: ${votes?.length ?? 0} active votes, ${artable.length} to plate (retry-hours=${options.retryHours}, limit=${options.limit}, ~$${(artable.length * 0.03).toFixed(2)})`
+    `card-art: ${votes?.length ?? 0} active votes, ${artable.length} to plate (retry-hours=${options.retryHours}, limit=${options.limit}, model=${options.imageModel})`
   );
   if (artable.length === 0) return;
 
@@ -274,7 +357,7 @@ async function main(): Promise<void> {
       const attempt = {
         vote_id: vote.id,
         prompt,
-        model: MODEL_TAG,
+        model: `higgsfield/${options.imageModel}+claude-scene/v1`,
         attempted_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -283,7 +366,7 @@ async function main(): Promise<void> {
         .upsert(attempt, { onConflict: 'vote_id' });
 
       try {
-        const raw = await renderPlate(prompt, falKey as string);
+        const raw = await renderPlate(prompt, options.imageModel);
         const webp = await sharp(raw)
           .resize(PLATE_SIZE, PLATE_SIZE, { fit: 'cover' })
           .webp({ quality: WEBP_QUALITY })

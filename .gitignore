@@ -85,3 +85,6 @@ apps/web/*.traineddata
 apps/web/playwright-report/
 apps/web/test-results/
 supabase/.branches/
+
+# knesset-ranker local run output
+agents/knesset-ranker/*.log

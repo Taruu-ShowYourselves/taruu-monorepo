@@ -28,10 +28,8 @@ rsync -az --delete --exclude node_modules --exclude .env \
 
 # Remote .env — secrets streamed straight over ssh, never printed.
 if [ -f "$WEB_ENV" ]; then
-  # FAL_KEY is optional (art job only) — a box without it still ranks and docs.
   { grep '^NEXT_PUBLIC_SUPABASE_URL=' "$WEB_ENV"; \
-    grep '^SUPABASE_SERVICE_ROLE_KEY=' "$WEB_ENV"; \
-    grep '^FAL_KEY=' "$WEB_ENV" || true; } \
+    grep '^SUPABASE_SERVICE_ROLE_KEY=' "$WEB_ENV"; } \
     | ssh "$TARGET" 'cat > ~/knesset-ranker/.env && chmod 600 ~/knesset-ranker/.env'
   echo "==> remote .env written"
 else

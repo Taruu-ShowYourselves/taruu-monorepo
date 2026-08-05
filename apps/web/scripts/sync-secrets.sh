@@ -22,7 +22,7 @@ WRANGLER="node_modules/.bin/wrangler"
 # Vars that live in wrangler.jsonc `vars` (NOT secrets) - never push as secrets.
 # Ops tokens (CI/machine credentials) also never belong on the worker; they go
 # to GitHub Actions via sync-gh-secrets.sh instead.
-SKIP="GREENINVOICE_ENV QUBIK_NETWORK CLOUDFLARE_API_TOKEN OPENAI_API_KEY TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID FAL_KEY"
+SKIP="GREENINVOICE_ENV QUBIK_NETWORK CLOUDFLARE_API_TOKEN OPENAI_API_KEY TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID"
 
 pushed=0; skipped=0
 while IFS= read -r line; do

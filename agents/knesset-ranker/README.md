@@ -9,7 +9,7 @@ your local Claude Code session — none needs an `ANTHROPIC_API_KEY`:
   (`knesset_rankings`).
 - **`art`** — renders one duotone background plate per active vote
   (`vote_card_art` + the `vote-art` storage bucket). The render step
-  additionally needs `FAL_KEY` (fal.ai).
+  additionally needs the Higgsfield CLI (`higgsfield auth login`).
 
 `docs` feeds `rank`: the summary is what the ranker reads to judge an item.
 
@@ -68,12 +68,16 @@ Hebrew title+description into one concrete English scene line (objects only
 — no names, no flags, no text in the scene); the code wraps it in the fixed
 house style — **two-colour risograph screenprint, black ink + pillarbox red
 on newsprint cream, halftone, brutalist civic linocut** (the same recipe
-that produced the merch and certificate plates) — and sends it to
-**Seedream v4 text-to-image on fal.ai** (~$0.03/plate; `--limit`, default
-12, caps a run's spend). The result is downscaled to an 800px WebP with
-sharp, uploaded to the public `vote-art` bucket and recorded in
-`vote_card_art`. Desk tiles print the plate at ~14% opacity under the type;
-the lead ink tile inverts it.
+that produced the merch and certificate plates) — and renders it through
+the **Higgsfield CLI** (`generate create <model> --wait --json`; the same
+account that produced those assets). `--image-model` / `HIGGSFIELD_IMAGE_MODEL`
+picks the model — default `z_image`, 0.15 credits/plate (gpt_image_2 is 7;
+beware `nano_banana_2` = Nano Banana *Pro*); `higgsfield generate cost
+<model> --prompt …` checks; `--limit` (default 12) caps a run's spend. Renders run sequentially — the account
+allows 4 concurrent jobs and the desk shares it with hand-run generations.
+The result is downscaled to an 800px WebP with sharp, uploaded to the
+public `vote-art` bucket and recorded in `vote_card_art`. Desk tiles print
+the plate at ~14% opacity under the type; the lead ink tile inverts it.
 
 Work-queue semantics: a stored plate is permanent; a failed attempt stamps
 `attempted_at` and is retried after `--retry-hours` (default 24). `--dry-run`

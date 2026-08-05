@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { buildPlatePrompt, parseScenes } from './art.js';
+import { buildPlatePrompt, findImageUrl, parseScenes } from './art.js';
 
 const batch = [
   { id: 'v1', title: 'שבילי אופניים', description: 'הפרדה פיזית' },
@@ -37,12 +37,38 @@ describe('parseScenes', () => {
   });
 });
 
+describe('findImageUrl', () => {
+  it('finds a nested result url in a job payload', () => {
+    const payload = {
+      id: 'job-1',
+      status: 'completed',
+      results: [{ raw_url: 'https://cdn.higgsfield.ai/x/plate.png' }],
+    };
+    assert.equal(
+      findImageUrl(payload),
+      'https://cdn.higgsfield.ai/x/plate.png'
+    );
+  });
+
+  it('prefers conventional keys and ignores non-image strings', () => {
+    const payload = {
+      note: 'https://higgsfield.ai/jobs/123',
+      url: 'https://cdn.higgsfield.ai/y.webp?sig=1',
+    };
+    assert.equal(findImageUrl(payload), 'https://cdn.higgsfield.ai/y.webp?sig=1');
+  });
+
+  it('returns null when nothing matches', () => {
+    assert.equal(findImageUrl({ status: 'queued', id: 'abc' }), null);
+  });
+});
+
 describe('buildPlatePrompt', () => {
   it('wraps the scene in the house style and forbids typography', () => {
     const prompt = buildPlatePrompt('a bus stop under rain');
     assert.match(prompt, /^Two-color risograph screenprint/);
     assert.match(prompt, /a bus stop under rain\./);
-    assert.match(prompt, /No text, no letters/);
+    assert.match(prompt, /All surfaces blank — no text, no letters/);
   });
 
   it('does not double the closing full stop', () => {
