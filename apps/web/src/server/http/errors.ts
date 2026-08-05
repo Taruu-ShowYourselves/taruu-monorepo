@@ -12,6 +12,7 @@ export type AppError =
   | { kind: 'VALIDATION'; issues: string[] }
   | { kind: 'CONFLICT'; reason: string }
   | { kind: 'PAYMENT_INVALID'; reason: string }
+  | { kind: 'QUOTA_EXCEEDED'; scope: string; retryAfterSeconds?: number }
   | { kind: 'DB'; op: string; cause?: string }
   | { kind: 'INTERNAL'; cause?: string };
 
@@ -23,6 +24,11 @@ export const conflict = (reason: string): AppError => ({ kind: 'CONFLICT', reaso
 export const paymentInvalid = (reason: string): AppError => ({
   kind: 'PAYMENT_INVALID',
   reason,
+});
+export const quotaExceeded = (scope: string, retryAfterSeconds?: number): AppError => ({
+  kind: 'QUOTA_EXCEEDED',
+  scope,
+  retryAfterSeconds,
 });
 export const dbError = (op: string, cause?: unknown): AppError => ({
   kind: 'DB',
@@ -70,6 +76,8 @@ export function toHttp(error: AppError): HttpError {
         status: 402,
         body: { error: error.reason, code: 'PAYMENT_REQUIRED' },
       };
+    case 'QUOTA_EXCEEDED':
+      return { status: 429, body: { error: 'Quota exceeded', code: 'QUOTA_EXCEEDED' } };
     case 'DB':
     case 'INTERNAL':
       return {

@@ -14,12 +14,13 @@ import {
   type VoteDto,
   type VoteOptionDto,
   type VoteSourceDto,
+  type PublicVoteStatus,
 } from '@/server/domain/votes/vote';
 import type { AppError } from '@/server/http/errors';
 
 export interface ListVotesQuery {
   municipality?: string;
-  status?: 'pending' | 'active' | 'ended';
+  status?: PublicVoteStatus;
   /** Include option tallies - supported for active votes only. */
   includeOptions?: boolean;
 }

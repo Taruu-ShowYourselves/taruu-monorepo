@@ -3,7 +3,12 @@
  *
  * Tests for the /api/votes endpoints:
  * - GET /api/votes - List votes
- * - POST /api/votes - Create a new vote
+ * - POST /api/votes - Submit a proposal for review
+ *
+ * Submission is free (issue #75): the request carries no payment reference, no
+ * payment is verified, and the row lands in `in_review`. The ₪50 creation fee
+ * is requested when a space admin approves — covered by
+ * space-admin-approve-charge.test.ts, not here.
  */
 
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
@@ -137,6 +142,24 @@ describe('Votes API Routes', () => {
       expect(getVotesByMunicipality).toHaveBeenCalledWith('tel-aviv', 'ended');
     });
 
+    it('never selects a proposal awaiting review, even when asked for one by name', async () => {
+      // Now that submission lands in `in_review`, the public listing is the
+      // surface where an unapproved proposal would leak. Asking for the review
+      // status by name degrades to "no filter", and no filter means db.ts
+      // applies PUBLIC_VOTE_STATUSES. This asserts the route half — the row
+      // predicate itself lives in getVotesByMunicipality, mocked here.
+      (getVotesByMunicipality as Mock).mockResolvedValue([]);
+
+      const request = new NextRequest(
+        'http://localhost:3000/api/votes?municipality=tel-aviv&status=in_review'
+      );
+      const response = await GET(request);
+
+      expect(response.status).toBe(200);
+      expect(getVotesByMunicipality).toHaveBeenCalledWith('tel-aviv', undefined);
+      expect(getVotesByMunicipality).not.toHaveBeenCalledWith('tel-aviv', 'in_review');
+    });
+
     it('should handle database errors gracefully', async () => {
       (getActiveVotes as Mock).mockRejectedValue(new Error('Database connection failed'));
 
@@ -169,7 +192,6 @@ describe('Votes API Routes', () => {
       ],
       startDate: '2025-02-01T00:00:00Z',
       endDate: '2025-02-28T23:59:59Z',
-      paymentTxId: 'payment-123',
     };
 
     it('should return 401 when not authenticated', async () => {
@@ -202,68 +224,84 @@ describe('Votes API Routes', () => {
       expect(data.code).toBe('VALIDATION_ERROR');
     });
 
-    it('should return 400 when paymentTxId is missing (schema validation)', async () => {
+    it('should submit successfully with no payment reference in the body', async () => {
+      // Was "400 when paymentTxId is missing". Submission is free now, so the
+      // absence of a payment reference is the normal case, not a rejection.
       (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
-
-      const dataWithoutPayment = { ...validVoteData, paymentTxId: undefined };
-      const request = new NextRequest('http://localhost:3000/api/votes', {
-        method: 'POST',
-        body: JSON.stringify(dataWithoutPayment),
-      });
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(400);
-      expect(data.code).toBe('VALIDATION_ERROR');
-    });
-
-    it('should return 402 when payment verification fails', async () => {
-      (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
-      (verifyPaymentCompleted as Mock).mockResolvedValue({
-        valid: false,
-        error: 'Payment not found',
-      });
-
-      const request = new NextRequest('http://localhost:3000/api/votes', {
-        method: 'POST',
-        body: JSON.stringify(validVoteData),
-      });
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(402);
-      expect(data.error).toBe('Payment not found');
-      expect(data.code).toBe('PAYMENT_REQUIRED');
-    });
-
-    it('should return 402 when payment has already been used', async () => {
-      (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
-      (verifyPaymentCompleted as Mock).mockResolvedValue({ valid: true });
-      (isPaymentAlreadyUsed as Mock).mockResolvedValue(true);
-
-      const request = new NextRequest('http://localhost:3000/api/votes', {
-        method: 'POST',
-        body: JSON.stringify(validVoteData),
-      });
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(402);
-      expect(data.error).toBe('Payment has already been used');
-      expect(data.code).toBe('PAYMENT_REQUIRED');
-    });
-
-    it('should create vote successfully with valid data', async () => {
-      (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
-      (verifyPaymentCompleted as Mock).mockResolvedValue({ valid: true });
-      (isPaymentAlreadyUsed as Mock).mockResolvedValue(false);
       (createVote as Mock).mockResolvedValue({
         id: 'new-vote-123',
         title: validVoteData.title,
         description: validVoteData.description,
         municipality_id: validVoteData.municipality,
         creator_id: mockSession.userId,
-        status: 'pending',
+        status: 'in_review',
+        start_date: validVoteData.startDate,
+        end_date: validVoteData.endDate,
+        participant_count: 0,
+        created_at: '2025-01-16T00:00:00Z',
+        updated_at: '2025-01-16T00:00:00Z',
+      });
+      (createVoteOptions as Mock).mockResolvedValue([
+        { id: 'opt-1', text: 'Option A', votes: 0 },
+        { id: 'opt-2', text: 'Option B', votes: 0 },
+      ]);
+
+      expect(validVoteData).not.toHaveProperty('paymentTxId');
+
+      const request = new NextRequest('http://localhost:3000/api/votes', {
+        method: 'POST',
+        body: JSON.stringify(validVoteData),
+      });
+      const response = await POST(request);
+
+      expect(response.status).toBe(201);
+      expect(verifyPaymentCompleted).not.toHaveBeenCalled();
+      expect(isPaymentAlreadyUsed).not.toHaveBeenCalled();
+    });
+
+    it('should insert the proposal with status in_review', async () => {
+      (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
+      (createVote as Mock).mockResolvedValue({
+        id: 'new-vote-123',
+        title: validVoteData.title,
+        description: validVoteData.description,
+        municipality_id: validVoteData.municipality,
+        creator_id: mockSession.userId,
+        status: 'in_review',
+        start_date: validVoteData.startDate,
+        end_date: validVoteData.endDate,
+        participant_count: 0,
+        created_at: '2025-01-16T00:00:00Z',
+        updated_at: '2025-01-16T00:00:00Z',
+      });
+      (createVoteOptions as Mock).mockResolvedValue([
+        { id: 'opt-1', text: 'Option A', votes: 0 },
+        { id: 'opt-2', text: 'Option B', votes: 0 },
+      ]);
+
+      const request = new NextRequest('http://localhost:3000/api/votes', {
+        method: 'POST',
+        body: JSON.stringify(validVoteData),
+      });
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(createVote).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'in_review' })
+      );
+      expect(data.vote.status).toBe('in_review');
+    });
+
+    it('should create vote successfully with valid data', async () => {
+      (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
+      (createVote as Mock).mockResolvedValue({
+        id: 'new-vote-123',
+        title: validVoteData.title,
+        description: validVoteData.description,
+        municipality_id: validVoteData.municipality,
+        creator_id: mockSession.userId,
+        status: 'in_review',
         start_date: validVoteData.startDate,
         end_date: validVoteData.endDate,
         participant_count: 0,
@@ -296,17 +334,18 @@ describe('Votes API Routes', () => {
       );
     });
 
-    it('should set status to active when startDate is in the past', async () => {
+    it('should still submit into in_review when startDate is in the past', async () => {
+      // Was "status is active when startDate is in the past". A start date that
+      // has already arrived no longer opens the vote — publication is the
+      // approval's job, and `initialStatus` is only consulted there.
       (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
-      (verifyPaymentCompleted as Mock).mockResolvedValue({ valid: true });
-      (isPaymentAlreadyUsed as Mock).mockResolvedValue(false);
       (createVote as Mock).mockResolvedValue({
         id: 'vote-123',
         title: 'Test',
         description: 'Test',
         municipality_id: 'tel-aviv',
         creator_id: mockSession.userId,
-        status: 'active',
+        status: 'in_review',
         start_date: '2024-01-01T00:00:00Z', // Past date
         end_date: '2025-12-31T23:59:59Z',
         participant_count: 0,
@@ -331,15 +370,16 @@ describe('Votes API Routes', () => {
 
       expect(createVote).toHaveBeenCalledWith(
         expect.objectContaining({
-          status: 'active',
+          status: 'in_review',
         })
+      );
+      expect(createVote).not.toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'active' })
       );
     });
 
     it('should handle database errors gracefully', async () => {
       (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
-      (verifyPaymentCompleted as Mock).mockResolvedValue({ valid: true });
-      (isPaymentAlreadyUsed as Mock).mockResolvedValue(false);
       (createVote as Mock).mockRejectedValue(new Error('Database error'));
 
       const request = new NextRequest('http://localhost:3000/api/votes', {

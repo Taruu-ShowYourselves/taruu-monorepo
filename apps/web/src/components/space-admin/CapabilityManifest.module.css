@@ -1,0 +1,78 @@
+/* ============================================================
+ * CapabilityManifest — eleven mono rows, one per capability.
+ *
+ * Two-colour discipline holds here too: a withheld row is FAINT INK, never
+ * red. Red is reserved (tick glyphs, the one page-primary, focus rings, the
+ * invalid-field rule, the irreversible plate rule, tally fill, the `בבדיקה`
+ * chip) and "you were not granted this" is none of those — it is an ordinary
+ * fact about the account, not an alarm.
+ * ============================================================ */
+
+.manifest {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.rows {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: var(--space-4);
+}
+
+.label,
+.state {
+  padding-block: var(--space-2);
+  border-block-start: var(--np-rule-hair) solid var(--np-paper-edge);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+}
+
+/* The first pair opens the list; the heavy rule above the heading is its edge. */
+.rows > :nth-child(-n + 2) {
+  border-block-start: 0;
+}
+
+.label {
+  font-weight: 500;
+  color: var(--np-ink);
+  overflow-wrap: anywhere;
+}
+
+.state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-weight: 700;
+  color: var(--np-ink);
+  white-space: nowrap;
+}
+
+/* Faint ink: 4.96:1 on paper, 5.2:1 on paper-box — AA for normal text. */
+.stateWithheld {
+  font-weight: 500;
+  color: var(--np-ink-faint);
+}
+
+/* Decorative mark. The Hebrew word beside it carries the meaning. */
+.mark {
+  flex-shrink: 0;
+}
+
+.note {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: var(--np-ink-faint);
+  max-width: 68ch;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manifest {
+    transition: none;
+    animation: none;
+  }
+}

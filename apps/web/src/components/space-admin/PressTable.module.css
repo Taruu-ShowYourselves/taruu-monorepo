@@ -1,0 +1,321 @@
+/* ============================================================
+ * PressTable — the RTL data-table contract (Interaction Contract 4, D10/D11).
+ *
+ * Table semantics survive every width. Responsive reduction is a paired
+ * `display: none` on `th[data-col]` + `td[data-col]`; a cell is NEVER switched
+ * to `display: block` or `display: flex`, because the usual "responsive table"
+ * trick destroys the table in assistive tech.
+ * ============================================================ */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Visually hidden, still announced. The hairline box is `--np-rule-hair`. */
+.srOnly {
+  position: absolute;
+  inline-size: var(--np-rule-hair);
+  block-size: var(--np-rule-hair);
+  margin: calc(-1 * var(--np-rule-hair));
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.scroller {
+  overflow-x: auto;
+  border: var(--np-rule) solid var(--np-ink);
+  background: var(--np-paper-box);
+}
+
+.scroller:focus-visible {
+  outline: var(--np-rule) solid var(--np-red);
+  outline-offset: calc(-1 * var(--np-rule));
+}
+
+.table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  border-radius: 0;
+}
+
+.table th,
+.table td {
+  /* `start`, including numeric columns — the press system does not right-align. */
+  text-align: start;
+  vertical-align: top;
+  padding: var(--space-3) var(--space-4);
+  min-block-size: var(--space-11);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.table thead th {
+  background: var(--np-ink);
+  color: var(--np-paper);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.table tbody th,
+.table tbody td {
+  background: var(--np-paper-box);
+  color: var(--np-ink);
+  font-family: var(--np-font-display);
+  font-weight: 400;
+  font-size: var(--text-base);
+  line-height: 1.5;
+  border-block-start: var(--np-rule-hair) solid var(--np-paper-edge);
+  transition: background-color var(--np-dur-snap) var(--np-ease);
+}
+
+.table tbody th {
+  font-weight: 800;
+}
+
+.table tbody tr:first-child > th,
+.table tbody tr:first-child > td {
+  border-block-start: 0;
+}
+
+/* No zebra striping — the press system separates with rules, not stripes. */
+.table tbody tr:hover > th,
+.table tbody tr:hover > td {
+  background: var(--np-paper-2);
+}
+
+.table tbody tr:focus-within > th,
+.table tbody tr:focus-within > td {
+  outline: var(--np-rule) solid var(--np-red);
+  outline-offset: calc(-1 * var(--np-rule));
+}
+
+/* ---------- Responsive column reduction: matched data-col pairs ---------- */
+
+@media (max-width: 767px) {
+  .table th[data-col][data-secondary='true'],
+  .table td[data-col][data-secondary='true'] {
+    display: none;
+  }
+}
+
+/* ---------- Row disclosure ---------- */
+
+.detailsToggle {
+  display: none;
+  align-items: center;
+  margin-block-start: var(--space-2);
+  padding: 0;
+  min-block-size: var(--space-11);
+  background: transparent;
+  border: 0;
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--np-ink);
+  cursor: pointer;
+}
+
+.detailsToggle:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+@media (max-width: 767px) {
+  .detailsToggle {
+    display: inline-flex;
+  }
+}
+
+.expansionRow > td {
+  background: var(--np-paper-2);
+  border-block-start: var(--np-rule-hair) solid var(--np-paper-edge);
+}
+
+/* The built-in disclosure only exists where columns are hidden. */
+@media (min-width: 768px) {
+  .autoExpansionRow {
+    display: none;
+  }
+}
+
+.details {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-2) var(--space-4);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.details dt {
+  font-weight: 700;
+  color: var(--np-ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.details dd {
+  color: var(--np-ink);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Long content ---------- */
+
+.clamp1,
+.clamp2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.clamp1 {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+}
+
+.clamp2 {
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.shortId {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  unicode-bidi: isolate;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Skeleton ---------- */
+
+.skeletonRow > th,
+.skeletonRow > td {
+  min-block-size: var(--space-11);
+}
+
+.skeletonBar {
+  display: block;
+  inline-size: 100%;
+  block-size: var(--space-6);
+  background-color: var(--np-paper-2);
+  animation: pressTableSkeleton 1.4s var(--np-ease) infinite;
+}
+
+@keyframes pressTableSkeleton {
+  0%,
+  100% {
+    background-color: var(--np-paper-2);
+  }
+  50% {
+    background-color: var(--np-paper-box);
+  }
+}
+
+/* ---------- Post-mutation row flash ---------- */
+
+/* Interaction Contract 2: the affected row settles out of a paper-2 flash
+   after a decision. Shipped here rather than per surface (deferred item 8),
+   because getting it right takes two non-obvious facts and both surfaces that
+   need it had to discover them independently:
+
+   1. The flash must target `> th, > td`. This table paints CELL backgrounds,
+      not row backgrounds, so an animation on the `<tr>` is invisible.
+   2. The reduced-motion opt-out needs matching specificity. A surface-level
+      `.surface * { animation: none }` is (0,1,0) and loses to `.rowFlash > td`
+      at (0,1,1); the opt-out below is authored at (0,1,1) and, being later in
+      the same file, wins on source order.
+
+   No specificity contest with the row-hover rule is needed: a keyframed
+   background outranks a normal declaration from the cascade's animation
+   origin. `ROW_FLASH_MS` in `PressTable.tsx` is the same 1200ms, exported so
+   the JS timer that clears the class and this duration cannot drift apart. */
+.rowFlash > th,
+.rowFlash > td {
+  animation: pressTableRowFlash 1200ms var(--np-ease) 1;
+}
+
+@keyframes pressTableRowFlash {
+  from {
+    background-color: var(--np-paper-2);
+  }
+  to {
+    background-color: var(--np-paper-box);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rowFlash > th,
+  .rowFlash > td {
+    animation: none;
+  }
+}
+
+/* ---------- Hints + pagination ---------- */
+
+.scrollHint,
+.pageHint,
+.pageMeta {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: var(--np-ink-faint);
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.pageControl {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.pageBtn {
+  min-block-size: var(--space-11);
+  font-family: var(--np-font-mono);
+  letter-spacing: 0.02em;
+}
+
+/* The disabled appearance is `disabledButtonClass` from
+   `disabledButton.module.css`, applied alongside `.pageBtn` in the component.
+   It used to be copied here, because the only shared class also carried the
+   `ink` hover fill these `outline` controls must never take. */
+
+/* ---------- Desktop ---------- */
+
+@media (min-width: 768px) {
+  .table thead th {
+    position: sticky;
+    inset-block-start: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .table tbody th,
+  .table tbody td {
+    transition: none;
+  }
+
+  .skeletonBar {
+    animation: none;
+  }
+}

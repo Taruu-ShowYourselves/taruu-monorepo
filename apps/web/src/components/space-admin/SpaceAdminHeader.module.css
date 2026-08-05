@@ -1,0 +1,85 @@
+/* ============================================================
+ * SpaceAdminHeader — page masthead for every space-admin surface.
+ * Brutalist tech-press: kicker, 900-weight headline, mono edition meta.
+ * ============================================================ */
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-block-end: var(--space-4);
+  border-block-end: var(--np-rule-heavy) solid var(--np-ink);
+}
+
+.headline {
+  font-family: var(--np-font-display);
+  font-weight: 900;
+  font-size: var(--text-2xl);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  color: var(--np-ink);
+  text-wrap: balance;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--np-ink-faint);
+}
+
+.sep {
+  color: var(--np-red);
+  font-size: var(--text-xs);
+}
+
+/* Latin ids/slugs must not reorder inside the RTL paragraph. */
+.latin {
+  unicode-bidi: isolate;
+  overflow-wrap: anywhere;
+}
+
+/* Suspension banner. Ink block: paper text only — there is no compliant
+   red text on ink (see kicker.module.css). */
+.suspended {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-block-start: var(--space-2);
+  padding: var(--space-4);
+  border: var(--np-rule) solid var(--np-ink);
+}
+
+.suspendedBody {
+  font-family: var(--np-font-display);
+  font-weight: 400;
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--np-paper);
+  max-width: 68ch;
+}
+
+@media (min-width: 768px) {
+  .headline {
+    font-size: var(--text-3xl);
+  }
+
+  .suspended {
+    padding: var(--space-6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header,
+  .suspended {
+    transition: none;
+    animation: none;
+  }
+}

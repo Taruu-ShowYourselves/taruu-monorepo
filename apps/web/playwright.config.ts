@@ -42,11 +42,34 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      /* The space-admin evidence spec declares its own two widths below and
+         must not also run at the default one — three runs would write the
+         same sixteen frames from a viewport nobody asked for. */
+      testIgnore: /space-admin\.spec\.ts/,
+    },
+
+    /*
+     * The two widths issue #75 asks the screenshot evidence to be captured at,
+     * from `05-UI-SPEC.md`'s Responsive Contract. The project name is part of
+     * every output filename, so a frame is self-describing on disk.
+     */
+    {
+      name: 'desktop-1440x900',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
+      testMatch: /space-admin\.spec\.ts/,
+    },
+    {
+      name: 'mobile-390x844',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 390, height: 844 } },
+      testMatch: /space-admin\.spec\.ts/,
     },
   ],
 
-  /* Run your local dev server before starting the tests */
-  webServer: process.env.CI ? undefined : {
+  /* Run your local dev server before starting the tests.
+     Skipped when PLAYWRIGHT_BASE_URL names a server that is already up — the
+     space-admin evidence run points at a seeded instance on its own port, and
+     starting a second `pnpm dev` would fight it for `.next`. */
+  webServer: process.env.CI || process.env.PLAYWRIGHT_BASE_URL ? undefined : {
     command: 'pnpm dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,

@@ -28,6 +28,11 @@ import type {
   UpdateTables,
 } from './types';
 import type { PublicCouncilAggregateRow } from '@/server/domain/council/public-profile';
+import {
+  PUBLIC_VOTE_STATUSES,
+  type PublicVoteStatus,
+} from '@/server/domain/votes/vote';
+import { REVIEW_VOTE_STATUSES } from '@/server/domain/space/review';
 
 // ============================================
 // USER OPERATIONS
@@ -731,7 +736,33 @@ export async function hasVoteEntitlement(
 // VOTE OPERATIONS
 // ============================================
 
+/**
+ * Fetch a vote by id for a PUBLIC surface. A vote in a review state
+ * (draft / in_review / changes_requested / rejected) returns null, exactly as
+ * an unknown id does, so a proposal's uuid is not a probe for its existence.
+ */
 export async function getVoteById(voteId: string): Promise<Vote | null> {
+  const { data, error } = await supabaseAdmin
+    .from('votes')
+    .select('*')
+    .eq('id', voteId)
+    .in('status', PUBLIC_VOTE_STATUSES)
+    .single();
+
+  if (error || !data) return null;
+  return data;
+}
+
+/**
+ * INTERNAL: fetch a vote by id with no visibility filter at all.
+ *
+ * This bypasses the PUBLIC_VOTE_STATUSES allow-list and will return proposals
+ * that are still under review. It may only be called from a server-side
+ * use-case that has already authorized the caller — a space reviewer holding
+ * the relevant capability, a cron/resolution job, or the vote's own submitter.
+ * Never call it from a route that serves an unauthenticated reader.
+ */
+export async function getVoteByIdUnfiltered(voteId: string): Promise<Vote | null> {
   const { data, error } = await supabaseAdmin
     .from('votes')
     .select('*')
@@ -752,6 +783,9 @@ export async function getVoteWithOptions(
       vote_options (*)
     `)
     .eq('id', voteId)
+    // Public read behind GET /api/votes/[id]: a draft's uuid must return the
+    // existing "not found" null, never the row.
+    .in('status', PUBLIC_VOTE_STATUSES)
     .single();
 
   if (error || !data) return null;
@@ -783,7 +817,7 @@ export async function getActiveVotes(
 
 export async function getVotesByMunicipality(
   municipalityId: string,
-  status?: 'pending' | 'active' | 'ended'
+  status?: PublicVoteStatus
 ): Promise<Vote[]> {
   let query = supabaseAdmin
     .from('votes')
@@ -793,6 +827,11 @@ export async function getVotesByMunicipality(
 
   if (status) {
     query = query.eq('status', status);
+  } else {
+    // No explicit status means "everything a resident may see", not
+    // "everything" — without this the listing would surface review-state
+    // proposals the moment one can be written.
+    query = query.in('status', PUBLIC_VOTE_STATUSES);
   }
 
   const { data, error } = await query;
@@ -854,7 +893,14 @@ export async function getActiveVotesWithOptions(
   }));
 }
 
-/** Find an active/pending vote by municipality + exact title (ingest dedup). */
+/**
+ * Find a live-or-under-review vote by municipality + exact title (ingest dedup).
+ *
+ * The review states are part of the window on purpose: this is the only thing
+ * stopping POST /api/ingest/topics from creating a second copy of a topic that
+ * is already sitting in the review queue, unpublished and therefore invisible
+ * to a `pending`/`active`-only lookup.
+ */
 export async function findVoteByMunicipalityAndTitle(
   municipalityId: string,
   title: string
@@ -864,7 +910,7 @@ export async function findVoteByMunicipalityAndTitle(
     .select('*')
     .eq('municipality_id', municipalityId)
     .eq('title', title)
-    .in('status', ['pending', 'active'])
+    .in('status', ['pending', 'active', ...REVIEW_VOTE_STATUSES])
     .limit(1)
     .maybeSingle();
 
@@ -1376,12 +1422,18 @@ export async function countUserVoteParticipations(userId: string): Promise<numbe
 
 /**
  * Count the number of votes created by a user.
+ *
+ * Creator-scoped, so this is not a cross-user leak — but it feeds a "votes
+ * created" statistic, and an unsubmitted draft or a rejected submission is not
+ * an achievement. Those two are excluded from the count only; the listing below
+ * stays unfiltered so the submitter can still see and act on them.
  */
 export async function countVotesCreatedByUser(userId: string): Promise<number> {
   const { count, error } = await supabaseAdmin
     .from('votes')
     .select('*', { count: 'exact', head: true })
-    .eq('creator_id', userId);
+    .eq('creator_id', userId)
+    .not('status', 'in', '("draft","rejected")');
 
   if (error) {
     console.error('Failed to count votes created by user:', error);
@@ -1392,6 +1444,11 @@ export async function countVotesCreatedByUser(userId: string): Promise<number> {
 
 /**
  * Get votes created by a user.
+ *
+ * Deliberately NOT filtered by PUBLIC_VOTE_STATUSES: this is creator-scoped, and
+ * a submitter must be able to see their own draft and returned-for-changes
+ * proposals. Any caller that renders this to somebody other than the creator is
+ * the bug, not this query.
  */
 export async function getVotesCreatedByUser(userId: string): Promise<Vote[]> {
   const { data, error } = await supabaseAdmin

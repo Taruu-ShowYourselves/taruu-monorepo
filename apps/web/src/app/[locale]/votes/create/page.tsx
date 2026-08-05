@@ -11,10 +11,9 @@ import {
   Segmented,
   Stepper,
   Receipt,
-  SealCard,
 } from '@/components/press';
+import { PROPOSAL_STATUS_LABELS_HE } from '@/components/space-admin/proposalStatusLabels';
 import { useAuth } from '@/providers/AuthProvider';
-import { CREATE_VOTE_COST, formatCurrency } from '@sync/shared';
 import styles from './page.module.css';
 
 // ---------------------------------------------------------------------------
@@ -24,12 +23,12 @@ const MSG_REQUIRED = 'צריך למלא את השדה הזה כדי להמשיך
 const MSG_GENERAL = 'משהו השתבש אצלנו, לא אצלכם. נסו שוב בעוד רגע.';
 
 // Press wizard is 4 editorial steps; the underlying validation stays 3-staged
-// (details → options → payment) - duration lives on the payment plate.
+// (details → options → submission) — duration lives on the final plate.
 const STEP_LABELS = [
   { label: 'נושא' },
   { label: 'אפשרויות' },
   { label: 'משך' },
-  { label: 'תשלום' },
+  { label: 'הגשה' },
 ];
 
 const DURATIONS = [
@@ -56,8 +55,8 @@ export default function CreateVotePage() {
   const [descriptionError, setDescriptionError] = useState('');
   const [optionsError, setOptionsError] = useState('');
 
-  // Success surface (graceful in-page fallback when no redirect URL is issued)
-  const [sealHash, setSealHash] = useState<string | null>(null);
+  // Success surface — gated on the id the server returned for the proposal.
+  const [submittedVoteId, setSubmittedVoteId] = useState<string | null>(null);
 
   // Form state - unchanged
   const [title, setTitle] = useState('');
@@ -155,54 +154,36 @@ export default function CreateVotePage() {
     setError('');
 
     try {
-      // Create Green Invoice payment session
-      const response = await fetch('/api/payments/create', {
+      // Submission is free and posts the proposal directly. There is no
+      // checkout here and no draft stashed anywhere: the row exists the moment
+      // the server answers, and the ₪50 obligation is created only if a space
+      // admin approves it (issue #75). Nothing is retried — there is no
+      // webhook to wait for.
+      const now = new Date();
+      const end = new Date(now.getTime() + duration * 24 * 60 * 60 * 1000);
+      const res = await fetch('/api/votes', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: 'vote_creation',
-          voteTitle: title,
+          title,
+          description,
+          options: filledOptions.map((label) => ({ label })),
+          startDate: now.toISOString(),
+          endDate: end.toISOString(),
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create payment');
-      }
-
-      const data = await response.json();
-
-      // Persist pending vote for post-payment finalisation - unchanged.
-      const pendingVote = {
-        title,
-        description,
-        options: filledOptions,
-        duration,
-        paymentId: data.payment?.id,
-        orderId: data.payment?.orderId,
-      };
-
-      // Real flow: redirect to the Green Invoice checkout when a URL is issued.
-      if (data.payment?.paymentUrl) {
-        sessionStorage.setItem('pendingVote', JSON.stringify(pendingVote));
-        window.location.href = data.payment.paymentUrl;
+      if (!res.ok) {
+        setError(MSG_GENERAL);
+        setSubmitting(false);
         return;
       }
 
-      // Graceful MOCK fallback: API succeeded but issued no checkout URL
-      // (e.g. sandbox without Green Invoice). Render the in-page seal instead of
-      // erroring, so the press success surface is reachable.
-      sessionStorage.setItem('pendingVote', JSON.stringify(pendingVote));
-      setSealHash(
-        data.payment?.id
-          ? String(data.payment.id)
-          : `0x${Math.random().toString(16).slice(2).padEnd(40, '0').slice(0, 40)}`,
-      );
+      const data = await res.json();
+      setSubmittedVoteId(String(data.vote?.id ?? ''));
       setSubmitting(false);
     } catch (err: unknown) {
-      console.error('Payment error:', err);
+      console.error('Proposal submission failed:', err);
       setError(MSG_GENERAL);
       setSubmitting(false);
     }
@@ -225,8 +206,10 @@ export default function CreateVotePage() {
     );
   }
 
-  // ----- Success surface (seal) ------------------------------------------
-  if (sealHash) {
+  // ----- Submitted surface ------------------------------------------------
+  // Gated on the id the server returned, not on a hash: at submission nothing
+  // has been signed and no chain record exists, so there is no seal to render.
+  if (submittedVoteId !== null) {
     return (
       <>
         <Header />
@@ -235,11 +218,15 @@ export default function CreateVotePage() {
             <header className={styles.head}>
               <span className={styles.kicker}>
                 <span aria-hidden className={styles.kickerTick} />
-                הצבעה נוצרה · CREATED
+                הוגש · SUBMITTED
               </span>
               <h1 className={styles.headline}>
-                ההצבעה שלכם <span className={styles.red}>בדרך לדפוס.</span>
+                ההצעה שלכם <span className={styles.red}>נשלחה לבדיקה.</span>
               </h1>
+              <p className={styles.standfirst}>
+                מנהל/ת המרחב יבדקו את ההצעה. ההגשה לא חויבה — דמי יצירה של ₪50
+                ייווצרו רק אם ההצעה תאושר ותתפרסם.
+              </p>
             </header>
 
             <div className={styles.successGrid}>
@@ -249,17 +236,13 @@ export default function CreateVotePage() {
                 rows={[
                   { label: 'משך הצבעה', value: `${duration} ימים` },
                   { label: 'אפשרויות', value: String(filledOptions.length) },
-                  { label: 'דמי יצירה', value: formatCurrency(CREATE_VOTE_COST), strong: true },
+                  {
+                    label: 'סטטוס',
+                    value: PROPOSAL_STATUS_LABELS_HE.in_review,
+                    strong: true,
+                  },
                 ]}
                 footer="תַּרְאוּ · כל הארץ · המהדורה הקהילתית"
-              />
-              <SealCard
-                hash={sealHash}
-                status="sealed"
-                meta={[
-                  { label: 'STATUS', value: 'CREATED' },
-                  { label: 'DURATION', value: `${duration}D` },
-                ]}
               />
             </div>
 
@@ -285,10 +268,10 @@ export default function CreateVotePage() {
     : { duration: 0.16, ease: [0.2, 0, 0, 1] as const };
 
   const primaryLabel = submitting
-    ? 'מעבד תשלום…'
+    ? 'שולחים את ההצעה…'
     : step < STEP_COUNT
       ? 'המשך'
-      : `צרו הצבעה · ${formatCurrency(CREATE_VOTE_COST)}`;
+      : 'שלחו את ההצעה לבדיקה';
 
   return (
     <>
@@ -305,8 +288,9 @@ export default function CreateVotePage() {
               כתבו את הכותרת <span className={styles.red}>של המחר.</span>
             </h1>
             <p className={styles.standfirst}>
-              הציעו נושא, נסחו את האפשרויות, וקבעו את משך ההצבעה. ההצעה תיחתם
-              בבלוקצ׳יין ותעלה לקלפי הקהילתית.
+              הציעו נושא, נסחו את האפשרויות, וקבעו את משך ההצבעה. ההגשה ללא
+              תשלום — ההצעה עוברת לבדיקה, ורק אחרי אישור היא מתפרסמת ונחתמת
+              בבלוקצ׳יין.
             </p>
           </header>
 
@@ -437,20 +421,17 @@ export default function CreateVotePage() {
 
             {step === 4 && (
               <div className={styles.plateBody}>
-                <span className={styles.plateKicker}>FIG. 4 · תשלום</span>
+                <span className={styles.plateKicker}>FIG. 4 · הגשה</span>
                 <Receipt
-                  kicker="קבלה · CREATE FEE"
+                  kicker="סיכום · SUBMISSION"
                   title={title || 'הצבעה חדשה'}
                   rows={[
                     { label: 'משך הצבעה', value: `${duration} ימים` },
                     { label: 'אפשרויות', value: String(filledOptions.length) },
-                    {
-                      label: 'דמי יצירת הצבעה',
-                      value: formatCurrency(CREATE_VOTE_COST),
-                      strong: true,
-                    },
+                    { label: 'עלות הגשה', value: 'ללא תשלום', strong: true },
+                    { label: 'דמי יצירה', value: '₪50 — רק אם ההצעה תאושר' },
                   ]}
-                  footer="תשלום מאובטח · Green Invoice · חתום בבלוקצ׳יין"
+                  footer="ההגשה עוברת לבדיקת מנהל/ת המרחב לפני פרסום."
                 />
               </div>
             )}

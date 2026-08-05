@@ -106,6 +106,26 @@ Built entirely on Phase 5's primitives — the role-grant schema, the authorizat
 - [ ] **MGR-04**: Cancellation and the failed-payment grace policy produce documented, predictable access outcomes, and the user is notified on every state change affecting access.
 - [ ] **MGR-05**: Reconciliation matches GI settlement records against internal subscription and charge rows to zero open mismatches; any ambiguous payment state leaves the role inactive.
 
+### Space Governance & Space-Admin Operations (issue #75, appended scope — independent of the payments track)
+
+- [x] **SPACE-01**: A typed `spaces` table exists (uuid id, type, slug, geography, owner, verification state) with a nullable `municipality_code` FK to `municipalities(code)`. Existing `municipality_id` columns on `users`, `votes`, and `treasury` are unchanged — additive only, no table rewrites.
+- [ ] **SPACE-02**: Authority is expressed as explicit per-action capability grants (`space_capability_grants`), never a broad admin boolean and never a role column that confers power on its own. Default deny. Every capability is resolved server-side from the DB on every read and every mutation; the JWT carries no roles claim.
+- [ ] **SPACE-03**: Object-level authorization holds — a space admin who changes `spaceId` in a URL or an API identifier receives `FORBIDDEN` for both reads and mutations, with no data disclosed in the error.
+- [ ] **SPACE-04**: Every proposal decision and role change writes an immutable audit row carrying actor, timestamp, prior state, new state, reason, and related object. A reason is required at the API layer; audit rows cannot be updated or deleted by any application path.
+- [ ] **SPACE-05**: The proposal review queue supports approve / reject / request-changes over `vote_status` review states (`draft`, `in_review`, `changes_requested`, `rejected`), gated ahead of publication. Conflicting simultaneous decisions resolve deterministically with no duplicate publication, and a reviewer cannot decide a proposal they submitted.
+- [ ] **SPACE-06**: Member and role management plus permitted content controls are available within the administered space only, each mutation audited per SPACE-04.
+- [ ] **SPACE-07**: Resident metrics are exposed as aggregates only; member listings carry privacy-safe fields needed for administration and never raw identity-document data.
+- [ ] **SPACE-08**: The notification composer previews its audience, and the delivered recipient set equals the previewed authorized audience with opt-outs honored. Per-space quotas are enforced server-side before send, and a delivery log records what was sent to whom. Channels for v1 are in-app plus Expo push; no email.
+- [ ] **SPACE-09**: A super admin can suspend a space admin's access (`suspended_at`) with immediate effect on authorization, without deleting any historical audit data, and space admins have an escalation path to super admins.
+- [ ] **SPACE-10**: The dashboard ships at `/he/space-admin/[spaceId]` — Hebrew/RTL, design tokens only, no hardcoded colors or spacing — covering space overview, proposal review, members/roles, statistics, notification preview, and audit history at desktop and mobile widths.
+
+> **Note on tick timing.** `phase complete` marks a requirement `[x]` when *a* plan declaring it
+> finishes, but six of these requirements are covered by several plans each. A tick here means
+> "some covering plan landed", not "the requirement is satisfied" — the authoritative check is
+> `05-VERIFICATION.md` plus the evidence document from plan 05-16. SPACE-04 (plans 01, 02, 05, 07,
+> 15, 16) and SPACE-09 (plans 01, 04, 06, 09, 12) were auto-ticked after plan 05-01 alone and have
+> been reset; SPACE-01 is genuinely complete, since 05-01 is its only covering plan.
+
 ## v2 Requirements
 
 ### Vote-Bags Treasury Execution (separate later milestone)
@@ -193,6 +213,18 @@ Built entirely on Phase 5's primitives — the role-grant schema, the authorizat
 **Coverage:** 47/52 mapped, 5 retired (PAY-01..05) — 0 orphaned
 
 > **Audit note (2026-08-02):** the checkbox and Status columns above predate `.planning/v1.0-MILESTONE-AUDIT.md` and overstate progress. SPIKE-01/02/03 are marked Complete but their artifacts are unfilled templates. SEC-02 reads Pending but shipped out of phase in `35b0709`. PAY-02/03/04/08 and GO-02 are contradicted by shipped free participation and need rewriting rather than building. Audit-verified coverage is 2/28 of the pre-02.1 set.
+| SPACE-01 | Phase 5 | Complete |
+| SPACE-02 | Phase 5 | Pending |
+| SPACE-03 | Phase 5 | Pending |
+| SPACE-04 | Phase 5 | Complete |
+| SPACE-05 | Phase 5 | Pending |
+| SPACE-06 | Phase 5 | Pending |
+| SPACE-07 | Phase 5 | Pending |
+| SPACE-08 | Phase 5 | Pending |
+| SPACE-09 | Phase 5 | Complete |
+| SPACE-10 | Phase 5 | Pending |
+
+**Coverage:** 29/29 requirements mapped — 0 orphaned
 
 ---
 *Requirements defined: 2026-06-28*

@@ -7,7 +7,29 @@ import { z } from 'zod';
 
 // === Vote Types ===
 
-export const VoteStatusSchema = z.enum(['pending', 'active', 'ended', 'cancelled']);
+/**
+ * All ten `vote_status` labels the database can hold. Kept identical to the
+ * `VoteStatus` union in ../types/vote.ts.
+ *
+ * 'cancelled' is deliberately absent — it was never a database label, only an
+ * API-level alias that `normalizeStatusFilter` still maps to 'ended'.
+ *
+ * This schema describes what a status *can be*, not what is publicly visible.
+ * Public visibility is the narrower `PUBLIC_VOTE_STATUSES` allow-list in
+ * apps/web/src/server/domain/votes/vote.ts, which excludes every review state.
+ */
+export const VoteStatusSchema = z.enum([
+  'pending',
+  'active',
+  'ended',
+  'resolving',
+  'resolved',
+  'failed',
+  'draft',
+  'in_review',
+  'changes_requested',
+  'rejected',
+]);
 export type VoteStatus = z.infer<typeof VoteStatusSchema>;
 
 // === Vote Option ===
@@ -106,7 +128,13 @@ export const CreateVoteRequestSchema = z.object({
   options: z.array(VoteOptionInputSchema).min(2).max(10),
   startDate: z.string().datetime(),
   endDate: z.string().datetime(),
-  paymentTxId: z.string().min(1),
+  // paymentTxId removed: submission is free. The ₪50 creation fee is charged
+  // when a space admin approves and the proposal publishes (issue #75).
+  //
+  // Not `.strict()`, deliberately: a bundle deployed before this change still
+  // sends the field, and zod strips unknown keys rather than rejecting the
+  // request. That tolerance is for old clients in flight only — every caller in
+  // this repository has been updated to stop sending it.
 });
 
 export const CreateVoteResponseSchema = z.object({
