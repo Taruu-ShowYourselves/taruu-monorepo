@@ -10,6 +10,11 @@ import {
   getPaymentAmounts,
 } from '@/services/payments/greenInvoice';
 import { resolveIdempotencyKey } from '@/services/payments/idempotency';
+import {
+  paymentsEnabled,
+  PAYMENTS_DISABLED_CODE,
+  PAYMENTS_DISABLED_MESSAGE,
+} from '@/lib/payments-flag';
 
 /** The only payment this product can create. Participation is free (cfa5d25). */
 const CREATABLE_PAYMENT_TYPE = 'vote_creation' as const;
@@ -37,6 +42,16 @@ interface CreatePaymentRequest {
  * Idempotency is server-derived and deterministic - see services/payments/idempotency.ts.
  */
 export async function POST(request: NextRequest) {
+  // Payments kill switch, checked FIRST - before auth, before the body is read,
+  // before any Green Invoice call. The client guard is cosmetic; this is the
+  // enforcement point, so it must not be reachable around.
+  if (!paymentsEnabled()) {
+    return NextResponse.json(
+      { error: PAYMENTS_DISABLED_MESSAGE, code: PAYMENTS_DISABLED_CODE },
+      { status: 503 }
+    );
+  }
+
   try {
     const session = await getSessionFromRequest(request);
 

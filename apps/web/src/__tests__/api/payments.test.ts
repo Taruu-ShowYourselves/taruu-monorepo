@@ -144,9 +144,19 @@ describe('Payments API Routes (Green Invoice)', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Payments are OFF by default in this product until the provider approves
+    // the account, and every route below refuses before it does anything else.
+    // These cases describe the rails as they behave once money is switched back
+    // on, so the switch is held ON for them. The OFF contract has its own
+    // describe at the end of this file.
+    vi.stubEnv('NEXT_PUBLIC_PAYMENTS_ENABLED', 'true');
     // Default: the atomic pending→completed claim succeeds (this delivery wins).
     // Idempotent/already-completed tests override this to null (lost the race).
     (markPaymentCompleted as Mock).mockResolvedValue(mockPayment);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   describe('GET /api/payments/create', () => {
@@ -1009,5 +1019,145 @@ describe('Payments API Routes (Green Invoice)', () => {
         expect(fetchMock).not.toHaveBeenCalled();
       });
     });
+  });
+});
+
+/**
+ * The shipped default: NEXT_PUBLIC_PAYMENTS_ENABLED is unset, so no payment may
+ * be started. The client guard is cosmetic - THIS is the enforcement point, and
+ * it must hold for a caller with a valid session, a valid body and every mock in
+ * the world lined up behind it.
+ */
+describe('payments kill switch (NEXT_PUBLIC_PAYMENTS_ENABLED unset)', () => {
+  const session = {
+    userId: 'user-123',
+    googleId: 'google-123',
+    email: 'test@example.com',
+    did: 'did:sync:' + 'a'.repeat(43),
+    expiresAt: Date.now() + 86400000,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    // A fully authenticated, fully provisioned caller: nothing but the switch
+    // stands between this request and a Green Invoice hosted form.
+    (getSessionFromRequest as Mock).mockResolvedValue(session);
+    (getUserById as Mock).mockResolvedValue({
+      id: 'user-123',
+      email: 'test@example.com',
+      first_name: 'Test',
+      last_name: 'User',
+      municipality_id: 'tel-aviv',
+    });
+    (getPaymentByIdempotencyKey as Mock).mockResolvedValue(null);
+  });
+
+  it('POST /api/payments/create answers 503 PAYMENTS_DISABLED', async () => {
+    const request = new NextRequest('http://localhost:3000/api/payments/create', {
+      method: 'POST',
+      body: JSON.stringify({ type: 'vote_creation', voteTitle: 'A perfectly valid vote' }),
+    });
+
+    const response = await createPayment(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(data.code).toBe('PAYMENTS_DISABLED');
+    // Hebrew, because a stale client can put this in front of a resident.
+    expect(data.error).toMatch(/[֐-׿]/);
+  });
+
+  it('refuses BEFORE auth, the body and Green Invoice are ever touched', async () => {
+    // No session, and a body that is not even JSON. A gate that ran after either
+    // of these would answer 401 or 400 here instead of 503.
+    (getSessionFromRequest as Mock).mockResolvedValue(null);
+
+    const request = new NextRequest('http://localhost:3000/api/payments/create', {
+      method: 'POST',
+      body: 'not json at all',
+    });
+
+    const response = await createPayment(request);
+
+    expect(response.status).toBe(503);
+    expect(getSessionFromRequest).not.toHaveBeenCalled();
+    expect(dbCreatePayment).not.toHaveBeenCalled();
+    expect(paymentService.createVoteCreationPayment).not.toHaveBeenCalled();
+  });
+
+  it('opens no payment row and reaches no provider on a well-formed request', async () => {
+    const request = new NextRequest('http://localhost:3000/api/payments/create', {
+      method: 'POST',
+      body: JSON.stringify({ type: 'vote_creation', voteTitle: 'Another valid vote' }),
+    });
+
+    await createPayment(request);
+
+    expect(dbCreatePayment).not.toHaveBeenCalled();
+    expect(getPaymentByIdempotencyKey).not.toHaveBeenCalled();
+    expect(paymentService.createVoteCreationPayment).not.toHaveBeenCalled();
+  });
+
+  it.each(['false', 'TRUE', '1', 'yes', ''])(
+    'stays closed for the near-miss value %j - only the exact string "true" opens it',
+    async (value) => {
+      vi.stubEnv('NEXT_PUBLIC_PAYMENTS_ENABLED', value);
+
+      const request = new NextRequest('http://localhost:3000/api/payments/create', {
+        method: 'POST',
+        body: JSON.stringify({ type: 'vote_creation', voteTitle: 'Near miss' }),
+      });
+
+      expect((await createPayment(request)).status).toBe(503);
+    }
+  );
+
+  it('leaves the webhook fully functional - money already in flight must still land', async () => {
+    // The switch stops NEW payments. A settlement for a payment taken before the
+    // switch was thrown still has to be recorded, or the resident is charged and
+    // never served.
+    (paymentService.verifyWebhook as Mock).mockReturnValue(true);
+    (paymentService.parseWebhookEvent as Mock).mockReturnValue({
+      type: 'payment.succeeded',
+      paymentId: 'txn_inflight',
+      amount: 5000,
+      metadata: { orderId: 'payment-123' },
+    });
+    (paymentService.extractDocumentId as Mock).mockReturnValue('txn_inflight');
+    (getWebhookEventByEventId as Mock).mockResolvedValue(null);
+    (createWebhookEvent as Mock).mockResolvedValue(undefined);
+    (getPaymentById as Mock).mockResolvedValue({
+      id: 'payment-123',
+      user_id: 'user-123',
+      type: 'vote_creation',
+      amount: 5000,
+      currency: 'ILS',
+      status: 'pending',
+      vote_id: null,
+      option_id: null,
+    });
+    (markPaymentCompleted as Mock).mockResolvedValue({ id: 'payment-123' });
+    (getUserById as Mock).mockResolvedValue({
+      id: 'user-123',
+      email: 'test@example.com',
+      qubik_wallet_address: 'wallet-123',
+    });
+    (createEntitlement as Mock).mockResolvedValue(undefined);
+    (qubikService.mintTokens as Mock).mockResolvedValue(undefined);
+    (paymentService.getPaymentStatus as Mock).mockResolvedValue({ receiptUrl: 'https://x/1' });
+    (emailService.sendPaymentReceiptEmail as Mock).mockResolvedValue(undefined);
+    (updateWebhookEventStatus as Mock).mockResolvedValue(undefined);
+
+    const response = await handleWebhook(
+      new NextRequest('http://localhost:3000/api/payments/webhook', {
+        method: 'POST',
+        body: JSON.stringify({ event_id: 'evt_inflight', id: 'txn_inflight', custom: 'payment-123' }),
+        headers: { 'x-greeninvoice-token': 'ts=1;h1=valid' },
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(markPaymentCompleted).toHaveBeenCalledWith('payment-123', 'txn_inflight');
   });
 });

@@ -31,6 +31,11 @@ import {
 import { getSessionFromRequest } from '@/services/auth/session';
 import { createMerchOrder } from '@/lib/supabase/db';
 import { logger } from '@/lib/logger';
+import {
+  paymentsEnabled,
+  PAYMENTS_DISABLED_CODE,
+  PAYMENTS_DISABLED_MESSAGE,
+} from '@/lib/payments-flag';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -48,6 +53,16 @@ function validShipping(s: unknown): s is ShippingAddress {
 }
 
 export async function POST(request: Request) {
+  // Payments kill switch, checked FIRST - before auth, before the body is read,
+  // before an order row is written. An order persisted here while the store
+  // cannot charge would be a pending row nobody can ever settle.
+  if (!paymentsEnabled()) {
+    return NextResponse.json(
+      { error: PAYMENTS_DISABLED_MESSAGE, code: PAYMENTS_DISABLED_CODE },
+      { status: 503 }
+    );
+  }
+
   // Checkout requires sign-in - every order is tied to a buyer.
   const session = await getSessionFromRequest(request);
   if (!session) {

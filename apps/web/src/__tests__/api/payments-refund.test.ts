@@ -6,7 +6,7 @@
  * resolution, and best-effort email.
  */
 
-import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import { NextRequest } from 'next/server';
 
 vi.mock('@/services/auth/session', () => ({ getSessionFromRequest: vi.fn() }));
@@ -45,10 +45,18 @@ describe('POST /api/payments/refund', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
+    // The refund rail is part of payments, so it is closed with them. These
+    // cases describe it as it behaves with money switched ON; the OFF contract
+    // is asserted in its own describe below.
+    vi.stubEnv('NEXT_PUBLIC_PAYMENTS_ENABLED', 'true');
     (getSessionFromRequest as Mock).mockResolvedValue(SESSION);
     (emailService.isConfigured as Mock).mockReturnValue(true);
     (emailService.sendRefundRequestNotification as Mock).mockResolvedValue(undefined);
     POST = (await import('@/app/api/payments/refund/route')).POST;
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('401 without a session', async () => {
@@ -133,6 +141,46 @@ describe('POST /api/payments/refund', () => {
     (emailService.isConfigured as Mock).mockReturnValue(false);
     const res = await POST(req({ reason: 'mistake' }));
     expect(res.status).toBe(200);
+    expect(emailService.sendRefundRequestNotification).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The shipped default. Nothing was ever charged while the switch is off, so
+ * there is nothing to refund - and no support ticket to raise.
+ */
+describe('POST /api/payments/refund with payments disabled', () => {
+  let POST: typeof import('@/app/api/payments/refund/route').POST;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    vi.resetModules();
+    vi.unstubAllEnvs();
+    (getSessionFromRequest as Mock).mockResolvedValue(SESSION);
+    (getLatestRefundablePayment as Mock).mockResolvedValue(PAYMENT);
+    (requestPaymentRefund as Mock).mockResolvedValue('ok');
+    (emailService.isConfigured as Mock).mockReturnValue(true);
+    POST = (await import('@/app/api/payments/refund/route')).POST;
+  });
+
+  it('503 PAYMENTS_DISABLED, in Hebrew', async () => {
+    const res = await POST(req({ reason: 'mistake' }));
+    const body = await res.json();
+
+    expect(res.status).toBe(503);
+    expect(body.code).toBe('PAYMENTS_DISABLED');
+    expect(body.error).toMatch(/[֐-׿]/);
+  });
+
+  it('refuses before auth, the body and the database are touched', async () => {
+    (getSessionFromRequest as Mock).mockResolvedValue(null);
+
+    const res = await POST(req({ reason: '' }));
+
+    // A gate placed after auth would answer 401; after validation, 400.
+    expect(res.status).toBe(503);
+    expect(getSessionFromRequest).not.toHaveBeenCalled();
+    expect(requestPaymentRefund).not.toHaveBeenCalled();
     expect(emailService.sendRefundRequestNotification).not.toHaveBeenCalled();
   });
 });
