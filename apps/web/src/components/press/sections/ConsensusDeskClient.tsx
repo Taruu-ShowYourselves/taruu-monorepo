@@ -72,7 +72,12 @@ export function ConsensusDeskClient({ desks, locale }: ConsensusDeskClientProps)
   }, [desks, home]);
 
   return (
-    <section id="consensus-desk" className={styles.desk} aria-labelledby="consensus-desk-headline">
+    <section
+      id="consensus-desk"
+      data-nav-reveal
+      className={styles.desk}
+      aria-labelledby="consensus-desk-headline"
+    >
       <div className={styles.inner}>
         <header className={styles.header}>
           <span className={styles.kicker}>

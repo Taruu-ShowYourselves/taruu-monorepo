@@ -255,9 +255,45 @@ export function Masthead({ locale = 'he' }: MastheadProps) {
   }, []);
   const showAccount = mounted && isAuthenticated;
 
+  // Pages that mark a section with [data-nav-reveal] defer the pinned nav:
+  // once the masthead scrolls off, the dock stays tucked above the viewport
+  // until that section reaches the top, then slides in. Pages without the
+  // sentinel keep the plain always-pinned sticky behavior.
+  const headerRef = useRef<HTMLElement>(null);
+  const dockRef = useRef<HTMLDivElement>(null);
+  const [dockHidden, setDockHidden] = useState(false);
+  useEffect(() => {
+    const header = headerRef.current;
+    const dock = dockRef.current;
+    const reveal = document.querySelector<HTMLElement>('[data-nav-reveal]');
+    if (!header || !dock || !reveal) return;
+
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      // Measure pin state off the untransformed header - the dock's own rect
+      // moves with the hide transform and would feed back into the check.
+      const pinned = header.getBoundingClientRect().bottom <= 0;
+      const revealed = reveal.getBoundingClientRect().top <= dock.offsetHeight;
+      setDockHidden(pinned && !revealed);
+    };
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule, { passive: true });
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+    };
+  }, []);
+
   return (
     <>
-      <header className={styles.masthead}>
+      <header ref={headerRef} className={styles.masthead}>
         {/* Edition ears */}
         <div className={styles.ears}>
           {/* suppressHydrationWarning: server and client may straddle midnight */}
@@ -281,7 +317,10 @@ export function Masthead({ locale = 'he' }: MastheadProps) {
       </header>
 
       {/* This row reaches the viewport edge with the dashboard, then remains pinned. */}
-      <div className={styles.navDock}>
+      <div
+        ref={dockRef}
+        className={`${styles.navDock} ${dockHidden ? styles.navDockHidden : ''}`}
+      >
         <nav className={styles.nav} aria-label="ניווט ראשי">
           <Link href={`/${locale}`} className={styles.navWordmark} aria-label="תַּרְאוּ - דף הבית">
             תַּרְאוּ<span aria-hidden>.</span>

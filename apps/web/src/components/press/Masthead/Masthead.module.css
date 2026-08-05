@@ -14,6 +14,19 @@
   border-block-end: var(--np-rule) solid var(--np-ink);
   box-shadow: 0 12px 30px color-mix(in srgb, var(--np-ink) 6%, transparent);
   backdrop-filter: blur(14px);
+  /* visibility flips at transition end when hiding, instantly when showing,
+     so the tucked-away dock is also removed from the tab order. */
+  transition: transform 0.32s ease, visibility 0.32s;
+}
+
+.navDockHidden {
+  transform: translateY(-110%);
+  visibility: hidden;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navDock { transition: none; }
 }
 
 .ears {
