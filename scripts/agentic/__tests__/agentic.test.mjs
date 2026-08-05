@@ -5,13 +5,9 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import { inspectEvidence } from '../check-evidence.mjs';
-import { buildDispatch } from '../dispatch-openclaw.mjs';
+import { buildDispatch, parseCommand } from '../dispatch-openclaw.mjs';
 import { extractPrdSections, validatePrd } from '../lib.mjs';
 import { branchSlug } from '../prepare-worktree.mjs';
-import {
-  classifyProjectTransition,
-  findInProgressTransitions,
-} from '../watch-project.mjs';
 import { sendTelegramMessage, telegramHookDelivery } from '../telegram.mjs';
 
 const completePrd = `
@@ -99,147 +95,6 @@ test('inspectEvidence requires screenshots or a specific N/A reason', () => {
     }).valid,
     true,
   );
-});
-
-test('project watcher detects only transitions into In Progress', () => {
-  const previous = {
-    item1: { status: 'Todo' },
-    item2: { status: 'In Progress' },
-  };
-  const transitions = findInProgressTransitions(previous, [
-    { id: 'item1', status: 'In Progress' },
-    { id: 'item2', status: 'In Progress' },
-    { id: 'item3', status: 'Done' },
-  ]);
-  assert.deepEqual(
-    transitions.map((item) => item.id),
-    ['item1'],
-  );
-});
-
-test('project watcher requires an authorized manual move and a full PRD', () => {
-  const settings = {
-    AGENT_REPOSITORY: 'Taruu-ShowYourselves/taruu-monorepo',
-    AGENT_PROJECT_NUMBER: '2',
-    AGENT_AUTHORIZED_ACTORS: 'SaharBarak,DolevSeren',
-    AGENT_OWNER_LOGIN: 'DolevSeren',
-  };
-  const item = {
-    number: 99,
-    title: 'Record votes',
-    body: completePrd,
-    url: 'https://github.com/example/repo/issues/99',
-    repository: settings.AGENT_REPOSITORY,
-    state: 'OPEN',
-    assignees: ['DolevSeren'],
-  };
-  const event = {
-    actor: 'SaharBarak',
-    projectNumber: 2,
-    status: 'In Progress',
-    wasAutomated: false,
-  };
-  const dispatch = classifyProjectTransition(item, event, settings);
-  assert.match(dispatch.message, /sole implementation dispatch signal/);
-
-  const automated = classifyProjectTransition(
-    item,
-    { ...event, wasAutomated: true },
-    settings,
-  );
-  assert.match(automated.ignored, /automated/);
-
-  const unauthorized = classifyProjectTransition(
-    item,
-    { ...event, actor: 'outsider' },
-    settings,
-  );
-  assert.match(unauthorized.ignored, /not allowlisted/);
-
-  const incomplete = classifyProjectTransition(
-    {
-      ...item,
-      body: '## Problem\nNot a full PRD.',
-    },
-    event,
-    settings,
-  );
-  assert.equal(incomplete.invalidPrd, true);
-});
-
-test('Dolev watcher dispatches a Dolev-assigned issue case-insensitively', () => {
-  const settings = {
-    AGENT_REPOSITORY: 'Taruu-ShowYourselves/taruu-monorepo',
-    AGENT_PROJECT_NUMBER: '2',
-    AGENT_AUTHORIZED_ACTORS: 'SaharBarak,DolevSeren',
-    AGENT_OWNER_LOGIN: 'dolevseren',
-  };
-  const dispatch = classifyProjectTransition(
-    {
-      number: 99,
-      title: 'Record votes',
-      body: completePrd,
-      url: 'https://github.com/example/repo/issues/99',
-      repository: settings.AGENT_REPOSITORY,
-      state: 'OPEN',
-      assignees: ['DOLEVSEREN'],
-    },
-    {
-      actor: 'saharbarak',
-      projectNumber: 2,
-      status: 'In Progress',
-      wasAutomated: false,
-    },
-    settings,
-  );
-  assert.match(dispatch.message, /sole implementation dispatch signal/);
-});
-
-test('Dolev watcher ignores Sahar-assigned and unassigned issues', () => {
-  const settings = {
-    AGENT_REPOSITORY: 'Taruu-ShowYourselves/taruu-monorepo',
-    AGENT_PROJECT_NUMBER: '2',
-    AGENT_AUTHORIZED_ACTORS: 'SaharBarak,DolevSeren',
-    AGENT_OWNER_LOGIN: 'DolevSeren',
-  };
-  const baseItem = {
-    number: 99,
-    title: 'Record votes',
-    body: completePrd,
-    url: 'https://github.com/example/repo/issues/99',
-    repository: settings.AGENT_REPOSITORY,
-    state: 'OPEN',
-  };
-  const event = {
-    actor: 'SaharBarak',
-    projectNumber: 2,
-    status: 'In Progress',
-    wasAutomated: false,
-  };
-  assert.match(
-    classifyProjectTransition(
-      { ...baseItem, assignees: ['SaharBarak'] },
-      event,
-      settings,
-    ).ignored,
-    /not assigned/,
-  );
-  assert.match(
-    classifyProjectTransition({ ...baseItem, assignees: [] }, event, settings)
-      .ignored,
-    /not assigned/,
-  );
-});
-
-test('first-install baseline has no In Progress transitions', () => {
-  const currentItems = [
-    { id: 'item1', status: 'In Progress' },
-    { id: 'item2', status: 'Todo' },
-  ];
-  const baseline = Object.fromEntries(
-    currentItems.map((item) => [item.id, { status: item.status }]),
-  );
-  assert.deepEqual(findInProgressTransitions(baseline, currentItems), []);
 });
 
 test('buildDispatch routes Dolev-assigned merged pull requests', () => {
@@ -356,4 +211,123 @@ test('Telegram notification sends plain text only to the configured chat', async
     text: 'Issue #99 started',
     disable_web_page_preview: true,
   });
+});
+
+const commentSettings = {
+  AGENT_REPOSITORY: 'Taruu-ShowYourselves/taruu-monorepo',
+  AGENT_AUTHORIZED_ACTORS: 'SaharBarak,DolevSeren',
+  AGENT_OWNER_LOGIN: 'SaharBarak',
+};
+
+function commentEvent(overrides = {}) {
+  const { issue = {}, comment = {}, ...rest } = overrides;
+  return {
+    action: 'created',
+    repository: { full_name: commentSettings.AGENT_REPOSITORY },
+    sender: { login: 'SaharBarak' },
+    comment: { body: 'openclaw test', ...comment },
+    issue: {
+      number: 93,
+      html_url: 'https://github.com/example/repo/pull/93',
+      pull_request: { url: 'https://api.github.com/pulls/93' },
+      assignees: [],
+      ...issue,
+    },
+    ...rest,
+  };
+}
+
+test('parseCommand accepts only a bare command on the first line', () => {
+  assert.equal(parseCommand('openclaw test'), 'test');
+  assert.equal(parseCommand('  OpenClaw   Work  '), 'work');
+  assert.equal(parseCommand('openclaw test\nplease be quick'), 'test');
+  // Prose that merely mentions the agent is not a command.
+  assert.equal(parseCommand('I think openclaw test would help here'), null);
+  assert.equal(parseCommand('openclaw test the login page'), null);
+  assert.equal(parseCommand('```\nopenclaw test\n```'), null);
+  assert.equal(parseCommand(''), null);
+  assert.equal(parseCommand(undefined), null);
+});
+
+test('openclaw test dispatches a read-only run on a pull request', () => {
+  const dispatch = buildDispatch(commentEvent(), commentSettings);
+  assert.equal(dispatch.issueNumber, 93);
+  assert.equal(dispatch.sessionScope, 'pr-test');
+  assert.match(dispatch.message, /Do not edit code/);
+  assert.match(dispatch.message, /exactly one pull-request comment/);
+});
+
+test('a test request needs no assignee but must be a pull request', () => {
+  // The whole point is commenting on a pushed branch, so an unassigned PR is
+  // the normal case; routing comes from the commenter instead.
+  assert.equal(
+    buildDispatch(commentEvent({ issue: { assignees: [] } }), commentSettings)
+      .issueNumber,
+    93,
+  );
+  assert.match(
+    buildDispatch(
+      commentEvent({ issue: { pull_request: undefined } }),
+      commentSettings,
+    ).ignored,
+    /only to a pull request/,
+  );
+});
+
+test('comment commands route by commenter, not by assignee', () => {
+  const otherHost = { ...commentSettings, AGENT_OWNER_LOGIN: 'DolevSeren' };
+  // Allowlisted, but this is not Dolev's host to answer.
+  assert.match(
+    buildDispatch(commentEvent(), otherHost).ignored,
+    /not addressed to DolevSeren's host/,
+  );
+  assert.match(
+    buildDispatch(
+      commentEvent({ sender: { login: 'outsider' } }),
+      commentSettings,
+    ).ignored,
+    /not allowlisted/,
+  );
+});
+
+test('openclaw work starts implementation only on an assigned issue', () => {
+  const asIssue = (assignees) =>
+    commentEvent({
+      comment: { body: 'openclaw work' },
+      issue: { number: 75, pull_request: undefined, assignees },
+    });
+
+  const dispatch = buildDispatch(
+    asIssue([{ login: 'SaharBarak' }]),
+    commentSettings,
+  );
+  assert.equal(dispatch.issueNumber, 75);
+  assert.equal(dispatch.sessionScope, undefined);
+  assert.match(dispatch.message, /only implementation dispatch signal/);
+
+  assert.match(buildDispatch(asIssue([]), commentSettings).ignored, /assigned/);
+  assert.match(
+    buildDispatch(
+      commentEvent({ comment: { body: 'openclaw work' } }),
+      commentSettings,
+    ).ignored,
+    /only to an issue/,
+  );
+});
+
+test('an ordinary comment never reaches the agent', () => {
+  assert.match(
+    buildDispatch(
+      commentEvent({ comment: { body: 'looks good to me' } }),
+      commentSettings,
+    ).ignored,
+    /not an OpenClaw command/,
+  );
+  assert.match(
+    buildDispatch(
+      commentEvent({ comment: { body: 'openclaw deploy' } }),
+      commentSettings,
+    ).ignored,
+    /unknown OpenClaw command deploy/,
+  );
 });
