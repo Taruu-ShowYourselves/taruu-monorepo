@@ -2073,7 +2073,6 @@
   }
 
   .signalList li .signalTitle {
-    overflow: visible;
     font-size: 0.88rem;
     line-height: 1.12;
     -webkit-line-clamp: 2;
