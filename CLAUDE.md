@@ -294,6 +294,28 @@ const primaryColor = colors.primary[600]; // '#2563EB'
 - `GET /api/payments/[id]/status` - Check payment status
 - `POST /api/payments/webhook` - Green Invoice webhook (accrues ILS to per-vote treasury ledger)
 
+## Secrets & Tokens — READ BEFORE ASKING FOR ANY TOKEN
+
+**Single source of truth: `apps/web/.dev.vars`** (gitignored). direnv loads it
+into the shell there (`apps/web/.envrc` → `dotenv .dev.vars`), `wrangler dev`
+reads it, and two sync scripts fan it out:
+
+```bash
+apps/web/scripts/sync-secrets.sh       # .dev.vars -> Cloudflare worker runtime secrets
+apps/web/scripts/sync-gh-secrets.sh    # .dev.vars ops tokens -> GitHub Actions secrets
+```
+
+Ops tokens (CLOUDFLARE_API_TOKEN, OPENAI_API_KEY, TELEGRAM_*) live in the same
+file but are on sync-secrets.sh's SKIP list — they go to gh, never to the
+worker. `.dev.vars.example` (committed) documents every key.
+
+Rules: (1) **fetch, don't ask** — check fill state without exposing values:
+`grep -c '^NAME=.' apps/web/.dev.vars` (1 = set, 0 = empty). Only if empty, ask
+the user to fill that line in `.dev.vars` — never to paste the value into chat.
+(2) Never print, log, or commit values; consume them via direnv env or by
+piping. (3) New secret = add the key to `.dev.vars` AND `.dev.vars.example`,
+then run the relevant sync script.
+
 ## Environment Variables
 
 ```env

@@ -14,11 +14,13 @@ SUPABASE_SERVICE_ROLE_KEY=
 JWT_SECRET=
 JWT_EXPIRY=7d
 
-# Supabase project JWT secret - signs the SHORT-LIVED Supabase access token the
-# user-scoped client sends to PostgREST so RLS actually enforces (RLS-01).
-# Dashboard -> Project Settings -> API -> JWT Settings -> JWT Secret.
-# NOT the anon key, NOT the service_role key, and NOT the same value as JWT_SECRET.
-SUPABASE_JWT_SECRET=
+# Taruu's own EC P-256 signing key, as a private JWK (RLS-01).
+# Supabase verifies our short-lived ES256 access tokens against the JWKS we
+# publish at /.well-known/jwks.json. We sign our own because this project
+# migrated to asymmetric keys - there is no shared secret to borrow.
+# Generate with: ./scripts/setup-supabase-third-party-auth.sh
+# NOT the anon key, NOT the service_role key, NOT the same value as JWT_SECRET.
+SUPABASE_TP_PRIVATE_JWK=
 
 # Identity documents (issue #32) - HMAC key for one-way ID-number hashing.
 # Falls back to JWT_SECRET when unset; set a dedicated secret in production.
@@ -82,3 +84,10 @@ CRON_SECRET=
 # Public app URLs
 NEXT_PUBLIC_APP_URL=https://taruu.co.il
 EXPO_PUBLIC_API_URL=https://api.taruu.co.il
+
+# --- Ops tokens (machine/CI credentials - NEVER pushed to the worker; see SKIP
+# in scripts/sync-secrets.sh). Pushed to GitHub Actions via sync-gh-secrets.sh.
+CLOUDFLARE_API_TOKEN=
+OPENAI_API_KEY=
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=

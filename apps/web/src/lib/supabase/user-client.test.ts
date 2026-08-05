@@ -8,9 +8,9 @@
  * positive.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
-import { jwtVerify } from 'jose';
+import { jwtVerify, generateKeyPair, exportJWK, importJWK, type JWK } from 'jose';
 import { createUserScopedClient } from './user-client';
 
 vi.mock('@supabase/supabase-js', async (importOriginal) => {
@@ -18,10 +18,26 @@ vi.mock('@supabase/supabase-js', async (importOriginal) => {
   return { ...actual, createClient: vi.fn(() => ({}) as never) };
 });
 
-const SUPABASE_SECRET = 'supabase-test-jwt-secret-at-least-32-chars';
 const SERVICE_ROLE_KEY = 'test-service-role-key';
 const ANON_KEY = 'test-anon-key';
 const USER_ID = '11111111-1111-4111-8111-111111111111';
+
+// Generated per run so nothing key-shaped is committed.
+let privateJwk: JWK;
+let publicKey: Awaited<ReturnType<typeof importJWK>>;
+
+beforeAll(async () => {
+  const { privateKey } = await generateKeyPair('ES256', { extractable: true });
+  privateJwk = {
+    ...(await exportJWK(privateKey)),
+    kid: 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
+    alg: 'ES256',
+    use: 'sig',
+  };
+  const pub: JWK = { ...privateJwk };
+  delete pub.d;
+  publicKey = await importJWK(pub, 'ES256');
+});
 
 type CapturedOptions = { accessToken?: () => Promise<string> };
 
@@ -35,7 +51,8 @@ beforeEach(() => {
   vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'http://127.0.0.1:54321');
   vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', ANON_KEY);
   vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', SERVICE_ROLE_KEY);
-  vi.stubEnv('SUPABASE_JWT_SECRET', SUPABASE_SECRET);
+  vi.stubEnv('SUPABASE_TP_PRIVATE_JWK', JSON.stringify(privateJwk));
+  vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://taruu.co.il');
 });
 
 afterEach(() => {
@@ -65,7 +82,7 @@ describe('createUserScopedClient', () => {
     const token = await capturedOptions().accessToken!();
     const { payload } = await jwtVerify(
       token,
-      new TextEncoder().encode(SUPABASE_SECRET)
+      publicKey
     );
 
     expect(payload.sub).toBe(USER_ID);
@@ -89,11 +106,11 @@ describe('createUserScopedClient', () => {
 
     const { payload: a } = await jwtVerify(
       await first(),
-      new TextEncoder().encode(SUPABASE_SECRET)
+      publicKey
     );
     const { payload: b } = await jwtVerify(
       await second.accessToken!(),
-      new TextEncoder().encode(SUPABASE_SECRET)
+      publicKey
     );
 
     expect(a.sub).toBe(USER_ID);

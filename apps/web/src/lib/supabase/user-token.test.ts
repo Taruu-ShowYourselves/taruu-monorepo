@@ -2,26 +2,40 @@
  * Supabase access-token minter (RLS-01).
  *
  * These tests pin the properties the RLS transport's safety rests on: the token
- * is verifiable by Supabase and only by Supabase, it says who the user is and
- * nothing else, and it expires in minutes. A regression in any one of them
- * either breaks RLS entirely or hands PostgREST a long-lived session credential.
+ * verifies against the key we publish and only that key, it says who the user
+ * is and nothing else, it carries the `kid` Supabase needs to select a
+ * verification key, and it expires in minutes.
+ *
+ * The signing key here is generated per run rather than fixtured, so nothing
+ * key-shaped is ever committed to the repo.
  */
 
-import { describe, it, expect, afterEach, vi } from 'vitest';
-import { jwtVerify, decodeProtectedHeader, decodeJwt } from 'jose';
-import {
-  mintSupabaseAccessToken,
-  getSupabaseJwtSecret,
-  SUPABASE_TOKEN_TTL_SECONDS,
-} from './user-token';
+import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
+import { jwtVerify, decodeProtectedHeader, decodeJwt, generateKeyPair, exportJWK, importJWK } from 'jose';
+import type { JWK } from 'jose';
 
-const SUPABASE_SECRET = 'supabase-test-jwt-secret-at-least-32-chars';
-const SESSION_SECRET = 'session-test-jwt-secret-at-least-32-characters';
 const USER_ID = '11111111-1111-4111-8111-111111111111';
+const APP_URL = 'https://taruu.co.il';
+const KID = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa';
 
-function stubSecrets(): void {
-  vi.stubEnv('SUPABASE_JWT_SECRET', SUPABASE_SECRET);
-  vi.stubEnv('JWT_SECRET', SESSION_SECRET);
+let privateJwk: JWK;
+let publicKey: Awaited<ReturnType<typeof importJWK>>;
+
+beforeAll(async () => {
+  const { privateKey } = await generateKeyPair('ES256', { extractable: true });
+  privateJwk = { ...(await exportJWK(privateKey)), kid: KID, alg: 'ES256', use: 'sig' };
+
+  const pub: JWK = { ...privateJwk };
+  delete pub.d;
+  publicKey = await importJWK(pub, 'ES256');
+});
+
+/** Fresh module per test: signing-key.ts memoizes the imported key. */
+async function loadMinter() {
+  vi.resetModules();
+  vi.stubEnv('SUPABASE_TP_PRIVATE_JWK', JSON.stringify(privateJwk));
+  vi.stubEnv('NEXT_PUBLIC_APP_URL', APP_URL);
+  return import('./user-token');
 }
 
 afterEach(() => {
@@ -29,41 +43,40 @@ afterEach(() => {
 });
 
 describe('mintSupabaseAccessToken', () => {
-  it('signs with HS256', async () => {
-    stubSecrets();
-    const token = await mintSupabaseAccessToken(USER_ID);
+  it('signs with ES256 and carries the kid Supabase selects on', async () => {
+    const { mintSupabaseAccessToken } = await loadMinter();
+    const header = decodeProtectedHeader(await mintSupabaseAccessToken(USER_ID));
 
-    expect(decodeProtectedHeader(token).alg).toBe('HS256');
+    expect(header.alg).toBe('ES256');
+    // Without kid, Supabase cannot pick a key from our JWKS and rejects outright.
+    expect(header.kid).toBe(KID);
   });
 
-  it('verifies against the Supabase secret and carries sub/role/aud', async () => {
-    stubSecrets();
-    const token = await mintSupabaseAccessToken(USER_ID);
+  it('verifies against the published public key, with the expected claims', async () => {
+    const { mintSupabaseAccessToken } = await loadMinter();
 
-    const { payload } = await jwtVerify(
-      token,
-      new TextEncoder().encode(SUPABASE_SECRET),
-      { audience: 'authenticated' }
-    );
+    const { payload } = await jwtVerify(await mintSupabaseAccessToken(USER_ID), publicKey, {
+      audience: 'authenticated',
+      issuer: APP_URL,
+    });
 
     expect(payload.sub).toBe(USER_ID);
     expect(payload.role).toBe('authenticated');
     expect(payload.aud).toBe('authenticated');
+    expect(payload.iss).toBe(APP_URL);
   });
 
-  it('does NOT verify against the session secret because the two are independent', async () => {
-    // If these ever became the same value, a stolen `sync-session` cookie would
-    // be a valid database credential.
-    stubSecrets();
-    const token = await mintSupabaseAccessToken(USER_ID);
+  it('does NOT verify against an unrelated key', async () => {
+    const { mintSupabaseAccessToken } = await loadMinter();
+    const { publicKey: strangerKey } = await generateKeyPair('ES256', { extractable: true });
 
     await expect(
-      jwtVerify(token, new TextEncoder().encode(SESSION_SECRET))
+      jwtVerify(await mintSupabaseAccessToken(USER_ID), strangerKey)
     ).rejects.toThrow();
   });
 
   it('expires in five minutes by default', async () => {
-    stubSecrets();
+    const { mintSupabaseAccessToken, SUPABASE_TOKEN_TTL_SECONDS } = await loadMinter();
     const payload = decodeJwt(await mintSupabaseAccessToken(USER_ID));
 
     expect(payload.exp! - payload.iat!).toBe(SUPABASE_TOKEN_TTL_SECONDS);
@@ -71,37 +84,76 @@ describe('mintSupabaseAccessToken', () => {
   });
 
   it('honours an explicit ttlSeconds', async () => {
-    stubSecrets();
+    const { mintSupabaseAccessToken } = await loadMinter();
     const payload = decodeJwt(await mintSupabaseAccessToken(USER_ID, { ttlSeconds: 60 }));
 
     expect(payload.exp! - payload.iat!).toBe(60);
   });
 
   it('leaks nothing from the session into the database credential', async () => {
-    stubSecrets();
+    const { mintSupabaseAccessToken } = await loadMinter();
     const payload = decodeJwt(await mintSupabaseAccessToken(USER_ID));
 
     expect(payload).not.toHaveProperty('email');
     expect(payload).not.toHaveProperty('googleId');
     expect(payload).not.toHaveProperty('did');
-    // Positive statement of the same rule: exactly these claims, no others.
-    expect(Object.keys(payload).sort()).toEqual(['aud', 'exp', 'iat', 'role', 'sub']);
+    expect(Object.keys(payload).sort()).toEqual(['aud', 'exp', 'iat', 'iss', 'role', 'sub']);
   });
 
   it('rejects a userId that is not a uuid', async () => {
-    stubSecrets();
+    const { mintSupabaseAccessToken } = await loadMinter();
+
     // public.user_id() casts the claim to UUID; a non-uuid sub makes every
     // policy silently match zero rows instead of failing loudly.
     await expect(mintSupabaseAccessToken('not-a-uuid')).rejects.toThrow(/uuid/);
   });
 });
 
-describe('getSupabaseJwtSecret', () => {
-  it('throws a named error when the secret is unset', () => {
-    vi.stubEnv('SUPABASE_JWT_SECRET', '');
+describe('signing key configuration', () => {
+  it('refuses a public JWK, which cannot sign', async () => {
+    vi.resetModules();
+    const pub: JWK = { ...privateJwk };
+    delete pub.d;
+    vi.stubEnv('SUPABASE_TP_PRIVATE_JWK', JSON.stringify(pub));
 
-    expect(() => getSupabaseJwtSecret()).toThrow(
-      'Missing SUPABASE_JWT_SECRET environment variable'
+    const { getSigningKey } = await import('./signing-key');
+    await expect(getSigningKey()).rejects.toThrow(/public key, not a private one/);
+  });
+
+  it('refuses a private JWK with no kid', async () => {
+    vi.resetModules();
+    const noKid: JWK = { ...privateJwk };
+    delete noKid.kid;
+    vi.stubEnv('SUPABASE_TP_PRIVATE_JWK', JSON.stringify(noKid));
+
+    const { getSigningKey } = await import('./signing-key');
+    await expect(getSigningKey()).rejects.toThrow(/kid/);
+  });
+
+  it('throws a named error when unset', async () => {
+    vi.resetModules();
+    vi.stubEnv('SUPABASE_TP_PRIVATE_JWK', '');
+
+    const { getSigningKey } = await import('./signing-key');
+    await expect(getSigningKey()).rejects.toThrow(
+      'Missing SUPABASE_TP_PRIVATE_JWK environment variable'
     );
+  });
+
+  it('publishes the public half only - never the signing key', async () => {
+    vi.resetModules();
+    vi.stubEnv('SUPABASE_TP_PRIVATE_JWK', JSON.stringify(privateJwk));
+
+    const { getPublicJwks } = await import('./signing-key');
+    const jwks = await getPublicJwks();
+
+    expect(jwks.keys).toHaveLength(1);
+    // The one assertion that matters: `d` is the private scalar. Publishing it
+    // would hand every reader the ability to mint tokens as any user.
+    expect(jwks.keys[0]).not.toHaveProperty('d');
+    expect(jwks.keys[0].kid).toBe(KID);
+    expect(jwks.keys[0].alg).toBe('ES256');
+    expect(jwks.keys[0].kty).toBe('EC');
+    expect(jwks.keys[0].crv).toBe('P-256');
   });
 });

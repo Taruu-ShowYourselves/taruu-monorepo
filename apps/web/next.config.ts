@@ -54,6 +54,18 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['framer-motion'],
   },
 
+  async rewrites() {
+    return [
+      // Conventional JWKS path. Supabase is registered against this URL as a
+      // third-party auth issuer (RLS-01); the handler lives at /api/jwks
+      // because Next's router does not serve dot-prefixed app directories.
+      {
+        source: '/.well-known/jwks.json',
+        destination: '/api/jwks',
+      },
+    ];
+  },
+
   async headers() {
     return [
       {
