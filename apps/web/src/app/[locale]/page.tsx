@@ -34,8 +34,8 @@ export default async function HomePage({ params }: HomePageProps) {
         <Masthead locale={locale} />
         <Ticker />
         <main>
-          <WhatIsTaruu locale={locale} />
           <CivicReminder locale={locale} />
+          <WhatIsTaruu locale={locale} />
           <ConsensusDesk locale={locale} />
           <KnessetDesk locale={locale} />
           <ActNow locale={locale} />

@@ -1025,6 +1025,57 @@ export async function getKnessetRankingsByVoteIds(
   return byVote;
 }
 
+/**
+ * Vote ids of the hottest ranked, still-active Knesset votes. The client
+ * can't know which votes are hot before it has the rankings, so "give me
+ * the top N" has to be answered server-side — picking N votes by
+ * created_at and ranking those was how a routine item became the front
+ * page. Degrades to [] on failure — ranking is never load-bearing.
+ */
+export async function getTopRankedKnessetVoteIds(
+  limit: number
+): Promise<string[]> {
+  const { data, error } = await supabaseAdmin
+    .from('knesset_rankings')
+    .select('vote_id, votes!inner(status)')
+    .eq('votes.status', 'active')
+    .order('hotness', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('Failed to get top knesset rankings (continuing without):', error);
+    return [];
+  }
+  return (data || []).map((row) => row.vote_id as string);
+}
+
+/**
+ * Generated card-art plates for a set of votes (desk agents' art job).
+ * Maps voteId → public image URL; rows without a stored plate are omitted.
+ * Degrades to an empty map on any failure - art is never load-bearing.
+ */
+export async function getCardArtByVoteIds(
+  voteIds: string[]
+): Promise<Map<string, string>> {
+  const byVote = new Map<string, string>();
+  if (voteIds.length === 0) return byVote;
+
+  const { data, error } = await supabaseAdmin
+    .from('vote_card_art')
+    .select('vote_id, image_url')
+    .in('vote_id', voteIds)
+    .not('image_url', 'is', null);
+
+  if (error) {
+    console.error('Failed to get vote card art (continuing without):', error);
+    return byVote;
+  }
+  for (const row of data || []) {
+    if (row.image_url) byVote.set(row.vote_id, row.image_url);
+  }
+  return byVote;
+}
+
 export async function createVote(
   voteData: InsertTables<'votes'>
 ): Promise<Vote> {

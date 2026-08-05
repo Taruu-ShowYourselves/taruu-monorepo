@@ -75,21 +75,21 @@
 }
 
 @media (max-width: 800px) {
-  .track {
-    display: flex;
-    block-size: auto;
-    gap: var(--space-3);
-    /* No bento below this width - one flat row of columns, each as long as
-       its own copy. Stretching them to a shared height left up to ~120px of
-       dead space under the shortest; that was the price of keeping a row of
-       *boxes* tidy, and the tiles are no longer boxes. A ragged bottom edge
-       under a set of top rules is what a broadsheet column does. */
-    align-items: flex-start;
+  .carousel {
+    /* Static mosaic sits in the page grid - no full-bleed river here. */
+    margin-inline: 0;
   }
 
-  .track > * {
-    flex: 0 0 min(86vw, 22rem) !important;
-    inline-size: min(86vw, 22rem) !important;
+  .track {
+    /* Vertical bento: two broadsheet columns, rows sized by their own copy.
+       The lead claims the full measure (span set beside the tile variants);
+       everything else sets two-up. Embla is inactive at this width, so the
+       grid scrolls with the document instead of translating sideways. */
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: row dense;
+    grid-auto-rows: auto;
     block-size: auto;
+    gap: var(--space-3);
   }
 }

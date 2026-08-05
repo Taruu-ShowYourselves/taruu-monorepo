@@ -94,3 +94,7 @@ CLOUDFLARE_API_TOKEN=
 OPENAI_API_KEY=
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
+
+# fal.ai — Seedream card-art renders (desk agents' art job, ~$0.03/plate).
+# Consumed off-platform by agents/knesset-ranker; never pushed to the worker.
+FAL_KEY=

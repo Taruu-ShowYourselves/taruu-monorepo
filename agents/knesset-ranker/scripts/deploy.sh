@@ -28,8 +28,10 @@ rsync -az --delete --exclude node_modules --exclude .env \
 
 # Remote .env — secrets streamed straight over ssh, never printed.
 if [ -f "$WEB_ENV" ]; then
+  # FAL_KEY is optional (art job only) — a box without it still ranks and docs.
   { grep '^NEXT_PUBLIC_SUPABASE_URL=' "$WEB_ENV"; \
-    grep '^SUPABASE_SERVICE_ROLE_KEY=' "$WEB_ENV"; } \
+    grep '^SUPABASE_SERVICE_ROLE_KEY=' "$WEB_ENV"; \
+    grep '^FAL_KEY=' "$WEB_ENV" || true; } \
     | ssh "$TARGET" 'cat > ~/knesset-ranker/.env && chmod 600 ~/knesset-ranker/.env'
   echo "==> remote .env written"
 else
@@ -64,7 +66,7 @@ ssh "$TARGET" "$NVM"'
   claude --version || true
 '
 
-echo "==> installing crontab entries (docs every 30m, ranker every 6h)"
+echo "==> installing crontab entries (docs every 30m, ranker every 6h, art every 6h)"
 # Docs runs first and more often: the ranker reads the summaries it writes.
 # The prelude must tolerate a box WITHOUT nvm (system node): sourcing a missing
 # nvm.sh with `&&` would abort the whole entry and the job would never run.
@@ -72,8 +74,9 @@ ssh "$TARGET" '
   PRELUDE="export PATH=\$HOME/.npm-global/bin:\$PATH; [ -s \$HOME/.nvm/nvm.sh ] && . \$HOME/.nvm/nvm.sh; cd \$HOME/knesset-ranker"
   DOCS="*/30 * * * * $PRELUDE && npx tsx src/docs.ts --limit 8 >> \$HOME/knesset-ranker/docs.log 2>&1"
   RANK="17 */6 * * * $PRELUDE && npx tsx src/rank.ts --limit 60 >> \$HOME/knesset-ranker/rank.log 2>&1"
-  ( crontab -l 2>/dev/null | grep -v "knesset-ranker" ; echo "$DOCS"; echo "$RANK" ) | crontab -
-  crontab -l | tail -2
+  ART="41 */6 * * * $PRELUDE && npx tsx src/art.ts --limit 12 >> \$HOME/knesset-ranker/art.log 2>&1"
+  ( crontab -l 2>/dev/null | grep -v "knesset-ranker" ; echo "$DOCS"; echo "$RANK"; echo "$ART" ) | crontab -
+  crontab -l | tail -3
 '
 
 echo "==> done. If the box is not logged in yet, run:  ssh -tt $TARGET 'bash -lc \"claude login\"'"

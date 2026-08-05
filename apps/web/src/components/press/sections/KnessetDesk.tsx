@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { KNESSET_SCOPE } from '@sync/shared';
 import {
   getActiveVotesWithOptions,
+  getCardArtByVoteIds,
   getKnessetRankingsByVoteIds,
 } from '@/lib/supabase/db';
 import { NewsButton } from '@/components/press/NewsButton';
@@ -39,9 +40,14 @@ export async function KnessetDesk({ locale = 'he' }: KnessetDeskProps) {
   // not exist (#39); ISR refills real data at runtime on the Worker.
   const votes = await getActiveVotesWithOptions(KNESSET_SCOPE).catch(() => []);
   // Editorial hotness from the ranker agent orders the desk; social-source
-  // engagement is the fallback signal for unranked items. (The helper
-  // degrades to an empty map on DB failure - no catch needed.)
-  const rankings = await getKnessetRankingsByVoteIds(votes.map((v) => v.id));
+  // engagement is the fallback signal for unranked items. Card art is the
+  // art job's faded tile plates. (Both helpers degrade to an empty map on
+  // DB failure - no catch needed.)
+  const voteIds = votes.map((v) => v.id);
+  const [rankings, art] = await Promise.all([
+    getKnessetRankingsByVoteIds(voteIds),
+    getCardArtByVoteIds(voteIds),
+  ]);
   const heatOf = (topicId: string, sourceHotness: number) =>
     rankings.get(topicId)?.hotness ?? sourceHotness;
   const topics = votes
@@ -49,7 +55,7 @@ export async function KnessetDesk({ locale = 'he' }: KnessetDeskProps) {
     // sometimes truncated mid-clause by the sync. Split them so the tile can
     // set the instrument, the subject and the qualifier as separate furniture.
     .map((vote) => {
-      const topic = toDeskTopic(vote);
+      const topic = toDeskTopic(vote, art.get(vote.id) ?? null);
       return { ...topic, titleParts: formatBillTitle(topic.title) };
     })
     .sort(

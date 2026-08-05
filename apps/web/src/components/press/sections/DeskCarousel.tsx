@@ -45,11 +45,27 @@ export function DeskCarousel({ children, label }: DeskCarouselProps) {
       align: 'start',
       loop: true,
       skipSnaps: true,
+      // Below the bento breakpoint the track is a static vertical mosaic -
+      // Embla (and with it the auto-scroll drift) stands down entirely.
+      breakpoints: { '(max-width: 800px)': { active: false } },
     },
     plugins
   );
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(false);
+
+  // Mirrors the CSS breakpoint so the loop-padding clones below are not
+  // rendered into the static mobile grid, where they would print every topic
+  // twice. Starts false so the first client render matches the SSR markup.
+  const [bento, setBento] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 800px)');
+    const apply = () => setBento(mq.matches);
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
 
   const refresh = useCallback(() => {
     if (!emblaApi) return;
@@ -73,7 +89,7 @@ export function DeskCarousel({ children, label }: DeskCarouselProps) {
   // loop with cloned slides so the drift never runs out of runway.
   const items = Children.toArray(children);
   const slides =
-    items.length > 0 && items.length < 6
+    !bento && items.length > 0 && items.length < 6
       ? [
           ...items,
           ...items.map((child, i) =>

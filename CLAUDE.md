@@ -349,6 +349,9 @@ GREENINVOICE_WEBHOOK_SECRET=
 # Resend
 RESEND_API_KEY=
 
+# fal.ai — Seedream card-art plates (desk agents' art job, off-platform only)
+FAL_KEY=
+
 # App
 NEXT_PUBLIC_APP_URL=https://taruu.co.il
 EXPO_PUBLIC_API_URL=https://api.taruu.co.il

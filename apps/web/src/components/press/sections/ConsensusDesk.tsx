@@ -1,5 +1,5 @@
 import { KNESSET_SCOPE } from '@sync/shared';
-import { getActiveVotesWithOptions } from '@/lib/supabase/db';
+import { getActiveVotesWithOptions, getCardArtByVoteIds } from '@/lib/supabase/db';
 import type { Locale } from '@/lib/i18n';
 import type { DeskTopic } from './DeskTopicRow';
 import { toDeskTopic } from './deskData';
@@ -19,13 +19,15 @@ export async function ConsensusDesk({ locale = 'he' }: ConsensusDeskProps) {
   // Degrade to the empty desk when the DB is unreachable (build-time
   // prerender in CI has no service-role key - #39); ISR refills at runtime.
   const votes = await getActiveVotesWithOptions().catch(() => []);
+  // Faded tile plates from the art job; degrades to an empty map on failure.
+  const art = await getCardArtByVoteIds(votes.map((v) => v.id));
 
   const byMunicipality = new Map<string, DeskTopic[]>();
   for (const vote of votes) {
     // National (Knesset) topics live on their own desk, not the municipal one.
     if (vote.municipality_id === KNESSET_SCOPE) continue;
 
-    const topic = toDeskTopic(vote);
+    const topic = toDeskTopic(vote, art.get(vote.id) ?? null);
     const bucket = byMunicipality.get(vote.municipality_id);
     if (bucket) {
       bucket.push(topic);

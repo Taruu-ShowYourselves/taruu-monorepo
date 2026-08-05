@@ -1512,6 +1512,7 @@ export interface Database {
           vote_id: string;
           hotness: number;
           relevance: number | null;
+          stakes: number | null;
           media: number | null;
           headline: string | null;
           rationale: string | null;
@@ -1527,6 +1528,7 @@ export interface Database {
           vote_id: string;
           hotness: number;
           relevance?: number | null;
+          stakes?: number | null;
           media?: number | null;
           headline?: string | null;
           rationale?: string | null;
@@ -1542,6 +1544,7 @@ export interface Database {
           vote_id?: string;
           hotness?: number;
           relevance?: number | null;
+          stakes?: number | null;
           media?: number | null;
           headline?: string | null;
           rationale?: string | null;
@@ -1549,6 +1552,42 @@ export interface Database {
           media_evidence?: Record<string, unknown>;
           model?: string | null;
           ranked_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      vote_card_art: {
+        Row: {
+          id: string;
+          vote_id: string;
+          image_url: string | null;
+          prompt: string | null;
+          model: string | null;
+          attempted_at: string;
+          generated_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          vote_id: string;
+          image_url?: string | null;
+          prompt?: string | null;
+          model?: string | null;
+          attempted_at?: string;
+          generated_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          vote_id?: string;
+          image_url?: string | null;
+          prompt?: string | null;
+          model?: string | null;
+          attempted_at?: string;
+          generated_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1734,3 +1773,4 @@ export type RoleGrant = Tables<'role_grants'>;
 export type CommunityManagerApplication = Tables<'community_manager_applications'>;
 export type RoleGrantEvent = Tables<'role_grant_events'>;
 export type KnessetRanking = Tables<'knesset_rankings'>;
+export type VoteCardArt = Tables<'vote_card_art'>;

@@ -134,7 +134,33 @@ a.topicMuni:hover { background: var(--np-red); }
   /* The grid fixes the cell height; content must be clipped rather than
      printed past the tile's own footprint. */
   overflow: hidden;
+  /* Own stacking context so the art plate's z-index:-1 sits between the
+     tile's background and its type instead of vanishing behind the page. */
+  isolation: isolate;
   transition: background-color var(--np-dur-snap) var(--np-ease);
+}
+
+/* AI-generated duotone plate, printed as a ghost under the tile's type.
+   Multiply sinks the plate's cream ground into the paper on light tiles;
+   the lead ink block inverts it and screens so the linework reads as a
+   pale impression on black rather than a hole in it. */
+.topicArt {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  opacity: 0.14;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  user-select: none;
+}
+
+.topicCardLead .topicArt {
+  filter: invert(1) grayscale(1);
+  mix-blend-mode: screen;
+  opacity: 0.16;
 }
 
 /* Hover lifts the tile off the page into a raised box - the only moment a
@@ -282,11 +308,26 @@ a.topicMuni:hover { background: var(--np-red); }
   display: none;
 }
 
-/* Below the bento breakpoint every card sizes to its own content, so there is
-   no slack to distribute and nothing to centre - stack from the top, and drop
-   the lead to the same evidence depth as its neighbours so one card does not
-   tower over the row. */
+/* Below the desktop breakpoint the desk sets as a vertical two-column bento:
+   rows size to their own copy, so there is no slack to distribute and nothing
+   to centre - stack from the top, and drop the lead to the same evidence
+   depth as its neighbours so one tile does not tower over its row. */
 @media (max-width: 800px) {
+  /* The lead takes the full measure as an ink block; the feature folds to a
+     1×1 brief - a two-row column has no meaning when rows are content-sized. */
+  .topicCardLead {
+    grid-row: auto;
+    grid-column: 1 / -1;
+  }
+
+  .topicCardFeature {
+    grid-row: auto;
+  }
+
+  .topicCard {
+    inline-size: auto;
+  }
+
   .topicBody {
     justify-content: flex-start;
   }
@@ -297,7 +338,7 @@ a.topicMuni:hover { background: var(--np-red); }
     justify-content: flex-start;
   }
 
-  /* One flat row of equal-height cards - the feature is a brief here. */
+  /* The feature reads as a brief here. */
   .topicCardFeature .topicDesc {
     -webkit-line-clamp: 2;
   }

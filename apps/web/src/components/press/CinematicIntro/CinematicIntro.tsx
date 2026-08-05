@@ -492,14 +492,13 @@ export function CinematicIntro() {
           municipalTopics: votes.length - knessetTopics,
         }));
 
-        const knessetIds = votes
-          .filter((vote) => KNESSET_SCOPE.test(vote.municipality))
-          .map((vote) => vote.id)
-          .slice(0, 20);
-        if (knessetIds.length > 0) {
+        // Evidence for the hottest votes is resolved server-side (`top`):
+        // slicing N ids client-side by arrival order meant the actually
+        // burning vote could miss the evidence set entirely.
+        if (knessetTopics > 0) {
           try {
             const contextResponse = await fetch(
-              `/api/knesset/live-context?ids=${encodeURIComponent(knessetIds.join(","))}`,
+              "/api/knesset/live-context?top=20",
               { signal: controller.signal, cache: "no-store" },
             );
             if (contextResponse.ok && !controller.signal.aborted) {

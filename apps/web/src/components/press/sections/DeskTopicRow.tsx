@@ -39,6 +39,12 @@ export interface DeskTopic {
    */
   titleParts?: BillTitle | null;
   description: string;
+  /**
+   * AI-generated duotone plate for this topic (desk agents' art job), printed
+   * as a faded layer under the tile's type. Null until the agent has plated
+   * the vote - the tile is complete without it.
+   */
+  artUrl: string | null;
   participantCount: number;
   endDate: string;
   options: DeskOption[];
@@ -474,6 +480,21 @@ export function DeskTopicRow({
             : ''
       }`}
     >
+      {topic.artUrl ? (
+        /* Decorative plate under the type; plain <img> on purpose - the file
+           is a pre-optimized WebP from storage and next/image optimization is
+           unverified on the Workers runtime. */
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={topic.artUrl}
+          alt=""
+          aria-hidden
+          loading="lazy"
+          decoding="async"
+          className={styles.topicArt}
+        />
+      ) : null}
+
       <SlugLine index={index} heat={heat} />
 
       {/* The edition sits with the slug rule, not with the copy: on a two-row
