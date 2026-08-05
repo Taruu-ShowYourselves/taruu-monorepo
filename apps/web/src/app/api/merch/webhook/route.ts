@@ -10,19 +10,20 @@
 import { timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { getMerchOrderById, markMerchOrderPaid } from '@/lib/supabase/db';
+import { confirmMerchDocumentForOrder, extractDocumentId } from '@/services/greenInvoice';
 import { logger } from '@/lib/logger';
 
 /**
- * Authenticate the caller against a shared secret. We register the notify URL
- * with Green Invoice carrying `?token=<secret>` (and accept the same value via
- * an `x-greeninvoice-token` header), so a forged POST without the secret can't
- * flip an order to paid.
+ * Authenticate a caller that can send our shared secret. The secret is accepted
+ * from the `x-greeninvoice-token` header only; a query-string token is ignored
+ * because URLs end up in provider dashboards, request logs and proxies.
  *
- * Returns `true` when authentic. When no secret is configured we fail OPEN so
- * local/dev mock checkout keeps working, but log loudly - production MUST set
- * `GREENINVOICE_WEBHOOK_SECRET`.
+ * Green Invoice's hosted form cannot attach custom notify headers, so real
+ * provider notifies authenticate via `confirmMerchDocumentForOrder()` below.
+ * When no secret is configured this fails open only outside production so local
+ * mock checkout stays usable.
  */
-function isAuthentic(request: Request): boolean {
+function hasValidHeaderSecret(request: Request): boolean {
   const secret = process.env.GREENINVOICE_WEBHOOK_SECRET || '';
   if (!secret) {
     // Fail CLOSED in production (a missing secret must not leave a forge-to-paid
@@ -34,10 +35,7 @@ function isAuthentic(request: Request): boolean {
     logger.warn('Merch webhook: GREENINVOICE_WEBHOOK_SECRET unset - UNAUTHENTICATED (dev only)');
     return true;
   }
-  const provided =
-    new URL(request.url).searchParams.get('token') ||
-    request.headers.get('x-greeninvoice-token') ||
-    '';
+  const provided = request.headers.get('x-greeninvoice-token') || '';
   const a = Buffer.from(provided);
   const b = Buffer.from(secret);
   // Length-guard before timingSafeEqual (it throws on mismatched lengths).
@@ -45,10 +43,7 @@ function isAuthentic(request: Request): boolean {
 }
 
 export async function POST(request: Request) {
-  if (!isAuthentic(request)) {
-    logger.warn('Merch webhook: rejected - bad or missing token');
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
+  const headerOk = hasValidHeaderSecret(request);
 
   let payload: Record<string, unknown> = {};
   try {
@@ -66,6 +61,7 @@ export async function POST(request: Request) {
   }
 
   const orderId = (payload.custom as string) || undefined;
+  const documentId = extractDocumentId(payload);
   logger.info('Merch webhook received', {
     orderId,
     // Avoid logging PII / full payloads in production.
@@ -84,17 +80,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true });
     }
 
-    // The issued document / payment id, defensive across Green Invoice fields.
-    const paymentId =
-      (payload.id as string) ||
-      (payload.documentId as string) ||
-      (payload.paymentId as string) ||
-      order.payment_id ||
-      null;
+    const confirmedByProvider =
+      documentId !== null &&
+      (await confirmMerchDocumentForOrder(documentId, {
+        orderId,
+        totalILS: order.total_ils,
+      }));
+    if (!headerOk && !confirmedByProvider) {
+      logger.warn('Merch webhook: rejected - no valid header and no confirmable document', {
+        orderId,
+        hasDocumentId: documentId !== null,
+      });
+      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    }
 
     // Atomic `pending → paid` (guarded in-statement). Concurrent or replayed
     // deliveries can't double-process: only the first matches the pending row.
-    const result = await markMerchOrderPaid(orderId, paymentId);
+    const result = await markMerchOrderPaid(orderId, documentId ?? order.payment_id ?? null);
     if (result.kind === 'error') {
       // Transient DB failure. Do NOT ack 200 - return 500 so Green Invoice
       // retries the notification rather than dropping a paid order.
