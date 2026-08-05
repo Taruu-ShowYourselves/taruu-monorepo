@@ -7,7 +7,7 @@ import { getDashboard } from '@/server/app/dashboard/get-dashboard';
 
 /**
  * GET /api/dashboard
- * The dashboard aggregate — everything the dashboard renders, one call.
+ * The dashboard aggregate - everything the dashboard renders, one call.
  */
 export async function GET(request: NextRequest) {
   const session = await getSessionFromRequest(request);

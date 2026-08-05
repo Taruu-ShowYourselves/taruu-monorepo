@@ -4,7 +4,7 @@ import * as React from 'react';
 import * as TabsPrimitive from '@radix-ui/react-tabs';
 import { cn } from '@/lib/cn';
 
-/** Press-styled tabs — mono uppercase triggers, active = ink block. */
+/** Press-styled tabs - mono uppercase triggers, active = ink block. */
 function Tabs({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.Root>) {
   return (
     <TabsPrimitive.Root
@@ -19,7 +19,7 @@ function TabsList({ className, ...props }: React.ComponentProps<typeof TabsPrimi
   return (
     <TabsPrimitive.List
       data-slot="tabs-list"
-      className={cn('inline-flex w-fit flex-wrap border-2 border-ink', className)}
+      className={cn('flex w-full flex-wrap border-y-2 border-ink', className)}
       {...props}
     />
   );
@@ -33,9 +33,9 @@ function TabsTrigger({
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        'cursor-pointer bg-paper px-4 py-2 font-mono text-sm font-bold tracking-wider text-ink transition-colors',
+        'group flex-1 cursor-pointer border-s-2 border-ink bg-paper px-5 py-3 text-center font-mono text-sm font-bold uppercase tracking-wider text-ink transition-colors first:border-s-0 sm:flex-none sm:text-start',
         'hover:bg-paper-box data-[state=active]:bg-ink data-[state=active]:text-paper',
-        'focus-visible:outline-2 focus-visible:outline-red',
+        'focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-red',
         className
       )}
       {...props}

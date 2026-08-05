@@ -5,6 +5,17 @@
   padding-block-start: var(--space-2);
 }
 
+.navDock {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 75;
+  padding-inline: var(--np-gutter);
+  background: color-mix(in srgb, var(--np-paper) 96%, transparent);
+  border-block-end: var(--np-rule) solid var(--np-ink);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--np-ink) 6%, transparent);
+  backdrop-filter: blur(14px);
+}
+
 .ears {
   display: flex;
   align-items: center;
@@ -40,7 +51,7 @@
   color: var(--np-ink);
   text-align: center;
   text-decoration: none;
-  /* Niqqud (patach/sheva/shuruk) draws below the cropped 0.9 line box —
+  /* Niqqud (patach/sheva/shuruk) draws below the cropped 0.9 line box -
      reserve font-relative room so it never touches the masthead rule. */
   padding-block-end: 0.26em;
 }
@@ -57,19 +68,40 @@
 .tagR { text-align: end; }
 
 .nav {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding-block: var(--space-2);
+  gap: clamp(var(--space-3), 2vw, var(--space-6));
+  min-block-size: clamp(3.75rem, 5vw, 4.5rem);
+  max-inline-size: var(--np-container);
+  margin-inline: auto;
+}
+
+.navWordmark {
+  display: inline-flex;
+  align-items: baseline;
+  font-family: var(--np-font-display);
+  font-size: clamp(var(--text-xl), 2vw, var(--text-3xl));
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--np-ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.navWordmark span {
+  color: var(--np-red);
 }
 
 .navList {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-5);
   list-style: none;
   flex-wrap: wrap;
+  min-inline-size: 0;
 }
 
 .navLink {
@@ -86,6 +118,42 @@
 .navLink:hover {
   color: var(--np-red);
   border-block-end-color: var(--np-red);
+}
+
+.liveDashboardLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.48rem;
+  padding: 0.48rem 0.78rem;
+  border: 1px solid var(--np-red);
+  background: var(--np-red);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  color: #fff;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color var(--np-dur-snap) var(--np-ease), color var(--np-dur-snap) var(--np-ease);
+}
+
+.liveDashboardLink i {
+  inline-size: 0.42rem;
+  block-size: 0.42rem;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 0 rgb(255 255 255 / 34%);
+  animation: live-dashboard-pulse 1.8s ease-out infinite;
+}
+
+.liveDashboardLink:hover,
+.liveDashboardLink:focus-visible {
+  background: transparent;
+  color: var(--np-red);
+}
+
+@keyframes live-dashboard-pulse {
+  60%,
+  100% { box-shadow: 0 0 0 0.42rem transparent; }
 }
 
 /* === "עוד" dropdown (secondary nav, Radix DropdownMenu) === */
@@ -114,7 +182,7 @@
 
 .moreCaret { font-size: 0.7em; }
 
-/* Radix positions the content (portal + collision handling) — we only paint. */
+/* Radix positions the content (portal + collision handling) - we only paint. */
 .moreMenu {
   z-index: 70;
   min-width: 12rem;
@@ -143,12 +211,31 @@
   }
 }
 
+/* Section head inside the menu - mono kicker, not a clickable row. */
+.moreLabel {
+  display: block;
+  padding-block: var(--space-2) var(--space-1);
+  padding-inline: var(--space-3);
+  font-family: var(--np-font-meta);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--np-ink-faint);
+}
+
+.moreSep {
+  block-size: var(--np-rule-hair);
+  margin-block: var(--space-1);
+  margin-inline: var(--space-3);
+  background: var(--np-paper-edge);
+}
+
 .moreItem {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  /* Same face as the nav links — Heebo display, loaded via next/font. */
+  /* Same face as the nav links - Heebo display, loaded via next/font. */
   font-family: var(--np-font-display);
   font-size: var(--text-base);
   font-weight: 700;
@@ -163,7 +250,7 @@
     color var(--np-dur-snap) var(--np-ease);
 }
 
-/* Trailing press arrow — slides in on highlight */
+/* Trailing press arrow - slides in on highlight */
 .moreItem::after {
   content: '←';
   font-family: var(--np-font-mono);
@@ -182,7 +269,7 @@
   box-shadow: inset -3px 0 0 var(--np-red);
 }
 
-/* Radix roving focus handles keyboard highlight via data-highlighted —
+/* Radix roving focus handles keyboard highlight via data-highlighted -
    suppress the global blue focus ring inside the menu. */
 .moreMenu a:focus-visible,
 .moreItem:focus-visible {
@@ -257,6 +344,7 @@
   line-height: 1;
 }
 
+/* Deliberate theme breakage: the one perfect circle in a square world. */
 .avatarBtn {
   display: inline-flex;
   align-items: center;
@@ -265,15 +353,25 @@
   height: 2.25rem;
   padding: 0;
   border: var(--np-rule) solid var(--np-ink);
-  border-radius: 0;
+  border-radius: var(--np-radius-pill);
   background: var(--np-ink);
   color: var(--np-paper);
   cursor: pointer;
   overflow: hidden;
-  transition: border-color var(--np-dur-snap) var(--np-ease);
+  box-shadow: var(--np-shadow-soft);
+  transition:
+    border-color var(--np-dur-snap) var(--np-ease),
+    box-shadow var(--np-dur) var(--np-ease),
+    transform var(--np-dur-snap) var(--np-ease);
 }
 
-.avatarBtn:hover { border-color: var(--np-red); }
+.avatarBtn:hover {
+  border-color: var(--np-red);
+  box-shadow: var(--np-shadow-soft), var(--np-shadow-red-glow);
+  transform: translateY(-1px);
+}
+
+.avatarBtn:active { transform: scale(0.96); }
 
 .avatarImg {
   display: block;
@@ -302,7 +400,8 @@
   border: var(--np-rule-heavy, 2px) solid var(--np-ink);
   border-radius: 0;
   padding-block: var(--space-1);
-  box-shadow: 4px 4px 0 var(--np-paper-edge);
+  border-radius: var(--np-radius-card);
+  box-shadow: var(--np-shadow-float);
 }
 
 .menuHeader {
@@ -356,16 +455,58 @@
   .ears span:nth-child(3) { display: none; }
   .tagL, .tagR { display: none; }
   .brandRow { grid-template-columns: 1fr; }
-  .nav { flex-direction: column; align-items: stretch; gap: var(--space-3); }
-  .navList { justify-content: center; gap: var(--space-3) var(--space-4); font-size: var(--text-sm); }
+  .navDock { padding-inline: var(--space-3); }
+  .nav {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: var(--space-2);
+    min-block-size: 3.5rem;
+  }
+  .navWordmark { font-size: var(--text-xl); }
+  .navList {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    gap: var(--space-4);
+    overflow-x: auto;
+    scrollbar-width: none;
+    overscroll-behavior-inline: contain;
+    /* No inline-end padding: sticky insets resolve against the content edge,
+       so any padding there becomes a strip the parked "עוד" cannot cover and
+       the scrolling links peek through it. */
+    padding-inline: var(--space-1) 0;
+  }
+  .navList::-webkit-scrollbar { display: none; }
+
+  /* The row scrolls, so the door to the other nine destinations must not be
+     the item that scrolled away. "עוד" parks at the scroller's inline-end
+     edge, on paper, with the links passing under it. */
+  .navList > li:last-child {
+    position: sticky;
+    inset-inline-end: 0;
+    padding-inline: var(--space-6) var(--space-2);
+    /* Physical `to left` because the site is RTL-only: links arrive from the
+       right and fade out under the pill. Gradients take no logical keyword. */
+    background: linear-gradient(
+      to left,
+      transparent,
+      var(--np-paper) var(--space-6)
+    );
+  }
+
+  .navLink,
+  .moreBtn { font-size: var(--text-sm); white-space: nowrap; }
+  .liveDashboardLink {
+    padding: 0.38rem 0.58rem;
+    font-size: 0.72rem;
+  }
+  .guestActions > :first-child { display: none; }
 
   /* Account stays minimal: chip collapses into the menu header. */
-  .account { align-self: flex-start; }
   .cityChip { display: none; }
   .menuHeader { display: flex; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .liveDashboardLink i { animation: none; }
   .avatarBtn,
   .menuRow {
     transition: none;

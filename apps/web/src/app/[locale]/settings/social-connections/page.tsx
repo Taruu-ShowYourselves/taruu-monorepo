@@ -12,6 +12,7 @@ import {
 } from '@/services/auth';
 import { getIdentityLevelLabel, getIdentityLevelDescription } from '@sync/shared';
 import type { SocialProof, IdentityScore } from '@sync/shared';
+import { PressLoader } from '@/components/press/PressMachine';
 import styles from './page.module.css';
 
 interface SocialProofsData {
@@ -39,7 +40,7 @@ function SocialConnectionsContent() {
         facebook: 'פייסבוק',
         instagram: 'אינסטגרם',
       };
-      setSuccessMessage(`${platformNames[success] || success} חובר בהצלחה!`);
+      setSuccessMessage(`${platformNames[success] || success} חובר בהצלחה.`);
       // Clear URL params
       router.replace('/settings/social-connections');
     }
@@ -113,7 +114,7 @@ function SocialConnectionsContent() {
   if (isLoading || dataLoading) {
     return (
       <div className={styles.loadingContainer}>
-        <div className={styles.spinner} aria-hidden />
+        <PressLoader />
         <p>טוען…</p>
       </div>
     );
@@ -139,8 +140,8 @@ function SocialConnectionsContent() {
               חיבור <span className={styles.red}>רשתות חברתיות.</span>
             </h1>
             <p className={styles.standfirst}>
-              חברו את הרשתות החברתיות שלכם כדי להגדיל את ציון הזהות ולקבל גישה
-              מלאה לפלטפורמה.
+              כל חשבון מחובר מוסיף נקודות לציון הזהות. ציון גבוה נדרש לחלק
+              מההצבעות.
             </p>
           </header>
 
@@ -216,7 +217,7 @@ function SocialConnectionsContent() {
             <h2 className={styles.sectionTitle}>חשבונות מחוברים</h2>
 
             <ul className={styles.rows}>
-              {/* Google — always connected */}
+              {/* Google - always connected */}
               <li className={`${styles.row} ${styles.connected}`}>
                 <div className={styles.rowInfo}>
                   <span className={styles.rowIcon} aria-hidden>
@@ -342,15 +343,15 @@ function SocialConnectionsContent() {
             <h3 className={styles.infoTitle}>למה לחבר רשתות חברתיות?</h3>
             <ul className={styles.infoList}>
               <li>
-                <strong>אימות זהות —</strong> כל חשבון מחובר מוסיף שכבת אימות
+                <strong>אימות זהות.</strong> כל חשבון מחובר מוסיף שכבת אימות
                 נוספת.
               </li>
               <li>
-                <strong>ציון גבוה יותר —</strong> ציון זהות גבוה מאפשר השתתפות
-                בהצבעות חשובות.
+                <strong>ציון גבוה יותר.</strong> ציון זהות גבוה מאפשר השתתפות
+                בהצבעות שדורשות רמת אימות גבוהה.
               </li>
               <li>
-                <strong>אמינות —</strong> משתמשים עם ציון גבוה נחשבים אמינים יותר
+                <strong>אמינות.</strong> משתמשים עם ציון גבוה נחשבים אמינים יותר
                 בקהילה.
               </li>
             </ul>
@@ -385,7 +386,7 @@ export default function SocialConnectionsPage() {
     <SuspenseWrapper
       fallback={
         <div className={styles.loadingContainer}>
-          <div className={styles.spinner} aria-hidden />
+          <PressLoader />
           <p>טוען…</p>
         </div>
       }

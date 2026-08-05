@@ -584,6 +584,11 @@ export interface Database {
           ordinal: number | null;
           status_id: number | null;
           is_discussion: boolean;
+          doc_url: string | null;
+          doc_group: string | null;
+          summary: string | null;
+          summary_model: string | null;
+          summarized_at: string | null;
           source_updated_at: string | null;
           fetched_at: string;
           created_at: string;
@@ -601,6 +606,11 @@ export interface Database {
           ordinal?: number | null;
           status_id?: number | null;
           is_discussion?: boolean;
+          doc_url?: string | null;
+          doc_group?: string | null;
+          summary?: string | null;
+          summary_model?: string | null;
+          summarized_at?: string | null;
           source_updated_at?: string | null;
           fetched_at?: string;
           created_at?: string;
@@ -618,6 +628,11 @@ export interface Database {
           ordinal?: number | null;
           status_id?: number | null;
           is_discussion?: boolean;
+          doc_url?: string | null;
+          doc_group?: string | null;
+          summary?: string | null;
+          summary_model?: string | null;
+          summarized_at?: string | null;
           source_updated_at?: string | null;
           fetched_at?: string;
           created_at?: string;
@@ -1363,6 +1378,203 @@ export interface Database {
         };
         Relationships: [];
       };
+      community_manager_applications: {
+        Row: {
+          id: string;
+          user_id: string;
+          space_id: string;
+          motivation: string;
+          contact_phone: string | null;
+          evidence_urls: Json;
+          status: "submitted" | "approved" | "rejected" | "withdrawn";
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          review_reason: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          space_id: string;
+          motivation: string;
+          contact_phone?: string | null;
+          evidence_urls?: Json;
+          status?: "submitted" | "approved" | "rejected" | "withdrawn";
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          motivation?: string;
+          contact_phone?: string | null;
+          evidence_urls?: Json;
+          status?: "submitted" | "approved" | "rejected" | "withdrawn";
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_reason?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      role_grant_events: {
+        Row: {
+          id: string;
+          subject_type: "role_grant" | "community_manager_application";
+          subject_id: string;
+          event:
+            | "submitted"
+            | "approved"
+            | "rejected"
+            | "granted"
+            | "suspended"
+            | "reinstated"
+            | "revoked";
+          subject_user_id: string | null;
+          actor_user_id: string | null;
+          role: string | null;
+          space_id: string | null;
+          reason: string | null;
+          detail: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          subject_type: "role_grant" | "community_manager_application";
+          subject_id: string;
+          event:
+            | "submitted"
+            | "approved"
+            | "rejected"
+            | "granted"
+            | "suspended"
+            | "reinstated"
+            | "revoked";
+          subject_user_id?: string | null;
+          actor_user_id?: string | null;
+          role?: string | null;
+          space_id?: string | null;
+          reason?: string | null;
+          detail?: Json | null;
+          created_at?: string;
+        };
+        // Append-only: enforced by the role_grant_events_append_only trigger.
+        Update: Record<string, never>;
+        Relationships: [];
+      };
+      role_grants: {
+        Row: {
+          id: string;
+          user_id: string;
+          role: "super_admin" | "space_admin" | "community_manager";
+          space_id: string | null;
+          status: "active" | "suspended" | "revoked";
+          source: "manual" | "application";
+          source_id: string | null;
+          granted_by: string | null;
+          granted_at: string;
+          ended_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          role: "super_admin" | "space_admin" | "community_manager";
+          space_id?: string | null;
+          status?: "active" | "suspended" | "revoked";
+          source?: "manual" | "application";
+          source_id?: string | null;
+          granted_by?: string | null;
+          granted_at?: string;
+          ended_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          role?: "super_admin" | "space_admin" | "community_manager";
+          space_id?: string | null;
+          status?: "active" | "suspended" | "revoked";
+          source?: "manual" | "application";
+          source_id?: string | null;
+          granted_by?: string | null;
+          granted_at?: string;
+          ended_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      knesset_rankings: {
+        Row: {
+          id: string;
+          vote_id: string;
+          hotness: number;
+          relevance: number | null;
+          media: number | null;
+          headline: string | null;
+          rationale: string | null;
+          media_refs: string[];
+          media_evidence: Record<string, unknown>;
+          model: string | null;
+          ranked_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          vote_id: string;
+          hotness: number;
+          relevance?: number | null;
+          media?: number | null;
+          headline?: string | null;
+          rationale?: string | null;
+          media_refs?: string[];
+          media_evidence?: Record<string, unknown>;
+          model?: string | null;
+          ranked_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          vote_id?: string;
+          hotness?: number;
+          relevance?: number | null;
+          media?: number | null;
+          headline?: string | null;
+          rationale?: string | null;
+          media_refs?: string[];
+          media_evidence?: Record<string, unknown>;
+          model?: string | null;
+          ranked_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      municipalities: {
+        Row: {
+          code: string;
+          name_he: string;
+          kind: "municipality" | "national";
+          created_at: string;
+        };
+        Insert: {
+          code: string;
+          name_he: string;
+          kind?: "municipality" | "national";
+          created_at?: string;
+        };
+        Update: {
+          code?: string;
+          name_he?: string;
+          kind?: "municipality" | "national";
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -1446,6 +1658,18 @@ export interface Database {
           generated_at: string;
         }[];
       };
+      can_admin_space: {
+        Args: { p_space: string | null };
+        Returns: boolean;
+      };
+      is_platform_admin: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      user_id: {
+        Args: Record<string, never>;
+        Returns: string | null;
+      };
     };
     Enums: {
       verification_status: 'none' | 'pending' | 'verified' | 'failed';
@@ -1506,3 +1730,7 @@ export type PlatformEscalation = Tables<'platform_escalations'>;
 export type SpaceNotificationCampaign = Tables<'space_notification_campaigns'>;
 export type SpaceNotificationDelivery = Tables<'space_notification_deliveries'>;
 export type UserNotification = Tables<'user_notifications'>;
+export type RoleGrant = Tables<'role_grants'>;
+export type CommunityManagerApplication = Tables<'community_manager_applications'>;
+export type RoleGrantEvent = Tables<'role_grant_events'>;
+export type KnessetRanking = Tables<'knesset_rankings'>;

@@ -1,7 +1,7 @@
 import 'server-only';
 
 /**
- * The one call into `space_admin_metrics` (migration 20260802000004).
+ * The one call into `space_admin_metrics` (migration 20260802000013).
  *
  * There is no table read here on purpose. The function has a fixed return type
  * of nine scalars, so a private column added later to `users` or `payments`

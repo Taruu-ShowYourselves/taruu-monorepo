@@ -1,9 +1,9 @@
 /**
- * SMS sender — provider-agnostic delivery transport for OTP messages.
+ * SMS sender - provider-agnostic delivery transport for OTP messages.
  *
  * The OTP lifecycle (generate, store, verify) is owned in-app now (see otp.ts);
  * this is only the delivery leg. Point it at any modern SMS REST API via
- * SMS_API_URL + SMS_API_KEY — the request body covers the common `{ to, text }`
+ * SMS_API_URL + SMS_API_KEY - the request body covers the common `{ to, text }`
  * shape; adapt per provider if needed. When unconfigured, `getSmsSender()`
  * returns null and the app mock-degrades (the routes return 503 and the client
  * soft-passes in dev), exactly as the previous Twilio integration did.

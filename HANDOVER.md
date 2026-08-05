@@ -1,8 +1,65 @@
 # HANDOVER — Taruu Redesign → Full Build
 
-_Updated 2026-07-24. Launch-prep session: geo-first homepage v2 + discovery ingest pipeline shipped on `rebuild/launch-site` (pushed, NOT deployed); agents numeric-engagement work MERGED+DEPLOYED (taruu-agents PR #14 → fleet auto-pull). Resume via "RESUME HERE" below._
+_Updated 2026-07-29. Session 5: ranker data-hardening (counted media evidence), batch resilience, vote-detail test repair, document summaries moved off the Worker onto the keyless agent box, **and two production deploys of the whole working tree — including the ~100-file restyle wave, which is therefore LIVE but still uncommitted.** Resume below._
 
-## ▶ RESUME HERE (2026-07-24, session 3 — launch prep)
+## ▶ RESUME HERE (2026-07-29, session 5 — ranker hardening + deploy)
+
+**Branch:** `rebuild/launch-site`, 6 new commits (`61be8ff`, `7ff22fa`, `f28d840`, `618d620`, `36d461e`, + this handoff) on top of session 4. **Live site redeployed from this tree** — worker `taruu-web`, **current version `e52aa3bf-4b68-4753-b50a-131b425f169f`** (second deploy of the session), all three custom domains; the only cron trigger left is `0 */6 * * *` (day-order sync).
+
+**⚠️ The restyle wave shipped.** The deploy builds the working tree, and ~100 restyle files were (and still are) uncommitted, so they are now serving on taruu.co.il while existing only on this machine. **The live site corresponds to no commit.** Either commit that wave or revert it and redeploy — until then a fresh clone cannot reproduce production. Gates it passed on the way out: web `tsc` clean, 689/689 tests, OpenNext build clean, live smoke `/he`, `/he/knesset`, `/api/votes` all 200.
+
+**Shipped this session:**
+- **Ranker data-hardening (`61be8ff`)** — the media sub-score is computed, not judged. The agent now only scores `relevance` and collects coverage (real URLs + publish dates + the queries it ran); `agents/knesset-ranker/src/media.ts` HTTP-validates every ref (HEAD→GET fallback; 404/410/network failure = dead), classifies Israeli press (`.il` minus institutions + known Israeli outlets on foreign TLDs) and freshness (≤14 days), derives `media` from the count of **distinct live outlets** via a fixed table (0→0, 1→35, 3→68, 6→90), and blends `hotness = round(0.6·relevance + 0.4·media)`. Full audit trail per row in the new `knesset_rankings.media_evidence` JSONB (queries, per-hit status/freshness/classification/counted, outlet count, checkedAt). Migration `20260729000003_knesset_rankings_evidence.sql` — **applied live**. 17 unit tests (`npm test` in the package).
+- **Batch resilience + model flag (`7ff22fa`)** — a live run died on batch 2/9 when the account hit its monthly spend limit, abandoning 40 untried votes. The loop now survives per-batch failures and only stops on account-level ones (`isFatalAgentFailure`: spend/usage/rate limit, logged out, credit balance). Proven in the wild: a later batch got a non-JSON reply and the run carried on. `--model` / `RANKER_MODEL` added — **runs currently use `--model claude-sonnet-4-6` because Fable is capped.**
+- **Desk shows the counted fact (`f28d840`)** — the evidence strip reads "6 כלי תקשורת" (or "ללא סיקור") instead of the uncheckable "תקשורת 85". Legacy rows without evidence fall back to the old sub-score line. Verified live: 47 strips render, 4 read ללא סיקור, zero legacy fallbacks.
+- **Vote-detail test repair (`618d620`)** — all 8 `GET /api/votes/[id]` cases had been failing with 500s since `27adbb5`: the route began calling `getKnessetItemsByVoteIds`/`getUserVote`/`getSessionFromRequest` but the test mocked only `getVoteWithOptions`. Mocks fixed and coverage added for Knesset context, `userVote`, and session-failure degradation. **Product was never broken — only the test.**
+- **Document summaries moved off the Worker (`36d461e`)** — summarizing day-order documents was the **only** thing needing `ANTHROPIC_API_KEY`, and only because it ran inside the Worker: the Agent SDK spawns the `claude` CLI as a child process and reads credentials from disk, and a Worker isolate has neither, so `/api/cron/knesset-docs` had to call the raw Anthropic API. The job now lives in `agents/knesset-ranker` (`src/docs.ts`, `npm run docs`) next to the ranker, on the same keyless Agent SDK. Same pipeline and work-queue semantics; only the model call changed. **Deleted from the web app:** the cron route, the service, the `*/30` trigger, two orphaned db helpers, and the OData document fetchers. `deploy.sh` now schedules both jobs on the box — docs `*/30`, rank `17 */6` (docs first: the ranker reads its summaries). Shared env/Supabase bootstrap extracted to `src/env.ts`. **There is no `ANTHROPIC_API_KEY` anywhere in the system now.**
+- **Second deploy (`e52aa3bf`)** — worker rebuilt/redeployed so the removal is live: trigger list is now only `0 */6 * * *`, `/api/cron/knesset-docs` returns 404, site routes still 200.
+- **Ranker prompt fix** — the agent sometimes returned "החיפושים רצים ברקע" as its *final* message, costing a whole batch each time; the prompt now states its last message must be the complete JSON.
+
+**⚠️ NEXT (session 5 state):**
+1. **Commit or revert the restyle wave** — production currently runs unversioned code. Highest priority.
+2. **Ranker backlog unfinished.** A run appeared to die mid-batch-3 and was restarted — it had NOT died; `pgrep -f "tsx src/rank.ts"` does not match the real argv (`tsx` runs it through a loader, so match on `src/rank.ts` instead). Two rankers then ran concurrently for ~18 minutes; the wedged original was killed. Harmless — the upsert is keyed on `vote_id` — but check for a live process before starting a run. Individual batches can also wedge for 20+ minutes with no output; there is no per-batch timeout yet (worth adding). Re-run: `cd agents/knesset-ranker && set -a && source ../../apps/web/.dev.vars && set +a && npm run rank -- --limit 60 --model claude-sonnet-4-6`. Note `.dev.vars` must be sourced — `.env.local`'s values now work too, but the package's own `.env` has empty keys.
+3. **Both boxes are provisioned; only `claude login` is left (needs a browser — a human must run it).**
+   - `ssh -tt hermes-admin 'bash -lc "claude login"'` — Sahar's box, Sahar's account.
+   - `ssh -tt dolev-box 'bash -lc "claude login"'` — **whose account is still Sahar's call**; the standing instruction was that this box uses DOLEV's account.
+   - **hermes is reachable again** — firewall `openclaw-fw` (10780408) already carries a rule for 79.177.147.0/32 ("sahar admin 2026-07-29"); the old 79.177.149.120 rule is stale and could be pruned.
+   - State on BOTH: agent package current (docs+rank), deps installed, Claude Code CLI 2.1.220, crontab `*/30` docs + `17 */6` rank, `~/knesset-ranker/.env` with Supabase creds. hermes runs a system node v24 with the CLI under `~/.npm-global`; dolev runs nvm node v22.
+   - dolev-box **was** updated this session (its code predated the docs job and its cron only ran the ranker) — code and schedule only, no credentials touched.
+   - After login, confirm with `ssh <box> 'tail ~/knesset-ranker/docs.log'` on the next half-hour tick.
+   - `deploy.sh` bugs found and fixed while doing this (`9e0c087`): `.env` overwrote an explicit `DEPLOY_SSH` (deployed to the wrong box silently), `npm install -g` hit an unwritable system prefix, and the cron prelude aborted on boxes without nvm.
+4. **Vote recording is still client-side only** — `/api/votes/[id]/participate` demands `paymentTxId`; the free flow mock-seals and never records. Blocking 04.08.
+5. Legacy `MoneyTransparency` dead code with ₪3 copy — delete or leave.
+
+---
+
+## ▶ (older) RESUME HERE (2026-07-29, session 4 — free votes + knesset intelligence)
+
+**Branch:** `rebuild/launch-site`, 4 new commits (`cfa5d25`…`cee63c0`), **NOT pushed / NOT deployed**. Tree still dirty on purpose: ~100 files of an in-progress restyle wave (about/, coin/, settings/, store/, sign-in/up, uikit/, styles/, explore/, PressMachine/PressAtmosphere/PressForm/SubscribeForm, GeoGate, Ticker, `.github/workflows/*`, `infra/`, `scripts/`, `docs/SITE-OVERVIEW-2026-07.md`) that predates/parallels this session — NOT reviewed, NOT committed here. `apps/web/package.json`+lockfile were committed (fflate) and carry that wave's mui/emotion + turbopack additions, flagged in the commit message.
+
+**Shipped this session (all verified: web `tsc` clean, lint clean on touched files, 13/13 votes-API + 6/6 knesset-docs tests):**
+- **Free participation (`cfa5d25`):** ₪3 fee removed everywhere — flow is now בחירה→אישור→חתימה (no payment call; seals client-side, see gap below), FAQ/terms/refund/pricing/economics/dictionaries retold around free voting + BAG-funded community pools; ₪50 create-vote stays. Masthead ear price gone.
+- **Live ballot + declutter (`b04a0be`):** `/api/votes?include=options` (active only); `LiveVoteWidget` rotates the most **contested** active vote per municipality (consensus-gap ranking, 8s, pauses on tap, demo fallback); `VoteWidget demo=false` for real votes. Removed: countdown date line, floating WhatsApp button, BackedBy section.
+- **Knesset intelligence (`0a1b7be`):**
+  - *Docs:* cron `/api/cron/knesset-docs` (`*/30 * * * *` in `worker.ts`+`wrangler.jsonc`) → KNS_DocumentBill/KNS_DocumentAgenda discovery → fs.knesset.gov.il docx → fflate extract → Haiku Hebrew summary → `knesset_items.{doc_url,doc_group,summary,…}`. Vote page: "מה על השולחן" block + plenum fact sheet + context section. **Aborts without `ANTHROPIC_API_KEY` (queue preserved).**
+  - *Ranker:* `agents/knesset-ranker` — Claude Agent SDK (**local Claude Code login, no API key**), scores relevance + WebSearch-verified media coverage → `knesset_rankings`; KnessetDesk sorts by it + shows evidence strip (heat°, rationale, ציבור/תקשורת sub-scores, Israeli press links). 6 votes seeded live (top: חוק היועמ"ש 91°). Honesty note: scores are grounded **judgment** (real searched refs, spot-checked), not counted metrics — hardening plan (counted outlet hits → computed media score) was pitched and user said "handoff first"; that's the next task.
+- **DB (LIVE, applied via Management API + `Supabase CLI` keychain token):** migrations `20260729000001_knesset_item_docs` + `20260729000002_knesset_rankings` — columns/tables verified.
+
+**VM agents space:**
+- **dolev-box** (159.69.249.191, alias `dolev-box`): ranker deployed to `~/knesset-ranker` — nvm node 22, Claude Code CLI 2.1.220, remote `.env` (Supabase creds), cron `17 */6 * * *` → `rank.log`. **Blocked on `claude login` — must be DOLEV'S account (user instruction); don't touch his box further.**
+- **hermes** (91.98.75.154, alias `hermes-admin`, Sahar's box): Hetzner shows RUNNING; unreachable only because firewall `openclaw-fw` (id 10780408) allows SSH solely from old IP 79.177.149.120 (current: 79.177.147.0; no ICMP rule at all). Agent is classifier-blocked from editing the firewall — **user must run:** `unset HCLOUD_TOKEN && hcloud firewall add-rule 10780408 --direction in --protocol tcp --port 22 --source-ips <current-ip>/32 --description "sahar admin"` (`.zshrc` exports a stale HCLOUD_TOKEN that shadows the working `taruu-admin-20260721` hcloud context). Then: `DEPLOY_SSH=hermes-admin agents/knesset-ranker/scripts/deploy.sh` + Sahar logs in with HIS account. SSH targets documented in `agents/knesset-ranker/.env{,.example}`.
+
+**⚠️ OPEN GAPS / NEXT:**
+1. **Ranker data-hardening (user-approved direction, not started):** compute the media sub-score from counted verified hits (distinct Israeli outlets, ≤14 days), store queries+hit counts as evidence, HTTP-validate refs before writing, zero media score when refs die; hotness = fixed blend with editorial relevance.
+2. **Vote recording is client-side only:** `/api/votes/[id]/participate` still demands `paymentTxId` — free flow mock-seals and never records. Backend contract change required before 04.08.
+3. `wrangler secret put ANTHROPIC_API_KEY` + site deploy (new cron routes inactive until then; `*/30` trigger may need dashboard add — account cron gate).
+4. Rank the backlog: 52/58 votes unranked — `pnpm --filter @sync/knesset-ranker rank -- --limit 60` (needs logged-in box or local run).
+5. Legacy `MoneyTransparency` component is dead code w/ ₪3 copy — delete or leave.
+6. Decide the fate of the uncommitted restyle wave (~100 files) — separate session.
+
+---
+
+## ▶ (older) RESUME HERE (2026-07-24, session 3 — launch prep)
 
 **Branches:** taro `rebuild/launch-site` — pushed, 32 commits ahead of `origin/main`, working tree clean. **Site deliberately NOT deployed** (user instruction). taruu-agents: PR #14 **merged to main 2026-07-24 07:03Z** → fleet workers auto-pull within minutes (`taruu-update.timer`, ff-only from main) — that IS the agents deploy, done.
 

@@ -1,5 +1,5 @@
 /**
- * Expo vote push-notification helpers — sendVoteResultsNotification /
+ * Expo vote push-notification helpers - sendVoteResultsNotification /
  * sendNewVoteNotification. The Expo SDK is mocked; this asserts the message
  * shape (title, data.type, channel) and token validation.
  */
@@ -34,7 +34,7 @@ describe('Expo vote push helpers', () => {
 
   it('sends a vote-results notification with the right shape', async () => {
     const res = await sendVoteResultsNotification(TOKEN, {
-      voteTitle: 'גינת השכונה',
+      voteTitle: 'הגינה הציבורית',
       voteId: 'v1',
       winningOption: 'בעד',
     });

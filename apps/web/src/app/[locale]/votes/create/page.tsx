@@ -58,7 +58,7 @@ export default function CreateVotePage() {
   // Success surface — gated on the id the server returned for the proposal.
   const [submittedVoteId, setSubmittedVoteId] = useState<string | null>(null);
 
-  // Form state — unchanged
+  // Form state - unchanged
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [options, setOptions] = useState(['', '']);
@@ -126,7 +126,7 @@ export default function CreateVotePage() {
     } else if (step === 2 && validateStep2()) {
       setStep(3);
     } else if (step === 3) {
-      // Duration always has a value — straight through to payment.
+      // Duration always has a value - straight through to payment.
       setStep(4);
     }
   };

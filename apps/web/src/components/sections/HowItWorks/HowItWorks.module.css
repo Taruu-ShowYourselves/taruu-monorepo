@@ -6,7 +6,7 @@
   overflow: hidden;
 }
 
-/* Soft luminous aura — tinted, low opacity (not neon) */
+/* Soft luminous aura - tinted, low opacity (not neon) */
 .aura {
   position: absolute;
   inset: 0;
@@ -50,7 +50,7 @@
   margin-inline: auto;
 }
 
-/* Brand progress rail — runs along the inline-start edge (mobile) */
+/* Brand progress rail - runs along the inline-start edge (mobile) */
 .rail {
   position: absolute;
   inset-block: var(--space-4);

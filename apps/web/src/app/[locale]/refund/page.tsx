@@ -4,33 +4,33 @@ import type { Locale } from '@/lib/i18n';
 
 export const metadata: Metadata = {
   title: 'מדיניות החזרים | תַּרְאוּ',
-  description: 'מדיניות ההחזרים עבור תשלומי השתתפות ויצירת הצבעות בתַּרְאוּ.',
+  description: 'מדיניות ההחזרים עבור תשלומי יצירת הצבעות בתַּרְאוּ.',
 };
 
 interface PageProps {
   params: Promise<{ locale: Locale }>;
 }
 
-const LAST_UPDATED = '2026-06-13';
+const LAST_UPDATED = '2026-07-29';
 
 function content(locale: Locale): { title: string; intro: string; updated: string; sections: LegalSection[] } {
   if (locale === 'en') {
     return {
       title: 'Refund Policy',
       intro:
-        'This policy explains when payments for civic participation on Taro can be refunded. Payments are processed by Green Invoice (Merchant of Record).',
+        'This policy explains when payments on Taro (vote creation and store purchases) can be refunded. Payments are processed by Green Invoice (Merchant of Record).',
       updated: `Last updated: ${LAST_UPDATED}`,
       sections: [
         {
           heading: '1. What You Are Paying For',
           paragraphs: [
-            'Vote participation (₪3) records your vote with blockchain verification. Vote creation (₪50) publishes a new vote. These are digital civic actions delivered immediately.',
+            'Voting is free. The only paid civic action is vote creation (₪50): a digital action that publishes a new vote immediately.',
           ],
         },
         {
           heading: '2. When You Can Get a Refund',
           bullets: [
-            'If a technical error charged you but your vote was not recorded, or you were charged more than once for the same action — you are entitled to a full refund.',
+            'If a technical error charged you without the action completing, or you were charged more than once for the same action, you are entitled to a full refund.',
             'A vote-creation payment is refundable if the vote was not published due to a failure on our side.',
             'Requests made within 14 days of payment will be reviewed in line with applicable consumer-protection law.',
           ],
@@ -38,7 +38,7 @@ function content(locale: Locale): { title: string; intro: string; updated: strin
         {
           heading: '3. When Refunds Are Not Available',
           paragraphs: [
-            'Once a vote participation has been successfully recorded on the blockchain, or once a created vote has been published and its funds accrued toward seeding the vote’s BAG (its bags.fm memecoin), the action is final and generally non-refundable, because the service was delivered.',
+            'Once a created vote has been published, the action is final and generally non-refundable, because the service was delivered.',
           ],
         },
         {
@@ -58,19 +58,19 @@ function content(locale: Locale): { title: string; intro: string; updated: strin
   return {
     title: 'מדיניות החזרים',
     intro:
-      'מדיניות זו מסבירה מתי ניתן להחזיר תשלומים עבור השתתפות אזרחית בתַּרְאוּ. התשלומים מעובדים על ידי Green Invoice (Merchant of Record).',
+      'מדיניות זו מסבירה מתי ניתן להחזיר תשלומים בתַּרְאוּ (יצירת הצבעות ורכישות בחנות). התשלומים מעובדים על ידי Green Invoice (Merchant of Record).',
     updated: `עודכן לאחרונה: ${LAST_UPDATED}`,
     sections: [
       {
         heading: '1. עבור מה אתם משלמים',
         paragraphs: [
-          'השתתפות בהצבעה (₪3) מתעדת את הצבעתכם עם אימות בלוקצ׳יין. יצירת הצבעה (₪50) מפרסמת הצבעה חדשה. אלו פעולות אזרחיות דיגיטליות הניתנות באופן מיידי.',
+          'ההצבעה חינם. הפעולה היחידה בתשלום היא יצירת הצבעה (₪50): פעולה דיגיטלית שמפרסמת הצבעה חדשה באופן מיידי.',
         ],
       },
       {
         heading: '2. מתי ניתן לקבל החזר',
         bullets: [
-          'אם תקלה טכנית חייבה אתכם אך ההצבעה לא תועדה, או אם חויבתם יותר מפעם אחת על אותה פעולה — אתם זכאים להחזר מלא.',
+          'אם תקלה טכנית חייבה אתכם בלי שהפעולה הושלמה, או אם חויבתם יותר מפעם אחת על אותה פעולה, אתם זכאים להחזר מלא.',
           'תשלום עבור יצירת הצבעה יוחזר אם ההצבעה לא פורסמה עקב כשל מצדנו.',
           'בקשות שיוגשו בתוך 14 ימים מהתשלום ייבחנו בהתאם לחוק הגנת הצרכן.',
         ],
@@ -78,7 +78,7 @@ function content(locale: Locale): { title: string; intro: string; updated: strin
       {
         heading: '3. מתי לא ניתן החזר',
         paragraphs: [
-          'לאחר שהשתתפות בהצבעה תועדה בהצלחה על גבי הבלוקצ׳יין, או לאחר שהצבעה שנוצרה פורסמה וכספיה נצברו לטובת זריעת ה-BAG (המטבע ב-bags.fm) של ההצבעה — הפעולה סופית ואינה ניתנת להחזר ככלל, מאחר שהשירות סופק.',
+          'לאחר שהצבעה שנוצרה פורסמה, הפעולה סופית ואינה ניתנת להחזר ככלל, מאחר שהשירות סופק.',
         ],
       },
       {

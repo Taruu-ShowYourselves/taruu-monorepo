@@ -1,5 +1,5 @@
 /**
- * Identity Document API Route Tests — /api/verification/document (issue #32).
+ * Identity Document API Route Tests - /api/verification/document (issue #32).
  *
  * POST submits on-device-extracted fields (never images); GET reads status;
  * DELETE exercises the PPL §14 erasure right.

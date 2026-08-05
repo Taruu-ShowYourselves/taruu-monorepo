@@ -15,7 +15,7 @@ const MAX_REASON_LENGTH = 500;
  *
  * Records a user's refund request for one of their completed payments and
  * notifies support. Per the published policy, refunds are issued manually in
- * Green Invoice — this endpoint does NOT move money; it captures the request (on
+ * Green Invoice - this endpoint does NOT move money; it captures the request (on
  * the payment metadata) and emails support, who issue a credit note (חשבונית
  * זיכוי) via `paymentService.createRefund` and flip the payment to `refunded`.
  *
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    // Best-effort support notification — the request is already recorded, so a
+    // Best-effort support notification - the request is already recorded, so a
     // mail failure (or missing Resend creds in dev) must not fail the request.
     if (emailService.isConfigured()) {
       try {

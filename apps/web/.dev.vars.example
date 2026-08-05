@@ -1,6 +1,6 @@
 # Local Workers secrets for `next dev` / `wrangler dev` (OpenNext).
 # Copy to `.dev.vars` (gitignored) and fill. In production these are set with
-# `wrangler secret put <NAME>` — NOT committed, NOT in wrangler.jsonc.
+# `wrangler secret put <NAME>` - NOT committed, NOT in wrangler.jsonc.
 #
 # Non-secret public vars (GREENINVOICE_ENV, QUBIK_NETWORK) live in
 # wrangler.jsonc `vars` instead.
@@ -14,12 +14,18 @@ SUPABASE_SERVICE_ROLE_KEY=
 JWT_SECRET=
 JWT_EXPIRY=7d
 
-# Identity documents (issue #32) — HMAC key for one-way ID-number hashing.
+# Supabase project JWT secret - signs the SHORT-LIVED Supabase access token the
+# user-scoped client sends to PostgREST so RLS actually enforces (RLS-01).
+# Dashboard -> Project Settings -> API -> JWT Settings -> JWT Secret.
+# NOT the anon key, NOT the service_role key, and NOT the same value as JWT_SECRET.
+SUPABASE_JWT_SECRET=
+
+# Identity documents (issue #32) - HMAC key for one-way ID-number hashing.
 # Falls back to JWT_SECRET when unset; set a dedicated secret in production.
 IDENTITY_HASH_SECRET=
 
 
-# Google OAuth (direct OIDC — primary login).
+# Google OAuth (direct OIDC - primary login).
 # Redirect URI registered on the client MUST be <app-url>/he/sign-in
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
@@ -33,13 +39,13 @@ INSTAGRAM_APP_SECRET=
 # Qubik blockchain
 QUBIK_API_KEY=
 
-# Green Invoice (Merchant of Record — vote fees + merch store)
+# Green Invoice (Merchant of Record - vote fees + merch store)
 GREENINVOICE_API_KEY_ID=
 GREENINVOICE_API_SECRET=
 GREENINVOICE_PLUGIN_ID=
 GREENINVOICE_WEBHOOK_SECRET=
 
-# bags.fm (BAGS) — private key is also the cNFT minter keypair
+# bags.fm (BAGS) - private key is also the cNFT minter keypair
 BAGS_API_KEY=
 BAGS_WEBHOOK_SECRET=
 BAGS_MASTER_WALLET_ADDRESS=
@@ -54,7 +60,7 @@ PINATA_JWT=
 RESEND_API_KEY=
 
 # Phone OTP SMS delivery (codes are generated/verified in-app via Workers KV;
-# this is only the SMS transport — any modern SMS REST API). Unset = mock-degrade.
+# this is only the SMS transport - any modern SMS REST API). Unset = mock-degrade.
 SMS_API_URL=
 SMS_API_KEY=
 SMS_FROM=
@@ -70,7 +76,7 @@ EXPO_ACCESS_TOKEN=
 UPSTASH_REDIS_REST_URL=
 UPSTASH_REDIS_REST_TOKEN=
 
-# Cron auth (guards /api/cron/* — see DNS-SETUP.md "Cron")
+# Cron auth (guards /api/cron/* - see DNS-SETUP.md "Cron")
 CRON_SECRET=
 
 # Optional — set to false to remove the space-admin dashboard routes and pages (issue #75). Defaults to on.

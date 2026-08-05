@@ -12,14 +12,14 @@ interface DeskCarouselProps {
 }
 
 /**
- * DeskCarousel — RTL swipe carousel for topic cards (Embla under the hood:
+ * DeskCarousel - RTL swipe carousel for topic cards (Embla under the hood:
  * drag momentum, snap, native RTL). Sways continuously via the official
- * auto-scroll plugin — pauses on hover, resumes after interaction; off
+ * auto-scroll plugin - pauses on hover, resumes after interaction; off
  * entirely under prefers-reduced-motion. Press-square arrows for manual
  * paging.
  */
 export function DeskCarousel({ children, label }: DeskCarouselProps) {
-  // Computed once — plugin config doesn't affect SSR markup, so the
+  // Computed once - plugin config doesn't affect SSR markup, so the
   // server/client difference is hydration-safe.
   const [plugins] = useState(() => {
     if (
@@ -69,7 +69,7 @@ export function DeskCarousel({ children, label }: DeskCarouselProps) {
   }, [emblaApi, refresh]);
 
   // Embla's loop (and with it the continuous sway) needs the track to
-  // overflow the viewport. With only a few cards it can't engage — pad the
+  // overflow the viewport. With only a few cards it can't engage - pad the
   // loop with cloned slides so the drift never runs out of runway.
   const items = Children.toArray(children);
   const slides =

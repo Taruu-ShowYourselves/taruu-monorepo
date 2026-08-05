@@ -69,7 +69,7 @@ function invalid(topic: unknown): string | null {
 }
 
 /**
- * POST /api/ingest/topics — discovery-fleet ingestion.
+ * POST /api/ingest/topics - discovery-fleet ingestion.
  *
  * The taruu-agents discovery pipeline pulls civic topics + engagement from
  * Facebook and posts them here. Existing (municipality, title) votes get

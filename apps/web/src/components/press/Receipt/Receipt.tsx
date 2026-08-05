@@ -16,7 +16,7 @@ interface ReceiptProps {
   kicker?: React.ReactNode;
   title?: React.ReactNode;
   rows: ReceiptRow[];
-  /** Footer meta (mono, faint) — issue no., timestamp, imprint. */
+  /** Footer meta (mono, faint) - issue no., timestamp, imprint. */
   footer?: React.ReactNode;
   className?: string;
 }

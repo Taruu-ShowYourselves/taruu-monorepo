@@ -26,12 +26,12 @@ export function AboutCTA(_props: AboutCTAProps) {
         <hr className={styles.rule} aria-hidden />
 
         <h2 className={styles.headline}>
-          הגיע הזמן שהקול שלכם <span className={styles.red}>ייספר.</span>
+          הקול שלכם <span className={styles.red}>ייספר.</span>
         </h2>
 
         <p className={styles.sub}>
-          הצטרפו לתושבים שכבר מעצבים את העתיד של הקהילה שלהם — לפני שההצבעה
-          הראשונה יוצאת לדרך.
+          ההצבעה הראשונה נפתחת 04.08.26, בכל הארץ בבת אחת. הצטרפו לקבוצת
+          המייסדים לפני הפתיחה.
         </p>
 
         <div className={styles.actions}>

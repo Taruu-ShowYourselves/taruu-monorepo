@@ -38,7 +38,7 @@ const ITEMS = [
   },
   {
     key: 'live',
-    label: 'פיילוט חי — קריית טבעון, 23.01.26',
+    label: 'פיילוט חי: קריית טבעון, 23.01.26',
     live: true,
     icon: (
       <path

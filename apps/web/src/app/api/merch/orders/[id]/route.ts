@@ -2,7 +2,7 @@
  * GET /api/merch/orders/[id]
  *
  * Reads a persisted merch order for the thank-you page. Requires sign-in and
- * ownership — a buyer can only read their own order.
+ * ownership - a buyer can only read their own order.
  */
 
 import { NextRequest, NextResponse } from 'next/server';

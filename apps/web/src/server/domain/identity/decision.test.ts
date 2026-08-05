@@ -124,7 +124,7 @@ describe('decideDocument', () => {
     }
   });
 
-  it('face never causes rejection — hard failures still win', () => {
+  it('face never causes rejection - hard failures still win', () => {
     const decision = decideDocument(
       submission({ documentExpiry: '2020-01-01' }, {}, { matchScore: 0 }),
       NOW

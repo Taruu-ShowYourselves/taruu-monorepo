@@ -38,14 +38,14 @@ export function Hero(_props: HeroProps) {
           </motion.div>
 
           <h1 className={styles.heading}>
-            <AnimatedLetters text="הקול של השכונה —" delay={0.15} />
+            <AnimatedLetters text="הקול של האזרחים," delay={0.15} />
             <span className={styles.accentLine}>
               <motion.span
                 initial={{ opacity: reducedMotion ? 1 : 0, y: reducedMotion ? 0 : 24 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: reducedMotion ? 0 : 0.7, ease: [0.22, 1, 0.36, 1] }}
               >
-                <GradientText animated>סוף־סוף במספרים.</GradientText>
+                <GradientText animated>במספרים.</GradientText>
               </motion.span>
             </span>
           </h1>
@@ -56,7 +56,7 @@ export function Hero(_props: HeroProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1 }}
           >
-            תַּרְאוּ מודד את עמדת רוב התושבים בנושאים המקומיים שחשובים לנו — בצורה
+            תַּרְאוּ מודדת את עמדת רוב התושבים בנושאים המקומיים שחשובים לנו, בצורה
             מאומתת, שקופה ובלתי ניתנת לזיוף. במקום ויכוחים בלי סוף, תמונת מצב אחת
             ברורה שהמועצה לא יכולה להתעלם ממנה.
           </motion.p>

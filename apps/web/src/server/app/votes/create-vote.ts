@@ -56,7 +56,7 @@ export function createVote(
   return findUserById(cmd.userId)
     .andThen((creator) => {
       // Only a fully verified resident may raise a vote, and always for
-      // their OWN municipality — a local issue is raised by a local.
+      // their OWN municipality - a local issue is raised by a local.
       if (creator.verification_status !== 'verified') {
         return errAsync<typeof creator, AppError>(
           forbidden('Only verified residents may create a vote')

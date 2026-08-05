@@ -104,7 +104,7 @@
   margin-block-start: clamp(var(--space-6), 2.5vw, var(--space-8));
 }
 
-/* Primary participate block — inverts on hover. */
+/* Primary participate block - inverts on hover. */
 .primaryBtn {
   display: inline-flex;
   align-items: center;

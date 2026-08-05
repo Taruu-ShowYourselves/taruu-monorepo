@@ -105,7 +105,7 @@
   /* Font Families */
   --font-primary: 'Heebo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-secondary: 'Assistant', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'Fira Code', 'Consolas', monospace;
+  --font-mono: var(--np-font-meta);
 
   /* Font Sizes - Scale 1.2 */
   --text-xs: 0.694rem;      /* 11.1px */
@@ -297,7 +297,7 @@
    * Light, optimistic, trustworthy. See .redesign/DESIGN_SYSTEM.md
    * ============================================ */
 
-  /* Surfaces — warm light base, not stark white everywhere */
+  /* Surfaces - warm light base, not stark white everywhere */
   --lc-canvas: #FBFBFD;
   --lc-canvas-tint: #F4F6FB;
   --lc-surface: #FFFFFF;
@@ -315,7 +315,7 @@
   --lc-grad-purple: linear-gradient(135deg, #A78BFA, #7C3AED);
   --lc-grad-amber: linear-gradient(135deg, #FBBF24, #F59E0B);
 
-  /* Tinted soft glows — hue-matched, never harsh neon */
+  /* Tinted soft glows - hue-matched, never harsh neon */
   --lc-glow-blue: 0 12px 40px -12px rgba(37, 99, 235, 0.35);
   --lc-glow-green: 0 12px 40px -12px rgba(16, 185, 129, 0.35);
   --lc-glow-purple: 0 12px 40px -12px rgba(139, 92, 246, 0.35);
@@ -342,22 +342,27 @@
    * Newsprint + ink + pillarbox red. See .redesign/NEWSPRINT_TECH.md
    * ============================================ */
 
-  /* Color — two-color print on cream */
-  --np-paper: #F4F1E8;
-  --np-paper-2: #ECE7D8;
-  --np-paper-box: #FBFAF4;
-  --np-ink: #14110E;
-  --np-ink-soft: #3B362E;
-  --np-ink-faint: #6E675A;
+  /* Color: the same clean paper system used by the cinematic homepage. */
+  --np-paper: #FDFDFC;
+  --np-paper-2: #F7F6F2;
+  --np-paper-box: #FFFFFF;
+  --np-ink: #191816;
+  --np-ink-soft: #3B3833;
+  --np-ink-faint: #65615A;
   --np-red: #E0301E;
   --np-red-dark: #B0220F;
   --np-red-ink: #7A1607;
-  --np-paper-edge: rgba(20, 17, 14, 0.12);
+  --np-paper-edge: rgba(25, 24, 22, 0.12);
 
-  /* Type */
+  /* Type - three sans voices, zero monospace.
+     Display: Heebo 900 (unchanged). Body: Assistant - soft, highly readable
+     Hebrew text face. Meta/labels (ex-mono role): IBM Plex Sans Hebrew -
+     engineered grotesque, keeps the technical register without teletype LARP.
+     --np-font-mono kept as an alias so 400 call sites keep working. */
   --np-font-display: 'Heebo', system-ui, sans-serif;
-  --np-font-body: 'Frank Ruhl Libre', Georgia, serif;
-  --np-font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+  --np-font-body: 'Assistant', 'Heebo', system-ui, sans-serif;
+  --np-font-meta: 'IBM Plex Sans Hebrew', 'Assistant', system-ui, sans-serif;
+  --np-font-mono: var(--np-font-meta);
 
   /* Rules (border widths) */
   --np-rule-hair: 1px;
@@ -365,16 +370,44 @@
   --np-rule-heavy: 4px;
   --np-rule-masthead: 6px;
 
-  /* Motion — mechanical/editorial */
+  /* Motion - mechanical/editorial */
   --np-ease: cubic-bezier(0.2, 0, 0, 1);
   --np-dur-snap: 120ms;
   --np-dur: 200ms;
 
+  /* Shape - theme breakage, used sparingly and on purpose.
+     Default stays square; cards may soften, avatars/pills go full round. */
+  --np-radius-card: 0.625rem;   /* 10px */
+  --np-radius-pill: 9999px;
+
+  /* Elevation - layered ink-tinted shadows. Replaces the flat
+     `4px 4px 0` offset blocks; depth reads photographic, not die-cut. */
+  --np-shadow-soft:
+    0 1px 2px rgba(20, 17, 14, 0.06),
+    0 8px 24px -12px rgba(20, 17, 14, 0.18);
+  --np-shadow-float:
+    0 1px 2px rgba(20, 17, 14, 0.05),
+    0 12px 32px -16px rgba(20, 17, 14, 0.22),
+    0 32px 64px -32px rgba(20, 17, 14, 0.18);
+  --np-shadow-red-glow: 0 10px 30px -14px rgba(224, 48, 30, 0.45);
+  --np-focus-ring: 0 0 0 3px rgba(224, 48, 30, 0.22);
+
   /* Layout */
   --np-container: 1600px;
-  /* Page gutter — single source of truth for inline padding.
+  /* Page gutter - single source of truth for inline padding.
      Matches the masthead; every section shell must use this. */
   --np-gutter: clamp(var(--space-6), 4vw, var(--space-16));
+
+  /* Liquid glass over newsprint - the live-money / floating-chrome layer.
+     Glass = market-live surfaces (BAGS, treasury) + pinned chrome ONLY.
+     Derived from the LOCKED palette (.redesign/explore-ia.md §5.2);
+     press discipline holds: hard ink border, --np-radius-card max, red-only
+     accent, mono numbers. Fallback without backdrop-filter = --np-paper-box. */
+  --np-glass-fill: rgba(251, 250, 244, 0.55);
+  --np-glass-blur: 14px;
+  --np-glass-stroke: var(--np-ink);
+  --np-glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --np-glass-shadow: 0 16px 40px -20px rgba(20, 17, 14, 0.35);
 }
 
 /* ============================================

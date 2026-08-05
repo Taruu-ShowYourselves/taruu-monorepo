@@ -1,0 +1,112 @@
+.experience {
+  position: relative;
+  overflow: clip;
+  background: #fdfdfc;
+}
+
+.siteDock {
+  position: relative;
+  z-index: 20;
+  margin-block-start: -100svh;
+  min-block-size: 100svh;
+}
+
+.siteLayer {
+  position: relative;
+  overflow: clip;
+  --np-paper: #fdfdfc;
+  --np-paper-2: #f7f6f2;
+  --np-paper-box: #ffffff;
+  --np-paper-edge: rgb(25 24 22 / 12%);
+  --np-rule: 1px;
+  --np-rule-heavy: 2px;
+  --np-rule-masthead: 2px;
+  --np-container: 90rem;
+  background:
+    radial-gradient(circle at 50% 0%, rgb(224 48 30 / 4.5%), transparent 30rem),
+    linear-gradient(rgb(25 24 22 / 3.5%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(25 24 22 / 3.5%) 1px, transparent 1px),
+    var(--np-paper);
+  background-size: auto, 3.5rem 3.5rem, 3.5rem 3.5rem, auto;
+  transform-origin: center top;
+  will-change: transform, border-radius, box-shadow;
+}
+
+.siteLayer :global(.np-page)::before {
+  opacity: 0.035;
+}
+
+.siteLayer :global(main > section) {
+  min-block-size: 100svh;
+  scroll-margin-block-start: 4.5rem;
+  background-color: transparent !important;
+}
+
+.liveOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: none;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--np-paper, #fdfdfc);
+  scrollbar-width: none;
+}
+
+.liveOverlay::-webkit-scrollbar {
+  display: none;
+}
+
+.liveOverlay:target {
+  display: block;
+  animation: live-overlay-in 420ms var(--np-ease, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.liveOverlayClose {
+  position: fixed;
+  inset-block-start: 1rem;
+  inset-inline-start: 1rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--np-ink, #191816);
+  background: color-mix(in srgb, var(--np-paper, #fdfdfc) 92%, transparent);
+  font-family: var(--np-font-mono);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--np-ink, #191816);
+  text-decoration: none;
+  backdrop-filter: blur(12px);
+}
+
+.liveOverlayClose span {
+  color: var(--np-red, #e0301e);
+  font-size: 1.2em;
+}
+
+@keyframes live-overlay-in {
+  from {
+    opacity: 0;
+    transform: translateY(2rem) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.reduced .siteDock {
+  margin-block-start: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .siteDock {
+    margin-block-start: 0;
+  }
+
+  .liveOverlay:target {
+    animation: none;
+  }
+}

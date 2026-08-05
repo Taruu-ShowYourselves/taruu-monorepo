@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { NewsButton } from '@/components/press/NewsButton';
+import { MunicipalityLink } from '@/components/uikit/municipality-link';
 import { useAuth } from '@/providers/AuthProvider';
 import type { Locale } from '@/lib/i18n';
 import styles from './Masthead.module.css';
@@ -15,22 +16,50 @@ interface MastheadProps {
   locale?: Locale;
 }
 
+/**
+ * The primary row is places a reader ACTS in - their edition, the open
+ * ballots, the national desk. Everything explanatory, financial or
+ * institutional is one click away in "עוד" rather than competing with them
+ * for the same glance.
+ */
 const NAV = [
+  { label: 'הפיד', href: 'feed' },
   { label: 'הצבעות', href: 'votes' },
   { label: 'כנסת ישראל', href: 'knesset' },
-  { label: 'איך זה עובד', href: 'how-it-works' },
 ];
 
-// Secondary destinations — collapsed into the "עוד" dropdown so the
-// masthead nav stays a short primary row.
-const NAV_MORE = [
-  { label: 'BAGS', href: 'coin' },
-  { label: 'כלכלה אזרחית', href: 'economics' },
-  { label: 'שקיפות הקרן', href: 'treasury' },
-  { label: 'חנות', href: 'store' },
-  { label: 'אודות', href: 'about' },
-  { label: 'שאלות נפוצות', href: 'faq' },
+/** Secondary destinations, grouped so nine links read as three decisions. */
+const NAV_MORE: { label: string; items: { label: string; href: string }[] }[] = [
+  {
+    label: 'להבין',
+    items: [
+      { label: 'מהי תַּרְאוּ?', href: '#what-is-taruu' },
+      { label: 'איך זה עובד', href: 'how-it-works' },
+      { label: 'שאלות נפוצות', href: 'faq' },
+    ],
+  },
+  {
+    label: 'הכלכלה',
+    items: [
+      { label: 'כלכלה אזרחית', href: 'economics' },
+      { label: 'שקיפות הקרן', href: 'treasury' },
+      { label: 'BAGS', href: 'coin' },
+    ],
+  },
+  {
+    label: 'בעיתון',
+    items: [
+      { label: 'סדר היום', href: 'explore' },
+      { label: 'חנות', href: 'store' },
+      { label: 'אודות', href: 'about' },
+    ],
+  },
 ];
+
+/** Hash entries anchor on the homepage; everything else is a locale route. */
+function navHref(locale: Locale, href: string): string {
+  return href.startsWith('#') ? `/${locale}${href}` : `/${locale}/${href}`;
+}
 
 /** Initials from first/last name, falling back to a glyph. */
 function initialsOf(firstName?: string, lastName?: string): string {
@@ -45,7 +74,7 @@ interface MoreMenuProps {
 }
 
 /**
- * "עוד" — secondary nav collapsed into a dropdown. Radix DropdownMenu does
+ * "עוד" - secondary nav collapsed into a dropdown. Radix DropdownMenu does
  * the hard part (positioning, viewport collision, focus, keyboard, RTL);
  * press tokens style it.
  */
@@ -64,12 +93,22 @@ function MoreMenu({ locale }: MoreMenuProps) {
           collisionPadding={16}
           loop
         >
-          {NAV_MORE.map((n) => (
-            <DropdownMenu.Item key={n.href} asChild>
-              <Link href={`/${locale}/${n.href}`} className={styles.moreItem}>
-                {n.label}
-              </Link>
-            </DropdownMenu.Item>
+          {NAV_MORE.map((group, i) => (
+            <DropdownMenu.Group key={group.label}>
+              {i > 0 ? (
+                <DropdownMenu.Separator className={styles.moreSep} />
+              ) : null}
+              <DropdownMenu.Label className={styles.moreLabel}>
+                {group.label}
+              </DropdownMenu.Label>
+              {group.items.map((n) => (
+                <DropdownMenu.Item key={n.href} asChild>
+                  <Link href={navHref(locale, n.href)} className={styles.moreItem}>
+                    {n.label}
+                  </Link>
+                </DropdownMenu.Item>
+              ))}
+            </DropdownMenu.Group>
           ))}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
@@ -124,7 +163,7 @@ function AccountCluster({ locale }: AccountClusterProps) {
           <span className={styles.cityGlyph} aria-hidden>
             ●
           </span>
-          {cityLabel}
+          <MunicipalityLink name={cityLabel} />
         </span>
       ) : null}
 
@@ -206,57 +245,84 @@ function formatDateline(date: Date): string {
 export function Masthead({ locale = 'he' }: MastheadProps) {
   const { isAuthenticated } = useAuth();
 
+  // The auth store rehydrates from localStorage before the first client
+  // render, so an authenticated client would disagree with the guest SSR
+  // tree and break hydration (Radix useId depends on tree position). Render
+  // the guest branch until after mount, matching the server.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  const showAccount = mounted && isAuthenticated;
+
   return (
-    <header className={styles.masthead}>
-      {/* Edition ears */}
-      <div className={styles.ears}>
-        {/* suppressHydrationWarning: server and client may straddle midnight */}
-        <span suppressHydrationWarning>{formatDateline(new Date())}</span>
-        <span>מהדורת הפיילוט · גיליון 04</span>
-        <span>כל הארץ · ₪3 / הצבעה</span>
-      </div>
+    <>
+      <header className={styles.masthead}>
+        {/* Edition ears */}
+        <div className={styles.ears}>
+          {/* suppressHydrationWarning: server and client may straddle midnight */}
+          <span suppressHydrationWarning>{formatDateline(new Date())}</span>
+          <span>מהדורת הפיילוט · גיליון 04</span>
+          <span>כל הארץ</span>
+        </div>
 
-      <div className={styles.ruleHair} />
+        <div className={styles.ruleHair} />
 
-      {/* Wordmark row */}
-      <div className={styles.brandRow}>
-        <span className={styles.tagL}>THE PUBLIC LEDGER</span>
-        <Link href={`/${locale}`} className={styles.wordmark}>
-          תַּרְאוּ
-        </Link>
-        <span className={styles.tagR}>מנגנון הקונצנזוס הציבורי</span>
-      </div>
+        {/* Wordmark row */}
+        <div className={styles.brandRow}>
+          <span className={styles.tagL}>THE PUBLIC LEDGER</span>
+          <Link href={`/${locale}`} className={styles.wordmark}>
+            תַּרְאוּ
+          </Link>
+          <span className={styles.tagR}>מנגנון הקונצנזוס הציבורי</span>
+        </div>
 
-      <div className={styles.ruleMast} />
+        <div className={styles.ruleMast} />
+      </header>
 
-      {/* Nav + participate / account */}
-      <nav className={styles.nav} aria-label="ניווט ראשי">
-        {isAuthenticated ? (
-          <AccountCluster locale={locale} />
-        ) : (
-          <div className={styles.guestActions}>
-            <NewsButton href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" variant="red" size="sm">
-              קבוצת המייסדים
-            </NewsButton>
-            <Link href={`/${locale}/sign-in`} className={styles.signIn}>
-              התחברות
-            </Link>
-          </div>
-        )}
-        <ul className={styles.navList}>
-          {NAV.map((n) => (
-            <li key={n.href}>
-              <Link href={`/${locale}/${n.href}`} className={styles.navLink}>
-                {n.label}
+      {/* This row reaches the viewport edge with the dashboard, then remains pinned. */}
+      <div className={styles.navDock}>
+        <nav className={styles.nav} aria-label="ניווט ראשי">
+          <Link href={`/${locale}`} className={styles.navWordmark} aria-label="תַּרְאוּ - דף הבית">
+            תַּרְאוּ<span aria-hidden>.</span>
+          </Link>
+
+          <ul className={styles.navList}>
+            <li>
+              <Link
+                href={`/${locale}/#live-dashboard`}
+                className={styles.liveDashboardLink}
+              >
+                <i aria-hidden />
+                דופק חי
               </Link>
             </li>
-          ))}
-          <li>
-            <MoreMenu locale={locale} />
-          </li>
-        </ul>
-      </nav>
-      <div className={styles.ruleHair} />
-    </header>
+            {NAV.map((n) => (
+              <li key={n.href}>
+                <Link href={navHref(locale, n.href)} className={styles.navLink}>
+                  {n.label}
+                </Link>
+              </li>
+            ))}
+            <li>
+              <MoreMenu locale={locale} />
+            </li>
+          </ul>
+
+          {showAccount ? (
+            <AccountCluster locale={locale} />
+          ) : (
+            <div className={styles.guestActions}>
+              <NewsButton href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" variant="red" size="sm">
+                קבוצת המייסדים
+              </NewsButton>
+              <Link href={`/${locale}/sign-in`} className={styles.signIn}>
+                התחברות
+              </Link>
+            </div>
+          )}
+        </nav>
+      </div>
+    </>
   );
 }

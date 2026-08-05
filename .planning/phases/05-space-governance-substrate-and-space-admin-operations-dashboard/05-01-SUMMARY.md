@@ -31,9 +31,9 @@ tech-stack:
 
 key-files:
   created:
-    - supabase/migrations/20260802000001_space_governance.sql
-    - supabase/migrations/20260802000002_vote_status_review_values.sql
-    - supabase/migrations/20260802000003_vote_review_gating.sql
+    - supabase/migrations/20260802000010_space_governance.sql
+    - supabase/migrations/20260802000011_vote_status_review_values.sql
+    - supabase/migrations/20260802000012_vote_review_gating.sql
     - supabase/tests/audit_append_only.sql
   modified:
     - apps/web/src/lib/supabase/types.ts
@@ -85,9 +85,9 @@ completed: 2026-08-02
 
 ## Files Created/Modified
 
-- `supabase/migrations/20260802000001_space_governance.sql` — the five governance tables, the `users.is_platform_admin` marker, the `council_role_assignments` reconciliation comment, append-only enforcement, and RLS-with-no-policies on all five tables.
-- `supabase/migrations/20260802000002_vote_status_review_values.sql` — four `ALTER TYPE` statements and a header comment, nothing else.
-- `supabase/migrations/20260802000003_vote_review_gating.sql` — the review-queue partial index, the four votes moderation columns, and the moderated-rows index.
+- `supabase/migrations/20260802000010_space_governance.sql` — the five governance tables, the `users.is_platform_admin` marker, the `council_role_assignments` reconciliation comment, append-only enforcement, and RLS-with-no-policies on all five tables.
+- `supabase/migrations/20260802000011_vote_status_review_values.sql` — four `ALTER TYPE` statements and a header comment, nothing else.
+- `supabase/migrations/20260802000012_vote_review_gating.sql` — the review-queue partial index, the four votes moderation columns, and the moderated-rows index.
 - `supabase/tests/audit_append_only.sql` — six-case manual psql probe (valid append, UPDATE, DELETE, TRUNCATE, blank reason, actor deletion) plus a survival assertion.
 - `apps/web/src/lib/supabase/types.ts` — five new table entries, widened `vote_status` at all four sites, `users.is_platform_admin`, the four votes moderation columns, the `space_admin_metrics` function signature, and five exported aliases.
 - `apps/web/src/__tests__/services/user-profile-mapper.test.ts` — fixture updated for the new required `User` field.
@@ -151,7 +151,7 @@ This plan is **not** the only writer of `apps/web/src/lib/supabase/types.ts` in 
 - **Found during:** Task 2 (vote_status extension)
 - **Issue:** The plan is self-contradictory here. It supplied a header comment containing the literal token `AFTER` (in the prose "Chaining (AFTER 'draft') would…"), and then set the acceptance criterion `grep -c "AFTER"` returns `0`. Both could not hold.
 - **Fix:** Rewrote the clause as "Chaining each label onto the one before it would…", preserving the explanation verbatim in meaning while removing the token. The criterion's intent — that no `ALTER TYPE` statement uses `AFTER` as an anchor — is what actually matters, and is now unambiguous to a grep.
-- **Files modified:** `supabase/migrations/20260802000002_vote_status_review_values.sql`
+- **Files modified:** `supabase/migrations/20260802000011_vote_status_review_values.sql`
 - **Verification:** `grep -c "AFTER"` returns `0`; `grep -c "BEFORE 'pending'"` returns `4`.
 - **Committed in:** `e7b5c3e` (Task 2 commit)
 
@@ -188,7 +188,7 @@ Wave-1 sibling 05-02 executed against the same working tree concurrently and lan
 Carried forward:
 
 - Migrations are unapplied and unproven against a live database (above). 05-16 owns this.
-- `space_admin_metrics` is typed but has no SQL until 05-07 writes `20260802000004_space_admin_metrics.sql`. Any call before then fails at runtime, not at compile time.
+- `space_admin_metrics` is typed but has no SQL until 05-07 writes `20260802000013_space_admin_metrics.sql`. Any call before then fails at runtime, not at compile time.
 - 05-08 is the only other plan permitted to edit `types.ts`; 05-07 must not.
 
 ## Self-Check: PASSED

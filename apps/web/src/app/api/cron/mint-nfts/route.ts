@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/** GET — health check. */
+/** GET - health check. */
 export async function GET() {
   return NextResponse.json({
     status: 'ok',

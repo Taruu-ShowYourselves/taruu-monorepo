@@ -40,7 +40,7 @@ Plan: 15 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several
 
 **05-16 found and fixed three defects that `tsc` and 987 green tests could not see** (`05-EVIDENCE.md` §2, commits `f28b8b1` and `5591507`):
 
-1. **`PGRST201` on both proposal reads.** This phase's own `20260802000003` gave `votes` a third foreign key into `users` (`hidden_by`, `flagged_by`), so the unqualified `users(first_name, last_name)` embed became ambiguous and the queue and detail panel answered **500**. Fixed by naming `votes_creator_id_fkey`. **Standing rule: a PostgREST embed must name its foreign key whenever the target table has more than one into the same relation.**
+1. **`PGRST201` on both proposal reads.** This phase's own `20260802000012` gave `votes` a third foreign key into `users` (`hidden_by`, `flagged_by`), so the unqualified `users(first_name, last_name)` embed became ambiguous and the queue and detail panel answered **500**. Fixed by naming `votes_creator_id_fkey`. **Standing rule: a PostgREST embed must name its foreign key whenever the target table has more than one into the same relation.**
 2. **Server Components reading `'use client'` modules.** The audit page threw outright; the proposals page rendered `ErrorPanel` on its own default view. Fixed with a directive-free `filters.ts` beside each surface. **Standing rule: a value a Server Component reads must not live in a client module — only types may cross that line.**
 3. Neither class is catchable here: `apps/web` runs vitest with `environment: 'node'`, mocks Supabase everywhere, and has no React harness. **A phase that adds PostgREST queries or Server Components needs one live pass before it can claim to work.** The committed spec plus fixture is that pass.
 
@@ -69,14 +69,41 @@ Plan: 15 of 16 (derived from SUMMARY files on disk — waves 2 and 3 run several
 
 For plans 03–09: import the capability vocabulary from `apps/web/src/server/domain/space/capability.ts`, the review rules from `.../space/review.ts`, and **every** request/response shape from `packages/shared/src/contracts/spaceAdmin.ts`. That contract file is complete for the phase — no later plan should need to edit it, or `apps/web/src/server/http/errors.ts`.
 
-Phase 1 completed:
+The re-scope is done (2026-08-03). REQUIREMENTS.md retired PAY-01..05 outright (the ₪6/month card-on-file membership is a product Taruu no longer sells — `cfa5d25` made participation free), corrected PAY-06's mechanism to the GI **hosted form** (`services/payments/greenInvoice.ts:213`, which already works) rather than the token-charge flow, narrowed PAY-07/08, added COIN-01..04 for the Bags.fm token that now funds the civic pool, and rewrote GO-02 to drop its impossible participation leg. ROADMAP.md's Phase 3 and Phase 4 success criteria were rewritten to match — they had been left describing the ₪6 membership and would have mis-briefed the planner.
 
-- 01-01 (LAND-01): Auth0 OIDC swap, Printful POD removal, RLS user_id helper fix — commit 44961e0
-- 01-02 (SEC-01): Corrective RLS migration for treasury/issue_coin/phone_verifications per-user policies — commit 31d6860
+**Plan Phase 3 as two independent tracks.** The security block (SEC-02..05) and the ₪50 creation rail (PAY-06..08) depend on nothing external and can execute immediately. The token block (COIN-01..04) sits behind COIN-01 — written Israeli legal sign-off on securities status, treasury custody, and permissible claims — which is a human external track, not code. Keep the coin work in its own wave so the phase can ship its security and creation-fee value without waiting on a lawyer.
 
-After Phase 1: Phase 2 = GI sandbox spike (the gate). Start the slow external tracks NOW in parallel — GI Prime plan provisioning + accountant/legal merchant-of-record sign-off — neither is code; both gate go-live.
+Prior instruction, now complete: ~~`/gsd:plan-milestone-gaps` to re-scope Phase 3.~~ Done by direct requirement rewrite instead — `plan-milestone-gaps` creates phases to *build* audit gaps, which for the contradicted PAY-* requirements would have meant building the abandoned membership.
 
-Open question to resolve before Phase 3 planning: **monthly civic-pool allocation policy** (how the month's ₪2.10×members pool splits across executed decisions).
+Prior instruction, now complete: ~~Run `/gsd:execute-phase 02.1`. Phase 02.1 is planned and verified — 5 plans in 2 waves, all autonomous. This is a P0 on live traffic, and it depends on nothing.~~
+
+Plans: wave 1 = `02.1-01` (shared/api-client free contract), `02.1-02` (`recordUserVoteOnce` + server eligibility), `02.1-03` (₪3 legacy retirement) — fully parallel, zero file overlap. Wave 2 = `02.1-04` (participate route rewrite, RED→GREEN over the existing 30-test suite), `02.1-05` (client `submitParticipation` + honest receipt).
+
+Plan-checker verdict: PASSED on iteration 2. One blocker was found and fixed — three tasks verified against test files created later in the same plan, which vitest reports as `No test files found, exit 1`; they now gate on `pnpm --filter @sync/web typecheck` plus a positive grep. `pnpm --filter @sync/web typecheck` was confirmed green on the current tree before being wired in as a gate.
+
+Three things the planner found that the audit missed, all verified against code:
+
+- A participate-route test already exists — `apps/web/src/__tests__/api/vote-participation.test.ts`, 693 lines, 30 passing tests — and its `participate` describe locks in the payment contract (402, 503, `tokensEarned: 3`). Plan 04 rewrites that block in place; the `verify-location` and `participated` describes must survive.
+- There is no component-test setup at all: `environment: 'node'`, no jsdom, no `@testing-library/react`, and the include glob never collects `.tsx`. Rather than add a DOM stack mid-P0, plan 05 extracts the network logic to `submitParticipation.ts` with an injected `fetch` and asserts component copy against source.
+- **The receipt stage is currently unreachable.** `sealVote()` calls `onComplete()` synchronously → `page.tsx:227` `showFlow = isActive && !hasVoted` flips false → the flow unmounts before the receipt renders. Users actually land on the results panel reading `הצבעתכם נקלטה ונחתמה בבלוקצ׳יין` (`page.tsx:524`). Plan 05 defers `onComplete(optionId)` to a receipt CTA and sweeps that copy too.
+
+Server eligibility is being tightened, not relaxed: `identity_score >= 40` AND (`verification_status === 'verified'` OR `completed_check_ins >= 1`) — an exact mirror of `isEligibleToVote`. Locks out nobody, since `auth/callback/route.ts:87` sets 40 for every Google sign-in.
+
+`.planning/v1.0-MILESTONE-AUDIT.md` (2026-08-02, commit 6c71835) audited the milestone at **2/28 requirements satisfied** and found a defect no requirement covered:
+
+- `apps/web/src/app/[locale]/votes/[id]/flow/ParticipationFlow.tsx:149-157` seals a vote with a client-side `mockHash()` and a fabricated block number, then stops. The file has zero `fetch()` calls.
+- `/api/votes/[id]/participate` is orphaned (zero client references) and still requires `paymentTxId` (`route.ts:52`, 402 at `:136-145`).
+- `recordUserVote` only runs behind a completed GI payment (`payments/webhook/route.ts:191`), so no free vote persists at all.
+- Live consequence: residents see `נחתם` / `✓ חתום בבלוקצ׳יין` for votes that were never recorded.
+
+Phase 02.1 (VOTE-01..05) closes it. After that, the two decisions the audit forces:
+
+1. **Phase 3 needs re-scoping, not planning.** PAY-02/03/04/08 and GO-02 are contradicted by shipped free participation — they describe a ₪6/month membership the product no longer sells (`PricingContent.tsx:64-65` says `אין מנוי, אין דמי חבר`). Rewrite or retire them via `/gsd:plan-milestone-gaps`.
+2. **Phase 2's gate was never passed.** SPIKE-RESULT.md 0/7 fields, GI-LEGAL 0/19, GI-PRIME 0/24 — while `wrangler.jsonc:74` already runs `GREENINVOICE_ENV=production`.
+
+GitHub issue #76 (municipality onboarding + authority dashboard) is queued behind Phase 5 — it needs RBAC-01..04's role model, authorization helper, admin review console, and audit table. It is a continuation of Phase 5, not a separate milestone.
+
+Open question, still unresolved and now less urgent: **monthly civic-pool allocation policy** (moot until the pricing model is re-decided).
 
 ## Performance Metrics
 
@@ -222,11 +249,18 @@ None yet.
 
 ### Blockers/Concerns
 
+- **P0 CLOSED (2026-08-02):** free participation was not persisted — residents were shown a blockchain-seal receipt for votes that were never recorded. Phase 02.1 (VOTE-01..05) is now complete end to end: the server persists every free ballot idempotently through `recordUserVoteOnce` (plan 04), and the client (`ParticipationFlow.tsx`, plan 05) only shows a receipt after that persistence is confirmed via `submitParticipation`, with `mockHash()` and every chain-seal claim removed from the casting funnel. Manual production verification (cast a real vote as a verified resident, confirm the receipt shows a real `user_votes.id`) is still recommended before considering this fully closed on live traffic — see `02.1-05-SUMMARY.md`'s Next Phase Readiness.
+- ~~**Milestone requirements are partly wrong (2026-08-02)**~~ **RESOLVED 2026-08-03.** PAY-01..05 retired, PAY-06/07/08 and GO-02 rewritten, COIN-01..04 added, ROADMAP Phase 3/4 success criteria rewritten to match. Phase 3 is plannable.
+- **COIN-01 is a hard external gate (2026-08-03):** a tradeable token whose proceeds fund a civic treasury raises Israeli securities and consumer-protection questions. Written legal sign-off blocks every other COIN requirement, and it is stricter than SPIKE-02's merchant-of-record sign-off — not a reuse of it. Nothing in the repo can clear it.
+- **Production GI runs in front of an unverified gate:** `wrangler.jsonc:74` sets `GREENINVOICE_ENV=production` while `GI-PRIME-CHECKLIST.md` is 0/24 and `GI-LEGAL-CHECKLIST.md` is 0/19.
+- **CI deploy has been broken since 2026-07-28:** `.github/workflows/deploy.yml:62` references an unset `CLOUDFLARE_API_TOKEN`; 5/5 most recent runs failed. The live site is manual-deploy only.
+- **`validateEnv()` is dead code** (`apps/web/src/lib/env.ts:135`, zero callers) and would fail closed on production if wired — it still requires four `AUTH0_*` vars that `da77848` orphaned, plus `SUPABASE_URL`/`SUPABASE_SERVICE_KEY` which no reader uses (runtime reads `NEXT_PUBLIC_SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`).
+- **Mobile still charges ₪3** (`apps/mobile/app/vote/[id].tsx:340`) — `cfa5d25` was web-only and `packages/shared/src/constants/index.ts:6` still exports `VOTE_COST = 3`.
 - Phase 2 gate: SPIKE-01 (GI sandbox spike) must clear before Phase 3 coding begins
 - Phase 4 external gate: SPIKE-02 (legal/accountant sign-off) + SPIKE-03 (GI Prime + real creds) must resolve before go-live
 - CONCERNS.md flags: tourist/foreign-card surcharge (~3.5%) erodes the ₪6 charge — block or flag at charge time
 - CONCERNS.md flags: Auth0 callback has no server-side state/CSRF validation — deferred to v2 HARD-03
-- Phase 5 migrations (20260802000001-3) are unapplied and unproven — no Docker/psql on the exec machine; supabase/tests/audit_append_only.sql is committed but no transcript captured. 05-16 owns applying them to a scratch DB.
+- Phase 5 migrations (20260802000010-3) are unapplied and unproven — no Docker/psql on the exec machine; supabase/tests/audit_append_only.sql is committed but no transcript captured. 05-16 owns applying them to a scratch DB.
 - **CI BLOCKER (found by 05-03):** `pnpm --filter @sync/mobile typecheck` fails with 130 `TS2786` errors from a duplicate `@types/react` (18.3.27 + 19.2.7 both installed). Root `pnpm typecheck` runs `@sync/mobile` on every PR to main, so this reddens CI. Not caused by 05-03 — mobile was green at its Task 1 gate with its change applied. Fix: pin one `@types/react` via root `pnpm.overrides`, reinstall on a quiet tree. See `deferred-items.md` item 5.
 - Commit `5979545` mixes three plans' files (05-03's db.ts, 05-04's package.json/lockfile, 05-11's space-admin components) — a shared-git-index race, no content lost. Reconciling plan-to-commit attribution is 05-16's.
 - **Shared-worktree hazard, sharper than the index race:** a sibling executor ran `git reset HEAD~1` on the shared branch during wave 2 and orphaned an empty marker commit (visible at `git reflog` HEAD@{10}–{11}). No non-empty commit was lost, but a stray reset in this tree can drop other agents' work. Wave-3+ executors: never reset the shared branch, and prefer `git add <paths> && git commit -m "…" -- <paths>`.

@@ -3,7 +3,12 @@
  */
 
 // Payment amounts in ILS
-export const VOTE_COST = 3;
+/**
+ * What a resident pays to participate in a vote, in ILS. Participation became
+ * free in cfa5d25 (2026-07-29); this constant exists so every surface reads one
+ * number instead of hardcoding a price that no longer applies.
+ */
+export const VOTE_PARTICIPATION_COST = 0;
 export const CREATE_VOTE_COST = 50;
 
 // Merch store (ILS, settled via Green Invoice)

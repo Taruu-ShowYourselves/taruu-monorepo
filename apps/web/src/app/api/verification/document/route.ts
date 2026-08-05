@@ -1,5 +1,5 @@
 /**
- * /api/verification/document — identity-document verification (issue #32).
+ * /api/verification/document - identity-document verification (issue #32).
  *
  * POST   submit on-device-extracted fields (never images) for verification
  * GET    current document status for the signed-in user

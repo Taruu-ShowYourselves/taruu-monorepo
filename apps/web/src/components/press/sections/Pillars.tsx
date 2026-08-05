@@ -18,25 +18,25 @@ const PILLARS: readonly Pillar[] = [
   {
     no: '01',
     kicker: 'מודדים',
-    body: 'כמה באמת תומכים, כמה מתנגדים. לא תחושת בטן ולא מי שצועק חזק — מספר מדויק.',
+    body: 'כמה באמת תומכים, כמה מתנגדים. לא תחושת בטן ולא מי שצועק חזק: מספר מדויק.',
     glyph: 'measure',
   },
   {
     no: '02',
     kicker: 'מאמתים',
-    body: 'כל קול הוא תושב אמיתי אחד — זהות ו-GPS, חתום בבלוקצ׳יין. בלי בוטים, בלי כפילויות, בלי לערער.',
+    body: 'כל קול הוא תושב אמיתי אחד: זהות ו-GPS, חתום בבלוקצ׳יין. בלי בוטים ובלי כפילויות.',
     glyph: 'verify',
   },
   {
     no: '03',
     kicker: 'מנגישים',
-    body: 'התמונה המלאה פתוחה לכולם — לתושבים ולמועצה כאחד. שקיפות מלאה, בלי חדרים סגורים.',
+    body: 'התמונה המלאה פתוחה לכולם, לתושבים ולמועצה כאחד. בלי חדרים סגורים.',
     glyph: 'broadcast',
   },
 ] as const;
 
 function Glyph({ kind }: { kind: Pillar['glyph'] }) {
-  // Hard-edged ink SVG glyphs — no rounding, crisp strokes.
+  // Hard-edged ink SVG glyphs - no rounding, crisp strokes.
   const common = {
     width: 40,
     height: 40,
@@ -51,7 +51,7 @@ function Glyph({ kind }: { kind: Pillar['glyph'] }) {
 
   switch (kind) {
     case 'measure':
-      // Bar chart — three ascending bars on a baseline.
+      // Bar chart - three ascending bars on a baseline.
       return (
         <svg className={styles.glyph} {...common}>
           <path d="M4 36 H36" />
@@ -70,7 +70,7 @@ function Glyph({ kind }: { kind: Pillar['glyph'] }) {
       );
     case 'broadcast':
     default:
-      // Broadcast — central node with radiating arcs.
+      // Broadcast - central node with radiating arcs.
       return (
         <svg className={styles.glyph} {...common}>
           <rect x="16" y="16" width="8" height="8" fill="currentColor" stroke="none" />

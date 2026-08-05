@@ -1,6 +1,8 @@
 /**
  * Supabase Admin Client for Server-Side (API Routes)
- * Uses service role key - bypasses RLS policies
+ *
+ * EXPLICITLY PRIVILEGED: the service-role key bypasses Row Level Security. For RLS-enforced access use createUserScopedClient() from ./user-client.
+ *
  * NEVER use this in client-side code
  *
  * Environment validation and client creation are lazy: `next build` imports
@@ -60,10 +62,8 @@ export const supabaseAdmin: SupabaseClient<Database> = new Proxy(
   }
 );
 
-/**
- * Helper to set the user context for RLS policies
- * Call this if you want RLS to apply even with service role
- */
-export async function withUserContext(userId: string) {
-  await supabaseAdmin.rpc('set_claim', { claim: 'user_id', value: userId });
-}
+// `withUserContext()` was removed in Phase 5 (RLS-03). It called
+// `set_claim('user_id', …)`, which wrote `app.user_id` while `public.user_id()`
+// read `app.current_user_id`, had zero call sites, and could not have worked
+// regardless: `set_config(…, true)` is transaction-local and PostgREST is
+// stateless HTTP. The working transport is ./user-client.ts.

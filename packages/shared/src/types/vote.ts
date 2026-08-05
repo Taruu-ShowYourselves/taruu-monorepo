@@ -93,15 +93,10 @@ export interface Participation {
   voteId: string;
   userId: string;
   optionId: string;
-  paymentTxId: string;
-  qubikTxHash: string;
-  gpsCoordinates: GpsCoordinates;
   createdAt: Date;
 }
 
 export interface ParticipationInput {
   voteId: string;
   optionId: string;
-  paymentTxId: string;
-  gpsCoordinates: GpsCoordinates;
 }

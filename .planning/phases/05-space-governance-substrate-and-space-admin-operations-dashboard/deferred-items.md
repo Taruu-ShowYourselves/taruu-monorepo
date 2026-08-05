@@ -150,7 +150,7 @@ Out-of-scope findings logged during execution. Not fixed by the plan that found 
 **18. `anon` and `authenticated` hold UPDATE and DELETE on `space_audit_log` locally, although the migration revokes them — check the hosted project**
 
 - **Found during:** 05-16's append-only pass, extending 05-DB-EVIDENCE's superuser run to the roles the application actually uses.
-- **Observed:** `20260802000001` ends with `REVOKE UPDATE, DELETE, TRUNCATE ON public.space_audit_log FROM anon, authenticated, service_role`. In the local stack after all migrations, `information_schema.role_table_grants` reads:
+- **Observed:** `20260802000010` ends with `REVOKE UPDATE, DELETE, TRUNCATE ON public.space_audit_log FROM anon, authenticated, service_role`. In the local stack after all migrations, `information_schema.role_table_grants` reads:
 
   ```
    anon          | DELETE,INSERT,SELECT,UPDATE

@@ -2,8 +2,8 @@
  * User Profile Mapper
  *
  * Single source of truth for turning a Supabase `users` row into the profile
- * shape the clients consume. Every authenticated surface — session validation,
- * session refresh, OAuth callback and `/api/user/profile` — MUST go through
+ * shape the clients consume. Every authenticated surface - session validation,
+ * session refresh, OAuth callback and `/api/user/profile` - MUST go through
  * this module so the browser only ever sees one user shape.
  *
  * Before this existed each auth route hand-rolled its own mapping and leaked
@@ -103,8 +103,8 @@ export const QUBIK_BALANCE_TIMEOUT_MS = 2000;
 /**
  * Reject if `promise` has not settled within `ms`.
  *
- * The underlying request is not cancelled — `getTokenBalance` exposes no
- * AbortSignal — but the caller stops waiting on it, which is what protects the
+ * The underlying request is not cancelled - `getTokenBalance` exposes no
+ * AbortSignal - but the caller stops waiting on it, which is what protects the
  * auth response.
  */
 async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -129,7 +129,7 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
  *
  * Neither a Qubik error nor a Qubik hang may break authentication, so this
  * swallows both and returns 0. That 0 is indistinguishable from a genuine zero
- * balance — a known wart carried over from the original `/api/user/profile`
+ * balance - a known wart carried over from the original `/api/user/profile`
  * implementation, kept here so behaviour is unchanged.
  */
 export async function getTokenBalanceSafe(

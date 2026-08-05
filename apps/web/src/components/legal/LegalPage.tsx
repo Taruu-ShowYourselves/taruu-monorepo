@@ -24,9 +24,9 @@ interface LegalPageProps {
 
 /**
  * Shared layout for static legal / informational pages
- * (terms, privacy, refund, pricing) — the fine-print imprint pages of the
+ * (terms, privacy, refund, pricing) - the fine-print imprint pages of the
  * newspaper. Brutalist tech-press: newsprint cream, ink rules, mono datelines,
- * serif reading column. RTL-aware via the locale. Server shell — the
+ * serif reading column. RTL-aware via the locale. Server shell - the
  * interactive editorial body lives in {@link LegalContent}.
  */
 export function LegalPage({ locale, title, intro, updated, sections }: LegalPageProps) {

@@ -31,7 +31,7 @@ tech-stack:
 
 key-files:
   created:
-    - supabase/migrations/20260802000004_space_admin_metrics.sql
+    - supabase/migrations/20260802000013_space_admin_metrics.sql
     - apps/web/src/server/infra/supabase/space-metrics.repo.ts
     - apps/web/src/server/app/space-admin/get-metrics.ts
     - apps/web/src/server/app/space-admin/list-audit.ts
@@ -96,7 +96,7 @@ All four **task** commits were audited with `git show --stat` and contain only t
 
 | File | What it does |
 | --- | --- |
-| `supabase/migrations/20260802000004_space_admin_metrics.sql` | `space_admin_metrics(UUID)` — `LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''`, nine scalars, floor in SQL, `REVOKE ALL` then one `GRANT EXECUTE … TO service_role` |
+| `supabase/migrations/20260802000013_space_admin_metrics.sql` | `space_admin_metrics(UUID)` — `LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''`, nine scalars, floor in SQL, `REVOKE ALL` then one `GRANT EXECUTE … TO service_role` |
 | `apps/web/src/server/infra/supabase/space-metrics.repo.ts` | `fetchSpaceMetrics(scope)` → `SpaceMetricsRow \| null`. The space id comes off the scope; the raw route parameter never reaches the RPC |
 | `apps/web/src/server/app/space-admin/get-metrics.ts` | `getSpaceMetrics(session, rawSpaceId)` — `metrics.read`, then the flat row folded into four `SpaceMetric` objects |
 | `apps/web/src/server/app/space-admin/list-audit.ts` | `listSpaceAudit(session, rawSpaceId, filter)` and `AuditListQuerySchema`, plus the base64url cursor codec and the row mapping |
@@ -155,7 +155,7 @@ The four UI filter chips (`הכול` · `הצעות` · `הרשאות` · `הת�
 - **Found during:** Task 1
 - **Issue:** The plan's SQL suppresses `active_participants_30d` when it falls in 1–4, but computes `participation_rate_pct` from the *true* participant count whenever `residents >= 5`. Since `registered_residents` is itself published at that point, the two together recover the suppressed value: residents = 100, participants = 3 gives a rate of `3`; residents = 8, participants = 2 gives `25`. For every small bucket the rounding band is narrow enough to pin the exact number. That defeats the plan's own stated truth — "A bucket of one to four residents is suppressed in SQL, so the true small number never reaches the client."
 - **Fix:** Both the value and the status branch on `raw.residents < 5 OR raw.participants BETWEEN 1 AND 4`. The rate is `NULL` / `unavailable` when either side is below the floor. Six lines of comment in the migration explain why a ratio is a disclosure channel and why the status is `unavailable` rather than `suppressed`.
-- **Files modified:** `supabase/migrations/20260802000004_space_admin_metrics.sql`
+- **Files modified:** `supabase/migrations/20260802000013_space_admin_metrics.sql`
 - **Verification:** `grep -c "BETWEEN 1 AND 4"` returns `6` (the criterion asks for at least `4`); the migration's `COMMENT ON FUNCTION` states the new behaviour; `pnpm --filter @sync/web typecheck` clean.
 - **Committed in:** `42a1812` (Task 1 commit)
 

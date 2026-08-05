@@ -32,7 +32,7 @@ tech-stack:
 
 key-files:
   created:
-    - supabase/migrations/20260802000005_space_notifications.sql
+    - supabase/migrations/20260802000014_space_notifications.sql
     - apps/web/src/server/infra/supabase/space-notify.repo.ts
     - apps/web/src/server/app/space-admin/audience.ts
     - apps/web/src/server/app/space-admin/preview-audience.ts
@@ -177,7 +177,7 @@ Deliberately **not** run: the full suite, `next build`, `prettier --check`. Thre
 
 ## Issues Encountered
 
-- **Nothing here has touched a live Postgres.** `20260802000005` joins 05-01's three unapplied migrations. Two things in this plan are reviewed rather than executed and should go on 05-16's checklist:
+- **Nothing here has touched a live Postgres.** `20260802000014` joins 05-01's three unapplied migrations. Two things in this plan are reviewed rather than executed and should go on 05-16's checklist:
   1. **The nested PostgREST embed** in the `active_vote_participants` branch — `users` → `user_votes!inner` → `votes!inner`, filtered at `user_votes.votes.status`. Two-level embed filtering fails at *runtime*, not compile time, if either relationship does not resolve as expected. It depends on an FK `user_votes.vote_id → votes.id` that this plan did not verify exists.
   2. **`GRANT SELECT ON public.user_notifications TO authenticated`** with a `public.user_id()` policy — the inbox is the only anon-key-readable table in the notification set, so if that helper misbehaves the failure mode is a resident reading nothing (safe) or, if the policy were wrong in the other direction, reading another resident's inbox (not safe). Worth an explicit probe.
 - **The unique index `uq_delivery_once` is untested against a real retry.** Its whole purpose is idempotency under a re-run, which cannot be exercised without a database.

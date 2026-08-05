@@ -1,0 +1,95 @@
+.rail {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding-inline: var(--np-gutter);
+  border-block: var(--np-rule) solid var(--np-ink);
+  background: var(--np-paper);
+  /* M4 - flat→glass on pin: only backdrop-filter/background/shadow fade. */
+  transition:
+    background var(--np-dur) var(--np-ease),
+    box-shadow var(--np-dur) var(--np-ease),
+    backdrop-filter var(--np-dur) var(--np-ease);
+}
+
+.pinned {
+  background: var(--np-glass-fill);
+  backdrop-filter: blur(var(--np-glass-blur)) saturate(120%);
+  -webkit-backdrop-filter: blur(var(--np-glass-blur)) saturate(120%);
+  box-shadow: var(--np-glass-inner), var(--np-glass-shadow);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .pinned {
+    background: var(--np-paper-box);
+  }
+}
+
+.list {
+  display: flex;
+  gap: var(--space-1);
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: var(--np-container);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.list::-webkit-scrollbar {
+  display: none;
+}
+
+.item {
+  flex: 0 0 auto;
+}
+
+.chip {
+  position: relative;
+  display: inline-block;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--np-font-meta);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--np-ink-soft);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+/* Red underline wipe (M4/M5) - transform-only. */
+.chip::after {
+  content: '';
+  position: absolute;
+  inset-inline: var(--space-3);
+  inset-block-end: 0.35rem;
+  block-size: 2px;
+  background: var(--np-red);
+  transform: scaleX(0);
+  transform-origin: 100% 50%;
+  transition: transform var(--np-dur) var(--np-ease);
+}
+
+.chip:hover {
+  color: var(--np-ink);
+}
+.chip:hover::after {
+  transform: scaleX(1);
+}
+.chip:active {
+  transform: translateY(1px);
+}
+
+.chipActive {
+  color: var(--np-ink);
+}
+.chipActive::after {
+  transform: scaleX(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail,
+  .chip::after {
+    transition: none;
+  }
+}

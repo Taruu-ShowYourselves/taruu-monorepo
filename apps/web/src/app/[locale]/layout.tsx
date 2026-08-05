@@ -5,7 +5,6 @@ import { Secular_One, Heebo } from 'next/font/google';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { LenisProvider } from '@/providers/LenisProvider';
 import { GeoGate } from '@/components/press/GeoGate/GeoGate';
-import { WhatsAppButton } from '@/components/ui/WhatsAppButton';
 import { i18n, localeDirections, getDictionary } from '@/lib/i18n';
 import type { Locale } from '@/lib/i18n';
 import '@/styles/globals.css';
@@ -97,7 +96,7 @@ export async function generateMetadata({
           url: `${SITE_URL}/og-image.png`,
           width: 1200,
           height: 630,
-          alt: locale === 'he' ? 'תַּרְאוּ — הקול של השכונה, סוף־סוף במספרים' : 'Taruu — your neighborhood\'s voice, finally in numbers',
+          alt: locale === 'he' ? 'תַּרְאוּ: הקול של האזרחים, במספרים' : 'Taruu: the citizens\' voice, in numbers',
         },
       ],
     },
@@ -183,9 +182,9 @@ function generateStructuredData(locale: Locale) {
       : 'App for local community voting with GPS location verification',
     offers: {
       '@type': 'Offer',
-      price: '3',
+      price: '0',
       priceCurrency: 'ILS',
-      description: isHebrew ? 'דמי השתתפות להצבעה' : 'Voting participation fee',
+      description: isHebrew ? 'ההשתתפות בהצבעות חינם' : 'Voting participation is free',
     },
     featureList: isHebrew
       ? ['אימות GPS', 'תוצאות שקופות', 'הצבעות קהילתיות', 'אימות תושבים']
@@ -213,8 +212,8 @@ function generateStructuredData(locale: Locale) {
         acceptedAnswer: {
           '@type': 'Answer',
           text: isHebrew
-            ? 'דמי ההשתתפות הם ₪3 בלבד. מתוכם ₪2 נשמרים בקרן נאמנות קהילתית ו-₪1 משמש לתחזוקת הפלטפורמה.'
-            : 'The participation fee is only 3 NIS. Of this, 2 NIS goes to a community trust fund and 1 NIS is used for platform maintenance.',
+            ? 'ההשתתפות בהצבעות חינם, בלי תשלום ובלי חסמים. נדרש רק אימות זהות ומיקום.'
+            : 'Participation in votes is free, with no payment and no barriers. Only identity and location verification are required.',
         },
       },
       {
@@ -253,7 +252,7 @@ function generateStructuredData(locale: Locale) {
       '@type': 'Country',
       name: 'Israel',
     },
-    priceRange: '₪3',
+    priceRange: 'חינם',
   };
 
   return [organization, website, softwareApp, faq, localBusiness];
@@ -269,7 +268,7 @@ export default async function LocaleLayout({
   const { locale: rawLocale } = await params;
   const locale = rawLocale as Locale;
 
-  // Validate locale (Hebrew-only — anything else 404s; middleware already redirects)
+  // Validate locale (Hebrew-only - anything else 404s; middleware already redirects)
   if (!(i18n.locales as readonly string[]).includes(locale)) {
     notFound();
   }
@@ -298,7 +297,7 @@ export default async function LocaleLayout({
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            // send_page_view:false — page_view fired manually on route change
+            // send_page_view:false - page_view fired manually on route change
             // (with explicit page_title) by AnalyticsEvents to avoid (not set).
             gtag('config', '${GA_MEASUREMENT_ID}', { send_page_view: false });
           `}
@@ -312,7 +311,6 @@ export default async function LocaleLayout({
             {children}
           </LenisProvider>
           <GeoGate />
-          <WhatsAppButton locale={locale} />
         </AuthProvider>
       </body>
     </html>

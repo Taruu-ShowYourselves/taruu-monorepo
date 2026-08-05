@@ -74,6 +74,6 @@ describe('challengePrompt', () => {
       advanceLiveness(state, face({ facing: 'right' })),
       face({ blink: true })
     );
-    expect(challengePrompt(done)).toBe('מצוין — זוהיתם');
+    expect(challengePrompt(done)).toBe('מצוין - זוהיתם');
   });
 });

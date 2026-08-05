@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { NewsButton, SealCard } from '@/components/press';
+import { MunicipalityLink } from '@/components/uikit/municipality-link';
 import type { Locale } from '@/lib/i18n';
 import { WHATSAPP_LINK, formatCurrency, formatNumber } from './format';
 import styles from '../[id]/page.module.css';
@@ -16,7 +17,7 @@ interface IssueCoin {
   tokenDecimals?: number;
   totalSupply: string | null;
   totalPurchased: string | null;
-  /** Stored in agorot — divide by 100 for ILS. */
+  /** Stored in agorot - divide by 100 for ILS. */
   totalValueILS: number;
   tradingEnabled: boolean;
   isFrozen: boolean;
@@ -30,7 +31,7 @@ interface Holder {
   displayName: string;
   walletAddress?: string | null;
   tokenAmount: string;
-  /** Stored in agorot — divide by 100 for ILS. */
+  /** Stored in agorot - divide by 100 for ILS. */
   investedILS: number;
   isLocalResident: boolean;
 }
@@ -160,7 +161,7 @@ export function CoinDossier({ voteId, locale = 'he' }: CoinDossierProps) {
 
   const raisedILS = toILS(coin.totalValueILS);
   const live = coin.tradingEnabled && !coin.isFrozen;
-  const statusLabel = vote?.status ? STATUS_LABELS[vote.status] ?? vote.status : '—';
+  const statusLabel = vote?.status ? STATUS_LABELS[vote.status] ?? vote.status : '-';
 
   return (
     <section className={styles.page}>
@@ -177,9 +178,9 @@ export function CoinDossier({ voteId, locale = 'he' }: CoinDossierProps) {
           {coin.tokenName} <span className={styles.symbol}>{coin.tokenSymbol}</span>
         </h1>
         <div className={styles.subline}>
-          <span className={styles.subTitle}>{vote?.title ?? '—'}</span>
+          <span className={styles.subTitle}>{vote?.title ?? '-'}</span>
           <span className={styles.subMeta}>
-            <span>{vote?.municipality ?? '—'}</span>
+            <MunicipalityLink name={vote?.municipality} fallback="-" />
             <span className={styles.sep} aria-hidden>
               ■
             </span>
@@ -200,15 +201,15 @@ export function CoinDossier({ voteId, locale = 'he' }: CoinDossierProps) {
         <Stat label="מחזיקים" value={formatNumber(coin.holderCount)} />
         <Stat
           label="היצע כולל"
-          value={coin.totalSupply ? formatNumber(Number(coin.totalSupply)) : '—'}
+          value={coin.totalSupply ? formatNumber(Number(coin.totalSupply)) : '-'}
         />
         <Stat
           label="נרכש"
-          value={coin.totalPurchased ? formatNumber(Number(coin.totalPurchased)) : '—'}
+          value={coin.totalPurchased ? formatNumber(Number(coin.totalPurchased)) : '-'}
         />
       </dl>
 
-      {/* Back this BAG — primary action (links out to bags.fm) */}
+      {/* Back this BAG - primary action (links out to bags.fm) */}
       <section className={styles.back}>
         <div className={styles.backCopy}>
           <span className={styles.backKicker}>
@@ -216,14 +217,14 @@ export function CoinDossier({ voteId, locale = 'he' }: CoinDossierProps) {
             גבו את ההחלטה · BACK
           </span>
           <p className={styles.backLine}>
-            כל אחד יכול לגבות את ה-BAG — תושב או מבחוץ.{' '}
+            כל אחד יכול לגבות את ה-BAG, תושב או מבחוץ.{' '}
             <strong className={styles.backStrong}>
               ההצבעה שמורה לתושבים מאומתים; הגיבוי הכלכלי פתוח לכולם.
             </strong>{' '}
             ככל שה-BAG גדל, לביצוע החלטת הרוב יש יותר משאבים אמיתיים מאחוריו.
           </p>
           <p className={styles.backNote}>
-            המסחר רץ על bags.fm — מסילות כסף עצמאיות על בלוקצ׳יין ציבורי, מחוץ לפלטפורמה.
+            המסחר רץ על bags.fm: מסילות כסף עצמאיות על בלוקצ׳יין ציבורי, מחוץ לפלטפורמה.
           </p>
         </div>
         <div className={styles.backAction}>
@@ -260,7 +261,7 @@ export function CoinDossier({ voteId, locale = 'he' }: CoinDossierProps) {
               meta={[
                 {
                   label: 'היצע',
-                  value: coin.totalSupply ? formatNumber(Number(coin.totalSupply)) : '—',
+                  value: coin.totalSupply ? formatNumber(Number(coin.totalSupply)) : '-',
                 },
                 { label: 'מחזיקים', value: formatNumber(coin.holderCount) },
                 { label: 'מצב', value: live ? 'נסחר' : 'קפוא' },
@@ -276,7 +277,7 @@ export function CoinDossier({ voteId, locale = 'he' }: CoinDossierProps) {
           <div className={styles.explainer}>
             <h3 className={styles.explainerTitle}>איך זה עובד</h3>
             <p className={styles.explainerText}>
-              לכל הצבעה נפתח BAG משלה ב-bags.fm — מטבע ממים מבוסס בלוקצ׳יין, ממותג סביב
+              לכל הצבעה נפתח BAG משלה ב-bags.fm: מטבע ממים מבוסס בלוקצ׳יין, ממותג סביב
               הפלטפורמה. תושבים מקומיים ואנשים מבחוץ קונים את ה-BAG ומשקיעים בתנועה
               הכלכלית של ההצבעה, בדיוק כמו במניה, כדי לתמוך בביצוע החלטת הרוב. ה-BAG שקוף,
               סחיר, וחתום בבלוקצ׳יין: ככל שהוא גדל, לנושא יש יותר משאבים אמיתיים מאחוריו.

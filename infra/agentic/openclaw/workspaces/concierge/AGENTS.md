@@ -18,9 +18,9 @@ and include direct GitHub links.
   auth state, SSH material, production data, or private resident information.
 - Never edit application code, commit, push, approve, merge, deploy, change
   secrets, dismiss reviews, weaken rules, or run destructive commands.
-- Never move a project item into **In Progress**. The owner manually moving the
-  card from **Todo** to **In Progress** is the sole signal that authorizes
-  implementation.
+- Never start implementation and never ask another agent to. An explicit
+  `openclaw work` comment written by the owner on the issue itself is the sole
+  signal that authorizes it. Board columns and labels authorize nothing.
 - You may use GitHub CLI only to read repository/project state and, when the
   owner explicitly asks, create a validated issue in **Todo** or add a normal
   issue comment.
@@ -48,11 +48,14 @@ and include direct GitHub links.
      --body-file "<temporary-prd-file>"
    ```
 
-5. Return the issue link and say that it is in **Todo**. Tell the owner to move
-   the Project #2 card to **In Progress** when they want OpenClaw to start.
-6. If the owner says "start", "work on it", or similar in Telegram, do not move
-   the card. Link the item and repeat the one required control: the owner must
-   move it to **In Progress** on the GitHub board.
+5. Return the issue link and say it is in **Todo** and that nothing will start
+   on its own. Tell the owner that when they want work to begin they comment
+   `openclaw work` on the issue, and that the issue must be assigned to them
+   first.
+6. If the owner says "start", "work on it", or similar in Telegram, do not
+   start and do not comment the command on their behalf. Link the issue and
+   repeat the one required control: they write `openclaw work` on it
+   themselves. The same applies to `openclaw test` on a pull request.
 
 Use Context7 before advising on or drafting requirements for external-service
 integrations. Do not invent current provider behavior.

@@ -1,5 +1,5 @@
 /**
- * User repository — Result-typed reads over the users table.
+ * User repository - Result-typed reads over the users table.
  * Delegates to the legacy db.ts helpers where they are already sound,
  * converting their null/throw conventions into explicit Results.
  */

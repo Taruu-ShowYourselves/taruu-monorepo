@@ -8,6 +8,7 @@ import { PressInput } from '@/components/press/PressInput/PressInput';
 import { Stepper } from '@/components/press/Stepper/Stepper';
 import { MUNICIPALITIES } from '@sync/shared';
 import { cn } from '@/lib/cn';
+import { PressLoader } from '@/components/press/PressMachine';
 import styles from './page.module.css';
 
 const STEPS = [
@@ -75,7 +76,7 @@ export default function OnboardingPage() {
   if (isLoading) {
     return (
       <div className={styles.loadingContainer}>
-        <div className={styles.spinner} aria-hidden />
+        <PressLoader />
         <p>טוען…</p>
       </div>
     );
@@ -98,8 +99,7 @@ export default function OnboardingPage() {
               ברוכים הבאים, <span className={styles.red}>{user?.firstName || 'חבר'}.</span>
             </h1>
             <p className={styles.standfirst}>
-              שמחים שהצטרפתם. נגדיר את הפרופיל שלכם בכמה שלבים קצרים — ואז אפשר
-              להתחיל להצביע.
+              הגדרת הפרופיל אורכת שלושה שלבים קצרים. בסופם אפשר להצביע.
             </p>
 
             <div className={styles.rule} aria-hidden />
@@ -142,7 +142,7 @@ export default function OnboardingPage() {
                 onClick={() => setStep(2)}
                 trailing={<span aria-hidden>←</span>}
               >
-                בואו נתחיל
+                לשלב הראשון
               </NewsButton>
             </div>
           </section>
@@ -229,8 +229,8 @@ export default function OnboardingPage() {
               כמה אתם מרוצים <span className={styles.red}>מהרשות שלכם?</span>
             </h1>
             <p className={styles.standfirst}>
-              דירוג אחד, מ-1 עד 5. ככה נמדוד את שביעות הרצון של התושבים
-              ב{selectedMunicipality} — לפני שההצבעות משנות אותה.
+              דירוג אחד, מ-1 עד 5. זו נקודת הפתיחה למדידת שביעות הרצון של
+              התושבים ב{selectedMunicipality} לאורך זמן.
             </p>
 
             <div className={styles.rule} aria-hidden />
@@ -249,7 +249,7 @@ export default function OnboardingPage() {
                     type="button"
                     role="radio"
                     aria-checked={selected}
-                    aria-label={`${value} — ${RATING_LABELS[value]}`}
+                    aria-label={`${value} · ${RATING_LABELS[value]}`}
                     onClick={() => setRating(value)}
                     className={cn(
                       'flex flex-1 cursor-pointer flex-col items-center gap-2 border-2 border-ink bg-paper-box px-2 py-4 transition-colors',

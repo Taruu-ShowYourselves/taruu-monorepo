@@ -65,7 +65,7 @@ BEGIN;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO service_role;
 GRANT USAGE ON SCHEMA public TO service_role;
 
--- ...and then put back what 20260802000001 revoked. The blanket grant above
+-- ...and then put back what 20260802000010 revoked. The blanket grant above
 -- would otherwise hand `service_role` the UPDATE and DELETE the migration
 -- deliberately took away. Immutability does not depend on this — it is
 -- trigger-enforced and holds against the postgres superuser — but a fixture

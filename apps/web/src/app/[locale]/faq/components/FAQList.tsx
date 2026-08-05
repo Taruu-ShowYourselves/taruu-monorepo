@@ -143,7 +143,7 @@ export function FAQList() {
           </div>
         )}
 
-        {/* WhatsApp escalation — human help */}
+        {/* WhatsApp escalation - human help */}
         <div className={styles.escalate}>
           <span className={styles.escalateKicker}>
             <span aria-hidden className={styles.escalateTick} />

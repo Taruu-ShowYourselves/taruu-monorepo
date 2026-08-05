@@ -1,4 +1,4 @@
-/* Pricing — Brutalist Tech-Press rate card / spec sheet.
+/* Pricing - Brutalist Tech-Press rate card / spec sheet.
    Mobile-first single column; ≥768px two-up rate blocks with an ink column
    rule between. Tokens + press utilities only. */
 
@@ -178,12 +178,7 @@
   line-height: 1.4;
 }
 
-/* ---------- Receipt (₪3 split) ---------- */
-.receipt {
-  margin-block-start: auto;
-}
-
-/* ---------- Note (₪50 block) ---------- */
+/* ---------- Note (rate-card footnote) ---------- */
 .note {
   margin-block-start: auto;
   display: flex;

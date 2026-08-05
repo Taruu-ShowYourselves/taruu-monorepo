@@ -10,7 +10,7 @@
 }
 
 .canvas {
-  /* Compositor hints — keep the canvas on its own GPU layer */
+  /* Compositor hints - keep the canvas on its own GPU layer */
   transform: translateZ(0);
   backface-visibility: hidden;
 }

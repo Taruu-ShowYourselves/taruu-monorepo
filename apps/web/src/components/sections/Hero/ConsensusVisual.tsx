@@ -6,7 +6,7 @@ import styles from './ConsensusVisual.module.css';
 
 /**
  * Flagship hero visual: a floating glass "live vote" preview card. Shows the
- * product itself — an active local issue, a consensus bar filling to a result,
+ * product itself - an active local issue, a consensus bar filling to a result,
  * verified turnout, and a blockchain seal. Concrete > abstract: this is what
  * converts skeptics ("oh, THAT's what it does").
  *

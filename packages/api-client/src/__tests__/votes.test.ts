@@ -217,26 +217,19 @@ describe('votesApi', () => {
     it('should participate in a vote', async () => {
       const input = {
         voteId: 'vote-123',
-        optionId: 'opt-1',
-        paymentTxId: 'payment-tx-456',
-        gpsCoordinates: {
-          latitude: 32.7128,
-          longitude: 35.1196,
-          timestamp: new Date('2025-01-16T10:00:00Z'),
-        },
+        optionId: 'option-1',
       };
 
       const mockResponse = {
         success: true,
         participation: {
           id: 'participation-123',
-          voteId: input.voteId,
-          optionId: input.optionId,
+          voteId: 'vote-123',
           userId: 'user-123',
+          optionId: 'option-1',
           createdAt: '2025-01-16T00:00:00Z',
         },
-        txHash: '0x123abc...',
-        tokensEarned: 1,
+        alreadyRecorded: false,
       };
 
       mockFetch.mockResolvedValue({
@@ -248,17 +241,42 @@ describe('votesApi', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/api/votes/${input.voteId}/participate`, {
         method: 'POST',
-        body: JSON.stringify({
-          optionId: input.optionId,
-          paymentTxId: input.paymentTxId,
-          gpsCoordinates: input.gpsCoordinates,
-        }),
+        body: JSON.stringify({ optionId: input.optionId }),
         headers: expect.objectContaining({
           'Content-Type': 'application/json',
         }),
       });
       expect(result.success).toBe(true);
-      expect(result.tokensEarned).toBe(1);
+      expect(result.alreadyRecorded).toBe(false);
+    });
+
+    it('reports an already-recorded ballot as success', async () => {
+      const input = {
+        voteId: 'vote-123',
+        optionId: 'option-1',
+      };
+
+      const mockResponse = {
+        success: true,
+        participation: {
+          id: 'participation-123',
+          voteId: 'vote-123',
+          userId: 'user-123',
+          optionId: 'option-1',
+          createdAt: '2025-01-16T00:00:00Z',
+        },
+        alreadyRecorded: true,
+      };
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => mockResponse,
+      });
+
+      const result = await votesApi.participate(input);
+
+      expect(result.success).toBe(true);
+      expect(result.alreadyRecorded).toBe(true);
     });
   });
 

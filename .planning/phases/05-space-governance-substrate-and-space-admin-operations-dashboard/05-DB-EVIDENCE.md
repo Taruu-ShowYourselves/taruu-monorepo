@@ -17,11 +17,11 @@ from this phase:
 
 | Migration | Result |
 |---|---|
-| `20260802000001_space_governance` | applied |
-| `20260802000002_vote_status_review_values` | applied |
-| `20260802000003_vote_review_gating` | applied |
-| `20260802000004_space_admin_metrics` | applied |
-| `20260802000005_space_notifications` | applied |
+| `20260802000010_space_governance` | applied |
+| `20260802000011_vote_status_review_values` | applied |
+| `20260802000012_vote_review_gating` | applied |
+| `20260802000013_space_admin_metrics` | applied |
+| `20260802000014_space_notifications` | applied |
 
 The two-file enum split works as designed — `ALTER TYPE ... ADD VALUE` in
 `_0002` and first use in `_0003` — with no "unsafe use of new value" error and

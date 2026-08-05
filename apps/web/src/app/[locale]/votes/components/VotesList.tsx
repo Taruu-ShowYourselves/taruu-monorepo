@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { NewsButton, VoteWidget, TallyBar } from '@/components/press';
+import { MunicipalityLink } from '@/components/uikit/municipality-link';
 import { useLiveTallies } from '@/hooks';
 import type { VoteFilter } from './types';
 import styles from './VotesList.module.css';
@@ -31,66 +32,6 @@ interface Vote {
   endDate: string;
   options: VoteOption[];
 }
-
-// Fallback mock data for development/error states
-const mockVotes: Vote[] = [
-  {
-    id: '1',
-    title: 'שדרוג גינת השכונה ברחוב הרצל',
-    description:
-      'הצבעה על תוכנית לשדרוג הגינה המרכזית כולל התקנת משחקי ילדים חדשים, ספסלים ותאורה.',
-    municipality: 'תל אביב-יפו',
-    status: 'active',
-    participantCount: 1247,
-    endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    options: [
-      { id: '1', label: 'בעד', voteCount: 892 },
-      { id: '2', label: 'נגד', voteCount: 355 },
-    ],
-  },
-  {
-    id: '2',
-    title: 'הקמת מרכז קהילתי חדש',
-    description:
-      'האם לאשר את בניית מרכז קהילתי חדש באזור הצפוני של העיר?',
-    municipality: 'ראשון לציון',
-    status: 'active',
-    participantCount: 3521,
-    endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-    options: [
-      { id: '1', label: 'בעד', voteCount: 2105 },
-      { id: '2', label: 'נגד', voteCount: 1416 },
-    ],
-  },
-  {
-    id: '3',
-    title: 'שינוי תדירות איסוף אשפה',
-    description:
-      'הצעה להגדלת תדירות איסוף האשפה משלוש פעמים בשבוע לחמש.',
-    municipality: 'חיפה',
-    status: 'completed',
-    participantCount: 8934,
-    endDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    options: [
-      { id: '1', label: 'בעד', voteCount: 6721 },
-      { id: '2', label: 'נגד', voteCount: 2213 },
-    ],
-  },
-  {
-    id: '4',
-    title: 'הוספת נתיבי אופניים חדשים',
-    description:
-      'תוכנית להוספת 15 ק"מ של נתיבי אופניים מוגנים ברחבי העיר.',
-    municipality: 'ירושלים',
-    status: 'active',
-    participantCount: 2156,
-    endDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString(),
-    options: [
-      { id: '1', label: 'בעד', voteCount: 1823 },
-      { id: '2', label: 'נגד', voteCount: 333 },
-    ],
-  },
-];
 
 function getStatusLabel(status: string): string {
   switch (status) {
@@ -154,7 +95,7 @@ function toWidgetOptions(vote: Vote) {
 }
 
 /**
- * Settled-record press card for ended / pending votes — final tally, winner
+ * Settled-record press card for ended / pending votes - final tally, winner
  * marked, muted (no live pulse). Mirrors the archive record card.
  */
 function RecordCard({ vote }: { vote: Vote }) {
@@ -163,7 +104,7 @@ function RecordCard({ vote }: { vote: Vote }) {
   const leading =
     options.length > 0
       ? options.reduce((a, b) => (a.voteCount > b.voteCount ? a : b))
-      : { label: '—', voteCount: 0 };
+      : { label: '-', voteCount: 0 };
   const leadingPct = total > 0 ? Math.round((leading.voteCount / total) * 100) : 0;
   const ended = isVoteEnded(vote.status);
 
@@ -173,7 +114,7 @@ function RecordCard({ vote }: { vote: Vote }) {
         <span className={styles.recordKicker}>
           {ended ? 'רשומה סגורה' : 'ממתינה לפתיחה'}
         </span>
-        <span className={styles.recordPlace}>{vote.municipality}</span>
+        <MunicipalityLink name={vote.municipality} className={styles.recordPlace} />
       </header>
 
       <h3 className={styles.recordTitle}>{vote.title}</h3>
@@ -215,15 +156,11 @@ export function VotesList({ filter }: VotesListProps) {
   const [votes, setVotes] = useState<Vote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isUsingMockData, setIsUsingMockData] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   // Live tallies: Supabase Realtime updates on vote_options merge over the
-  // fetched snapshot so bars tick without polling. Mock data stays static.
-  const liveVoteIds = useMemo(
-    () => (isUsingMockData ? [] : votes.map((v) => v.id)),
-    [votes, isUsingMockData]
-  );
+  // fetched snapshot so bars tick without polling.
+  const liveVoteIds = useMemo(() => votes.map((v) => v.id), [votes]);
   const liveTallies = useLiveTallies(liveVoteIds);
   const liveVotes = useMemo(
     () =>
@@ -263,21 +200,11 @@ export function VotesList({ filter }: VotesListProps) {
         }
 
         const data = await response.json();
-
-        if (data.votes && data.votes.length > 0) {
-          setVotes(data.votes);
-          setIsUsingMockData(false);
-        } else {
-          // Use mock data if no votes in database yet
-          setVotes(mockVotes);
-          setIsUsingMockData(true);
-        }
+        setVotes(data.votes ?? []);
       } catch (err) {
         console.error('Error fetching votes:', err);
-        // Fall back to mock data on error
-        setVotes(mockVotes);
-        setIsUsingMockData(true);
-        setError('לא ניתן לטעון את ההצבעות. מציג נתוני הדגמה.');
+        setVotes([]);
+        setError('לא ניתן לטעון את ההצבעות כרגע. נסו לרענן את העמוד.');
       } finally {
         setIsLoading(false);
       }
@@ -323,14 +250,7 @@ export function VotesList({ filter }: VotesListProps) {
           </div>
         )}
 
-        {isUsingMockData && !error && (
-          <div className={styles.demoBanner}>
-            <span className={styles.demoDot} aria-hidden />
-            <span>מציג נתוני הדגמה — הצבעות אמיתיות יופיעו בקרוב</span>
-          </div>
-        )}
-
-        {filteredVotes.length === 0 ? (
+        {error ? null : filteredVotes.length === 0 ? (
           <EmptyState />
         ) : (
           <div className={styles.grid}>
@@ -339,14 +259,15 @@ export function VotesList({ filter }: VotesListProps) {
                 <div key={vote.id} className={styles.ballot}>
                   <VoteWidget
                     kicker="הצבעה חיה"
-                    place={vote.municipality}
+                    place={<MunicipalityLink name={vote.municipality} />}
                     question={vote.title}
                     options={toWidgetOptions(vote)}
                     totalLabel={`${vote.participantCount.toLocaleString('he-IL')} קולות`}
                     href={`/votes/${vote.id}`}
                   />
                   <p className={styles.trustNote}>
-                    הקול שלכם ייחתם בבלוקצ׳יין — בלתי ניתן לשינוי.
+                    הקול שלכם נרשם פעם אחת ומשויך לתושב מאומת. אי אפשר לשנות
+                    אותו בדיעבד.
                   </p>
                 </div>
               ) : (
@@ -393,7 +314,7 @@ function EmptyState() {
       </h2>
 
       <p className={styles.emptyText}>
-        ההצבעה הראשונה נפתחת 04.08.26, בכל הארץ בבת אחת — הצטרפו לוואטסאפ ותהיו הראשונים.
+        ההצבעה הראשונה נפתחת 04.08.26, בכל הארץ בבת אחת. הצטרפו לוואטסאפ לעדכון ביום הפתיחה.
       </p>
 
       <NewsButton

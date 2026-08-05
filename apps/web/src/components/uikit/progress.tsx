@@ -5,7 +5,7 @@ import * as ProgressPrimitive from '@radix-ui/react-progress';
 import { cn } from '@/lib/cn';
 
 /**
- * Press-styled progress bar — ink track border, red fill, no rounding.
+ * Press-styled progress bar - ink track border, red fill, no rounding.
  * RTL-aware: fills from inline-start like the site's tally bars.
  */
 function Progress({

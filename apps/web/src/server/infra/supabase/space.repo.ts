@@ -165,7 +165,7 @@ export const findSpaceSummaryByMembership = (m: SpaceMembership) =>
  *
  * THE SUBMITTER EMBED MUST NAME ITS FOREIGN KEY. `votes` has three foreign
  * keys into `users` — `creator_id`, and the `hidden_by` / `flagged_by` columns
- * 20260802000003 added for permitted-content moderation. An unqualified
+ * 20260802000012 added for permitted-content moderation. An unqualified
  * `users(...)` is therefore ambiguous and PostgREST refuses the whole request
  * with PGRST201 rather than picking one, which surfaces as a 500 on the queue.
  * Disambiguating by constraint name keeps the response key `users`, so the

@@ -2,12 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { NewsButton } from '@/components/press/NewsButton';
-import { Stepper, Receipt, SealCard } from '@/components/press';
+import { Stepper, Receipt } from '@/components/press';
 import { useReducedMotion } from '@/hooks';
 import { useAuthStore } from '@/stores/authStore';
-import { isEligibleToVote } from '@/lib/verification';
+import {
+  submitParticipation,
+  isTerminalRejection,
+  type ParticipationRejectionCode,
+  type RecordedBallot,
+} from './submitParticipation';
 import styles from './ParticipationFlow.module.css';
 
 /* ------------------------------------------------------------------ */
@@ -26,58 +31,44 @@ interface ParticipationFlowProps {
   totalVotes: number;
   /** Pre-selected option (e.g. restored from a deep-link). */
   initialOptionId?: string | null;
-  /** Fired when the flow completes so the page can flip to results. */
-  onComplete: () => void;
+  /** Fired when the receipt is dismissed, with the recorded option id, so the page can flip to results. */
+  onComplete: (optionId: string) => void;
 }
 
-type Stage = 'choice' | 'payment' | 'receipt';
+type Stage = 'choice' | 'confirm' | 'receipt';
 
 const STEPS = [
   { label: 'בחירה' },
-  { label: 'תשלום' },
   { label: 'אישור' },
+  { label: 'רישום' },
 ] as const;
 
 const STAGE_INDEX: Record<Stage, number> = {
   choice: 0,
-  payment: 1,
+  confirm: 1,
   receipt: 2,
 };
 
 /** sessionStorage key for restoring a choice across an auth/verify round-trip. */
 const PENDING_KEY = 'taruu-pending-vote';
 
-/* ------------------------------------------------------------------ */
-/* Helpers                                                            */
-/* ------------------------------------------------------------------ */
-/** Synthesise a plausible blockchain-style hash for the mock seal. */
-function mockHash(): string {
-  const bytes = new Uint8Array(32);
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    crypto.getRandomValues(bytes);
-  } else {
-    for (let i = 0; i < bytes.length; i += 1) bytes[i] = Math.floor(Math.random() * 256);
-  }
-  return (
-    '0x' +
-    Array.from(bytes)
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('')
-  );
-}
-
 /**
- * ParticipationFlow — the press ballot, reshaped (UX flow J2). Choice → ₪3
- * payment → blockchain receipt + seal. Residency is verified ONCE elsewhere
- * (/verification), so there is no per-vote GPS step. The auth + verified-resident
- * gate sits at payment: guests pick freely, and the selected option is persisted
- * across the sign-in / verification round-trip so nothing is lost. Drives the
- * real payment API (Green Invoice redirect) when configured, and falls back gracefully
- * to an in-page mock seal when the provider/session is unavailable.
+ * ParticipationFlow - the press ballot, reshaped (UX flow J2). Choice →
+ * confirmation → server-recorded receipt. Residency is verified ONCE
+ * elsewhere (/verification), so there is no per-vote GPS step.
+ *
+ * Only the sign-in gate is evaluated client-side, because "no session" is
+ * unambiguous here. Residency is decided solely by the server: the client's
+ * `isEligibleToVote` depends on `checkInsCompleted`, which this screen never
+ * loads, so gating on it turned away residents the server accepts. A 403
+ * routes them to /verification instead. Guests pick freely, and the selected
+ * option is persisted across either round-trip so nothing is lost. The ballot
+ * is persisted by
+ * `POST /api/votes/[id]/participate` - via `submitParticipation` - before the
+ * receipt is shown; nothing here is chain-anchored.
  */
 export function ParticipationFlow({
   voteId,
-  voteTitle,
   options,
   totalVotes,
   initialOptionId = null,
@@ -85,19 +76,46 @@ export function ParticipationFlow({
 }: ParticipationFlowProps) {
   const router = useRouter();
   const reduced = useReducedMotion();
-  const { isAuthenticated, user } = useAuthStore();
-
-  const isVerifiedResident = isEligibleToVote(user);
+  const { isAuthenticated } = useAuthStore();
+  // Locale-less detour targets get a 307 from the locale middleware, and the
+  // redirect back here is dropped with the query string - so build them
+  // already localised.
+  const params = useParams<{ locale?: string }>();
+  const locale = params?.locale ?? 'he';
 
   const [stage, setStage] = useState<Stage>('choice');
   const [selectedOption, setSelectedOption] = useState<string | null>(initialOptionId);
+  const [ballot, setBallot] = useState<RecordedBallot | null>(null);
+  const [alreadyRecorded, setAlreadyRecorded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [payError, setPayError] = useState<string | null>(null);
-  const [seal, setSeal] = useState<{ hash: string; block: string; ts: string } | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitErrorCode, setSubmitErrorCode] = useState<ParticipationRejectionCode | null>(null);
+
+  /** A rejection retrying cannot fix - the confirm button stops offering one. */
+  const isBlocked = submitErrorCode !== null && isTerminalRejection(submitErrorCode);
 
   const selectedText = useMemo(
     () => options.find((o) => o.id === selectedOption)?.text ?? '',
     [options, selectedOption]
+  );
+
+  /**
+   * The position the SERVER recorded - which is not always the one just
+   * clicked. On the already-recorded path the API returns the existing
+   * ballot, so a resident who voted differently before would otherwise be
+   * shown a position they never cast. The receipt states server facts only.
+   */
+  const recordedText = useMemo(
+    () => (ballot ? (options.find((o) => o.id === ballot.optionId)?.text ?? '') : ''),
+    [options, ballot]
+  );
+
+  const recordedAt = useMemo(
+    () =>
+      ballot
+        ? new Date(ballot.createdAt).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' })
+        : '',
+    [ballot]
   );
 
   // Restore a choice persisted before an auth/verify redirect (or ?option=…),
@@ -120,7 +138,7 @@ export function ParticipationFlow({
     }
     if (restored && options.some((o) => o.id === restored)) {
       setSelectedOption(restored);
-      setStage('payment');
+      setStage('confirm');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -130,7 +148,7 @@ export function ParticipationFlow({
     try {
       sessionStorage.setItem(PENDING_KEY, JSON.stringify({ voteId, optionId: selectedOption }));
     } catch {
-      /* storage unavailable — non-fatal */
+      /* storage unavailable - non-fatal */
     }
   }, [voteId, selectedOption]);
 
@@ -145,82 +163,67 @@ export function ParticipationFlow({
   /* ---- Step 1: choice (open to guests) ---- */
   const handleConfirmChoice = useCallback(() => {
     if (!selectedOption) return;
-    setStage('payment');
+    setStage('confirm');
   }, [selectedOption]);
 
-  /* ---- Step 2: ₪3 payment ---- */
-  const completeWithMockSeal = useCallback(() => {
-    setSeal({
-      hash: mockHash(),
-      block: (18_400_000 + Math.floor(Math.random() * 9999)).toLocaleString('en-US'),
-      ts: new Date().toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' }),
-    });
-    setStage('receipt');
-    onComplete();
-  }, [onComplete]);
-
-  const handlePay = useCallback(async () => {
-    if (!selectedOption) return;
-
-    const back = encodeURIComponent(`/votes/${voteId}`);
-    // Gate at payment: must be signed in AND a verified resident. Persist the
-    // choice so the round-trip returns the user straight to this step.
-    if (!isAuthenticated) {
-      persistPending();
-      router.push(`/sign-in?redirect=${back}`);
-      return;
-    }
-    if (!isVerifiedResident) {
-      persistPending();
-      router.push(`/verification?redirect=${back}`);
-      return;
-    }
-
+  /* ---- Step 2: server-confirmed recording ---- */
+  const recordVote = useCallback(async () => {
+    if (!selectedOption || submitting || isBlocked) return;
     setSubmitting(true);
-    setPayError(null);
-
-    try {
-      const response = await fetch('/api/payments/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'vote_participation',
-          voteId,
-          optionId: selectedOption,
-          voteTitle,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.payment?.paymentUrl) {
-          // Real Green Invoice checkout — leaves the page; returns with ?payment=success.
-          window.location.href = data.payment.paymentUrl;
-          return;
-        }
-        // Configured but no external URL (already-paid / idempotent) — seal in place.
-        completeWithMockSeal();
+    setSubmitError(null);
+    setSubmitErrorCode(null);
+    const result = await submitParticipation({ voteId, optionId: selectedOption });
+    setSubmitting(false);
+    if (result.status === 'rejected') {
+      // The server is the only authority on eligibility. When it says the
+      // resident still needs to verify, route them there rather than leaving
+      // them staring at an error they cannot clear from this screen.
+      if (result.code === 'RESIDENCY_NOT_VERIFIED' || result.code === 'IDENTITY_NOT_VERIFIED') {
+        persistPending();
+        router.push(
+          `/${locale}/verification?redirect=${encodeURIComponent(`/${locale}/votes/${voteId}`)}`
+        );
         return;
       }
-
-      // Non-OK: provider/session unavailable in this environment → mock seal.
-      completeWithMockSeal();
-    } catch {
-      // Network/provider error → graceful mock seal so the flow always closes.
-      completeWithMockSeal();
-    } finally {
-      setSubmitting(false);
+      if (result.code === 'UNAUTHENTICATED') {
+        persistPending();
+        router.push(
+          `/${locale}/sign-in?redirect=${encodeURIComponent(`/${locale}/votes/${voteId}`)}`
+        );
+        return;
+      }
+      setSubmitError(result.message);
+      setSubmitErrorCode(result.code);
+      return; // stay on 'confirm'; no receipt, no onComplete
     }
-  }, [
-    selectedOption,
-    voteId,
-    voteTitle,
-    completeWithMockSeal,
-    isAuthenticated,
-    isVerifiedResident,
-    persistPending,
-    router,
-  ]);
+    setBallot(result.ballot);
+    setAlreadyRecorded(result.alreadyRecorded);
+    setStage('receipt');
+  }, [selectedOption, submitting, isBlocked, voteId, locale, persistPending, router]);
+
+  const handleConfirm = useCallback(async () => {
+    if (!selectedOption) return;
+
+    const back = encodeURIComponent(`/${locale}/votes/${voteId}`);
+    // Sign-in is gated client-side because the answer is unambiguous here: no
+    // session means no request worth making.
+    //
+    // Residency is NOT gated client-side. `isEligibleToVote` reads
+    // `verificationStatus.checkInsCompleted`, which only `/api/verification/status`
+    // ever populates and which the vote page never fetches - so on this screen
+    // it is always undefined and the client rule collapses to "fully verified".
+    // The server's rule is broader (verified OR at least one check-in), which is
+    // the actual product decision. Gating on the narrower client value blocked
+    // residents the server would have accepted. The request is attempted and
+    // the server's 403 routes them, so there is exactly one eligibility rule.
+    if (!isAuthenticated) {
+      persistPending();
+      router.push(`/${locale}/sign-in?redirect=${back}`);
+      return;
+    }
+
+    await recordVote();
+  }, [selectedOption, voteId, locale, recordVote, isAuthenticated, persistPending, router]);
 
   /* ------------------------------------------------------------------ */
   return (
@@ -228,7 +231,7 @@ export function ParticipationFlow({
       <Stepper steps={STEPS as unknown as { label: string }[]} current={STAGE_INDEX[stage]} />
 
       <motion.div key={stage} className={styles.stage} {...stepAnim}>
-        {/* ---- STEP 1 — בחירה ---- */}
+        {/* ---- STEP 1 - בחירה ---- */}
         {stage === 'choice' && (
           <section className={styles.panel} aria-label="בחירת עמדה">
             <span className={styles.kicker}>
@@ -273,7 +276,9 @@ export function ParticipationFlow({
               })}
             </ul>
 
-            <p className={styles.trust}>הקול שלכם ייחתם בבלוקצ׳יין — בלתי ניתן לשינוי.</p>
+            <p className={styles.trust}>
+              הקול שלכם נרשם פעם אחת ומשויך לתושב מאומת. אי אפשר לשנות אותו בדיעבד.
+            </p>
 
             <div className={styles.actions}>
               <NewsButton
@@ -284,57 +289,51 @@ export function ParticipationFlow({
                 disabled={!selectedOption}
                 trailing={<span aria-hidden>←</span>}
               >
-                המשיכו · תשלום
+                המשיכו · אישור
               </NewsButton>
             </div>
           </section>
         )}
 
-        {/* ---- STEP 2 — תשלום ---- */}
-        {stage === 'payment' && (
-          <section className={styles.panel} aria-label="תשלום">
+        {/* ---- STEP 2 - אישור ---- */}
+        {stage === 'confirm' && (
+          <section className={styles.panel} aria-label="אישור הקול">
             <span className={styles.kicker}>
               <span aria-hidden className={styles.kickerTick} />
-              שלב 02 · תשלום
+              שלב 02 · אישור
             </span>
-            <h2 className={styles.panelTitle}>דמי השתתפות · ₪3</h2>
+            <h2 className={styles.panelTitle}>אשרו את הקול שלכם</h2>
 
             <p className={styles.lead}>
-              שלושת השקלים אינם אגרה — הם הדלק של ההצבעה. ₪2 נכנסים לקרן הקהילתית
-              שמממנת את ביצוע ההחלטה, ומזינים את ה-BAG של ההצבעה ב-bags.fm; ₪1 לתפעול
-              המערכת. ככל שיותר תושבים משתתפים, יש לנושא יותר משאבים אמיתיים מאחוריו.
+              נדרש אימות זהות ותושבוּת חד-פעמי, כדי שכל קול ישויך לתושב אמיתי אחד.
+              הקול נרשם פעם אחת ואי אפשר לשנות אותו.
             </p>
 
             <Receipt
               className={styles.receipt}
-              kicker="חיוב · CHARGE"
-              rows={[
-                { label: 'לקרן הקהילתית · ה-BAG', value: '₪2' },
-                { label: 'לתפעול המערכת', value: '₪1' },
-                { label: 'סה״כ לחיוב', value: '₪3', strong: true },
-              ]}
-              footer={`הצבעה ${voteId} · ${selectedText || '—'}`}
+              kicker="פתק הצבעה · BALLOT"
+              rows={[{ label: 'עמדה', value: selectedText || '-', strong: true }]}
+              footer={`הצבעה ${voteId}`}
             />
 
-            <p className={styles.trust}>₪2 לקרן הקהילתית · ₪1 לתפעול. הכל מתועד.</p>
+            <p className={styles.trust}>מאומת זהות ותושבוּת · נרשם פעם אחת.</p>
 
-            {/* Gate notice — what the pay button will do next */}
-            {!isAuthenticated ? (
+            {/* Gate notice - only for the one gate this screen can answer.
+                Residency is decided by the server; guessing it here would
+                tell an eligible resident to go verify something they already
+                have. If the server disagrees, it routes them to /verification
+                with the choice preserved. */}
+            {!isAuthenticated && (
               <p className={styles.gateNote}>
                 <span aria-hidden>■ </span>
-                צריך חשבון כדי להשלים — נשמור את הבחירה שלכם ונחזיר אתכם לכאן.
+                צריך חשבון כדי להשלים. נשמור את הבחירה שלכם ונחזיר אתכם לכאן.
               </p>
-            ) : !isVerifiedResident ? (
-              <p className={styles.gateNote}>
-                <span aria-hidden>■ </span>
-                אימות תושב חד-פעמי לפני התשלום. נשמור את הבחירה ונמשיך מכאן.
-              </p>
-            ) : null}
+            )}
 
-            {payError && (
-              <p className={styles.payError} role="alert">
-                <span aria-hidden>✕ </span>
-                {payError}
+            {submitError && (
+              <p className={styles.errorNote} role="alert">
+                <span aria-hidden>■ </span>
+                {submitError}
               </p>
             )}
 
@@ -343,17 +342,17 @@ export function ParticipationFlow({
                 variant="red"
                 size="lg"
                 className={styles.cta}
-                onClick={handlePay}
-                disabled={submitting}
-                trailing={<span aria-hidden>←</span>}
+                onClick={handleConfirm}
+                disabled={submitting || isBlocked}
+                trailing={isBlocked ? undefined : <span aria-hidden>←</span>}
               >
-                {submitting
-                  ? 'מעבד תשלום…'
+                {isBlocked
+                  ? 'ההצבעה סגורה'
                   : !isAuthenticated
-                    ? 'התחברו והשלימו · ₪3'
-                    : !isVerifiedResident
-                      ? 'אמתו תושבוּת והשלימו · ₪3'
-                      : 'שלמו · ₪3'}
+                    ? 'התחברו והשלימו'
+                    : submitting
+                      ? 'רושמים את הקול…'
+                      : 'אשרו והצביעו'}
               </NewsButton>
               <button
                 type="button"
@@ -367,44 +366,53 @@ export function ParticipationFlow({
           </section>
         )}
 
-        {/* ---- STEP 3 — אישור + חתימה ---- */}
-        {stage === 'receipt' && seal && (
-          <section className={styles.panel} aria-label="קבלה וחתימה">
+        {/* ---- STEP 3 - רישום ---- */}
+        {stage === 'receipt' && ballot && (
+          <section className={styles.panel} aria-label="קבלה ורישום">
             <span className={styles.kicker}>
               <span aria-hidden className={styles.kickerTick} />
-              שלב 03 · אישור
+              שלב 03 · רישום
             </span>
             <h2 className={styles.panelTitle}>
-              הקול שלכם <span className={styles.red}>נחתם.</span>
+              הקול שלכם <span className={styles.red}>נרשם.</span>
             </h2>
             <p className={styles.lead}>
-              ההצבעה נקלטה ונחתמה. בחרתם: <strong>{selectedText}</strong>.
+              {alreadyRecorded ? (
+                <>
+                  כבר הצבעתם בהצבעה הזו. זה הרישום הקיים שלכם: <strong>{recordedText}</strong>.
+                </>
+              ) : (
+                <>
+                  הרישום הושלם. בחרתם: <strong>{recordedText}</strong>.
+                </>
+              )}
             </p>
 
             <Receipt
               className={styles.receipt}
               kicker="קבלה · RECEIPT"
-              title="השתתפות בהצבעה"
+              title="רישום השתתפות"
               rows={[
-                { label: 'עמדה', value: selectedText || '—' },
-                { label: 'לקרן הקהילתית', value: '₪2' },
-                { label: 'לתפעול', value: '₪1' },
-                { label: 'שולם', value: '₪3', strong: true },
+                { label: 'עמדה', value: recordedText || '-' },
+                { label: 'סטטוס', value: 'נרשם', strong: true },
+                { label: 'מספר רישום', value: ballot.id },
               ]}
-              footer={`הצבעה ${voteId} · ${seal.ts}`}
+              footer={`הצבעה ${voteId} · ${recordedAt}`}
             />
 
-            <SealCard
-              className={styles.seal}
-              status="sealed"
-              hash={seal.hash}
-              meta={[
-                { label: 'BLOCK', value: seal.block },
-                { label: 'TIME', value: seal.ts },
-              ]}
-            />
+            <p className={styles.trust}>הרישום נשמר בשרת ומשויך לתושב מאומת אחד.</p>
 
-            <p className={styles.trust}>✓ חתום בבלוקצ׳יין · בלתי ניתן לשינוי.</p>
+            <div className={styles.actions}>
+              <NewsButton
+                variant="red"
+                size="lg"
+                className={styles.cta}
+                onClick={() => onComplete(ballot.optionId)}
+                trailing={<span aria-hidden>←</span>}
+              >
+                צפו בתוצאות
+              </NewsButton>
+            </div>
           </section>
         )}
       </motion.div>

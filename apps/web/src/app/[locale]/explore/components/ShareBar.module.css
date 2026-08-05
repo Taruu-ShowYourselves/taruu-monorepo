@@ -1,0 +1,15 @@
+/* Sizing/track hooks: callers set --sb-size / --sb-track on their bar class. */
+.track {
+  display: block;
+  inline-size: 100%;
+  block-size: var(--sb-size, 0.65em);
+  background: var(--sb-track, var(--np-paper-2));
+  border: var(--np-rule-hair) solid var(--np-ink);
+  overflow: hidden;
+}
+
+.fill {
+  display: block;
+  block-size: 100%;
+  background: var(--np-red);
+}

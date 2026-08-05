@@ -158,7 +158,7 @@ describe('Treasury Transactions API Routes', () => {
     it('must not leak per-user identifiers on the municipality ledger', async () => {
       (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
       (getTreasuryByMunicipality as Mock).mockResolvedValue(mockTreasury);
-      // Rows initiated by OTHER users — the ledger is municipality-wide.
+      // Rows initiated by OTHER users - the ledger is municipality-wide.
       (getTreasuryTransactions as Mock).mockResolvedValue(mockTransactions);
 
       const request = new NextRequest('http://localhost:3000/api/treasury/tel-aviv/transactions');

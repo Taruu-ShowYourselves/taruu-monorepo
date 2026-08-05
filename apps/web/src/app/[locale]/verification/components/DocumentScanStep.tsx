@@ -3,8 +3,8 @@
 /**
  * Document-scan verification step (issue #32).
  *
- * Privacy-by-design: the whole pipeline — capture, quality gates, OCR,
- * field extraction — runs on this device. The photo is drawn to a local
+ * Privacy-by-design: the whole pipeline - capture, quality gates, OCR,
+ * field extraction - runs on this device. The photo is drawn to a local
  * canvas, read by tesseract.js (self-hosted WASM under /ocr), and discarded;
  * only the extracted, user-confirmed fields are submitted.
  *
@@ -39,7 +39,7 @@ import {
 } from '@/lib/scan/liveness';
 import styles from './DocumentScanStep.module.css';
 
-/** Version of the consent text below — stored with every submission. */
+/** Version of the consent text below - stored with every submission. */
 export const CONSENT_VERSION = 'doc-face-consent-v2-2026-07';
 
 /** Face pipeline result when the selfie step could not run at all. */
@@ -55,27 +55,27 @@ const FACE_UNCHECKED: FaceProvenance = {
 const CARD_ASPECT = 1.586;
 
 const COPY = {
-  consentTitle: 'סריקת תעודה — בהסכמתכם בלבד',
+  consentTitle: 'סריקת תעודה, בהסכמתכם בלבד',
   consentLead:
     'כדי לוודא שכל קול שייך לתושב אמיתי אחד, נאמת את זהותכם מול תעודת זהות ביומטרית או רישיון נהיגה. הסריקה מתבצעת על המכשיר שלכם בלבד.',
   consentPoints: [
-    'הצילום לא עולה לשרת ולא נשמר — נשלפים ממנו פרטים בלבד.',
-    'סלפי קצר מושווה לתמונה שבתעודה על המכשיר בלבד — ולא נשמר.',
+    'הצילום לא עולה לשרת ולא נשמר. נשלפים ממנו פרטים בלבד.',
+    'סלפי קצר מושווה לתמונה שבתעודה על המכשיר בלבד, ולא נשמר.',
     'נשמרים: שם, תאריך לידה, תוקף התעודה, תוצאת ההתאמה, ואימות מוצפן של מספר הזהות.',
-    'מספר הזהות עצמו לא נשמר — רק טביעת אצבע מוצפנת שלו, למניעת כפל חשבונות.',
+    'מספר הזהות עצמו לא נשמר. נשמרת רק טביעת אצבע מוצפנת שלו, למניעת כפל חשבונות.',
     'אפשר למחוק את נתוני האימות בכל עת מהגדרות הפרופיל.',
   ],
   consentCheckbox:
     'קראתי ואני מסכים/ה לאימות הזהות כמפורט. ידוע לי שבלי אימות לא ניתן להצביע.',
   biometricCheckbox:
-    'אני מסכים/ה גם להשוואת פנים חד-פעמית בין סלפי לתמונה שבתעודה. ההשוואה מתבצעת על המכשיר בלבד; הסלפי, תמונת התעודה והחתימות הביומטריות לא נשמרים ולא נשלחים — רק תוצאת ההתאמה.',
+    'אני מסכים/ה גם להשוואת פנים חד-פעמית בין סלפי לתמונה שבתעודה. ההשוואה מתבצעת על המכשיר בלבד; הסלפי, תמונת התעודה והחתימות הביומטריות לא נשמרים ולא נשלחים. נשמרת רק תוצאת ההתאמה.',
   camDenied:
     'אין הרשאת מצלמה. אפשרו גישה בדפדפן ונסו שוב, או העלו צילום קיים.',
   camUnavailable: 'המכשיר לא תומך במצלמה מהדפדפן. העלו צילום של התעודה.',
   quality: {
-    blurry: 'הצילום יצא מטושטש — החזיקו יציב ונסו שוב.',
-    glare: 'יש בוהק על התעודה — הטו מעט את הכרטיס או המכשיר.',
-    too_small: 'התעודה רחוקה מדי — קרבו את המצלמה.',
+    blurry: 'הצילום יצא מטושטש. החזיקו יציב ונסו שוב.',
+    glare: 'יש בוהק על התעודה. הטו מעט את הכרטיס או המכשיר.',
+    too_small: 'התעודה רחוקה מדי. קרבו את המצלמה.',
   },
   ocrFailed: 'לא הצלחנו לקרוא את התעודה. נסו שוב באור טוב יותר.',
   idInvalid: 'מספר הזהות לא תקין (ספרת ביקורת). בדקו ונסו שוב.',
@@ -84,10 +84,10 @@ const COPY = {
   conflict: 'מספר הזהות הזה כבר מאומת בחשבון אחר. פנו לתמיכה אם זו טעות.',
   expired: 'התעודה שצולמה כבר לא בתוקף. נסו עם תעודה בתוקף.',
   selfieLead:
-    'עכשיו סלפי קצר: הביטו למצלמה ועקבו אחרי ההנחיות. ההשוואה לתמונת התעודה מתבצעת על המכשיר — הסלפי לא נשמר.',
-  selfieLost: 'איבדנו אתכם — חזרו למרכז המסגרת ונסו שוב.',
+    'עכשיו סלפי קצר: הביטו למצלמה ועקבו אחרי ההנחיות. ההשוואה לתמונת התעודה מתבצעת על המכשיר, והסלפי לא נשמר.',
+  selfieLost: 'איבדנו אתכם. חזרו למרכז המסגרת ונסו שוב.',
   selfieNoCam:
-    'בלי מצלמה קדמית לא ניתן לבצע השוואת פנים — הפרטים יעברו בדיקה ידנית.',
+    'בלי מצלמה קדמית לא ניתן לבצע השוואת פנים. הפרטים יעברו בדיקה ידנית.',
   matching: 'משווים לתמונת התעודה…',
 } as const;
 
@@ -139,7 +139,7 @@ export function DocumentScanStep({
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  /** Document portrait embedding — in-memory only, never submitted. */
+  /** Document portrait embedding - in-memory only, never submitted. */
   const docFaceRef = useRef<{ embedding: number[] | null; found: boolean }>({
     embedding: null,
     found: false,
@@ -227,7 +227,7 @@ export function DocumentScanStep({
         const scan = await recognizeDocument(canvas);
         const fields = deriveFields(`${scan.text}\n${scan.digitText}`, idNumber);
 
-        // Read the document portrait for the later selfie match — in memory
+        // Read the document portrait for the later selfie match - in memory
         // only; a missing portrait is a soft signal, never a blocker.
         try {
           const docFace = await readFace(canvas);
@@ -262,7 +262,7 @@ export function DocumentScanStep({
     if (!video || video.videoWidth === 0) return;
 
     // The overlay frame covers 90% of the preview width at card aspect,
-    // centered — mirror that region from the native video resolution.
+    // centered - mirror that region from the native video resolution.
     const cropW = Math.round(video.videoWidth * 0.9);
     const cropH = Math.round(Math.min(cropW / CARD_ASPECT, video.videoHeight));
     const sx = Math.round((video.videoWidth - cropW) / 2);
@@ -395,7 +395,7 @@ export function DocumentScanStep({
         const obs = await observeFrame(video);
         if (!cancelled) setLiveness((s) => (s ? advanceLiveness(s, obs) : s));
       } catch {
-        /* transient detect failure — next tick retries */
+        /* transient detect failure - next tick retries */
       }
     };
     const interval = setInterval(() => void tick(), 350);
@@ -441,7 +441,7 @@ export function DocumentScanStep({
         });
       } catch {
         stopCamera();
-        // Selfie readable frame never materialized — flag and let review handle it.
+        // Selfie readable frame never materialized - flag and let review handle it.
         await handleSubmit({
           checked: true,
           docFaceFound: docFaceRef.current.found,
@@ -514,7 +514,7 @@ export function DocumentScanStep({
         </header>
         <p className={styles.panelText}>
           בחרו איזו תעודה תסרקו והזינו את מספר הזהות. המספר משמש להצלבה מול
-          הצילום — והוא לא נשמר אצלנו.
+          הצילום ואינו נשמר אצלנו.
         </p>
 
         <Segmented
@@ -535,14 +535,14 @@ export function DocumentScanStep({
           inputMode="numeric"
           autoComplete="off"
           maxLength={9}
-          placeholder="—————————"
+          placeholder="000000000"
           value={idNumber}
           onChange={(e) => {
             setIdNumber(e.target.value.replace(/\D/g, '').slice(0, 9));
             if (error) setError(null);
           }}
           error={error}
-          hint="כולל ספרת ביקורת. לא נשמר — מוצפן חד-כיוונית."
+          hint="כולל ספרת ביקורת. לא נשמר: מוצפן חד-כיוונית בלבד."
         />
 
         <div className={styles.actions}>
@@ -578,7 +578,7 @@ export function DocumentScanStep({
         </header>
         <p className={styles.panelText}>
           יישרו את התעודה בתוך המסגרת, באור טוב ובלי בוהק. הצילום נשאר על
-          המכשיר — רק הפרטים נשלפים ממנו.
+          המכשיר, ורק הפרטים נשלפים ממנו.
         </p>
 
         <div className={styles.cameraBox}>
@@ -708,8 +708,8 @@ export function DocumentScanStep({
 
       <p className={styles.panelText}>
         {draft?.idNumberMatched
-          ? 'מספר הזהות אומת מול הצילום. בדקו שהשאר נכון — ותקנו אם צריך.'
-          : 'לא הצלחנו לאתר את מספר הזהות בצילום — הפרטים ייבדקו ידנית. בדקו שהכול נכון.'}
+          ? 'מספר הזהות אומת מול הצילום. בדקו שהשאר נכון ותקנו אם צריך.'
+          : 'לא הצלחנו לאתר את מספר הזהות בצילום, ולכן הפרטים ייבדקו ידנית. בדקו שהכול נכון.'}
       </p>
 
       <div className={styles.reviewBadges}>

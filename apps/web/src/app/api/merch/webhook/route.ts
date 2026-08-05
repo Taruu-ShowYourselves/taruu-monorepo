@@ -4,7 +4,7 @@
  * Green Invoice notifies this endpoint after a payment completes (the `custom`
  * field carries our order id). Acknowledge fast (200), then mark the order paid
  * idempotently and store the issued document id. Orders settle at `paid` and
- * stop there — there is no downstream fulfilment handoff.
+ * stop there - there is no downstream fulfilment handoff.
  */
 
 import { timingSafeEqual } from 'node:crypto';
@@ -19,7 +19,7 @@ import { logger } from '@/lib/logger';
  * flip an order to paid.
  *
  * Returns `true` when authentic. When no secret is configured we fail OPEN so
- * local/dev mock checkout keeps working, but log loudly — production MUST set
+ * local/dev mock checkout keeps working, but log loudly - production MUST set
  * `GREENINVOICE_WEBHOOK_SECRET`.
  */
 function isAuthentic(request: Request): boolean {
@@ -28,10 +28,10 @@ function isAuthentic(request: Request): boolean {
     // Fail CLOSED in production (a missing secret must not leave a forge-to-paid
     // hole); fail open only in dev so mock checkout works without creds.
     if (process.env.NODE_ENV === 'production') {
-      logger.error('Merch webhook: GREENINVOICE_WEBHOOK_SECRET unset in production — rejecting');
+      logger.error('Merch webhook: GREENINVOICE_WEBHOOK_SECRET unset in production - rejecting');
       return false;
     }
-    logger.warn('Merch webhook: GREENINVOICE_WEBHOOK_SECRET unset — UNAUTHENTICATED (dev only)');
+    logger.warn('Merch webhook: GREENINVOICE_WEBHOOK_SECRET unset - UNAUTHENTICATED (dev only)');
     return true;
   }
   const provided =
@@ -46,7 +46,7 @@ function isAuthentic(request: Request): boolean {
 
 export async function POST(request: Request) {
   if (!isAuthentic(request)) {
-    logger.warn('Merch webhook: rejected — bad or missing token');
+    logger.warn('Merch webhook: rejected - bad or missing token');
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
@@ -96,18 +96,18 @@ export async function POST(request: Request) {
     // deliveries can't double-process: only the first matches the pending row.
     const result = await markMerchOrderPaid(orderId, paymentId);
     if (result.kind === 'error') {
-      // Transient DB failure. Do NOT ack 200 — return 500 so Green Invoice
+      // Transient DB failure. Do NOT ack 200 - return 500 so Green Invoice
       // retries the notification rather than dropping a paid order.
       logger.error('Merch webhook: paid transition failed', { orderId });
       return NextResponse.json({ error: 'update failed' }, { status: 500 });
     }
     if (result.kind === 'noop') {
-      // No pending row matched — already settled or lost the race. Idempotent.
+      // No pending row matched - already settled or lost the race. Idempotent.
       return NextResponse.json({ received: true });
     }
     logger.info('Merch order marked paid', { orderId });
   } catch (error) {
-    // Log but still ack — the order stays 'pending' and can be reconciled.
+    // Log but still ack - the order stays 'pending' and can be reconciled.
     logger.error('Merch webhook processing failed', {
       error: String(error),
       orderId,

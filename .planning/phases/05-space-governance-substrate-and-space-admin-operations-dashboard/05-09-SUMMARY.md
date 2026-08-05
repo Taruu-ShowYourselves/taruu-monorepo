@@ -178,7 +178,7 @@ Deliberately **not** run: the full suite, `next build`, `prettier --check`. Wave
 
 ## User Setup Required
 
-None. No new dependency, no new environment variable, no migration — `20260802000005` from 05-08 already carries all three tables and `uq_delivery_once`.
+None. No new dependency, no new environment variable, no migration — `20260802000014` from 05-08 already carries all three tables and `uq_delivery_once`.
 
 ## Next Phase Readiness
 

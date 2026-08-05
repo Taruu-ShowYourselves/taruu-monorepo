@@ -57,7 +57,7 @@ export function DownloadHero() {
   return (
     <section className={styles.hero} aria-labelledby="download-headline">
       <div className={styles.inner}>
-        {/* Dateline — top of the dispatch */}
+        {/* Dateline - top of the dispatch */}
         <div className={styles.dateline}>
           <span className={`np-kicker ${styles.kicker}`}>
             מברק מהמערכת · COMING SOON
@@ -70,17 +70,17 @@ export function DownloadHero() {
         <hr className="np-rule-heavy" />
 
         <div className={styles.grid}>
-          {/* Editorial column — headline + dispatch body */}
+          {/* Editorial column - headline + dispatch body */}
           <div className={styles.story}>
             <h1 id="download-headline" className={styles.headline}>
               תַּרְאוּ בכיס שלכם
               <br />
-              <span className={styles.red}>— בקרוב.</span>
+              <span className={styles.red}>- בקרוב.</span>
             </h1>
 
             <p className={`np-dropcap ${styles.body}`}>
               האפליקציה תהיה זמינה ב-App Store וב-Google Play לקראת ההצבעה
-              הראשונה. בינתיים — הצטרפו לקבוצת המייסדים ותהיו הראשונים לדעת
+              הראשונה. בינתיים - הצטרפו לקבוצת המייסדים ותהיו הראשונים לדעת
               כשהיא יוצאת.
             </p>
 
@@ -104,13 +104,13 @@ export function DownloadHero() {
             </div>
           </div>
 
-          {/* Press furniture — store dispatch blocks marked "בקרוב" */}
+          {/* Press furniture - store dispatch blocks marked "בקרוב" */}
           <aside className={styles.furniture}>
             <span className={`np-mono ${styles.furnitureLabel}`}>
               חנויות · STORES
             </span>
 
-            <ul className={styles.stores} aria-label="חנויות אפליקציות — בקרוב">
+            <ul className={styles.stores} aria-label="חנויות אפליקציות - בקרוב">
               {STORES.map((store) => (
                 <li
                   key={store.name}

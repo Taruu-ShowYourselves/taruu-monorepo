@@ -54,7 +54,7 @@ export function findProposalInScope(
     //
     // The submitter embed names its foreign key because `votes` has three into
     // `users` — `creator_id` plus the `hidden_by` / `flagged_by` moderation
-    // columns from 20260802000003. Unqualified, PostgREST answers PGRST201 and
+    // columns from 20260802000012. Unqualified, PostgREST answers PGRST201 and
     // the detail panel 500s. Same fix, same reason, as `listProposals`.
     .select(
       'id, title, description, status, creator_id, start_date, end_date, created_at, hidden_at, flagged_at, users!votes_creator_id_fkey(first_name, last_name)'

@@ -1,0 +1,73 @@
+.atmosphere {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.fixed {
+  position: fixed;
+}
+
+/* Pigment blooms - big soft ink washes bleeding through the paper.
+ * Blurred + multiplied for the wet-ink look (restored by request). */
+.blob {
+  position: absolute;
+  inline-size: 55vmax;
+  block-size: 55vmax;
+  border-radius: 50%;
+  filter: blur(70px);
+  mix-blend-mode: multiply;
+  will-change: transform;
+}
+
+.blobRed {
+  inset-block-start: -20%;
+  inset-inline-start: -15%;
+  background: radial-gradient(circle at 40% 40%, rgba(224, 48, 30, 0.1), transparent 62%);
+  animation: drift-a 46s var(--ease-in-out, ease-in-out) infinite alternate;
+}
+
+.blobInk {
+  inset-block-end: -25%;
+  inset-inline-end: -18%;
+  background: radial-gradient(circle at 55% 55%, rgba(20, 17, 14, 0.08), transparent 60%);
+  animation: drift-b 58s var(--ease-in-out, ease-in-out) infinite alternate;
+}
+
+/* Halftone dot field - oversized layer panning by transform, never
+ * background-position (compositing only, zero repaints) */
+.halftone {
+  position: absolute;
+  inset: -40%;
+  background-image: radial-gradient(var(--np-ink) 1px, transparent 1.45px);
+  background-size: 9px 9px;
+  opacity: 0.05;
+  animation: pan 90s linear infinite alternate;
+  will-change: transform;
+}
+
+@keyframes drift-a {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(9%, 6%, 0) scale(1.12); }
+  to   { transform: translate3d(-5%, 10%, 0) scale(0.96); }
+}
+
+@keyframes drift-b {
+  from { transform: translate3d(0, 0, 0) scale(1.05); }
+  50%  { transform: translate3d(-8%, -5%, 0) scale(0.94); }
+  to   { transform: translate3d(6%, -9%, 0) scale(1.1); }
+}
+
+@keyframes pan {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(6%, 4%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blob,
+  .halftone {
+    animation: none;
+  }
+}

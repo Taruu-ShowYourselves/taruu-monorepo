@@ -7,6 +7,7 @@ import { Footer } from '@/components/layout/Footer';
 import { NewsButton } from '@/components/press/NewsButton';
 import { useAuth } from '@/providers/AuthProvider';
 import { getIdentityLevelLabel } from '@sync/shared';
+import { PressLoader } from '@/components/press/PressMachine';
 import styles from './page.module.css';
 
 export default function ConnectSocialPage() {
@@ -90,7 +91,7 @@ export default function ConnectSocialPage() {
   if (isLoading) {
     return (
       <div className={styles.loadingContainer}>
-        <div className={styles.spinner} aria-hidden />
+        <PressLoader />
         <p>טוען…</p>
       </div>
     );
@@ -154,7 +155,7 @@ export default function ConnectSocialPage() {
 
           {/* Social platforms */}
           <ul className={styles.platforms}>
-            {/* Google — already connected */}
+            {/* Google - already connected */}
             <li className={`${styles.row} ${styles.connected}`}>
               <div className={styles.rowInfo}>
                 <span className={`${styles.rowIcon} ${styles.google}`} aria-hidden>

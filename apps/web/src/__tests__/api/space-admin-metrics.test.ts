@@ -1,7 +1,7 @@
 /**
  * Aggregate-only statistics — SPACE-07.
  *
- * The k-anonymity floor itself lives in SQL (migration 20260802000004): a
+ * The k-anonymity floor itself lives in SQL (migration 20260802000013): a
  * bucket of 1-4 is nulled before it leaves the database. This file does not
  * re-implement that rule in TypeScript and does not claim to test it. What it
  * tests is the API contract on top of it — that a suppressed figure, a genuine

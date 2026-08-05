@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { cn } from '@/lib/cn';
 
-/** Press-styled card family — hard 2px ink rules, paper-box fill, no radius. */
+/** Press-styled card family - flat article box: hard corners, 2px ink rules, no shadow. */
 function Card({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
@@ -30,7 +30,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<'h3'>) {
     <h3
       data-slot="card-title"
       className={cn(
-        'font-display text-lg font-black leading-tight tracking-tight',
+        'font-display text-xl font-black leading-tight tracking-tight md:text-2xl',
         className
       )}
       {...props}

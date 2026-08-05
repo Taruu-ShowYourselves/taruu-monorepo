@@ -33,7 +33,7 @@ export interface KnsPlmSessionItem {
   ItemTypeID: number | null;
   /** e.g. "הצעה לסדר היום", "הצעת חוק". */
   ItemTypeDesc: string | null;
-  /** Position in the day order — the API returns it as a string. */
+  /** Position in the day order - the API returns it as a string. */
   Ordinal: string | number | null;
   Name: string | null;
   StatusID: number | null;
@@ -41,7 +41,7 @@ export interface KnsPlmSessionItem {
   LastUpdatedDate: string | null;
 }
 
-/** Hard cap per upstream call — a hung Knesset API must not eat the cron. */
+/** Hard cap per upstream call - a hung Knesset API must not eat the cron. */
 const FETCH_TIMEOUT_MS = 15_000;
 
 async function fetchODataCollection<T>(pathAndQuery: string): Promise<T[]> {
@@ -80,7 +80,7 @@ export async function fetchSessionItems(
   );
 }
 
-/** Ordinal arrives as a string ("5") — normalize to a number or null. */
+/** Ordinal arrives as a string ("5") - normalize to a number or null. */
 export function parseOrdinal(ordinal: string | number | null): number | null {
   if (ordinal === null || ordinal === undefined) return null;
   const n = typeof ordinal === 'number' ? ordinal : parseInt(ordinal, 10);

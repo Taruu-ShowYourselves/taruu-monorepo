@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/services/auth/session';
-import { qubikService } from '@/services/qubik';
-import { emailService } from '@/services/email';
 import {
   getVoteWithOptions,
-  hasUserParticipated,
   getUserByGoogleId,
-  recordUserVote,
+  recordUserVoteOnce,
   incrementVoteOption,
-  updateUser,
-  verifyPaymentCompleted,
-  isPaymentAlreadyUsed,
 } from '@/lib/supabase/db';
 import { supabaseAdmin } from '@/lib/supabase/server';
-import { verifyCheckIn } from '@/services/verification/municipality';
+import { checkVoterEligibility } from '@/services/verification/eligibility';
+import { ParticipateRequestSchema } from '@sync/shared/contracts';
 import {
   voteParticipationLimiter,
   createRateLimitResponse,
@@ -25,7 +20,14 @@ interface RouteParams {
 
 /**
  * POST /api/votes/[id]/participate
- * Cast a vote on a specific vote
+ *
+ * Records a free ballot. Participation costs nothing (cfa5d25, 2026-07-29) and
+ * residency is verified once at /verification, so the body is `{ optionId }`
+ * alone - no payment id, no per-vote coordinates. Idempotency leans on the
+ * `UNIQUE(user_id, vote_id)` constraint rather than on a check-then-act read,
+ * so a double-click returns the ballot already cast instead of a second row.
+ * Ballots are not chain-anchored; nothing here writes to a chain and no chain
+ * outage can reject a resident's vote.
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
@@ -45,212 +47,99 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const { id: voteId } = await params;
-    const body = await request.json();
-    const { optionId, paymentTxId, gpsCoordinates } = body;
-
-    // Validate required fields
-    if (!optionId || !paymentTxId || !gpsCoordinates) {
+    const body = await request.json().catch(() => null);
+    const parsed = ParticipateRequestSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Missing required fields: optionId, paymentTxId, gpsCoordinates' },
+        { error: 'Missing or invalid field: optionId', code: 'INVALID_BODY' },
         { status: 400 }
       );
     }
+    const { optionId } = parsed.data;
 
     // Get the vote with options
     const vote = await getVoteWithOptions(voteId);
 
     if (!vote) {
-      return NextResponse.json({ error: 'Vote not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Vote not found', code: 'NOT_FOUND' }, { status: 404 });
     }
 
-    // Check if vote is active
+    // A closed vote and a not-yet-open vote are different facts and must not
+    // collapse into one client message - "refresh and try again" is actively
+    // wrong advice for a vote that has ended.
+    if (vote.status === 'ended') {
+      return NextResponse.json({ error: 'Vote has ended', code: 'VOTE_ENDED' }, { status: 400 });
+    }
+
     if (vote.status !== 'active') {
-      return NextResponse.json({ error: 'Vote is not active' }, { status: 400 });
-    }
-
-    // Check if vote has ended
-    if (new Date(vote.end_date) < new Date()) {
-      return NextResponse.json({ error: 'Vote has ended' }, { status: 400 });
-    }
-
-    // SECURITY: verify the GPS location server-side against the vote's
-    // municipality. Client coordinates are spoofable, but recording them
-    // unverified let anyone vote in any municipality — at minimum the bounds
-    // must be enforced here, not just by the advisory verify-location endpoint.
-    const geo = verifyCheckIn(
-      gpsCoordinates.latitude,
-      gpsCoordinates.longitude,
-      gpsCoordinates.accuracy,
-      vote.municipality_id
-    );
-    if (!geo.verified) {
       return NextResponse.json(
-        { error: geo.error || 'Location verification failed for this vote.', code: 'LOCATION_NOT_VERIFIED' },
-        { status: 403 }
-      );
-    }
-
-    // Check if user has already participated
-    const alreadyParticipated = await hasUserParticipated(
-      session.userId,
-      voteId
-    );
-
-    if (alreadyParticipated) {
-      return NextResponse.json(
-        { error: 'You have already participated in this vote' },
+        { error: 'Vote is not open yet', code: 'VOTE_NOT_OPEN' },
         { status: 400 }
       );
+    }
+
+    // Status can still lag the clock: a vote whose end_date has passed is
+    // ended, whatever the stored status says.
+    if (new Date(vote.end_date) < new Date()) {
+      return NextResponse.json({ error: 'Vote has ended', code: 'VOTE_ENDED' }, { status: 400 });
     }
 
     // Validate option exists
     const validOption = vote.options.find((opt) => opt.id === optionId);
     if (!validOption) {
-      return NextResponse.json({ error: 'Invalid option' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid option', code: 'INVALID_OPTION' }, { status: 400 });
     }
 
     // Get user profile
     const user = await getUserByGoogleId(session.googleId);
     if (!user) {
       return NextResponse.json(
-        { error: 'User profile not found' },
+        { error: 'User profile not found', code: 'USER_NOT_FOUND' },
         { status: 400 }
       );
     }
 
-    // Check user can vote (identity score >= 40)
-    if ((user.identity_score || 0) < 40) {
+    // Server-side voter eligibility - the enforcement point, mirroring what
+    // the client already shows.
+    const eligibility = await checkVoterEligibility(user);
+    if (!eligibility.eligible) {
       return NextResponse.json(
-        { error: 'Insufficient identity score to vote. Minimum 40 required.' },
+        { error: eligibility.message, code: eligibility.code },
         { status: 403 }
       );
     }
 
-    // CRITICAL SECURITY: Verify payment is completed and belongs to user
-    const paymentVerification = await verifyPaymentCompleted(
-      paymentTxId,
-      session.userId,
-      'vote_participation'
-    );
-
-    if (!paymentVerification.valid) {
-      console.warn(
-        `Payment verification failed for vote participation: ${paymentVerification.error}`,
-        { paymentTxId, userId: session.userId, voteId }
-      );
-      return NextResponse.json(
-        { error: `Payment verification failed: ${paymentVerification.error}` },
-        { status: 402 }
-      );
-    }
-
-    // Check if payment has already been used (prevents double-spend)
-    const paymentUsed = await isPaymentAlreadyUsed(paymentTxId, 'vote_participation');
-    if (paymentUsed) {
-      console.warn(
-        `Payment already used for vote participation: ${paymentTxId}`,
-        { userId: session.userId, voteId }
-      );
-      return NextResponse.json(
-        { error: 'Payment has already been used' },
-        { status: 400 }
-      );
-    }
-
-    // Create location hash for blockchain
-    const locationHash = Buffer.from(
-      JSON.stringify({
-        lat: gpsCoordinates.latitude,
-        lng: gpsCoordinates.longitude,
-        // Server time — the client-supplied timestamp is untrusted.
-        timestamp: new Date().toISOString(),
-      })
-    ).toString('base64');
-
-    // Record vote on blockchain - this is critical for vote verification
-    let voteRecord: { txHash: string };
-    try {
-      voteRecord = await qubikService.recordVote({
-        voteId,
-        userId: session.userId,
-        optionId,
-        locationHash,
-        paymentHash: paymentTxId,
-      });
-    } catch (e) {
-      console.error('Failed to record vote on blockchain:', e);
-      return NextResponse.json(
-        { error: 'Blockchain service unavailable. Vote not recorded. Please try again later.' },
-        { status: 503 }
-      );
-    }
-
-    // Mint Sync tokens (3 tokens for 3 shekel vote)
-    try {
-      await qubikService.mintTokens({
-        walletAddress: user.qubik_wallet_address || '',
-        amount: 3,
-        reason: 'vote',
-      });
-    } catch (e) {
-      console.warn('Could not mint tokens:', e);
-    }
-
-    // Create user vote record in Supabase
-    const userVote = await recordUserVote({
+    // Persist the ballot. Idempotent: a duplicate submit returns the existing
+    // row instead of throwing or double-recording.
+    const { created, vote: ballot } = await recordUserVoteOnce({
       user_id: session.userId,
       vote_id: voteId,
       option_id: optionId,
-      payment_id: paymentTxId,
     });
 
-    // Increment vote option count (atomic)
-    await incrementVoteOption(optionId);
-
-    // Increment vote participant count
-    await supabaseAdmin
-      .from('votes')
-      .update({
-        participant_count: (vote.participant_count || 0) + 1,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', voteId);
-
-    // Send payment receipt email
-    try {
-      await emailService.sendPaymentReceiptEmail({
-        to: user.email,
-        firstName: user.first_name || 'User',
-        amount: 3,
-        type: 'vote',
-        receiptUrl: `${process.env.NEXT_PUBLIC_APP_URL}/receipts/${paymentTxId}`,
-        tokensEarned: 3,
-      });
-    } catch (e) {
-      console.warn('Could not send receipt email:', e);
+    // Move the tally and participant count only for a genuinely new ballot -
+    // never on the duplicate path, or the count drifts above the ballot count.
+    if (created) {
+      await incrementVoteOption(optionId);
+      await supabaseAdmin
+        .from('votes')
+        .update({
+          participant_count: (vote.participant_count || 0) + 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', voteId);
     }
-
-    // Return participation in Converge-compatible format
-    const participation = {
-      id: userVote.id,
-      voteId,
-      userId: session.userId,
-      optionId,
-      paymentTxId,
-      qubikTxHash: voteRecord.txHash,
-      gpsCoordinates: {
-        latitude: gpsCoordinates.latitude,
-        longitude: gpsCoordinates.longitude,
-        timestamp: new Date(gpsCoordinates.timestamp),
-      },
-      createdAt: userVote.created_at,
-    };
 
     return NextResponse.json({
       success: true,
-      participation,
-      txHash: voteRecord.txHash,
-      tokensEarned: 3,
+      alreadyRecorded: !created,
+      participation: {
+        id: ballot.id,
+        voteId,
+        userId: session.userId,
+        optionId: ballot.option_id,
+        createdAt: ballot.created_at,
+      },
     });
   } catch (error) {
     console.error('Error participating in vote:', error);

@@ -48,7 +48,7 @@ function validShipping(s: unknown): s is ShippingAddress {
 }
 
 export async function POST(request: Request) {
-  // Checkout requires sign-in — every order is tied to a buyer.
+  // Checkout requires sign-in - every order is tied to a buyer.
   const session = await getSessionFromRequest(request);
   if (!session) {
     return NextResponse.json(
@@ -169,7 +169,7 @@ export async function POST(request: Request) {
 
   // Dev / unconfigured: skip the real provider, return a mock thank-you URL.
   if (!isGreenInvoiceConfigured()) {
-    logger.warn('Green Invoice not configured — returning mock checkout URL', {
+    logger.warn('Green Invoice not configured - returning mock checkout URL', {
       orderId: order.id,
       totalILS,
     });

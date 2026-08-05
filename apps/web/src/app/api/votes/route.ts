@@ -17,11 +17,13 @@ const ListQuerySchema = z.object({
   municipality: z.string().min(1).optional(),
   // No .nullable(): the call site already coalesces null to undefined.
   status: z.enum(PUBLIC_VOTE_STATUSES).optional(),
+  includeOptions: z.boolean().optional(),
 });
 
 /**
  * GET /api/votes
  * List votes, optionally filtered by municipality and status.
+ * `include=options` adds option tallies (active votes only).
  */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
@@ -32,6 +34,7 @@ export async function GET(request: NextRequest) {
     // first would make ?status=in_review a 400 whose very existence confirms
     // the label is real, an existence oracle for the review vocabulary.
     status: normalizeStatusFilter(params.get('status')) ?? undefined,
+    includeOptions: params.get('include') === 'options' || undefined,
   });
   return respond(query.asyncAndThen(listVotes));
 }
@@ -49,7 +52,7 @@ export async function POST(request: NextRequest) {
   const session = await getSessionFromRequest(request);
   if (!session) return respond(errAsync(unauthorized()));
 
-  // after() needs a live request scope (unavailable in unit tests) — fall
+  // after() needs a live request scope (unavailable in unit tests) - fall
   // back to fire-and-forget so notification fan-out never blocks/breaks.
   const defer = (task: () => Promise<void>) => {
     try {

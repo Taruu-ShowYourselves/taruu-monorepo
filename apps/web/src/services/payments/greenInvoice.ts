@@ -1,5 +1,5 @@
 /**
- * Green Invoice (morning) Payment Service — vote fees
+ * Green Invoice (morning) Payment Service - vote fees
  *
  * Green Invoice is the Israeli merchant of record for vote payments: it collects
  * ILS on a hosted payment page and auto-issues a tax document on success. This
@@ -24,14 +24,22 @@
 
 import { timingSafeEqual } from 'node:crypto';
 import type { PaymentWebhookEvent } from '@sync/shared';
-import { VOTE_COST, CREATE_VOTE_COST } from '@sync/shared';
+import { CREATE_VOTE_COST } from '@sync/shared';
 import { getToken, isGreenInvoiceConfigured } from '@/services/greenInvoice';
 import { logger } from '@/lib/logger';
 
 // === Configuration ===
 
 // Payment amounts in ILS (source of truth lives in @sync/shared constants)
-const VOTE_PARTICIPATION_AMOUNT = VOTE_COST; // ₪3
+/**
+ * LEGACY ₪3 vote-participation charge. Participation is free since cfa5d25 and
+ * no web surface creates this payment any more, but the `vote_participation`
+ * rail is still wired through /api/payments/create. The amount is pinned here
+ * rather than imported from @sync/shared so the free-participation constant can
+ * never be mistaken for a live price. Retiring this rail belongs to the Phase 3
+ * payment re-scope.
+ */
+const VOTE_PARTICIPATION_AMOUNT = 3;
 const VOTE_CREATION_AMOUNT = CREATE_VOTE_COST; // ₪50
 
 /** Green Invoice document type for a hosted payment request (issues a receipt/invoice). */
@@ -49,7 +57,7 @@ function resolveBaseUrl(): string {
 // === Types ===
 
 interface PaymentIntent {
-  /** Our internal payment id — Green Invoice issues no transaction id up front. */
+  /** Our internal payment id - Green Invoice issues no transaction id up front. */
   id: string;
   amount: number;
   currency: 'ILS';
@@ -129,7 +137,7 @@ async function createPaymentForm(params: {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
   const secret = process.env.GREENINVOICE_WEBHOOK_SECRET || '';
   // Green Invoice's hosted-form notify supports only a URL (no custom headers), so
-  // the shared secret rides as `?token=` — matched by the webhook, which also
+  // the shared secret rides as `?token=` - matched by the webhook, which also
   // accepts an `x-greeninvoice-token` header. (Header/HMAC transport is tracked in
   // CONCERNS.md; the hosted-form flow can't attach a header.)
   const notifyUrl = `${appUrl}/api/payments/webhook${secret ? `?token=${encodeURIComponent(secret)}` : ''}`;
@@ -222,7 +230,7 @@ export async function createVoteCreationPayment(params: {
 /**
  * Look up an issued Green Invoice document (by its id, stored as the payment's
  * provider id after the webhook fires) to recover the hosted receipt URL.
- * Best-effort — used only to attach a receipt link, never to gate money.
+ * Best-effort - used only to attach a receipt link, never to gate money.
  */
 export async function getPaymentStatus(documentId: string): Promise<PaymentResult> {
   const doc = await giRequest<{ url?: { origin?: string; he?: string } | string }>(
@@ -253,7 +261,7 @@ export async function getInvoiceUrl(documentId: string): Promise<string> {
 
 /**
  * Issue a Green Invoice credit note (חשבונית זיכוי) against an original document.
- * Admin/support use only — the user-facing flow only *records* a refund request.
+ * Admin/support use only - the user-facing flow only *records* a refund request.
  * Verify the credit-note document type + field names against your account before
  * relying on this in production.
  */
@@ -296,10 +304,10 @@ export function verifyWebhook(request: Request): boolean {
   const secret = process.env.GREENINVOICE_WEBHOOK_SECRET || '';
   if (!secret) {
     if (process.env.NODE_ENV === 'production') {
-      logger.error('Payments webhook: GREENINVOICE_WEBHOOK_SECRET unset in production — rejecting');
+      logger.error('Payments webhook: GREENINVOICE_WEBHOOK_SECRET unset in production - rejecting');
       return false;
     }
-    logger.warn('Payments webhook: GREENINVOICE_WEBHOOK_SECRET unset — UNAUTHENTICATED (dev only)');
+    logger.warn('Payments webhook: GREENINVOICE_WEBHOOK_SECRET unset - UNAUTHENTICATED (dev only)');
     return true;
   }
   const provided =

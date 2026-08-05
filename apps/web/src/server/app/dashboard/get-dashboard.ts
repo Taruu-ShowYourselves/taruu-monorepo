@@ -3,7 +3,7 @@
  *
  * Replaces six independent client fetches (stats, participations, billing,
  * fund contributions, certificates, city pulse) with a single server-side
- * composition — one round-trip for the client, parallel IO here.
+ * composition - one round-trip for the client, parallel IO here.
  */
 
 import { ResultAsync } from 'neverthrow';

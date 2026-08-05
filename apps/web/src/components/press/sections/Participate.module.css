@@ -61,7 +61,7 @@
 }
 
 /* ============================================================
- * SPEC SHEET GRID — asymmetric bento of boxed figures
+ * SPEC SHEET GRID - asymmetric bento of boxed figures
  * Mobile: single column. Desktop: 2-col with the ballot
  * spanning the full height of the inline-end column.
  * ============================================================ */
@@ -131,7 +131,7 @@
 }
 
 /* ============================================================
- * FIG. 2 — BUTTON RACK
+ * FIG. 2 - BUTTON RACK
  * ============================================================ */
 .buttonRack {
   display: flex;
@@ -161,7 +161,7 @@
 }
 
 /* ============================================================
- * FIG. 3 — CONSENSUS METER (standalone tally bars)
+ * FIG. 3 - CONSENSUS METER (standalone tally bars)
  * ============================================================ */
 .meterList {
   display: flex;
@@ -211,7 +211,7 @@
 }
 
 /* ============================================================
- * FIG. 4 — PROPOSE TOPIC INPUT (readers' column)
+ * FIG. 4 - PROPOSE TOPIC INPUT (readers' column)
  * ============================================================ */
 .proposeForm {
   display: flex;
@@ -254,7 +254,7 @@
 }
 
 /* ============================================================
- * DESKTOP — wide asymmetric 2-col grid with column rules
+ * DESKTOP - wide asymmetric 2-col grid with column rules
  * The ballot (FIG. 1) anchors the inline-end column and spans
  * two rows; the other three plates stack in the inline-start col.
  * ============================================================ */

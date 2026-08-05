@@ -81,7 +81,7 @@
   }
 }
 
-/* Two founders — keep a 2-up byline grid at every width ≥640px. */
+/* Two founders - keep a 2-up byline grid at every width ≥640px. */
 
 .member {
   display: flex;
@@ -106,6 +106,8 @@
   font-weight: 900;
   letter-spacing: -0.02em;
   margin-block-end: var(--space-3);
+  border-radius: var(--np-radius-pill);
+  box-shadow: var(--np-shadow-soft);
 }
 
 .memberRole {

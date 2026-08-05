@@ -111,7 +111,7 @@ This is the part worth reading. All three were invisible to `tsc` and to the
 
 `space.repo.ts:listProposals` and `space-decision.repo.ts:findProposalInScope`
 embedded the submitter as `users(first_name, last_name)`. That was correct when
-05-04 and 05-05 wrote it. **This phase's own `20260802000003` broke it** by
+05-04 and 05-05 wrote it. **This phase's own `20260802000012` broke it** by
 adding `hidden_by` and `flagged_by`, giving `votes` three foreign keys into
 `users`, and PostgREST refuses to guess:
 
@@ -277,7 +277,7 @@ below.
   frames correspond to the database a reviewer will find. All 22 reproduce.
 - **A local grant-profile question, logged not fixed.** `anon` and
   `authenticated` currently hold `DELETE,INSERT,SELECT,UPDATE` on
-  `space_audit_log` in this stack, although `20260802000001` revokes exactly
+  `space_audit_log` in this stack, although `20260802000010` revokes exactly
   those — most likely the local bootstrap re-applying default privileges after
   the migrations. It changes nothing here (RLS hides every row from them, and the
   trigger refuses regardless), but **the same profile should be checked on the

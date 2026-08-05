@@ -6,7 +6,7 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { votesApi } from '@sync/api-client';
-import { Vote, VoteOption, VOTE_COST, formatCurrency, getTimeRemaining } from '@sync/shared';
+import { Vote, VoteOption, getTimeRemaining } from '@sync/shared';
 import { shareVote } from '@/lib/share';
 
 function OptionCard({
@@ -87,6 +87,7 @@ export default function VoteDetailScreen() {
   const [hasVoted, setHasVoted] = useState(false);
   const [locationVerified, setLocationVerified] = useState(false);
   const [verifyingLocation, setVerifyingLocation] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchVote = useCallback(async () => {
     try {
@@ -151,26 +152,51 @@ export default function VoteDetailScreen() {
     }
   };
 
+  /**
+   * Record the ballot on the server.
+   *
+   * This used to push to `/payment/checkout` — a leftover from when
+   * participation cost ₪3. Participation is free, so a checkout screen for a
+   * free vote was both a dead end and a false claim about what voting costs.
+   * The web flow has recorded through this endpoint since the participation
+   * fix; mobile now uses the same one, so both surfaces share a single
+   * contract and a single server-side eligibility rule.
+   */
   const handleVote = async () => {
-    if (!selectedOption || !vote) return;
+    if (!selectedOption || !vote || submitting) return;
 
-    // First verify location if not already verified
+    // Residency is checked once, server-side. The GPS step here stays as the
+    // screen's own precondition.
     if (!locationVerified) {
       const verified = await verifyLocation();
       if (!verified) return;
     }
 
-    // Navigate to Stripe payment screen with vote details
-    router.push({
-      pathname: '/payment/checkout',
-      params: {
-        type: 'vote',
-        voteId: id,
-        optionId: selectedOption,
-        voteTitle: vote.title,
-        returnPath: `/vote/${id}`,
-      },
-    });
+    setSubmitting(true);
+    try {
+      const result = await votesApi.participate({ voteId: id, optionId: selectedOption });
+
+      // The server returns the EXISTING ballot when one is already recorded,
+      // so reflect what it actually holds rather than what was tapped.
+      setSelectedOption(result.participation.optionId);
+      setHasVoted(true);
+
+      Alert.alert(
+        result.alreadyRecorded ? 'כבר הצבעתם' : 'הקול נרשם',
+        result.alreadyRecorded
+          ? 'ההצבעה שלכם כבר הייתה רשומה. זה הרישום הקיים.'
+          : 'הקול שלכם נרשם ומשויך לתושב מאומת אחד.'
+      );
+
+      // Pull the refreshed tally so the results reflect the new ballot.
+      await fetchVote();
+    } catch (err) {
+      // Never surface a raw server or gateway string.
+      console.error('Error recording vote:', err);
+      Alert.alert('הקול לא נרשם', 'משהו השתבש. בדקו את החיבור ונסו שוב.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -337,23 +363,23 @@ export default function VoteDetailScreen() {
           <View className="flex-row-reverse items-center mb-2">
             <Ionicons name="information-circle" size={16} color="#9CA3AF" />
             <Text className="text-sm text-neutral-500 font-assistant mr-2">
-              עלות הצבעה: {formatCurrency(VOTE_COST)} • נרשם בבלוקצ'יין
+              כל קול נרשם ומשויך לתושב מאומת אחד
             </Text>
           </View>
           <Text className="text-xs text-neutral-400 font-assistant text-center mb-3">
-            דמי ההשתתפות מחזקים פעולה קהילתית ושקיפות—לא "תשלום עבור דעה".
+            נדרש אימות זהות ותושבוּת חד-פעמי בלבד.
           </Text>
           <Pressable
             className={`py-4 rounded-xl items-center ${
-              selectedOption
+              selectedOption && !submitting
                 ? 'bg-primary-600 active:bg-primary-700'
                 : 'bg-neutral-300'
             }`}
             onPress={handleVote}
-            disabled={!selectedOption}
+            disabled={!selectedOption || submitting}
           >
             <Text className="text-white text-lg font-heebo font-semibold">
-              הצביעו עכשיו
+              {submitting ? 'רושמים את הקול…' : 'הצביעו עכשיו'}
             </Text>
           </Pressable>
         </Animated.View>

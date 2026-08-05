@@ -1,0 +1,65 @@
+.page {
+  background: var(--np-paper);
+  color: var(--np-ink);
+}
+
+/* Anchored sections clear the pinned rail (ActNow lives outside this dir). */
+.page :global(#act-now) {
+  scroll-margin-block-start: 3.5rem;
+}
+
+/* ============================================================
+ * S1 - page title. An index page, not a landing hero: no full
+ * viewport height, hierarchy via weight rather than scale.
+ * ============================================================ */
+.hero {
+  padding-inline: var(--np-gutter);
+  padding-block: clamp(var(--space-8), 5vw, var(--space-16))
+    clamp(var(--space-6), 3vw, var(--space-12));
+}
+
+.heroInner {
+  max-width: var(--np-container);
+  margin-inline: auto;
+}
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--np-font-meta);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--np-red);
+}
+.kickerTick {
+  inline-size: 0.7em;
+  block-size: 0.7em;
+  background: var(--np-red);
+}
+
+.headline {
+  font-family: var(--np-font-display);
+  font-weight: 900;
+  /* Deliberately below the homepage lead: 5xl mobile → 7xl desktop. */
+  font-size: clamp(var(--text-5xl), 6vw, var(--text-7xl));
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin-block: var(--space-3) var(--space-4);
+  overflow-wrap: break-word;
+}
+
+.red {
+  color: var(--np-red);
+}
+
+.standfirst {
+  font-family: var(--np-font-body);
+  font-size: clamp(var(--text-base), 0.5vw + 0.9rem, var(--text-lg));
+  line-height: 1.5;
+  color: var(--np-ink-soft);
+  max-width: 60ch;
+  margin: 0;
+}

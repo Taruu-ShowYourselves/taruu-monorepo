@@ -170,8 +170,8 @@ Deliberately **not** run: the full test suite. 05-01 executes in this same wave 
 
 05-01 independently encoded the same vocabulary in the DDL. Verified they agree, since a mismatch would make every grant insert fail at runtime with a green typecheck:
 
-- `space_capability_grants`' CHECK list in `supabase/migrations/20260802000001_space_governance.sql:89-92` is the same eleven identifiers **in the same order** as `CAPABILITIES`.
-- The four labels added by `20260802000002_vote_status_review_values.sql` (`draft`, `in_review`, `changes_requested`, `rejected`) are exactly `REVIEW_VOTE_STATUSES`.
+- `space_capability_grants`' CHECK list in `supabase/migrations/20260802000010_space_governance.sql:89-92` is the same eleven identifiers **in the same order** as `CAPABILITIES`.
+- The four labels added by `20260802000011_vote_status_review_values.sql` (`draft`, `in_review`, `changes_requested`, `rejected`) are exactly `REVIEW_VOTE_STATUSES`.
 - `auditActionFor('approve')` returns `'proposal.approved'`, which is the literal the DDL's `uq_space_proposal_single_approval` partial unique index keys on (`:157`). That index is what makes concurrent double-approval structurally impossible, so this string is load-bearing and must not be renamed.
 
 ## Requirements Tick — Deliberately Withheld

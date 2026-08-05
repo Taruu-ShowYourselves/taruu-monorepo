@@ -29,7 +29,7 @@ Playwright spec plus the seed fixture.
 
 | # | Requirement (abbreviated) | Evidence | Kind |
 |---|---|---|---|
-| **SPACE-01** | typed `spaces`, nullable `municipality_code` FK, no rewrite of `users`/`votes`/`treasury` | `20260802000001_space_governance.sql` applied cleanly from empty, one space seeded per municipality; the three legacy `municipality_id` columns are untouched in the diff. Migration-apply transcript: `05-DB-EVIDENCE.md` §1. Every surface in this run reads through `spaces.municipality_code`. | **Manual** (migration apply) + **Automated** (`space-admin-*` suites compile against the row types) |
+| **SPACE-01** | typed `spaces`, nullable `municipality_code` FK, no rewrite of `users`/`votes`/`treasury` | `20260802000010_space_governance.sql` applied cleanly from empty, one space seeded per municipality; the three legacy `municipality_id` columns are untouched in the diff. Migration-apply transcript: `05-DB-EVIDENCE.md` §1. Every surface in this run reads through `spaces.municipality_code`. | **Manual** (migration apply) + **Automated** (`space-admin-*` suites compile against the row types) |
 | **SPACE-02** | per-action grants, default deny, no roles claim in the JWT, resolved server-side per request | **Holds by construction, and the evidence is the absence of a change.** No plan in this phase touches `jose`, `apps/web/src/services/auth/session.ts`, or the session payload shape; every capability resolves from `space_capability_grants` on every request through `authorize()`. Two standing checks, both run below in §5: `git diff main --stat -- apps/web/src/services/auth/session.ts` returns nothing, and `grep -rn "roles\|capabilities" apps/web/src/services/auth/session.ts` returns nothing. Positive coverage: `space-admin-capability-matrix.test.ts` drives 22 rows over all eleven capabilities against both shipped endpoints; the live run in §3 confirms a ten-capability admin and a one-capability admin get different surfaces from the same code path. | **Automated** |
 | **SPACE-03** | object-level authorization; swapping `spaceId` yields `FORBIDDEN` with nothing disclosed | **Proven twice, and neither alone is the whole claim.** Against mocks: `space-admin-object-authz.test.ts` (automated, CI). Against a running app: the 45-probe transcript in §3, every endpoint × unauthorized / nonexistent / malformed, all byte-identical `403 {"error":"Forbidden","code":"FORBIDDEN"}`, SHA-256 confirmed equal. The mock test proves the code path; only the live transcript proves the deployed routes. | **Automated** + **Live** |
 | **SPACE-04** | every decision and role change writes an immutable audit row with actor, time, prior state, new state, reason, object; no application path can update or delete one | **Immutability is manual, and saying otherwise would misrepresent this phase's coverage.** The append-only proof (§4) runs `supabase/tests/audit_append_only.sql` by hand: 7 PASS / 0 FAIL, `42501` three times (UPDATE, DELETE, TRUNCATE), `23514` on a blank reason, `23503` on deleting an actor with history. Newly added in this run: the same refusals against the role the application actually authenticates as, and against `anon`/`authenticated` (§4.2). Row *content* is automated — `space-admin-audit.test.ts` asserts the shape, and §3's live decision shows a real row carrying `prior_state`, `new_state`, the payment id and the reason. | **Manual** (immutability) + **Automated** (row content) + **Live** (a real row written end to end) |
@@ -57,7 +57,7 @@ and all three are fixed on this branch.
 `space.repo.ts:listProposals` and `space-decision.repo.ts:findProposalInScope`
 both embedded the submitter as `users(first_name, last_name)`. That was correct
 when 05-04 and 05-05 wrote it, and **this phase's own migration broke it**:
-`20260802000003_vote_review_gating.sql` added `hidden_by` and `flagged_by`, so
+`20260802000012_vote_review_gating.sql` added `hidden_by` and `flagged_by`, so
 `votes` now carries three foreign keys into `users` and PostgREST refuses to
 guess:
 
@@ -385,7 +385,7 @@ So immutability holds in three independent layers, and they fail in this order:
 
 **One local observation, and it is a question rather than a finding.** In this
 stack `anon` and `authenticated` currently hold `DELETE,INSERT,SELECT,UPDATE` on
-`space_audit_log` even though `20260802000001` revokes exactly those:
+`space_audit_log` even though `20260802000010` revokes exactly those:
 
 ```
  anon          | DELETE,INSERT,SELECT,UPDATE

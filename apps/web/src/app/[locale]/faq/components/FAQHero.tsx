@@ -16,7 +16,7 @@ export function FAQHero() {
         </h1>
 
         <p className={styles.standfirst}>
-          כל מה שרציתם לדעת על הצבעה, אימות, כסף ופרטיות — במקום אחד.
+          כל מה שרציתם לדעת על הצבעה, אימות, כסף ופרטיות, במקום אחד.
         </p>
       </div>
     </section>

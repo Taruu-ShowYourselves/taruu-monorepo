@@ -10,14 +10,14 @@ interface ConsensusDeskProps {
 }
 
 /**
- * ConsensusDesk — the regional desk. Live topics of consensus per
+ * ConsensusDesk - the regional desk. Live topics of consensus per
  * municipality, pulled from the votes ledger and grouped by city like
  * regional editions of the paper. Server component: fetches once per
  * revalidation window, hands the grouped map to the client picker.
  */
 export async function ConsensusDesk({ locale = 'he' }: ConsensusDeskProps) {
   // Degrade to the empty desk when the DB is unreachable (build-time
-  // prerender in CI has no service-role key — #39); ISR refills at runtime.
+  // prerender in CI has no service-role key - #39); ISR refills at runtime.
   const votes = await getActiveVotesWithOptions().catch(() => []);
 
   const byMunicipality = new Map<string, DeskTopic[]>();

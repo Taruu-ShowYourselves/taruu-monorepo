@@ -7,7 +7,10 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { NewsButton } from '@/components/press/NewsButton';
 import { PressInput } from '@/components/press/PressInput/PressInput';
+import { PressFormCard } from '@/components/press/PressForm';
+import { PressAtmosphere } from '@/components/press/PressAtmosphere';
 import type { UserProfile } from '@sync/shared';
+import { PressLoader } from '@/components/press/PressMachine';
 import styles from './page.module.css';
 
 const REDIRECT = '/sign-in?redirect=/settings/profile';
@@ -21,6 +24,7 @@ function ProfileContent() {
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [shakeTick, setShakeTick] = useState(0);
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -82,9 +86,11 @@ function ProfileContent() {
       } else {
         const err = await response.json().catch(() => ({}));
         setErrorMessage(err.error || 'שגיאה בשמירת הפרופיל');
+        setShakeTick((t) => t + 1);
       }
     } catch {
       setErrorMessage('שגיאה בשמירת הפרופיל');
+      setShakeTick((t) => t + 1);
     } finally {
       setSaving(false);
     }
@@ -93,7 +99,7 @@ function ProfileContent() {
   if (isLoading || dataLoading) {
     return (
       <div className={styles.loadingContainer}>
-        <div className={styles.spinner} aria-hidden />
+        <PressLoader />
         <p>טוען…</p>
       </div>
     );
@@ -103,6 +109,7 @@ function ProfileContent() {
     <>
       <Header />
       <main className={styles.main}>
+        <PressAtmosphere />
         <div className={styles.container}>
           <header className={styles.head}>
             <span className={styles.kicker}>
@@ -113,8 +120,8 @@ function ProfileContent() {
               הפרטים <span className={styles.red}>שלכם.</span>
             </h1>
             <p className={styles.standfirst}>
-              עדכנו את שמכם ופרטי הקשר. המדינה היא ישראל (פיילוט במדינה אחת) —
-              העיר היא המיקום הניתן לעריכה.
+              עדכנו את שמכם ופרטי הקשר. המדינה קבועה על ישראל (פיילוט במדינה
+              אחת). העיר ניתנת לעריכה.
             </p>
           </header>
 
@@ -142,7 +149,7 @@ function ProfileContent() {
             </div>
           )}
 
-          {/* Avatar — read-only, sourced from Google */}
+          {/* Avatar - read-only, sourced from Google */}
           <section className={styles.avatarCard}>
             <span className={styles.avatarWrap} aria-hidden>
               {profile?.avatarUrl ? (
@@ -163,46 +170,54 @@ function ProfileContent() {
           </section>
 
           {/* Form */}
-          <section className={styles.formCard}>
-            <PressInput
-              type="text"
-              label="שם פרטי"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              autoComplete="given-name"
-            />
-            <PressInput
-              type="text"
-              label="שם משפחה"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              autoComplete="family-name"
-            />
-            <PressInput
-              type="tel"
-              inputMode="tel"
-              label="טלפון"
-              placeholder="050-0000000"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              autoComplete="tel"
-            />
-            <PressInput
-              type="text"
-              label="עיר"
-              placeholder="עיר מגורים"
-              hint="ישראל · פיילוט במדינה אחת"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              autoComplete="address-level2"
-            />
+          <PressFormCard className={styles.formCard} shakeSignal={shakeTick}>
+            <div data-field>
+              <PressInput
+                type="text"
+                label="שם פרטי"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                autoComplete="given-name"
+              />
+            </div>
+            <div data-field>
+              <PressInput
+                type="text"
+                label="שם משפחה"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                autoComplete="family-name"
+              />
+            </div>
+            <div data-field>
+              <PressInput
+                type="tel"
+                inputMode="tel"
+                label="טלפון"
+                placeholder="050-0000000"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                autoComplete="tel"
+              />
+            </div>
+            <div data-field>
+              <PressInput
+                type="text"
+                label="עיר"
+                placeholder="עיר מגורים"
+                hint="ישראל · פיילוט במדינה אחת"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                autoComplete="address-level2"
+              />
+            </div>
 
-            <div className={styles.formActions}>
+            <div className={styles.formActions} data-field>
               <NewsButton variant="red" size="lg" onClick={handleSave} disabled={saving}>
                 {saving ? 'שומר…' : 'שמירת שינויים'}
               </NewsButton>
             </div>
-          </section>
+          </PressFormCard>
 
           <div className={styles.backLink}>
             <NewsButton
@@ -229,7 +244,7 @@ export default function ProfileSettingsPage() {
     <SuspenseWrapper
       fallback={
         <div className={styles.loadingContainer}>
-          <div className={styles.spinner} aria-hidden />
+          <PressLoader />
           <p>טוען…</p>
         </div>
       }

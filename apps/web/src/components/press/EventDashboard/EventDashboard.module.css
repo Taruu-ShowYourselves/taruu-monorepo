@@ -1,0 +1,686 @@
+.dashboard {
+  position: relative;
+  block-size: 100svh;
+  min-block-size: 48rem;
+  overflow: hidden;
+  padding:
+    clamp(1.35rem, 2.8vh, 2.6rem)
+    var(--np-gutter)
+    clamp(1.1rem, 2.2vh, 2rem);
+  color: var(--np-ink);
+  background: var(--np-paper);
+}
+
+.dashboard::before {
+  content: 'LIVE';
+  position: absolute;
+  inset-inline-end: -0.05em;
+  inset-block-start: 8%;
+  font-family: var(--np-font-display);
+  font-size: clamp(12rem, 27vw, 31rem);
+  font-weight: 900;
+  line-height: 0.7;
+  letter-spacing: -0.08em;
+  color: rgba(20, 17, 14, 0.025);
+  pointer-events: none;
+}
+
+.inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto auto;
+  block-size: 100%;
+  max-inline-size: var(--np-container);
+  margin-inline: auto;
+}
+
+.header {
+  display: grid;
+  grid-template-columns: minmax(26rem, 1fr) auto;
+  align-items: end;
+  gap: clamp(2rem, 7vw, 8rem);
+}
+
+.headerTitle {
+  min-inline-size: 0;
+}
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-family: var(--np-font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--np-red);
+}
+
+.kicker i {
+  inline-size: 0.52rem;
+  block-size: 0.52rem;
+  background: var(--np-red);
+  animation: event-live 1.3s steps(2, start) infinite;
+}
+
+@keyframes event-live {
+  50% { opacity: 0.25; }
+}
+
+.title {
+  margin-block-start: 0.45rem;
+  font-family: var(--np-font-display);
+  font-size: clamp(3rem, 5.4vw, 6.5rem);
+  font-weight: 900;
+  line-height: 0.84;
+  letter-spacing: -0.06em;
+  white-space: nowrap;
+}
+
+.title span {
+  color: var(--np-red);
+}
+
+.clockDesk {
+  display: grid;
+  justify-items: end;
+  gap: 0.12rem;
+  padding-block-end: 0.3rem;
+  text-align: end;
+}
+
+.clockDesk time {
+  font-family: var(--np-font-display);
+  font-size: clamp(2rem, 3.4vw, 4rem);
+  font-weight: 900;
+  line-height: 0.8;
+  font-variant-numeric: tabular-nums;
+}
+
+.clockDesk span,
+.clockDesk b {
+  font-family: var(--np-font-mono);
+  font-size: 0.56rem;
+  letter-spacing: 0.06em;
+}
+
+.clockDesk span {
+  color: var(--np-ink-faint);
+}
+
+.clockDesk b {
+  color: var(--np-red);
+}
+
+.heavyRule {
+  block-size: 4px;
+  margin-block-start: clamp(0.9rem, 1.8vh, 1.5rem);
+  background: var(--np-ink);
+  transform-origin: right center;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  block-size: clamp(6.5rem, 13vh, 8.4rem);
+  border-block-end: 1px solid var(--np-ink);
+}
+
+.metrics > div {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 0.12rem;
+  min-inline-size: 0;
+  padding: clamp(0.65rem, 1.3vw, 1.1rem);
+  border-inline-start: 1px solid var(--np-ink);
+}
+
+.metrics > div:first-child {
+  border-inline-start: 0;
+}
+
+.metrics dt,
+.metrics span {
+  overflow: hidden;
+  font-family: var(--np-font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metrics dt {
+  font-size: 0.59rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.metrics dd {
+  align-self: center;
+  font-family: var(--np-font-display);
+  font-size: clamp(2.5rem, 4.3vw, 5rem);
+  font-weight: 900;
+  line-height: 0.76;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+}
+
+.metrics span {
+  font-size: 0.52rem;
+  color: var(--np-ink-faint);
+}
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: 1.16fr 0.84fr;
+  min-block-size: 0;
+  overflow: hidden;
+  border-block-end: 1px solid var(--np-ink);
+}
+
+.cityDesk,
+.leadingDesk {
+  min-inline-size: 0;
+  min-block-size: 0;
+  padding: clamp(0.8rem, 1.6vw, 1.5rem);
+}
+
+.cityDesk {
+  border-inline-end: 1px solid var(--np-ink);
+}
+
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block-end: 0.55rem;
+  border-block-end: 2px solid var(--np-ink);
+}
+
+.panelHeader > div {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.panelHeader span,
+.hotAgenda header span {
+  font-family: var(--np-font-mono);
+  font-size: 0.54rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  color: var(--np-red);
+}
+
+.panelHeader h3,
+.hotAgenda h3 {
+  font-family: var(--np-font-display);
+  font-size: clamp(1.25rem, 1.8vw, 2rem);
+  font-weight: 900;
+  line-height: 0.95;
+}
+
+.liveFlag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid var(--np-red);
+}
+
+.liveFlag i {
+  inline-size: 0.35rem;
+  block-size: 0.35rem;
+  border-radius: 50%;
+  background: var(--np-red);
+  animation: event-live 1.3s steps(2, start) infinite;
+}
+
+.cityList {
+  display: grid;
+  block-size: calc(100% - 3rem);
+}
+
+.cityList li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+  min-block-size: 0;
+  padding-inline: 0.15rem;
+  border-block-end: 1px solid rgba(20, 17, 14, 0.22);
+  transition: background-color 200ms ease, padding 200ms ease;
+}
+
+.cityList li:last-child {
+  border-block-end: 0;
+}
+
+.cityList .cityActive {
+  padding-inline: 0.65rem;
+  background: rgba(224, 48, 30, 0.075);
+}
+
+.rankNumber {
+  font-family: var(--np-font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--np-red);
+}
+
+.cityCopy {
+  position: relative;
+  display: grid;
+  gap: 0.1rem;
+  padding-block: 0.45rem 0.62rem;
+}
+
+.cityCopy b {
+  overflow: hidden;
+  font-family: var(--np-font-display);
+  font-size: clamp(0.9rem, 1.18vw, 1.15rem);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cityCopy span {
+  font-family: var(--np-font-body);
+  font-size: 0.62rem;
+  color: var(--np-ink-faint);
+}
+
+.cityCopy i {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-end: 0;
+  block-size: 2px;
+  background: var(--np-red);
+  transition: inline-size 500ms var(--np-ease);
+}
+
+.cityList strong {
+  font-family: var(--np-font-mono);
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.leadingBody {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  min-block-size: 0;
+  block-size: calc(100% - 3rem);
+  padding-block-start: 0.65rem;
+}
+
+.municipality {
+  justify-self: start;
+  padding: 0.2rem 0.45rem;
+  background: var(--np-ink);
+  font-family: var(--np-font-mono);
+  font-size: 0.54rem;
+  color: var(--np-paper);
+}
+
+.leadingBody h3 {
+  align-self: center;
+  overflow: hidden;
+  margin-block: 0.45rem;
+  font-family: var(--np-font-display);
+  font-size: clamp(1.45rem, 2.4vw, 3rem);
+  font-weight: 900;
+  line-height: 0.94;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.voteMeta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-block: 1px solid var(--np-ink);
+}
+
+.voteMeta span {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.5rem;
+  border-inline-start: 1px solid var(--np-ink);
+  font-family: var(--np-font-mono);
+  font-size: 0.52rem;
+  color: var(--np-ink-faint);
+}
+
+.voteMeta span:first-child {
+  border-inline-start: 0;
+}
+
+.voteMeta b {
+  font-size: 0.92rem;
+  color: var(--np-ink);
+}
+
+.voteLink {
+  justify-self: start;
+  margin-block-start: 0.45rem;
+  border-block-end: 2px solid var(--np-red);
+  font-family: var(--np-font-display);
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--np-red);
+}
+
+.voteLink:hover {
+  color: var(--np-ink);
+  border-color: var(--np-ink);
+}
+
+.hotAgenda {
+  display: grid;
+  grid-template-columns: minmax(12rem, 0.28fr) minmax(0, 0.72fr);
+  min-block-size: 5.2rem;
+  border-block-end: 2px solid var(--np-ink);
+}
+
+.hotAgenda > header {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: start;
+  gap: 0.3rem;
+  padding: 0.65rem 0.8rem;
+  border-inline-end: 1px solid var(--np-ink);
+}
+
+.hotAgenda header > div {
+  display: grid;
+  gap: 0.16rem;
+}
+
+.hotAgenda header > a {
+  font-family: var(--np-font-mono);
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: var(--np-red);
+}
+
+.hotAgenda ol {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.hotAgenda li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-content: center;
+  gap: 0.45rem;
+  min-inline-size: 0;
+  padding: 0.55rem 0.7rem;
+  border-inline-start: 1px solid var(--np-ink);
+}
+
+.hotAgenda li:first-child {
+  border-inline-start: 0;
+}
+
+.hotAgenda li > span {
+  font-family: var(--np-font-mono);
+  font-size: 0.54rem;
+  color: var(--np-red);
+}
+
+.hotAgenda li > a {
+  display: -webkit-box;
+  overflow: hidden;
+  font-family: var(--np-font-display);
+  font-size: clamp(0.75rem, 0.95vw, 0.92rem);
+  font-weight: 800;
+  line-height: 1.05;
+  color: var(--np-ink);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.hotAgenda li > a:hover {
+  color: var(--np-red);
+}
+
+.hotAgenda li > b {
+  grid-column: 2;
+  font-family: var(--np-font-mono);
+  font-size: 0.48rem;
+  color: var(--np-ink-faint);
+}
+
+.liveRail {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.9rem;
+  min-block-size: 2.8rem;
+  padding-inline: 0.75rem;
+  overflow: hidden;
+  background: var(--np-ink);
+  color: var(--np-paper);
+}
+
+.railLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--np-font-mono);
+  font-size: 0.54rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--np-red);
+}
+
+.railLabel i {
+  inline-size: 0.38rem;
+  block-size: 0.38rem;
+  border-radius: 50%;
+  background: var(--np-red);
+  box-shadow: 0 0 0 4px rgba(224, 48, 30, 0.2);
+}
+
+.liveEvent {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  min-inline-size: 0;
+  animation: event-jump 520ms var(--np-ease);
+}
+
+@keyframes event-jump {
+  from { opacity: 0; transform: translateY(70%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.liveEvent time,
+.liveEvent b,
+.liveEvent span,
+.railCount {
+  font-family: var(--np-font-mono);
+  font-size: 0.52rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.liveEvent time {
+  color: var(--np-red);
+}
+
+.liveEvent b {
+  padding: 0.15rem 0.35rem;
+  border: 1px solid rgba(244, 241, 232, 0.45);
+}
+
+.liveEvent strong {
+  overflow: hidden;
+  font-family: var(--np-font-display);
+  font-size: 0.74rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.liveEvent span,
+.railCount {
+  color: rgba(244, 241, 232, 0.62);
+}
+
+.empty {
+  padding-block: 1rem;
+  font-family: var(--np-font-body);
+  font-size: 0.75rem;
+  color: var(--np-ink-faint);
+}
+
+@media (max-height: 850px) and (min-width: 801px) {
+  .dashboard {
+    min-block-size: 44rem;
+  }
+
+  .title {
+    font-size: clamp(2.8rem, 4.8vw, 5.2rem);
+  }
+
+  .metrics {
+    block-size: 6.4rem;
+  }
+
+  .hotAgenda {
+    min-block-size: 4.5rem;
+  }
+}
+
+@media (max-width: 800px) {
+  .dashboard {
+    block-size: auto;
+    min-block-size: 100svh;
+    overflow: visible;
+    padding-block: 3rem 4rem;
+  }
+
+  .inner {
+    display: block;
+    block-size: auto;
+  }
+
+  .header {
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+  }
+
+  .title {
+    font-size: clamp(3.2rem, 15vw, 5.2rem);
+    white-space: normal;
+  }
+
+  .clockDesk {
+    justify-items: start;
+    text-align: start;
+  }
+
+  .metrics {
+    grid-template-columns: 1fr 1fr;
+    block-size: auto;
+  }
+
+  .metrics > div {
+    min-block-size: 7.5rem;
+    border-block-start: 1px solid var(--np-ink);
+  }
+
+  .metrics > div:nth-child(odd) {
+    border-inline-start: 0;
+  }
+
+  .dashboardGrid {
+    grid-template-columns: 1fr;
+    overflow: visible;
+  }
+
+  .cityDesk {
+    min-block-size: 25rem;
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--np-ink);
+  }
+
+  .leadingDesk {
+    min-block-size: 24rem;
+  }
+
+  .hotAgenda {
+    display: block;
+  }
+
+  .hotAgenda > header {
+    border-inline-end: 0;
+    border-block-end: 2px solid var(--np-ink);
+  }
+
+  .hotAgenda ol {
+    grid-template-columns: 1fr;
+  }
+
+  .hotAgenda li {
+    min-block-size: 4.5rem;
+    border-inline-start: 0;
+    border-block-start: 1px solid var(--np-ink);
+  }
+
+  .hotAgenda li:first-child {
+    border-block-start: 0;
+  }
+
+  .liveRail {
+    position: sticky;
+    z-index: 5;
+    inset-block-end: 0;
+    min-block-size: 3.4rem;
+  }
+
+  .railCount,
+  .liveEvent span {
+    display: none;
+  }
+
+  .liveEvent {
+    grid-template-columns: auto auto minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 460px) {
+  .dashboard {
+    padding-inline: 1.2rem;
+  }
+
+  .metrics dd {
+    font-size: 2.7rem;
+  }
+
+  .cityDesk,
+  .leadingDesk {
+    padding-inline: 0;
+  }
+
+  .liveRail {
+    margin-inline: -1.2rem;
+  }
+
+  .liveEvent time {
+    display: none;
+  }
+
+  .liveEvent {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kicker i,
+  .liveFlag i {
+    animation: none;
+  }
+
+  .liveEvent {
+    animation: none;
+  }
+}

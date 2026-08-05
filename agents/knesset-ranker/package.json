@@ -1,0 +1,24 @@
+{
+  "name": "@sync/knesset-ranker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Editorial hotness ranker for Knesset votes — Claude Agent SDK (Claude Code credentials, no API key).",
+  "scripts": {
+    "rank": "tsx src/rank.ts",
+    "docs": "tsx src/docs.ts",
+    "test": "node --import tsx --test src/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.220",
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.4.5",
+    "fflate": "^0.8.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

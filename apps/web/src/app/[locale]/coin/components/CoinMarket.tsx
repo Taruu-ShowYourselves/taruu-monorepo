@@ -98,7 +98,7 @@ export function CoinMarket({ locale = 'he' }: CoinMarketProps) {
           להשקיע בהחלטה של <span className={styles.red}>הרוב.</span>
         </h1>
         <p className={styles.standfirst}>
-          כל הצבעה מקבלת BAG משלה ב-bags.fm — מטבע ממים מבוסס בלוקצ׳יין, ממותג סביב
+          כל הצבעה מקבלת BAG משלה ב-bags.fm: מטבע ממים מבוסס בלוקצ׳יין, ממותג סביב
           הפלטפורמה, שמאפשר לאנשים מבחוץ להשקיע בתנועה הכלכלית של ההצבעה, בדיוק כמו במניה,
           ולתמוך בביצוע החלטת הרוב. ככל שה-BAG גדל, לנושא יש יותר משאבים אמיתיים מאחוריו.
           כל מספר מאומת, שקוף וחתום בבלוקצ׳יין.
@@ -156,7 +156,7 @@ export function CoinMarket({ locale = 'he' }: CoinMarketProps) {
                     {/* Municipality */}
                     <span className={styles.cMuni}>
                       <span className={styles.muniMobileLabel}>רשות</span>
-                      {coin.municipality || '—'}
+                      {coin.municipality || '-'}
                     </span>
 
                     {/* Raised + tally bar */}
@@ -244,8 +244,8 @@ function EmptyState() {
       </span>
       <h2 className={styles.emptyTitle}>עוד לא נפתחו BAGS.</h2>
       <p className={styles.emptyText}>
-        ה-BAG הראשון ייפתח ב-bags.fm עם ההצבעה הראשונה — הצטרפו לקבוצת המייסדים ותהיו
-        שם כשזה קורה.
+        ה-BAG הראשון ייפתח ב-bags.fm עם ההצבעה הראשונה, ב-04.08.26. עדכון יישלח
+        בקבוצת המייסדים.
       </p>
       <NewsButton
         href={WHATSAPP_LINK}

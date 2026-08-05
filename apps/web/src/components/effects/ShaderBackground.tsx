@@ -149,7 +149,7 @@ export function ShaderBackground() {
     const grainData = new Uint8Array(SIZE * SIZE);
     let seed = 1;
     for (let i = 0; i < grainData.length; i++) {
-      // xorshift — deterministic grain, no Math.random in render path
+      // xorshift - deterministic grain, no Math.random in render path
       seed ^= seed << 13;
       seed ^= seed >>> 17;
       seed ^= seed << 5;

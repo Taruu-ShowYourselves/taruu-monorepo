@@ -45,7 +45,7 @@ const STEPS: readonly Step[] = [
     accent: 'purple',
     scene: 'proof',
     title: 'מצביעים ומאמתים',
-    description: 'בוחרים עמדה, מאמתים נוכחות (GPS), ומשתתפים ב-₪3 שנותנים לעמדה גב.',
+    description: 'בוחרים עמדה, מאמתים נוכחות (GPS), ומצביעים. חינם.',
   },
   {
     number: '04',
@@ -75,7 +75,7 @@ export function HowItWorks({ locale: _locale = 'he' }: HowItWorksProps) {
         <header className={styles.header}>
           <Eyebrow>איך זה עובד</Eyebrow>
           <Heading level={2} align="center" className={styles.title}>
-            מהרשמה ועד השפעה —{' '}
+            מהרשמה ועד השפעה,{' '}
             <GradientText>בארבעה צעדים.</GradientText>
           </Heading>
         </header>

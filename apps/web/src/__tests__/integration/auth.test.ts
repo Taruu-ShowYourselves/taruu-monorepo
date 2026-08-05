@@ -2,7 +2,7 @@
  * Auth Flow Integration Tests
  *
  * Tests the authentication flow including:
- * - Google OIDC initiation (direct — no intermediary IdP)
+ * - Google OIDC initiation (direct - no intermediary IdP)
  * - Session management
  * - DID generation and recovery
  */
@@ -41,7 +41,7 @@ describe('Auth Flow Integration', () => {
 
       expect(authUrl.origin).toBe('https://accounts.google.com');
       expect(authUrl.searchParams.get('client_id')).toBe('test-client-id');
-      // The redirect target must be an app page — the API route only accepts
+      // The redirect target must be an app page - the API route only accepts
       // POST, so a provider GET redirect there can never complete a login.
       expect(authUrl.searchParams.get('redirect_uri')).toBe(
         'http://localhost:3000/he/sign-in'
