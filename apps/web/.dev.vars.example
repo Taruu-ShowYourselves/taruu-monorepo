@@ -84,3 +84,10 @@ CRON_SECRET=
 # Public app URLs
 NEXT_PUBLIC_APP_URL=https://taruu.co.il
 EXPO_PUBLIC_API_URL=https://api.taruu.co.il
+
+# --- Ops tokens (machine/CI credentials - NEVER pushed to the worker; see SKIP
+# in scripts/sync-secrets.sh). Pushed to GitHub Actions via sync-gh-secrets.sh.
+CLOUDFLARE_API_TOKEN=
+OPENAI_API_KEY=
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
