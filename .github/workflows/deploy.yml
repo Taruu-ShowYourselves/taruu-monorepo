@@ -79,6 +79,10 @@ jobs:
 
       - name: Notify the linked PR and issue
         if: always()
+        # Best-effort garnish: comment/Telegram posting must never fail a run
+        # whose actual deploy succeeded (org policy 403s the workflow token on
+        # issue comments).
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
