@@ -25,8 +25,9 @@ import { join } from 'node:path';
 import {
   checkRuntimeEnv,
   ALWAYS_REQUIRED_SERVER_VARS,
-  PRODUCTION_PAYMENT_VARS,
+  PAYMENTS_ENABLED_REQUIRED_VARS,
 } from '@/lib/env';
+import { PAYMENTS_ENABLED_VAR } from '@/lib/payments-flag';
 
 const SRC = join(process.cwd(), 'src');
 
@@ -61,12 +62,56 @@ describe('checkRuntimeEnv', () => {
     expect(checkRuntimeEnv({ ...ALL_PRESENT })).toEqual({ ok: true });
   });
 
-  it('requires the Green Invoice credentials once GREENINVOICE_ENV is production', () => {
-    const result = checkRuntimeEnv({ ...ALL_PRESENT, GREENINVOICE_ENV: 'production' });
+  it('requires the Green Invoice credentials once payments are ENABLED', () => {
+    const result = checkRuntimeEnv({
+      ...ALL_PRESENT,
+      [PAYMENTS_ENABLED_VAR]: 'true',
+    });
 
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.missing).toEqual([...PRODUCTION_PAYMENT_VARS]);
+    expect(result.missing).toEqual([...PAYMENTS_ENABLED_REQUIRED_VARS]);
+  });
+
+  it('serves happily with every Green Invoice credential present and payments on', () => {
+    expect(
+      checkRuntimeEnv({
+        ...ALL_PRESENT,
+        [PAYMENTS_ENABLED_VAR]: 'true',
+        GREENINVOICE_ENV: 'production',
+        GREENINVOICE_API_KEY_ID: 'key-fixture',
+        GREENINVOICE_API_SECRET: 'secret-fixture',
+        GREENINVOICE_PLUGIN_ID: 'plugin-fixture',
+        GREENINVOICE_WEBHOOK_SECRET: 'hook-fixture',
+      })
+    ).toEqual({ ok: true });
+  });
+
+  /**
+   * THE REGRESSION THIS FILE EXISTS FOR.
+   *
+   * `wrangler.jsonc` sets GREENINVOICE_ENV=production as a plain var. Under the
+   * old trigger, one unset Green Invoice secret made this gate fail and
+   * `worker.ts` answered 503 for EVERY request - the homepage, the vote feed and
+   * free participation included. A missing payment credential must never be able
+   * to take down a site that is not taking payments.
+   */
+  it('does NOT require the Green Invoice credentials while payments are off, even in production', () => {
+    expect(
+      checkRuntimeEnv({ ...ALL_PRESENT, GREENINVOICE_ENV: 'production' })
+    ).toEqual({ ok: true });
+  });
+
+  it('treats every value other than the exact string "true" as payments OFF', () => {
+    for (const value of ['false', 'TRUE', 'True', '1', 'yes', '', ' true', 'true ', 0, null, true]) {
+      expect(
+        checkRuntimeEnv({
+          ...ALL_PRESENT,
+          GREENINVOICE_ENV: 'production',
+          [PAYMENTS_ENABLED_VAR]: value,
+        })
+      ).toEqual({ ok: true });
+    }
   });
 
   it('does not require the Green Invoice credentials in sandbox', () => {
@@ -106,7 +151,7 @@ describe('checkRuntimeEnv', () => {
     const result = checkRuntimeEnv({
       ...ALL_PRESENT,
       JWT_SECRET: canary,
-      GREENINVOICE_ENV: 'production',
+      [PAYMENTS_ENABLED_VAR]: 'true',
       GREENINVOICE_API_KEY_ID: canary,
     });
 
@@ -170,6 +215,21 @@ describe('env schema names match the runtime readers', () => {
 
   it('stays dependency-free apart from zod, so worker.ts can import it pre-boot', () => {
     const imports = envSource.match(/^import .*$/gm) ?? [];
-    expect(imports).toEqual(["import { z } from 'zod';"]);
+    expect(imports).toEqual([
+      "import { z } from 'zod';",
+      "import { PAYMENTS_ENABLED_VAR, paymentsEnabledIn } from './payments-flag';",
+    ]);
+  });
+
+  it('the payments flag it imports is itself import-free', () => {
+    // The whole point of the previous assertion is that worker.ts can pull this
+    // graph in before the Next bundle boots. One local module is fine; one local
+    // module that drags in a dependency is not.
+    const flagSource = code(readFileSync(join(SRC, 'lib/payments-flag.ts'), 'utf8'));
+    expect(flagSource.match(/^import .*$/gm)).toBeNull();
+  });
+
+  it('names the payments flag in the schema so it is documented in one place', () => {
+    expect(envSource).toContain(PAYMENTS_ENABLED_VAR);
   });
 });

@@ -5,6 +5,7 @@
  */
 
 import { z } from 'zod';
+import { PAYMENTS_ENABLED_VAR, paymentsEnabledIn } from './payments-flag';
 
 // === Server-side Environment Variables ===
 
@@ -39,6 +40,12 @@ const serverEnvSchema = z.object({
     .min(1, 'SUPABASE_TP_PRIVATE_JWK must be a private JWK as JSON')
     .optional(),
 
+  // The payments kill switch. Optional, and ONLY the exact string 'true' turns
+  // money on - see lib/payments-flag.ts for why the name carries NEXT_PUBLIC_.
+  // Absent means OFF, which is the shipped default while provider approval is
+  // outstanding.
+  NEXT_PUBLIC_PAYMENTS_ENABLED: z.string().optional(),
+
   // Green Invoice (Merchant of Record - vote fees + merch)
   // Optional so dev/build without creds doesn't fail; the payment service guards on
   // isGreenInvoiceConfigured() and fails closed in production when the secret is unset.
@@ -71,6 +78,9 @@ const clientEnvSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url('NEXT_PUBLIC_APP_URL must be a valid URL'),
   NEXT_PUBLIC_SUPABASE_URL: z.string().url('NEXT_PUBLIC_SUPABASE_URL must be a valid URL'),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, 'NEXT_PUBLIC_SUPABASE_ANON_KEY is required'),
+  // Optional: an unset flag is a valid (and currently the intended) client
+  // configuration. It must never be a reason to reject the environment.
+  NEXT_PUBLIC_PAYMENTS_ENABLED: z.string().optional(),
 });
 
 // === Type Exports ===
@@ -125,6 +135,7 @@ export function getClientEnv(): ClientEnv {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_PAYMENTS_ENABLED: process.env.NEXT_PUBLIC_PAYMENTS_ENABLED,
   });
 
   if (!result.success) {
@@ -159,8 +170,20 @@ export const ALWAYS_REQUIRED_SERVER_VARS = [
   'JWT_SECRET',
 ] as const;
 
-/** Required only once GREENINVOICE_ENV is `production` - real money, real receipts. */
-export const PRODUCTION_PAYMENT_VARS = [
+/**
+ * Required only once payments are ENABLED - real money, real receipts.
+ *
+ * The trigger used to be `GREENINVOICE_ENV === 'production'`, which is set as a
+ * plain (non-secret) var in wrangler.jsonc. That coupling meant one unset Green
+ * Invoice secret took the WHOLE SITE to 503 through the gate in worker.ts -
+ * including free voting, which does not touch Green Invoice at all. The blast
+ * radius of a missing payment credential must never exceed payments.
+ *
+ * Now these are demanded only when someone has deliberately turned money on. If
+ * you flip NEXT_PUBLIC_PAYMENTS_ENABLED=true without setting them, the gate is
+ * loud - which is the correct moment to be loud.
+ */
+export const PAYMENTS_ENABLED_REQUIRED_VARS = [
   'GREENINVOICE_API_KEY_ID',
   'GREENINVOICE_API_SECRET',
   'GREENINVOICE_PLUGIN_ID',
@@ -180,6 +203,11 @@ export type RuntimeEnvCheck =
  * `process.env`. It answers one question - "can this isolate serve traffic at
  * all?" - and it must never throw, never allocate a Supabase client, and never
  * read a secret's value into anything it returns.
+ *
+ * A missing Green Invoice secret is NOT such a question while payments are off:
+ * it can stop a payment, never the site. `GREENINVOICE_ENV` is therefore no
+ * longer consulted here at all - it selects the provider's API host, and has no
+ * business deciding whether residents can read and cast free votes.
  */
 export function checkRuntimeEnv(source: Record<string, unknown>): RuntimeEnvCheck {
   const present = (name: string): boolean => {
@@ -189,12 +217,15 @@ export function checkRuntimeEnv(source: Record<string, unknown>): RuntimeEnvChec
 
   const missing = ALWAYS_REQUIRED_SERVER_VARS.filter((name) => !present(name)) as string[];
 
-  if (String(source.GREENINVOICE_ENV ?? '').toLowerCase() === 'production') {
-    missing.push(...PRODUCTION_PAYMENT_VARS.filter((name) => !present(name)));
+  if (paymentsEnabledIn(source)) {
+    missing.push(...PAYMENTS_ENABLED_REQUIRED_VARS.filter((name) => !present(name)));
   }
 
   return missing.length === 0 ? { ok: true } : { ok: false, missing };
 }
+
+/** Re-exported so the gate's one optional trigger is discoverable from here. */
+export { PAYMENTS_ENABLED_VAR };
 
 /**
  * Validates all environment variables at startup.
