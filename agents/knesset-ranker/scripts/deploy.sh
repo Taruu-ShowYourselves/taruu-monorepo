@@ -3,8 +3,9 @@
 #
 # Target comes from DEPLOY_SSH in .env (defaults to dolev-box); HERMES_SSH /
 # DOLEV_SSH document both boxes. Ships the package, writes the remote .env
-# (Supabase creds lifted from apps/web/.env.local), installs node (nvm) +
-# deps + the Claude Code CLI, and installs a 6-hourly crontab entry.
+# (Supabase creds lifted from apps/web/.dev.vars — the secrets source of
+# truth), installs node (nvm) + deps + the Claude Code CLI, and installs a
+# 6-hourly crontab entry.
 #
 # One manual step remains per box: `ssh -tt <target> claude login`
 # (device-code flow) so the Agent SDK has credentials.
@@ -16,7 +17,7 @@ cd "$(dirname "$0")/.."
 DEPLOY_SSH_ARG="${DEPLOY_SSH:-}"
 if [ -f .env ]; then set -a; . ./.env; set +a; fi
 TARGET="${DEPLOY_SSH_ARG:-${DEPLOY_SSH:-dolev-box}}"
-WEB_ENV="../../apps/web/.env.local"
+WEB_ENV="../../apps/web/.dev.vars"
 # Non-interactive ssh skips .bashrc — source nvm explicitly on every hop.
 NVM='export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh";'
 
