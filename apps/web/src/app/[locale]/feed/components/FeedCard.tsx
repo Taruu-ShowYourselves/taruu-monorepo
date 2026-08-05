@@ -54,7 +54,9 @@ function FeedCardImpl({
 }: FeedCardProps) {
   const { cardRef, stage, advance } = useDeckStage({ rootRef, index, onPosition });
 
-  const { topic, ranking, agenda, isNational, scope } = item;
+  // `doc`, not `document` - shadowing the DOM global in a client component
+  // is a lint trap waiting for the next edit.
+  const { topic, ranking, agenda, document: doc, isNational, scope } = item;
   const total = topic.options.reduce((sum, option) => sum + option.votes, 0);
   const leading = topic.options[0] ?? null;
   const days = daysRemaining(topic.endDate);
@@ -62,6 +64,10 @@ function FeedCardImpl({
   // Same three-grade resolution as the desks - a bill must not be called one
   // thing on the front page and another in the reader's feed.
   const headline = topicHeadline(topic, ranking);
+  // Same rule as the desk tiles: every Knesset item carries identical agenda
+  // boilerplate as its description, so where the ranker wrote a rationale it
+  // is the background, not the boilerplate.
+  const standfirst = ranking?.rationale ?? topic.description;
 
   return (
     <article
@@ -146,7 +152,7 @@ function FeedCardImpl({
 
             <h3 className={styles.deckTitle}>{headline}</h3>
 
-            <p className={styles.body}>{topic.description}</p>
+            <p className={styles.body}>{standfirst}</p>
 
             {agenda ? (
               <p className={styles.agenda}>
@@ -163,9 +169,44 @@ function FeedCardImpl({
               </p>
             ) : null}
 
+            {doc ? (
+              <aside className={styles.doc} aria-label="תקציר המסמך הרשמי">
+                <span className={styles.docKicker}>מה על השולחן · THE DOCUMENT</span>
+                {doc.summary ? (
+                  <p
+                    className={styles.docText}
+                    title="תקציר אוטומטי מתוך המסמך הרשמי - הנוסח המחייב הוא המקור"
+                  >
+                    {doc.summary}
+                  </p>
+                ) : null}
+                <span className={styles.docMeta}>
+                  {doc.docGroup ? <span>{doc.docGroup}</span> : null}
+                  {doc.docUrl ? (
+                    <a
+                      href={doc.docUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.docLink}
+                    >
+                      למסמך הרשמי ↗
+                    </a>
+                  ) : null}
+                </span>
+              </aside>
+            ) : null}
+
+            {/* Both evidence strips where both exist - the reactions the AI
+                found at the source and the press the ranker verified are
+                different facts, not alternatives. The heat badge prints once,
+                on the editorial strip where the desk ranked the item. */}
             {topic.source ? (
-              <SourceMetrics source={topic.source} heatRank={heatRank} />
-            ) : ranking ? (
+              <SourceMetrics
+                source={topic.source}
+                heatRank={ranking ? undefined : heatRank}
+              />
+            ) : null}
+            {ranking ? (
               <RankingMetrics ranking={ranking} heatRank={heatRank} />
             ) : null}
           </section>

@@ -35,6 +35,16 @@ export interface FeedAgenda {
   readonly isDiscussion: boolean;
 }
 
+/** The official document behind a national item - the bill on the table. */
+export interface FeedDocument {
+  /** AI summary of the attached official document (bill / proposal text). */
+  readonly summary: string | null;
+  /** fs.knesset.gov.il link to the original document. */
+  readonly docUrl: string | null;
+  /** Document class, e.g. 'הצעת חוק לקריאה הראשונה'. */
+  readonly docGroup: string | null;
+}
+
 export interface FeedTopicItem {
   readonly id: string;
   /** Municipality name, or KNESSET_SCOPE for national items. */
@@ -45,6 +55,7 @@ export interface FeedTopicItem {
   readonly topic: DeskTopic;
   readonly ranking: DeskRanking | null;
   readonly agenda: FeedAgenda | null;
+  readonly document: FeedDocument | null;
 }
 
 /**
@@ -83,6 +94,16 @@ function toFeedAgenda(item: KnessetItem): FeedAgenda {
   };
 }
 
+/** The item's official document, or null when it carries neither text nor link. */
+function toFeedDocument(item: KnessetItem): FeedDocument | null {
+  if (!item.summary && !item.doc_url) return null;
+  return {
+    summary: item.summary,
+    docUrl: item.doc_url,
+    docGroup: item.doc_group,
+  };
+}
+
 /**
  * Flatten active votes (+ Knesset metadata and rankings) into the feed stream.
  * Nothing here is load-bearing beyond the vote itself: a missing ranking or
@@ -114,6 +135,7 @@ export function buildFeedItems(
       topic,
       ranking: rankingRow ? toDeskRanking(rankingRow) : null,
       agenda: agendaRow ? toFeedAgenda(agendaRow) : null,
+      document: agendaRow ? toFeedDocument(agendaRow) : null,
     };
   });
 }

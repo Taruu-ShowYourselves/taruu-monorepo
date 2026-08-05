@@ -84,3 +84,4 @@ apps/web/*.traineddata
 # playwright artifacts
 apps/web/playwright-report/
 apps/web/test-results/
+supabase/.branches/
