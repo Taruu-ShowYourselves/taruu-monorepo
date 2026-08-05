@@ -13,9 +13,18 @@
  * stash and the redirect itself stay in the components.
  */
 
+import { PAYMENTS_DISABLED_CODE } from '@/lib/payments-flag';
+
 /** Hebrew, user-facing. A gateway string must never reach a user. */
 export const CHECKOUT_ERROR_MESSAGE = 'משהו השתבש אצלנו, לא אצלכם. נסו שוב בעוד רגע.';
 export const CHECKOUT_UNAVAILABLE_MESSAGE = 'התשלום אינו זמין כרגע. נסו שוב בעוד רגע.';
+/**
+ * Distinct from the two above: this is not a fault and not a blip, so "נסו שוב
+ * בעוד רגע" would be a lie. Reached only by a stale client - the page renders a
+ * coming-soon plate instead of the wizard while payments are off.
+ */
+export const CHECKOUT_DISABLED_MESSAGE =
+  'יצירת הצבעה עדיין לא נפתחה. ההשתתפות בהצבעות פתוחה וחינמית.';
 
 export interface CheckoutPayment {
   readonly id: string;
@@ -64,6 +73,12 @@ function readServerError(payload: unknown): string {
   return 'no error field';
 }
 
+/** The machine code, when the server sent one. Drives message selection only. */
+function readServerCode(payload: unknown): string | null {
+  if (isRecord(payload) && isNonEmptyString(payload.code)) return payload.code;
+  return null;
+}
+
 function checkoutError(message: string): CheckoutStart {
   return { kind: 'error', message };
 }
@@ -95,6 +110,12 @@ export async function startVoteCreationCheckout(
   const payload: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
+    // Payments are off product-wide. Say so plainly rather than dressing a
+    // deliberate closure up as a transient failure.
+    if (readServerCode(payload) === PAYMENTS_DISABLED_CODE) {
+      return checkoutError(CHECKOUT_DISABLED_MESSAGE);
+    }
+
     console.error(
       'Vote-creation checkout rejected:',
       response.status,

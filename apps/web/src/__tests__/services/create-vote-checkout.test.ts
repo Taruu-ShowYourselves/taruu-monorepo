@@ -26,7 +26,9 @@ import {
   classifyFinalizeResponse,
   CHECKOUT_ERROR_MESSAGE,
   CHECKOUT_UNAVAILABLE_MESSAGE,
+  CHECKOUT_DISABLED_MESSAGE,
 } from '@/services/payments/createVoteCheckout';
+import { PAYMENTS_DISABLED_CODE } from '@/lib/payments-flag';
 
 const VOTE_TITLE = 'הקמת גן שעשועים חדש בשכונה';
 
@@ -113,6 +115,28 @@ describe('startVoteCreationCheckout', () => {
 
   it('returns the Hebrew general error on a non-2xx', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(500, { error: 'boom' }));
+
+    const result = await startVoteCreationCheckout({ fetch: fetchImpl }, { voteTitle: VOTE_TITLE });
+
+    expect(result).toEqual({ kind: 'error', message: CHECKOUT_ERROR_MESSAGE });
+  });
+
+  it('says payments are not open yet on a 503 PAYMENTS_DISABLED', async () => {
+    // Only a stale client reaches this: the page renders a coming-soon plate
+    // instead of the wizard. "Try again in a moment" would be a lie, so the
+    // deliberate closure gets its own honest message.
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse(503, { error: 'התשלומים עדיין לא נפתחו.', code: PAYMENTS_DISABLED_CODE })
+    );
+
+    const result = await startVoteCreationCheckout({ fetch: fetchImpl }, { voteTitle: VOTE_TITLE });
+
+    expect(result).toEqual({ kind: 'error', message: CHECKOUT_DISABLED_MESSAGE });
+    expect(CHECKOUT_DISABLED_MESSAGE).not.toBe(CHECKOUT_ERROR_MESSAGE);
+  });
+
+  it('does not mistake an unrelated 503 for the kill switch', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(503, { error: 'upstream down' }));
 
     const result = await startVoteCreationCheckout({ fetch: fetchImpl }, { voteTitle: VOTE_TITLE });
 

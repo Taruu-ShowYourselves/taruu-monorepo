@@ -14,6 +14,7 @@ import {
 } from '@/components/press';
 import { useAuth } from '@/providers/AuthProvider';
 import { startVoteCreationCheckout } from '@/services/payments/createVoteCheckout';
+import { paymentsEnabled } from '@/lib/payments-flag';
 import { CREATE_VOTE_COST, formatCurrency } from '@sync/shared';
 import styles from './page.module.css';
 
@@ -40,6 +41,21 @@ const DURATIONS = [
 ];
 
 const STEP_COUNT = STEP_LABELS.length;
+
+/**
+ * Vote creation is the ₪50 paid action, so it is closed while payments are off.
+ * Read once at module scope: NEXT_PUBLIC_PAYMENTS_ENABLED is inlined at build
+ * time, so it cannot change under a running client.
+ *
+ * Participation is FREE and entirely unaffected - residents keep voting.
+ */
+const PAYMENTS_OPEN = paymentsEnabled();
+
+/** Coming-soon copy. States a condition, never a date, and asks for nothing. */
+const SOON_KICKER = 'בקרוב · COMING SOON';
+const SOON_LEAD = 'אנחנו משלימים את הסדרת התשלומים מול ספק הסליקה. עד שזה יושלם אי אפשר לפתוח הצבעה חדשה.';
+const SOON_FREE_NOTE = 'ההשתתפות בהצבעות פתוחה וחינמית: אפשר להצביע כבר עכשיו בכל הצבעה פעילה בעיר שלכם.';
+const SOON_NO_CHARGE = 'לא נגבה מכם דבר, ולא נפתח לכם תשלום, עד שהיצירה תיפתח כאן במלואה.';
 
 export default function CreateVotePage() {
   const router = useRouter();
@@ -140,6 +156,12 @@ export default function CreateVotePage() {
   };
 
   const handleSubmit = async () => {
+    // Belt and braces. The wizard is not rendered at all while payments are off
+    // (see the coming-soon return below), and /api/payments/create answers 503
+    // regardless - but no code path may hand a resident a checkout we cannot
+    // honour.
+    if (!PAYMENTS_OPEN) return;
+
     if (!isAuthenticated) {
       router.push('/sign-in?redirect=/votes/create');
       return;
@@ -183,6 +205,53 @@ export default function CreateVotePage() {
     sessionStorage.setItem('pendingVote', JSON.stringify(pendingVote));
     window.location.href = result.payment.paymentUrl;
   };
+
+  // ----- Payments closed: coming-soon plate ------------------------------
+  // Returned BEFORE the auth skeleton on purpose - this state does not depend on
+  // who is reading, and a resident should never watch a spinner resolve into a
+  // form they cannot submit. No wizard, no price, no checkout, no signup.
+  if (!PAYMENTS_OPEN) {
+    return (
+      <>
+        <Header />
+        <main className={styles.main}>
+          <div className={styles.container}>
+            <header className={styles.head}>
+              <span className={styles.kicker}>
+                <span aria-hidden className={styles.kickerTick} />
+                טור הקוראים · יצירת הצבעה
+              </span>
+              <h1 className={styles.headline}>
+                יצירת הצבעה <span className={styles.red}>עוד לא נפתחה.</span>
+              </h1>
+              <p className={styles.standfirst}>{SOON_LEAD}</p>
+            </header>
+
+            <div className={styles.plate}>
+              <div className={styles.plateBody}>
+                <span className={styles.plateKicker}>{SOON_KICKER}</span>
+                <p className={styles.plateNote}>{SOON_FREE_NOTE}</p>
+                <p className={styles.plateNote}>{SOON_NO_CHARGE}</p>
+              </div>
+            </div>
+
+            <div className={styles.actionBar}>
+              <NewsButton
+                href="/votes"
+                variant="red"
+                size="lg"
+                className={styles.primaryAction}
+                trailing={<span aria-hidden>←</span>}
+              >
+                להצבעות הפעילות
+              </NewsButton>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
 
   // ----- Loading skeleton (press furniture) ------------------------------
   if (isLoading) {

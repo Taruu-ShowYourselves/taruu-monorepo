@@ -17,8 +17,21 @@ import {
 } from '@sync/shared';
 import type { CheckoutRequest, CheckoutResponse, ShippingAddress } from '@sync/shared';
 import type { Locale } from '@/lib/i18n';
+import { paymentsEnabled } from '@/lib/payments-flag';
 import { QtyStepper } from '../../components/QtyStepper';
 import styles from './CartView.module.css';
+
+/**
+ * The store cannot charge while payments are off, so the checkout affordance is
+ * a coming-soon stamp rather than a button that would 503. Read once at module
+ * scope: NEXT_PUBLIC_PAYMENTS_ENABLED is inlined at build time.
+ */
+const PAYMENTS_OPEN = paymentsEnabled();
+
+/** Coming-soon copy. A condition, never a date - and nothing is collected. */
+const CHECKOUT_SOON_LABEL = 'התשלום ייפתח בקרוב';
+const CHECKOUT_SOON_NOTE =
+  'המעבר לתשלום עדיין לא נפתח. אפשר להשאיר את הפריטים בעגלה - הם נשמרים כאן עד שהחנות תיפתח לתשלום.';
 
 const GENERIC_ERROR = 'משהו השתבש אצלנו, לא אצלכם. נסו שוב בעוד רגע.';
 const REQUIRED_MSG = 'צריך למלא את השדה הזה כדי להמשיך.';
@@ -78,6 +91,9 @@ export function CartView({ locale }: CartViewProps) {
 
   const handleCheckout = async () => {
     setSubmitError(null);
+    // Belt and braces: the button is disabled while payments are off, and
+    // /api/merch/checkout answers 503 regardless.
+    if (!PAYMENTS_OPEN) return;
     if (items.length === 0) return;
 
     // Checkout requires sign-in - send guests to sign-in and back to the cart.
@@ -285,7 +301,9 @@ export function CartView({ locale }: CartViewProps) {
               <span aria-hidden className={styles.trustMark}>
                 ■
               </span>
-              משלוח לישראל בלבד · תשלום מאובטח בשקלים.
+              {PAYMENTS_OPEN
+                ? 'משלוח לישראל בלבד · תשלום מאובטח בשקלים.'
+                : CHECKOUT_SOON_NOTE}
             </p>
 
             {submitError ? (
@@ -297,13 +315,18 @@ export function CartView({ locale }: CartViewProps) {
 
             <div className={styles.actionBar}>
               <NewsButton
-                variant="red"
+                variant={PAYMENTS_OPEN ? 'red' : 'outline'}
                 size="lg"
                 onClick={handleCheckout}
-                disabled={submitting}
-                trailing={<span aria-hidden>←</span>}
+                disabled={submitting || !PAYMENTS_OPEN}
+                aria-disabled={!PAYMENTS_OPEN}
+                trailing={PAYMENTS_OPEN ? <span aria-hidden>←</span> : undefined}
               >
-                {submitting ? 'רגע…' : `למעבר לתשלום · ₪${total}`}
+                {!PAYMENTS_OPEN
+                  ? CHECKOUT_SOON_LABEL
+                  : submitting
+                    ? 'רגע…'
+                    : `למעבר לתשלום · ₪${total}`}
               </NewsButton>
               <Link href={`/${locale}/store`} className={styles.keepShopping}>
                 המשך קנייה ↑
