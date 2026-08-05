@@ -7,7 +7,7 @@ import { MunicipalityLink } from '@/components/uikit/municipality-link';
 import { useLiveTallies } from '@/hooks';
 import type { VoteFilter } from './types';
 import styles from './VotesList.module.css';
-import { WHATSAPP_FOUNDERS_LINK } from '@sync/shared';
+import { KNESSET_SCOPE, WHATSAPP_FOUNDERS_LINK } from '@sync/shared';
 
 // Number of votes revealed per "Load More" click
 const PAGE_SIZE = 6;
@@ -150,9 +150,11 @@ function RecordCard({ vote }: { vote: Vote }) {
 
 interface VotesListProps {
   filter: VoteFilter;
+  /** Municipality desk to show, or null for the nationwide edition. */
+  municipality: string | null;
 }
 
-export function VotesList({ filter }: VotesListProps) {
+export function VotesList({ filter, municipality }: VotesListProps) {
   const [votes, setVotes] = useState<Vote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -188,30 +190,42 @@ export function VotesList({ filter }: VotesListProps) {
   }, [filter, votes]);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     async function fetchVotes() {
       try {
         setIsLoading(true);
         setError(null);
 
-        const response = await fetch('/api/votes');
+        const url = municipality
+          ? `/api/votes?municipality=${encodeURIComponent(municipality)}`
+          : '/api/votes';
+        const response = await fetch(url, { signal: controller.signal });
 
         if (!response.ok) {
           throw new Error('Failed to fetch votes');
         }
 
         const data = await response.json();
-        setVotes(data.votes ?? []);
+        // This is the municipal section: Knesset-agenda topics carry the
+        // national pseudo-municipality and belong on /knesset, never here.
+        const municipalVotes: Vote[] = (data.votes ?? []).filter(
+          (vote: Vote) => vote.municipality !== KNESSET_SCOPE
+        );
+        setVotes(municipalVotes);
       } catch (err) {
+        if (controller.signal.aborted) return;
         console.error('Error fetching votes:', err);
         setVotes([]);
         setError('לא ניתן לטעון את ההצבעות כרגע. נסו לרענן את העמוד.');
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted) setIsLoading(false);
       }
     }
 
     fetchVotes();
-  }, []);
+    return () => controller.abort();
+  }, [municipality]);
 
   if (isLoading) {
     return (
@@ -251,7 +265,7 @@ export function VotesList({ filter }: VotesListProps) {
         )}
 
         {error ? null : filteredVotes.length === 0 ? (
-          <EmptyState />
+          <EmptyState municipality={municipality} />
         ) : (
           <div className={styles.grid}>
             {visibleVotes.map((vote) =>
@@ -298,7 +312,7 @@ export function VotesList({ filter }: VotesListProps) {
  * Pre-launch empty state as press furniture: ink-boxed dispatch with dateline,
  * the nationwide opening moment and a WhatsApp CTA.
  */
-function EmptyState() {
+function EmptyState({ municipality }: { municipality: string | null }) {
   return (
     <div className={styles.emptyState}>
       <div className={styles.emptyHead}>
@@ -310,7 +324,9 @@ function EmptyState() {
       </div>
 
       <h2 className={styles.emptyTitle}>
-        עוד אין הצבעות פתוחות.
+        {municipality
+          ? `עוד אין הצבעות פתוחות ב${municipality}.`
+          : 'עוד אין הצבעות פתוחות.'}
       </h2>
 
       <p className={styles.emptyText}>

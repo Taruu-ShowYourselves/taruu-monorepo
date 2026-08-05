@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
-import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
+import { Masthead, Ticker } from '@/components/press';
+import { Colophon } from '@/components/press/sections';
 import { VotesView } from './components/VotesView';
 import type { Locale } from '@/lib/i18n';
 
@@ -18,12 +18,13 @@ export default async function VotesPage({ params }: VotesPageProps) {
   const { locale } = await params;
 
   return (
-    <>
-      <Header locale={locale} />
+    <div className="np-page">
+      <Masthead locale={locale} />
+      <Ticker />
       <main>
         <VotesView />
       </main>
-      <Footer locale={locale} />
-    </>
+      <Colophon locale={locale} />
+    </div>
   );
 }
