@@ -13,9 +13,9 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { i18n } from "@/lib/i18n/config";
 import { topReactions } from "@/components/press/reactions";
 import {
+  interleaveByCity,
   ISRAEL_MAP_PATH,
   MAP_VIEWBOX,
-  pointForMunicipality,
   type MapPoint,
 } from "./israel-map";
 import { structureKnessetTitle } from "./knesset-title";
@@ -615,18 +615,15 @@ export function CinematicIntro() {
     [signals, knessetEvidence],
   );
 
-  /** Topics without a resolvable municipality stay off the geographic desk. */
-  const placedMunicipalSignals = useMemo<PlacedSignal[]>(() => {
-    const placed: PlacedSignal[] = [];
-    for (const signal of municipalSignals) {
-      if (!signal.municipality) continue;
-      const point = pointForMunicipality(signal.municipality);
-      if (!point) continue;
-      placed.push({ signal, point });
-      if (placed.length === 24) break;
-    }
-    return placed;
-  }, [municipalSignals]);
+  /**
+   * Topics without a resolvable municipality stay off the geographic desk.
+   * Placement interleaves by city so one loud city's backlog can't fill the
+   * whole window and push every other municipality off the map.
+   */
+  const placedMunicipalSignals = useMemo<PlacedSignal[]>(
+    () => interleaveByCity(municipalSignals, 24),
+    [municipalSignals],
+  );
 
   /** The map draws one clean pin per city while its card rotates every topic. */
   const mapSignals = useMemo<PlacedSignal[]>(() => {

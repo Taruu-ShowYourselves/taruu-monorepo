@@ -57,3 +57,45 @@ export function pointForMunicipality(name: string): MapPoint | null {
 
 /** Bottom edge of the viewBox, where pin leader lines terminate. */
 export const MAP_BOTTOM_Y = 710;
+
+/** A signal that resolved to a place on the map. */
+export interface CityPlaced<T> {
+  signal: T;
+  point: MapPoint;
+}
+
+/**
+ * Place heat-sorted signals on the map, round-robin by municipality: every
+ * placeable city surfaces its hottest topic before any city gets a second
+ * slot. A straight top-N cut lets one loud city's backlog fill the whole
+ * window and starve every other pin off the map.
+ */
+export function interleaveByCity<T extends { municipality: string }>(
+  signals: readonly T[],
+  cap: number
+): CityPlaced<T>[] {
+  const buckets = new Map<string, CityPlaced<T>[]>();
+  for (const signal of signals) {
+    if (!signal.municipality) continue;
+    const point = pointForMunicipality(signal.municipality);
+    if (!point) continue;
+    const bucket = buckets.get(signal.municipality);
+    if (bucket) bucket.push({ signal, point });
+    else buckets.set(signal.municipality, [{ signal, point }]);
+  }
+
+  // Bucket iteration order is first-appearance order, which under a
+  // heat-sorted input is the cities ranked by their own hottest topic.
+  const placed: CityPlaced<T>[] = [];
+  for (let rank = 0; placed.length < cap; rank += 1) {
+    let took = false;
+    for (const bucket of buckets.values()) {
+      if (rank >= bucket.length) continue;
+      placed.push(bucket[rank]);
+      took = true;
+      if (placed.length === cap) break;
+    }
+    if (!took) break;
+  }
+  return placed;
+}
