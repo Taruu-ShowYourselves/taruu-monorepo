@@ -26,7 +26,21 @@ permissions:
   pull-requests: read
 
 jobs:
+  # CI deploy is OPTIONAL: the canonical release path is the manual
+  # `pnpm run deploy` from apps/web (wrangler OAuth). Without the
+  # CLOUDFLARE_API_TOKEN secret the deploy job skips grey - no failure,
+  # no notification. If the secret ever lands, CI takes over automatically.
+  guard:
+    runs-on: ubuntu-latest
+    outputs:
+      deployable: ${{ steps.check.outputs.deployable }}
+    steps:
+      - id: check
+        run: echo "deployable=${{ secrets.CLOUDFLARE_API_TOKEN != '' }}" >> "$GITHUB_OUTPUT"
+
   deploy:
+    needs: guard
+    if: needs.guard.outputs.deployable == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: production

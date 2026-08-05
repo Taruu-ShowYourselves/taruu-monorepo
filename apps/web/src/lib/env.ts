@@ -16,15 +16,21 @@ const serverEnvSchema = z.object({
   // JWT Session
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
 
-  // Supabase project JWT secret (RLS transport, RLS-01).
+  // Taruu's own EC P-256 signing key, as a private JWK (RLS transport, RLS-01).
   // DISTINCT from JWT_SECRET: JWT_SECRET signs the long-lived `sync-session`
-  // cookie, this one signs the short-lived access token PostgREST verifies.
-  // Optional here and guarded at the point of use (see lib/supabase/user-token.ts),
+  // cookie; this one signs the short-lived ES256 access token Supabase verifies
+  // against the JWKS we publish at /.well-known/jwks.json.
+  //
+  // We sign our own because this Supabase project migrated to asymmetric keys:
+  // its ES256 key is in_use and only the public half is ever exposed, and the
+  // legacy HS256 shared secret is retired. There is no secret to borrow.
+  //
+  // Optional here and guarded at the point of use (lib/supabase/signing-key.ts),
   // matching the GREENINVOICE_* precedent below. An unset value must not break
   // routes that never touch the user-scoped client.
-  SUPABASE_JWT_SECRET: z
+  SUPABASE_TP_PRIVATE_JWK: z
     .string()
-    .min(32, 'SUPABASE_JWT_SECRET must be at least 32 characters')
+    .min(1, 'SUPABASE_TP_PRIVATE_JWK must be a private JWK as JSON')
     .optional(),
 
   // Auth0 (primary login - OIDC Universal Login; federates Google)
