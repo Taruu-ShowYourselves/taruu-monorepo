@@ -15,7 +15,7 @@ const VALID_TYPES: TreasuryTransactionType[] = [
 /**
  * GET /api/user/treasury-contributions
  *
- * The session user's OWN treasury transactions — the personal contribution
+ * The session user's OWN treasury transactions - the personal contribution
  * ledger shown on the dashboard's "הקרן" tab.
  *
  * Ownership is enforced in SQL (`user_id = session.userId`), not by the

@@ -1,5 +1,5 @@
 /**
- * Device-local municipality preference — geo-first entry without an account.
+ * Device-local municipality preference - geo-first entry without an account.
  * Stored in localStorage (+ mirror cookie for future SSR use); never sent
  * anywhere by itself. Components listen for LOCALITY_EVENT to react live.
  */
@@ -24,13 +24,13 @@ export function setStoredMunicipality(name: string): void {
   try {
     window.localStorage.setItem(STORAGE_KEY, name);
   } catch {
-    /* storage unavailable — cookie still set below */
+    /* storage unavailable - cookie still set below */
   }
   document.cookie = `${COOKIE_KEY}=${encodeURIComponent(name)};path=/;max-age=31536000;samesite=lax`;
   window.dispatchEvent(new CustomEvent(LOCALITY_EVENT, { detail: name }));
 }
 
-/** "Not now" — stay quiet for this browser session. */
+/** "Not now" - stay quiet for this browser session. */
 export function dismissLocalityPrompt(): void {
   try {
     window.sessionStorage.setItem(DISMISS_KEY, '1');

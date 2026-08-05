@@ -9,13 +9,26 @@ import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { NextRequest } from 'next/server';
 import { GET } from '@/app/api/votes/[id]/route';
 
-// Mock database functions
+// Mock database functions. The route also enriches Knesset votes with their
+// plenum context and, for signed-in callers, their existing choice - both
+// default to "nothing found" here so the plain-vote cases stay focused.
 vi.mock('@/lib/supabase/db', () => ({
   getVoteWithOptions: vi.fn(),
+  getKnessetItemsByVoteIds: vi.fn(),
+  getUserVote: vi.fn(),
+}));
+
+vi.mock('@/services/auth/session', () => ({
+  getSessionFromRequest: vi.fn(),
 }));
 
 // Import mocked modules
-import { getVoteWithOptions } from '@/lib/supabase/db';
+import {
+  getVoteWithOptions,
+  getKnessetItemsByVoteIds,
+  getUserVote,
+} from '@/lib/supabase/db';
+import { getSessionFromRequest } from '@/services/auth/session';
 
 describe('Vote Detail API Routes', () => {
   const mockVoteWithOptions = {
@@ -38,6 +51,9 @@ describe('Vote Detail API Routes', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    (getKnessetItemsByVoteIds as Mock).mockResolvedValue([]);
+    (getUserVote as Mock).mockResolvedValue(null);
+    (getSessionFromRequest as Mock).mockResolvedValue(null);
   });
 
   describe('GET /api/votes/[id]', () => {
@@ -179,6 +195,74 @@ describe('Vote Detail API Routes', () => {
 
       expect(response.status).toBe(200);
       expect(data.vote.participantCount).toBe(0);
+    });
+
+    it('should attach Knesset plenum context when the vote has an agenda item', async () => {
+      (getVoteWithOptions as Mock).mockResolvedValue(mockVoteWithOptions);
+      (getKnessetItemsByVoteIds as Mock).mockResolvedValue([
+        {
+          knesset_num: 25,
+          session_number: 417,
+          session_date: '2026-07-13',
+          ordinal: 3,
+          item_type: 'הצעת חוק',
+          is_discussion: false,
+          summary: 'תקציר בעברית',
+          doc_url: 'https://fs.knesset.gov.il/25/law.docx',
+          doc_group: 'KNS_DocumentBill',
+        },
+      ]);
+
+      const request = new NextRequest('http://localhost:3000/api/votes/vote-123');
+      const response = await GET(request, { params: Promise.resolve({ id: 'vote-123' }) });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(getKnessetItemsByVoteIds).toHaveBeenCalledWith(['vote-123']);
+      expect(data.vote.knesset).toMatchObject({
+        knessetNum: 25,
+        sessionNumber: 417,
+        itemType: 'הצעת חוק',
+        summary: 'תקציר בעברית',
+        docUrl: 'https://fs.knesset.gov.il/25/law.docx',
+      });
+    });
+
+    it('should omit Knesset context for municipal votes', async () => {
+      (getVoteWithOptions as Mock).mockResolvedValue(mockVoteWithOptions);
+
+      const request = new NextRequest('http://localhost:3000/api/votes/vote-123');
+      const response = await GET(request, { params: Promise.resolve({ id: 'vote-123' }) });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.vote.knesset).toBeUndefined();
+    });
+
+    it("should surface a signed-in caller's existing choice", async () => {
+      (getVoteWithOptions as Mock).mockResolvedValue(mockVoteWithOptions);
+      (getSessionFromRequest as Mock).mockResolvedValue({ userId: 'user-456' });
+      (getUserVote as Mock).mockResolvedValue({ option_id: 'opt-2' });
+
+      const request = new NextRequest('http://localhost:3000/api/votes/vote-123');
+      const response = await GET(request, { params: Promise.resolve({ id: 'vote-123' }) });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(getUserVote).toHaveBeenCalledWith('user-456', 'vote-123');
+      expect(data.vote.userVote).toBe('opt-2');
+    });
+
+    it('should still serve the vote when the session or choice lookup fails', async () => {
+      (getVoteWithOptions as Mock).mockResolvedValue(mockVoteWithOptions);
+      (getSessionFromRequest as Mock).mockRejectedValue(new Error('bad token'));
+
+      const request = new NextRequest('http://localhost:3000/api/votes/vote-123');
+      const response = await GET(request, { params: Promise.resolve({ id: 'vote-123' }) });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.vote.userVote).toBeUndefined();
     });
   });
 });

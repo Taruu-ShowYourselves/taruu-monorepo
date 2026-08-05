@@ -7,6 +7,7 @@ export * from './auth';
 export * from './social';
 export * from './verification';
 export * from './identityDocument';
+export * from './role';
 export * from './payment';
 export * from './vote';
 export * from './bags';

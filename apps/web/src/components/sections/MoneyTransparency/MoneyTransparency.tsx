@@ -12,7 +12,7 @@ import styles from './MoneyTransparency.module.css';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-/** Shekel mark — clean inline glyph, no emoji. */
+/** Shekel mark - clean inline glyph, no emoji. */
 function Shekel({ className }: { className?: string }) {
   return (
     <span className={className} aria-hidden>
@@ -22,7 +22,7 @@ function Shekel({ className }: { className?: string }) {
 }
 
 /**
- * MoneyTransparency — neutralizes the "why pay?" objection around the ₪3 vote
+ * MoneyTransparency - neutralizes the "why pay?" objection around the ₪3 vote
  * fee. The centerpiece is an instantly-legible split of ₪3 → ₪2 (community
  * fund, green) + ₪1 (operations, blue) rendered as a proportional bar that
  * fills on inView, plus two proportionally-sized glass cards (≈2fr / 1fr).
@@ -44,7 +44,7 @@ export function MoneyTransparency({ locale }: { locale?: Locale }) {
           <AnimatedFadeInUp>
             <Eyebrow>
               <span className={styles.eyebrowInner}>
-                <Shekel className={styles.eyebrowShekel} />3 — ולמה זה לא קנס
+                <Shekel className={styles.eyebrowShekel} />3, ולמה זה לא קנס
               </span>
             </Eyebrow>
           </AnimatedFadeInUp>
@@ -61,7 +61,7 @@ export function MoneyTransparency({ locale }: { locale?: Locale }) {
           <AnimatedFadeInUp delay={0.1}>
             <Text as="p" size="lg" color="secondary" className={styles.body}>
               דמי ההשתתפות (<Shekel className={styles.inlineShekel} />3) הם מה שהופך קליק
-              לעמדה רצינית — וגם מה שמממן את הקהילה עצמה:
+              לעמדה רצינית, וגם מה שמממן את הקהילה עצמה:
             </Text>
           </AnimatedFadeInUp>
         </header>
@@ -180,7 +180,7 @@ export function MoneyTransparency({ locale }: { locale?: Locale }) {
             </svg>
           </span>
           <Text as="p" size="base" weight="medium" className={styles.trustText}>
-            כל הוצאה מהקרן מתועדת ופומבית. בלי חדרים סגורים — גם פה.
+            כל הוצאה מהקרן מתועדת ופומבית. בלי חדרים סגורים, גם פה.
           </Text>
         </AnimatedFadeInUp>
 

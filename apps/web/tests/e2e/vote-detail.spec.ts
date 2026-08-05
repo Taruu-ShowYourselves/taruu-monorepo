@@ -1,5 +1,5 @@
 /**
- * E2E — vote detail page renders for real votes (regression).
+ * E2E - vote detail page renders for real votes (regression).
  *
  * Guards the API↔page contract: the detail route returns
  * `{ vote: { options: [{label/voteCount + text/votes aliases}] } }`, and a

@@ -11,7 +11,7 @@
 }
 
 /* ============================================
- * Dateline — top of the dispatch
+ * Dateline - top of the dispatch
  * ============================================ */
 .dateline {
   display: flex;
@@ -39,7 +39,7 @@
 }
 
 /* ============================================
- * Editorial layout — asymmetric on wide
+ * Editorial layout - asymmetric on wide
  * ============================================ */
 .grid {
   display: grid;
@@ -159,7 +159,7 @@
   display: block;
 }
 
-/* The proof element — huge headline date */
+/* The proof element - huge headline date */
 .proofDate {
   display: flex;
   flex-direction: column;
@@ -186,7 +186,7 @@
   color: var(--np-ink-faint);
 }
 
-/* Pull-quote — red block furniture */
+/* Pull-quote - red block furniture */
 .pullQuote {
   border: var(--np-rule) solid var(--np-ink);
   padding: clamp(var(--space-5), 2vw, var(--space-8));

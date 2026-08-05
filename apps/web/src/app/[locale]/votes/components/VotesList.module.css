@@ -224,7 +224,7 @@
   margin-block-start: clamp(var(--space-8), 5vw, var(--space-16));
 }
 
-/* --- Empty state — ink dispatch --- */
+/* --- Empty state - ink dispatch --- */
 .emptyState {
   background: var(--np-ink);
   color: var(--np-paper);

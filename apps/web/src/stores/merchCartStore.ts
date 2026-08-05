@@ -1,5 +1,5 @@
 /**
- * Merch Cart Store — Zustand state for the press storefront cart.
+ * Merch Cart Store - Zustand state for the press storefront cart.
  *
  * Mirrors the persist pattern of authStore. Lines are self-contained
  * CartItem records (denormalised name/price/image) so the cart renders

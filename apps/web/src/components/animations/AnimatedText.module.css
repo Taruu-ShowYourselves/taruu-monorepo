@@ -18,7 +18,7 @@
   transform-style: preserve-3d;
 }
 
-/* Words stay atomic — wrap between words, never inside them */
+/* Words stay atomic - wrap between words, never inside them */
 .letterWord {
   display: inline-block;
   white-space: nowrap;

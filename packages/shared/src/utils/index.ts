@@ -14,6 +14,9 @@ export * from './retry';
 // Re-export Israeli identity-document utilities
 export * from './israeliId';
 
+// Re-export engagement hotness scale
+export * from './hotness';
+
 /**
  * Format currency in ILS
  */

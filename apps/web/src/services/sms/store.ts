@@ -1,5 +1,5 @@
 /**
- * OTP store — keyed, TTL'd storage for one-time codes.
+ * OTP store - keyed, TTL'd storage for one-time codes.
  *
  * Primary backend is Cloudflare Workers KV (bound as `OTP_KV`), the idiomatic
  * primitive for short-lived keyed state: native per-key TTL, globally available
@@ -7,10 +7,10 @@
  * or Node unit tests) it falls back to a per-isolate in-memory map with manual
  * expiry, so the flow stays testable without infrastructure.
  *
- * Codes are never stored in plaintext — only a SHA-256 hash (see otp.ts).
+ * Codes are never stored in plaintext - only a SHA-256 hash (see otp.ts).
  */
 
-/** Minimal KV surface we use — avoids @cloudflare/workers-types (clashes with the Next DOM lib). */
+/** Minimal KV surface we use - avoids @cloudflare/workers-types (clashes with the Next DOM lib). */
 interface KvLike {
   get(key: string): Promise<string | null>;
   put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
@@ -49,7 +49,7 @@ function kvStore(kv: KvLike): OtpStore {
   };
 }
 
-// Per-isolate fallback. Not shared across instances — fine for dev/test only.
+// Per-isolate fallback. Not shared across instances - fine for dev/test only.
 const memory = new Map<string, { record: OtpRecord; expiresAt: number }>();
 
 function memoryStore(): OtpStore {
@@ -82,7 +82,7 @@ export async function getOtpStore(): Promise<OtpStore> {
     const env = getCloudflareContext().env as { OTP_KV?: KvLike };
     if (env?.OTP_KV) return kvStore(env.OTP_KV);
   } catch {
-    // No Cloudflare context (next dev without binding / Node test) — fall through.
+    // No Cloudflare context (next dev without binding / Node test) - fall through.
   }
   return memoryStore();
 }

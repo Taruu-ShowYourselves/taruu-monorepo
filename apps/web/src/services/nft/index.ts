@@ -389,7 +389,7 @@ async function sendResolutionEmails(voteId: string, voteTitle: string): Promise<
     })
   );
 
-  // Push the same audience (best-effort, chunked). Generic payload — the email
+  // Push the same audience (best-effort, chunked). Generic payload - the email
   // carries the personalised detail.
   try {
     const tokenLists = await Promise.all(
@@ -399,7 +399,7 @@ async function sendResolutionEmails(voteId: string, voteTitle: string): Promise<
     if (tokens.length > 0) {
       await sendBatchNotifications(tokens, {
         title: '📊 התוצאות בפנים',
-        body: `ההצבעה "${voteTitle}" הוכרעה — הבחירה: ${winning.text}.`,
+        body: `ההצבעה "${voteTitle}" הוכרעה - הבחירה: ${winning.text}.`,
         data: { type: 'vote_results', voteId, screen: `/votes/${voteId}` },
         channelId: 'votes',
         priority: 'high',

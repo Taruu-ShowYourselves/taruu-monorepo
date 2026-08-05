@@ -90,7 +90,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     initAuth();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sign in — direct Google OIDC (the Auth0 hop is gone). Google redirects
+  // Sign in - direct Google OIDC (the Auth0 hop is gone). Google redirects
   // back to the sign-in page, where the callback effect below exchanges the
   // code. The redirect target must be an app page: the API route only
   // accepts POST, so pointing the provider redirect at it 405s forever.

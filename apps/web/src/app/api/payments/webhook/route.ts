@@ -28,7 +28,7 @@ import { webhookLogger as log } from '@/lib/logger';
  * - Shared-secret token auth (`?token=` query or `x-greeninvoice-token` header;
  *   constant-time compare, fail-closed in production). Green Invoice's hosted-form
  *   notify supports only a URL, so the secret rides in the query string.
- * - event_id tracking (uniqueness — prevents duplicate processing).
+ * - event_id tracking (uniqueness - prevents duplicate processing).
  * - Idempotent payment processing (safe retries).
  *
  * Fulfilment on a successful payment notification (document issued):
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
   try {
     // Verify webhook authenticity (shared secret) BEFORE reading the body.
     if (!paymentService.verifyWebhook(request)) {
-      log.error('Webhook auth failed — bad or missing token');
+      log.error('Webhook auth failed - bad or missing token');
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       } catch (insertError) {
         // Unique-constraint race: a concurrent delivery of the same event won the
         // insert. Treat this delivery as a replay and let the winner process it.
-        log.info('Concurrent webhook insert detected — treating as replay', {
+        log.info('Concurrent webhook insert detected - treating as replay', {
           eventId: generatedEventId,
           error: insertError instanceof Error ? insertError.message : insertError,
         });
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Atomic claim: pending→completed in one statement. Only the delivery
-        // that flips the row runs fulfilment — Green Invoice retries the notify on
+        // that flips the row runs fulfilment - Green Invoice retries the notify on
         // any non-2xx, so a TOCTOU status read would double-credit treasury +
         // double-mint tokens. The loser is idempotent.
         const claimed = await markPaymentCompleted(payment.id, event.paymentId);

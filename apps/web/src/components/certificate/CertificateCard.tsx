@@ -1,5 +1,6 @@
 'use client';
 
+import { MunicipalityLink } from '@/components/uikit/municipality-link';
 import styles from './CertificateCard.module.css';
 
 export type CertificateType = 'verified_voter' | 'civic_patron';
@@ -32,15 +33,15 @@ const STATUS: Record<CertificateStatus, { label: string; tone: 'live' | 'wait' |
 };
 
 function fmtDate(iso?: string | null): string {
-  if (!iso) return '—';
+  if (!iso) return '–';
   try {
     return new Date(iso).toLocaleDateString('he-IL');
   } catch {
-    return '—';
+    return '–';
   }
 }
 
-/** Hard-edged press certificate — type-based seal artwork + the vote's record. */
+/** Hard-edged press certificate - type-based seal artwork + the vote's record. */
 export function CertificateCard({ cert }: { cert: Certificate }) {
   const status = STATUS[cert.status] ?? STATUS.pending;
   const seal = cert.mintTxHash || cert.mintAddress || null;
@@ -59,7 +60,7 @@ export function CertificateCard({ cert }: { cert: Certificate }) {
         <dl className={styles.meta}>
           <div className={styles.metaRow}>
             <dt>רשות</dt>
-            <dd>{cert.municipality}</dd>
+            <dd><MunicipalityLink name={cert.municipality} /></dd>
           </div>
           <div className={styles.metaRow}>
             <dt>הונפק</dt>
@@ -67,7 +68,7 @@ export function CertificateCard({ cert }: { cert: Certificate }) {
           </div>
           <div className={styles.metaRow}>
             <dt>חתימה</dt>
-            <dd className={styles.seal}>{seal ? `${seal.slice(0, 10)}…` : '—'}</dd>
+            <dd className={styles.seal}>{seal ? `${seal.slice(0, 10)}…` : '–'}</dd>
           </div>
         </dl>
 

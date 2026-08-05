@@ -7,7 +7,7 @@
  *
  * Scope note: these cover the dashboard surface only. The create-vote and
  * participation flows, the payment APIs and the Masthead are deliberately NOT
- * asserted here — they are out of scope for this slice and unchanged.
+ * asserted here - they are out of scope for this slice and unchanged.
  *
  * This repo has no component-test setup (vitest runs `environment: 'node'`,
  * @testing-library is not installed), so these assert against the dashboard

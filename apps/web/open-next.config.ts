@@ -5,7 +5,7 @@ import { defineCloudflareConfig } from '@opennextjs/cloudflare';
  *
  * Defaults are correct for this app: SSR + API routes run on the Workers
  * Node.js runtime (see `nodejs_compat` in wrangler.jsonc). No incremental
- * cache binding is configured yet — add an R2 / KV `incrementalCache` here if
+ * cache binding is configured yet - add an R2 / KV `incrementalCache` here if
  * ISR/Data-Cache persistence is needed across deploys.
  *
  * @see https://opennext.js.org/cloudflare

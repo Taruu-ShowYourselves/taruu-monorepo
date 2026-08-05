@@ -1,5 +1,5 @@
 /**
- * Payment verification — Result-typed wrappers over the legacy helpers.
+ * Payment verification - Result-typed wrappers over the legacy helpers.
  */
 
 import { ResultAsync, errAsync, okAsync } from 'neverthrow';

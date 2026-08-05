@@ -133,7 +133,7 @@ export function ProductDetail({ product, locale }: ProductDetailProps) {
                 <span aria-hidden className={styles.trustMark}>
                   ■
                 </span>
-                הדפסה לפי הזמנה — נשלח תוך 7–14 ימי עסקים.
+                הדפסה לפי הזמנה. נשלח תוך 7–14 ימי עסקים.
               </li>
               <li className={styles.trustRow}>
                 <span aria-hidden className={styles.trustMark}>

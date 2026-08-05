@@ -13,7 +13,7 @@ const SuspenseWrapper = Suspense as unknown as (props: {
 
 export const metadata: Metadata = {
   title: 'ההזמנה התקבלה | חנות המערכת',
-  description: 'אישור הזמנה — שילוח תוך 7–14 ימי עסקים וחשבונית מס במייל.',
+  description: 'אישור הזמנה: שילוח תוך 7–14 ימי עסקים וחשבונית מס במייל.',
 };
 
 interface ThankYouPageProps {

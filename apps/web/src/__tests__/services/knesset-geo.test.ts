@@ -2,7 +2,7 @@
  * National-scope GPS verification tests
  *
  * Knesset day-order votes carry municipality_id = KNESSET_SCOPE, which has no
- * municipal polygon — verifyCheckIn must accept any location inside Israel
+ * municipal polygon - verifyCheckIn must accept any location inside Israel
  * for them, and keep rejecting unknown municipalities otherwise.
  */
 

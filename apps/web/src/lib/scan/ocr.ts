@@ -1,11 +1,11 @@
 /**
- * Tesseract.js worker lifecycle — fully self-hosted (public/ocr), so the
+ * Tesseract.js worker lifecycle - fully self-hosted (public/ocr), so the
  * document image never leaves the device: WASM core, worker script and
  * heb+eng traineddata are all served from our own origin.
  *
  * Two passes per scan:
- *  1. heb+eng full text — names, labels, general layout;
- *  2. digit-whitelist   — numbers and dates without bidi reordering noise
+ *  1. heb+eng full text - names, labels, general layout;
+ *  2. digit-whitelist   - numbers and dates without bidi reordering noise
  *     (digits embedded in RTL lines come back scrambled in pass 1).
  */
 
@@ -72,6 +72,6 @@ export async function disposeOcr(): Promise<void> {
   try {
     await (await pending).terminate();
   } catch {
-    /* already dead — nothing to release */
+    /* already dead - nothing to release */
   }
 }

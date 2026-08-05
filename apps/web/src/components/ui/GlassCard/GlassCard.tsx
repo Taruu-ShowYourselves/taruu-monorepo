@@ -6,7 +6,7 @@ import clsx from 'clsx';
 import { useReducedMotion } from '@/hooks';
 import styles from './GlassCard.module.css';
 
-type GlassVariant = 'static' | 'interactive' | 'spotlight';
+type GlassVariant = 'static' | 'interactive' | 'spotlight' | 'press';
 
 interface GlassCardProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: GlassVariant;
@@ -25,8 +25,12 @@ const glowRGB: Record<string, string> = {
 
 /**
  * Liquid-glass surface. `spotlight` tracks the cursor to illuminate the border
- * (motion values only — no React re-renders). Falls back to a static glass
+ * (motion values only - no React re-renders). Falls back to a static glass
  * surface under reduced motion or on touch.
+ *
+ * `press` is the newsprint-era glass: `--np-glass-*` tokens, hard 2px ink
+ * border, `--np-radius-card`, no hover physics - the live-money layer of the
+ * brutalist tech-press system. Luminous variants stay untouched (legacy).
  */
 export function GlassCard({
   variant = 'static',
@@ -62,6 +66,7 @@ export function GlassCard({
         styles.card,
         variant === 'interactive' && styles.interactive,
         variant === 'spotlight' && styles.spotlight,
+        variant === 'press' && styles.press,
         className
       )}
       onMouseMove={handleMove}

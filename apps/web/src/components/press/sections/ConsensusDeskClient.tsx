@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { MUNICIPALITY_GEO, distanceKm } from '@sync/shared';
 import { NewsButton } from '@/components/press/NewsButton';
 import { getStoredMunicipality, LOCALITY_EVENT } from '@/lib/locality';
-import { DeskTopicRow, type DeskTopic } from './DeskTopicRow';
+import { DeskTopicRow, slotVariant, type DeskTopic } from './DeskTopicRow';
 import { DeskCarousel } from './DeskCarousel';
 import styles from './ConsensusDesk.module.css';
 
@@ -18,10 +19,9 @@ interface ConsensusDeskClientProps {
 }
 
 /**
- * ConsensusDeskClient — municipality tabs styled as regional edition
- * mastheads; each topic is an index entry with live consensus meters and
- * the engagement heat of its source posts. The reader's stored locality
- * (GeoGate) opens their own board first.
+ * ConsensusDeskClient - one continuous carousel of all live topics; each
+ * card names its municipality (chip → profile page). The reader's stored
+ * locality (GeoGate) puts their own city's topics first.
  */
 export function ConsensusDeskClient({ desks, locale }: ConsensusDeskClientProps) {
   const [home, setHome] = useState<string | null>(null);
@@ -33,23 +33,43 @@ export function ConsensusDeskClient({ desks, locale }: ConsensusDeskClientProps)
     return () => window.removeEventListener(LOCALITY_EVENT, apply);
   }, []);
 
-  // Reader's municipality first, then the rest in server order.
-  const ordered = useMemo(() => {
-    if (!home) return desks;
-    const mine = desks.find((d) => d.municipality === home);
-    if (!mine) return desks;
-    return [mine, ...desks.filter((d) => d.municipality !== home)];
+  // Single stream of cards. heatRank is the pure country-wide heat position
+  // (the badge); display order blends heat with distance from the reader's
+  // municipality - home first, then surroundings (e.g. a קריית טבעון reader
+  // sees the עמק before תל אביב), fading to national heat with no locality.
+  const entries = useMemo(() => {
+    const flat = desks.flatMap((desk) =>
+      desk.topics.map((topic) => ({ topic, municipality: desk.municipality }))
+    );
+    const byHeat = [...flat].sort(
+      (a, b) => (b.topic.source?.hotness ?? -1) - (a.topic.source?.hotness ?? -1)
+    );
+    const heatRank = new Map<string, number>();
+    byHeat.forEach(({ topic }, i) => {
+      if (topic.source) heatRank.set(topic.id, i + 1);
+    });
+
+    const geoByName = new Map(MUNICIPALITY_GEO.map((m) => [m.name, m]));
+    const homeGeo = home ? geoByName.get(home) : undefined;
+    // ~0.7 heat points per km: a topic 20km away needs +14 heat to outrank a
+    // local one; 100km away it effectively drops to the national tail.
+    const KM_WEIGHT = 0.7;
+    const UNKNOWN_PENALTY = 40;
+    const localityScore = ({ topic, municipality }: (typeof flat)[number]) => {
+      const heat = topic.source?.hotness ?? 0;
+      if (!homeGeo) return heat;
+      if (municipality === home) return heat + 1000;
+      const geo = geoByName.get(municipality);
+      const penalty = geo
+        ? distanceKm(homeGeo.lat, homeGeo.lng, geo.lat, geo.lng) * KM_WEIGHT
+        : UNKNOWN_PENALTY;
+      return heat - penalty;
+    };
+
+    return [...byHeat]
+      .sort((a, b) => localityScore(b) - localityScore(a))
+      .map((e) => ({ ...e, heatRank: heatRank.get(e.topic.id) }));
   }, [desks, home]);
-
-  const [selected, setSelected] = useState(desks[0]?.municipality ?? '');
-
-  useEffect(() => {
-    if (home && desks.some((d) => d.municipality === home)) {
-      setSelected(home);
-    }
-  }, [home, desks]);
-
-  const activeDesk = ordered.find((d) => d.municipality === selected);
 
   return (
     <section id="consensus-desk" className={styles.desk} aria-labelledby="consensus-desk-headline">
@@ -61,21 +81,26 @@ export function ConsensusDeskClient({ desks, locale }: ConsensusDeskClientProps)
           </span>
 
           <h2 id="consensus-desk-headline" className={styles.headline}>
-            נושאי הקונצנזוס — <span className={styles.red}>רשות אחר רשות.</span>
+            נושאי הקונצנזוס, <span className={styles.red}>רשות אחר רשות.</span>
           </h2>
 
           <p className={styles.standfirst}>
-            מה עומד להצבעה עכשיו בעיר שלכם. כל נושא נספר בזמן אמת, קול אחר קול —
-            בחרו רשות וראו את מפת הקונצנזוס שלה.
+            מה עומד להצבעה עכשיו בעיר שלכם. הנושאים נספרים בזמן אמת מתוך קבוצות
+            הפייסבוק המקומיות.
           </p>
+
+          <span className={styles.homeChip}>
+            <span aria-hidden className={styles.homeChipDot} />
+            {home ? `המהדורה שלכם: ${home} והסביבה` : 'מהדורה ארצית - לפי חום'}
+          </span>
         </header>
 
         <div className={styles.ruleHeavy} aria-hidden />
 
-        {desks.length === 0 ? (
+        {entries.length === 0 ? (
           <div className={styles.emptyState}>
             <p className={styles.emptyLede}>
-              המערכת פתוחה — עדיין אין נושאים פעילים על השולחן.
+              המערכת פתוחה. עדיין אין נושאים פעילים על השולחן.
             </p>
             <p className={styles.emptyNote}>
               היו הראשונים להעלות נושא לרשות שלכם.
@@ -91,40 +116,19 @@ export function ConsensusDeskClient({ desks, locale }: ConsensusDeskClientProps)
           </div>
         ) : (
           <>
-            {/* Municipality picker — regional edition tabs */}
-            <div className={styles.editions} role="tablist" aria-label="בחירת רשות">
-              {ordered.map((desk) => {
-                const isActive = desk.municipality === selected;
-                const isHome = desk.municipality === home;
-                return (
-                  <button
-                    key={desk.municipality}
-                    type="button"
-                    role="tab"
-                    aria-selected={isActive}
-                    className={`${styles.edition} ${isActive ? styles.editionActive : ''}`}
-                    onClick={() => setSelected(desk.municipality)}
-                  >
-                    {isHome ? (
-                      <span className={styles.homeMark} aria-label="הרשות שלי" title="הרשות שלי">
-                        ●
-                      </span>
-                    ) : null}
-                    <span className={styles.editionName}>{desk.municipality}</span>
-                    <span className={styles.editionCount}>{desk.topics.length}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Topic carousel for the selected municipality */}
-            {activeDesk && (
-              <DeskCarousel label={`נושאים ב${activeDesk.municipality}`}>
-                {activeDesk.topics.map((topic, i) => (
-                  <DeskTopicRow key={topic.id} topic={topic} index={i} locale={locale} />
-                ))}
-              </DeskCarousel>
-            )}
+            <DeskCarousel label="נושאי הקונצנזוס לפי רשות">
+              {entries.map(({ topic, municipality, heatRank }, i) => (
+                <DeskTopicRow
+                  key={topic.id}
+                  topic={topic}
+                  municipality={municipality}
+                  index={i}
+                  heatRank={heatRank}
+                  variant={slotVariant(i)}
+                  locale={locale}
+                />
+              ))}
+            </DeskCarousel>
 
             <div className={styles.deskFooter}>
               <NewsButton

@@ -1,5 +1,5 @@
 /* ==========================================================================
- * CREATE-VOTE WIZARD — Brutalist Tech-Press
+ * CREATE-VOTE WIZARD - Brutalist Tech-Press
  * Newsprint cream + ink + one red accent. Mobile-first single column,
  * editorial measure on ≥768, two-column plate + sticky action bar.
  * ========================================================================== */
@@ -320,7 +320,7 @@
 .skCard { inline-size: 100%; block-size: 22rem; }
 
 /* ==========================================================================
- * RESPONSIVE — editorial measure / two-column from ≥768px
+ * RESPONSIVE - editorial measure / two-column from ≥768px
  * ========================================================================== */
 @media (min-width: 48rem) {
   .successGrid {

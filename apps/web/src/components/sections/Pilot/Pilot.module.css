@@ -8,7 +8,7 @@
     var(--lc-canvas);
 }
 
-/* Soft luminous mesh aura — hero/CTA-only motif */
+/* Soft luminous mesh aura - hero/CTA-only motif */
 .mesh {
   position: absolute;
   inset: 0;
@@ -74,7 +74,7 @@
   color: var(--lc-ink-soft);
 }
 
-/* Founders pull-quote — confident, not fine print */
+/* Founders pull-quote - confident, not fine print */
 .pullquote {
   position: relative;
   margin: 0;
@@ -238,7 +238,7 @@
   margin-block-end: 0;
 }
 
-/* The date — proof of realness, the one gradient per viewport */
+/* The date - proof of realness, the one gradient per viewport */
 .dateValue {
   display: block;
   font-family: var(--font-primary);

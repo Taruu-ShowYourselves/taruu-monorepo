@@ -69,7 +69,7 @@ export function ThankYouView({ locale }: ThankYouViewProps) {
         { label: 'סך הכול', value: formatCurrency(order.totalILS), strong: true },
       ]
     : [
-        { label: 'מספר הזמנה', value: orderId ? shortId(orderId) : '—' },
+        { label: 'מספר הזמנה', value: orderId ? shortId(orderId) : '-' },
         {
           label: 'סטטוס',
           value: isMock ? 'הדגמה · לא חויב' : 'שולם · בהכנה',
@@ -91,7 +91,7 @@ export function ThankYouView({ locale }: ThankYouViewProps) {
 
         <p className={styles.standfirst}>
           {isMock
-            ? 'זוהי הדגמה — לא בוצע חיוב. בסביבת הייצור ההזמנה נשמרת, התשלום מאומת מול הספק, וחשבונית מס נשלחת למייל.'
+            ? 'זוהי הדגמה, לא בוצע חיוב. בסביבת הייצור ההזמנה נשמרת, התשלום מאומת מול הספק, וחשבונית מס נשלחת למייל.'
             : 'תודה. ההזמנה נקלטה והתשלום אושר. שותף ההדפסה-לפי-הזמנה מתחיל בהכנה, וחשבונית מס כבר בדרך למייל שלכם.'}
         </p>
 

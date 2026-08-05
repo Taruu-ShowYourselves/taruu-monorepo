@@ -14,7 +14,7 @@ import type { TreasuryTransactionType } from '@sync/shared';
  * endpoint is fail-closed: anything not named here is dropped.
  *
  * Current writers only ever set `tokenMint` (a public Solana mint address) and
- * `ilsPerSol` (an FX rate) — see services/treasury/bagSeeding.ts. The deposit
+ * `ilsPerSol` (an FX rate) - see services/treasury/bagSeeding.ts. The deposit
  * path (SQL `record_treasury_deposit`) never sets metadata at all.
  *
  * Before adding a key here, confirm it identifies a TOKEN or a RATE, never a
@@ -71,7 +71,7 @@ function redactMetadata(metadata: unknown): Record<string, unknown> | null {
  * - offset: Pagination offset (default 0)
  * - type: Filter by transaction type (deposit, allocation, withdrawal, fee_claim, token_purchase, nft_mint)
  *
- * SCOPE: municipality-wide by design — a transparency ledger is meant to show
+ * SCOPE: municipality-wide by design - a transparency ledger is meant to show
  * what a town's fund collected and spent. It therefore MUST NOT carry per-user
  * identifiers. `userId` and `paymentId` are deliberately omitted: they used to
  * be returned in full, which let any authenticated caller enumerate who paid
@@ -135,7 +135,7 @@ export async function GET(
     });
 
     // Transform to API response format.
-    // `user_id` / `payment_id` are intentionally NOT mapped — see the scope
+    // `user_id` / `payment_id` are intentionally NOT mapped - see the scope
     // note above. Do not reintroduce them here.
     const transformedTransactions = transactions.map((tx) => ({
       id: tx.id,

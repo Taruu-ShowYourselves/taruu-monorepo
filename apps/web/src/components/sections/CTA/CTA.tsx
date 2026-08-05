@@ -41,7 +41,7 @@ export function CTA({ locale = 'he' }: CTAProps) {
           </motion.div>
 
           <h2 className={styles.heading}>
-            <AnimatedLetters text="הגיע הזמן שהקול שלכם" delay={0.1} />{' '}
+            <AnimatedLetters text="הקול שלכם" delay={0.1} />{' '}
             <span className={styles.accentLine}>
               <motion.span
                 initial={{ opacity: reducedMotion ? 1 : 0, y: reducedMotion ? 0 : 20 }}
@@ -61,7 +61,7 @@ export function CTA({ locale = 'he' }: CTAProps) {
             viewport={{ once: true, margin: '-60px' }}
             transition={{ duration: 0.6, delay: 0.2, ease }}
           >
-            הצטרפו לתושבים שכבר מעצבים את העתיד של הקהילה שלהם — לפני שההצבעה הראשונה
+            הצטרפו לתושבים שכבר נרשמו, לפני שההצבעה הראשונה
             יוצאת לדרך.
           </motion.p>
 

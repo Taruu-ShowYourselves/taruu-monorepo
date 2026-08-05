@@ -1,7 +1,7 @@
 /**
  * User Treasury Contributions API Route Tests
  *
- * Tests for GET /api/user/treasury-contributions — the private, session-scoped
+ * Tests for GET /api/user/treasury-contributions - the private, session-scoped
  * replacement for the dashboard's old "fetch the whole municipality ledger and
  * filter it in the browser" flow.
  *
@@ -122,7 +122,7 @@ describe('GET /api/user/treasury-contributions', () => {
     );
     await GET(request);
 
-    // Only the user id reaches the query — there is no municipality argument at
+    // Only the user id reaches the query - there is no municipality argument at
     // all, so there is no municipality to enumerate.
     const [, options] = (getUserTreasuryTransactions as Mock).mock.calls[0];
     expect(options).not.toHaveProperty('municipality');

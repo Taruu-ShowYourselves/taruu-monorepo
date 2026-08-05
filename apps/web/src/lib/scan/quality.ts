@@ -8,7 +8,7 @@
 
 export interface QualityReport {
   ok: boolean;
-  /** Laplacian variance — higher is sharper. */
+  /** Laplacian variance - higher is sharper. */
   blurScore: number;
   /** Fraction of near-blown-out pixels (specular glare). */
   glareRatio: number;

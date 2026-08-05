@@ -44,56 +44,10 @@
 }
 .red { color: var(--np-red); }
 
-.subText {
-  font-family: var(--np-font-body);
-  font-size: var(--text-lg);
-  line-height: 1.45;
-  color: rgba(244, 241, 232, 0.7);
-  max-width: 34rem;
-}
-
 .countdown {
   inline-size: 100%;
   color: var(--np-paper);
   margin-block-end: var(--space-6);
-}
-
-.form { display: flex; align-items: flex-end; gap: var(--space-3); flex-wrap: wrap; }
-.fieldLabel { display: flex; flex-direction: column; gap: var(--space-1); flex: 1; min-width: 14rem; }
-.fieldKicker {
-  font-family: var(--np-font-mono);
-  font-size: var(--text-xs);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgba(244, 241, 232, 0.7);
-}
-.input {
-  width: 100%;
-  background: var(--np-paper);
-  color: var(--np-ink);
-  border: var(--np-rule) solid var(--np-paper);
-  border-radius: 0;
-  padding: var(--space-3) var(--space-4);
-  font-family: var(--np-font-mono);
-  font-size: var(--text-base);
-  outline: none;
-}
-.input:focus { border-color: var(--np-red); }
-.input::placeholder { color: var(--np-ink-faint); }
-
-.ok {
-  font-family: var(--np-font-mono);
-  font-size: var(--text-base);
-  color: var(--np-paper);
-  border: var(--np-rule) solid var(--np-red);
-  padding: var(--space-3) var(--space-4);
-}
-.ok span { color: var(--np-red); font-weight: 800; }
-.err {
-  margin-block-start: var(--space-2);
-  font-family: var(--np-font-mono);
-  font-size: var(--text-sm);
-  color: var(--np-red);
 }
 
 .ruleMast { border-block-start: var(--np-rule-heavy) solid var(--np-paper); }

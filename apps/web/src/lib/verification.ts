@@ -4,7 +4,7 @@
  * Single source of truth for "is this user allowed to vote?". The residency
  * program continues to run scheduled check-ins in the background, but the
  * product decision is that the FIRST successful GPS check-in makes the user
- * eligible — so a fully `completed` phase is sufficient but not required.
+ * eligible - so a fully `completed` phase is sufficient but not required.
  *
  * Pure + typed against the shared `UserProfile` so both the verification page
  * and the participation gate (J2) agree on one rule.

@@ -1,7 +1,7 @@
 .footer {
   position: relative;
   overflow: hidden;
-  /* Refined deep-ink band — grounds the light site, lets the brand gradient sing.
+  /* Refined deep-ink band - grounds the light site, lets the brand gradient sing.
      Soft, hue-matched glows (not neon) bleed in from the corners. */
   background:
     radial-gradient(70% 60% at 85% 0%, rgba(37, 99, 235, 0.18) 0%, transparent 58%),

@@ -5,7 +5,7 @@
   z-index: var(--z-sticky);
 }
 
-/* Liquid-glass bar — crisp hairline, translucent fill that intensifies on scroll */
+/* Liquid-glass bar - crisp hairline, translucent fill that intensifies on scroll */
 .bar {
   position: relative;
   background: transparent;
@@ -246,7 +246,7 @@
   transform: rotate(-45deg);
 }
 
-/* Mobile Navigation — glass slide-down panel */
+/* Mobile Navigation - glass slide-down panel */
 .mobileNav {
   overflow: hidden;
   background: var(--lc-glass-fill);

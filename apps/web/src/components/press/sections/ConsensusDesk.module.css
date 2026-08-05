@@ -34,6 +34,27 @@
   background: var(--np-red);
 }
 
+.homeChip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  align-self: flex-start;
+  margin-block-start: var(--space-3);
+  padding: 0.25em 0.8em;
+  border: var(--np-rule-hair) solid var(--np-ink);
+  background: var(--np-paper-box);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--np-ink);
+}
+.homeChipDot {
+  inline-size: 0.55em;
+  block-size: 0.55em;
+  border-radius: 50%;
+  background: var(--np-red);
+}
+
 .headline {
   font-family: var(--np-font-display);
   font-weight: 900;
@@ -61,58 +82,25 @@
 }
 
 /* ============================================================
- * EDITION TABS — municipality picker as regional editions
+ * MUNICIPALITY CHIP - the edition name, inside each card
  * ============================================================ */
-.editions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0;
-  border-inline: var(--np-rule) solid var(--np-ink);
-  border-block-end: var(--np-rule) solid var(--np-ink);
-}
-
-.edition {
+.topicMuni {
+  align-self: flex-start;
   display: inline-flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  background: var(--np-paper-box);
-  border: 0;
-  border-block-start: var(--np-rule) solid var(--np-ink);
-  border-inline-end: var(--np-rule) solid var(--np-ink);
-  font-family: var(--np-font-display);
-  font-weight: 800;
-  font-size: var(--text-base);
-  color: var(--np-ink);
-  cursor: pointer;
-}
-.edition:last-child { border-inline-end: 0; }
-
-.edition:hover { background: var(--np-paper-2); }
-
-.editionActive {
+  align-items: center;
+  padding: 0.2em 0.7em;
   background: var(--np-ink);
   color: var(--np-paper);
+  font-family: var(--np-font-display);
+  font-weight: 800;
+  font-size: var(--text-sm);
+  letter-spacing: 0.02em;
+  text-decoration: none;
 }
-.editionActive:hover { background: var(--np-ink); }
-
-.editionCount {
-  font-family: var(--np-font-mono);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  color: var(--np-red);
-}
-.editionActive .editionCount { color: var(--np-paper); }
-
-.homeMark {
-  color: var(--np-red);
-  font-size: 0.6em;
-  align-self: center;
-}
-.editionActive .homeMark { color: var(--np-paper); }
+a.topicMuni:hover { background: var(--np-red); }
 
 /* ============================================================
- * TOPIC INDEX — numbered front-page index rows
+ * TOPIC INDEX - numbered front-page index rows
  * ============================================================ */
 .topicIndex {
   list-style: none;
@@ -121,35 +109,348 @@
   border-inline: var(--np-rule) solid var(--np-ink);
 }
 
-/* Carousel slide — a boxed press card with intrinsic width. */
+/* ------------------------------------------------------------------
+ * Bento tile.
+ *
+ * Stories are separated by rules and white space, not by boxing each one.
+ * Six identically-bordered white boxes in a grid read as a card wall from
+ * any decade; a broadsheet page sets its columns with hairlines and lets
+ * the newsprint show through (art direction §4, "visible column rules").
+ * The rule weight at the top of a tile is its rank in the stretch: heavy
+ * red for the lead, heavy ink for the feature, standard for a brief.
+ * ------------------------------------------------------------------ */
 .topicCard {
+  position: relative;
   flex: 0 0 auto;
   inline-size: clamp(20rem, 38vw, 27rem);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding: clamp(var(--space-4), 2vw, var(--space-6));
-  border: var(--np-rule) solid var(--np-ink);
+  padding: clamp(var(--space-3), 1.4vw, var(--space-5));
+  padding-block-start: var(--space-3);
+  border-block-start: var(--np-rule) solid var(--np-ink);
+  border-inline-start: var(--np-rule-hair) solid var(--np-paper-edge);
+  background: transparent;
+  /* The grid fixes the cell height; content must be clipped rather than
+     printed past the tile's own footprint. */
+  overflow: hidden;
+  transition: background-color var(--np-dur-snap) var(--np-ease);
+}
+
+/* Hover lifts the tile off the page into a raised box - the only moment a
+   brief is allowed to look like a card. */
+.topicCard:hover {
   background: var(--np-paper-box);
 }
 
-.topicNo {
+/* The 2×2 tile: the lead story of this stretch of the river, set as an ink
+   block. A pastel tint could not hold the top of a two-colour page - it read
+   as a washed-out card, which is exactly the look the rules above drop. */
+.topicCardLead {
+  grid-row: span 2;
+  grid-column: span 2;
+  border-block-start: var(--np-rule-heavy) solid var(--np-red);
+  background: var(--np-ink);
+  color: var(--np-paper);
+}
+
+.topicCardLead:hover {
+  background: var(--np-ink);
+}
+
+/* The tall 1×2 column: a second story at brief typography, full standing. */
+.topicCardFeature {
+  grid-row: span 2;
+  border-block-start-width: var(--np-rule-heavy);
+}
+
+/* ---- Ink-block overrides: the lead prints paper-on-ink ---- */
+.topicCardLead .topicMuni {
+  background: var(--np-paper);
+  color: var(--np-ink);
+}
+.topicCardLead a.topicMuni:hover {
+  background: var(--np-red);
+  color: var(--np-paper);
+}
+.topicCardLead .topicLink { color: var(--np-paper); }
+.topicCardLead .topicLink:hover { color: var(--np-red); }
+.topicCardLead .topicDesc,
+.topicCardLead .topicDescLead,
+.topicCardLead .aiLine {
+  color: color-mix(in srgb, var(--np-paper) 76%, var(--np-ink));
+}
+.topicCardLead .meterLabel { color: var(--np-paper); }
+.topicCardLead .meterPct { color: var(--np-paper); }
+.topicCardLead .meterTrack {
+  background: color-mix(in srgb, var(--np-ink) 78%, var(--np-paper));
+  border-color: color-mix(in srgb, var(--np-paper) 45%, var(--np-ink));
+}
+.topicCardLead .meterKicker,
+.topicCardLead .topicMeta,
+.topicCardLead .noBallots,
+.topicCardLead .fetchedAt,
+.topicCardLead .sourceLine {
+  color: color-mix(in srgb, var(--np-paper) 58%, var(--np-ink));
+}
+.topicCardLead .sourceLink { color: var(--np-paper); }
+.topicCardLead .aiCallout {
+  border-block-start-color: color-mix(in srgb, var(--np-paper) 35%, var(--np-ink));
+}
+.topicCardLead .heatTrack {
+  background: color-mix(in srgb, var(--np-paper) 24%, var(--np-ink));
+}
+.topicCardLead .leadCta:hover,
+.topicCardLead .leadCta:focus-visible {
+  background: var(--np-paper);
+  color: var(--np-ink);
+}
+
+/* Head at the top, standing + evidence pinned to the foot: the tile fills
+   from both ends instead of stacking everything against the top edge. */
+.topicBody {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.topicHead,
+.topicFoot {
+  display: flex;
+  flex-direction: column;
+  min-block-size: 0;
+}
+
+.topicHead {
+  gap: var(--space-2);
+  /* Content clamps; the box never prints a sliced half-line through its
+     own border. */
+  overflow: hidden;
+}
+
+.topicFoot {
+  gap: var(--space-2);
+}
+
+/* On the two-row tiles the headline takes the slack and centres in it, so a
+   short topic reads as front-page whitespace instead of a card that ran out of
+   copy. The standing and the evidence stay pinned to the foot either way. */
+.topicCardLead .topicHead,
+.topicCardFeature .topicHead {
+  flex: 1 1 auto;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+/* The feature is a tall narrow column, so its standfirst runs at column length
+   rather than at teaser length - a newspaper fills a deep column with text. */
+.topicCardFeature .topicDesc {
+  -webkit-line-clamp: 5;
+}
+
+@media (min-width: 801px) {
+  .topicCard {
+    gap: clamp(0.45rem, 0.8vw, var(--space-3));
+    padding: clamp(var(--space-3), 1.3vw, var(--space-5));
+  }
+
+  .topicTitle {
+    font-size: clamp(var(--text-lg), 1.45vw, var(--text-2xl));
+  }
+
+  .topicDesc {
+    margin-block-end: var(--space-2);
+    font-size: var(--text-sm);
+    line-height: 1.38;
+  }
+
+  .meterList {
+    gap: var(--space-1);
+    margin-block-end: var(--space-2);
+  }
+
+  .aiCallout {
+    margin-block-start: var(--space-2);
+  }
+}
+
+/* Two evidence depths for the lead tile; exactly one is ever displayed. */
+.evidenceNarrow {
+  display: none;
+}
+
+/* Below the bento breakpoint every card sizes to its own content, so there is
+   no slack to distribute and nothing to centre - stack from the top, and drop
+   the lead to the same evidence depth as its neighbours so one card does not
+   tower over the row. */
+@media (max-width: 800px) {
+  .topicBody {
+    justify-content: flex-start;
+  }
+
+  .topicCardLead .topicHead,
+  .topicCardFeature .topicHead {
+    flex: 0 0 auto;
+    justify-content: flex-start;
+  }
+
+  /* One flat row of equal-height cards - the feature is a brief here. */
+  .topicCardFeature .topicDesc {
+    -webkit-line-clamp: 2;
+  }
+  .topicCardFeature .topicTitle {
+    -webkit-line-clamp: 3;
+  }
+
+  .evidenceWide {
+    display: none;
+  }
+
+  .evidenceNarrow {
+    display: block;
+  }
+
+  /* Cards share one row height here, so the tallest sets the empty space in
+     every other card. The lead reads at brief length to keep that slack small. */
+  .topicCardLead .topicTitle {
+    font-size: clamp(var(--text-xl), 2vw, var(--text-3xl));
+    -webkit-line-clamp: 3;
+  }
+
+  .topicDescLead {
+    font-size: var(--text-base);
+    -webkit-line-clamp: 2;
+  }
+}
+
+/* ============================================================
+ * SLUG LINE - running number, heat bar, degrees
+ * Rides the tile's top rule so heat is comparable down the river
+ * without reading six evidence footers.
+ * ============================================================ */
+.slug {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
   font-family: var(--np-font-mono);
-  font-size: var(--text-xl);
+  font-size: var(--text-xs);
   font-weight: 800;
-  color: var(--np-red);
   line-height: 1;
 }
 
-.topicBody { min-inline-size: 0; }
+.slugNo {
+  color: var(--np-red);
+  font-size: var(--text-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.heatTrack {
+  flex: 1 1 auto;
+  block-size: 3px;
+  min-inline-size: var(--space-6);
+  background: var(--np-paper-edge);
+}
+
+.heatFill {
+  display: block;
+  block-size: 100%;
+  background: var(--np-red);
+  /* RTL-only surface: the inline start of a bar is its right edge. */
+  transform-origin: right center;
+  animation: heat-wipe var(--np-dur) var(--np-ease) both;
+}
+
+.slugHeat {
+  color: var(--np-red);
+  font-variant-numeric: tabular-nums;
+}
+
+/* An em-dash holds the degrees' place on a topic the desk has not measured. */
+.slugUnmeasured {
+  color: var(--np-ink-faint);
+}
+.topicCardLead .slugUnmeasured {
+  color: color-mix(in srgb, var(--np-paper) 50%, var(--np-ink));
+}
+
+@keyframes heat-wipe {
+  from { transform: scaleX(0); }
+}
+
+/* ---- Bill citation furniture ----
+ * A Knesset title is a citation. The instrument goes above the headline as a
+ * mono kicker and the qualifying clause below it as a tag, so the headline
+ * itself is only the subject - see lib/knesset/billTitle.ts. */
+.billKicker {
+  align-self: flex-start;
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--np-ink-faint);
+}
+
+.billQualifier {
+  align-self: flex-start;
+  padding: 0.1em 0.5em;
+  border: var(--np-rule-hair) solid var(--np-paper-edge);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--np-ink-soft);
+  /* A clause is supporting matter; it never costs the headline a line. */
+  max-inline-size: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topicCardLead .billKicker,
+.topicCardLead .billQualifier {
+  color: color-mix(in srgb, var(--np-paper) 62%, var(--np-ink));
+}
+.topicCardLead .billQualifier {
+  border-color: color-mix(in srgb, var(--np-paper) 30%, var(--np-ink));
+}
 
 .topicTitle {
   font-family: var(--np-font-display);
   font-weight: 900;
   font-size: clamp(var(--text-xl), 2vw, var(--text-3xl));
-  line-height: 1.05;
+  /* 1.05 is tighter than the ink: a clamped last line ending in a descender -
+     ק ן ף, or the brackets a bill title is full of - had its bottom sliced off
+     by the clamp box. The padding gives that ink somewhere to land. */
+  line-height: 1.1;
+  padding-block-end: 0.08em;
   letter-spacing: -0.02em;
-  margin: 0 0 var(--space-2);
+  margin: 0;
+  /* Even ranked headlines run long in Hebrew; balancing beats a last line
+     carrying one orphaned word under a 900-weight grotesque. */
+  text-wrap: balance;
+  /* Long Knesset bill titles must not eat the tile. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  /* The headline is the one thing in the head that never gives ground. As a
+     plain flex item it was shrinking below its own clamp height - the box
+     came out at two-and-a-half lines and cut the third through the middle,
+     which no amount of line-height fixes. Pressure goes to the standfirst. */
+  flex: 0 0 auto;
+}
+
+.topicCardLead .topicTitle {
+  font-size: clamp(var(--text-2xl), 2.9vw, var(--text-4xl));
+  -webkit-line-clamp: 4;
+}
+
+/* A brief gets two lines; the two-row tiles can afford four. */
+.topicCardFeature .topicTitle {
+  -webkit-line-clamp: 4;
 }
 
 .topicLink {
@@ -162,32 +463,45 @@
   text-decoration-thickness: 0.08em;
 }
 
-.topicDesc {
+.topicDesc,
+.topicDescLead {
   font-family: var(--np-font-body);
   font-size: var(--text-base);
   line-height: 1.5;
   color: var(--np-ink-soft);
-  max-width: 40rem;
-  margin: 0 0 var(--space-4);
+  max-width: 46rem;
+  margin: 0;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
+.topicDesc {
+  -webkit-line-clamp: 2;
+}
+
+/* The lead tile has the room to carry the standfirst, not just a teaser. */
+.topicDescLead {
+  -webkit-line-clamp: 5;
+  font-size: var(--text-lg);
+}
+
 /* ============================================================
- * AI DISCOVERY CALLOUT — "our AI found this" + engagement heat
+ * AI DISCOVERY STRIP - compact evidence footer of a topic card
  * ============================================================ */
 .aiCallout {
   display: grid;
+  gap: var(--space-1);
+  margin-block-start: var(--space-3);
+  padding-block-start: var(--space-2);
+  border-block-start: var(--np-rule-hair) solid var(--np-ink);
+}
+
+.aiHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-2);
-  margin: 0 0 var(--space-3);
-  padding: var(--space-3);
-  border: var(--np-rule-hair) solid var(--np-ink);
-  /* Accent bar on the inline-start (right in this RTL-only layout). */
-  box-shadow: inset -3px 0 0 var(--np-red);
-  background: var(--np-paper-2);
-  max-width: 36rem;
 }
 
 .aiKicker {
@@ -210,28 +524,40 @@
   animation: ai-pulse 1.4s steps(2, start) infinite;
 }
 
+.rankBadge {
+  padding: 0.1em 0.5em;
+  background: var(--np-red);
+  color: var(--np-paper);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.fetchedAt {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  color: var(--np-ink-faint);
+  white-space: nowrap;
+}
+
 @keyframes ai-pulse {
   50% { opacity: 0.2; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .aiPulse { animation: none; }
+  /* Bars land at their measured width instead of wiping to it. */
+  .heatFill,
+  .meterFill { animation: none; }
 }
 
-.aiLede {
-  font-family: var(--np-font-display);
+.aiLine {
+  font-family: var(--np-font-body);
   font-size: var(--text-sm);
-  font-weight: 500;
-  line-height: 1.55;
-  color: var(--np-ink);
+  line-height: 1.4;
+  color: var(--np-ink-soft);
   margin: 0;
-}
-
-.aiNum {
-  font-family: var(--np-font-mono);
-  font-weight: 800;
-  color: var(--np-red);
-  white-space: nowrap;
 }
 
 .aiStats {
@@ -243,36 +569,6 @@
   font-size: var(--text-xs);
   font-weight: 700;
   color: var(--np-ink);
-}
-
-.hotness {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.hotnessLabel {
-  letter-spacing: 0.1em;
-  color: var(--np-red);
-}
-
-.hotnessTrack {
-  display: inline-block;
-  inline-size: 4.5rem;
-  block-size: 0.65em;
-  background: var(--np-paper-box);
-  border: 1px solid var(--np-ink);
-}
-
-.hotnessFill {
-  display: block;
-  block-size: 100%;
-  background: var(--np-red);
-}
-
-.hotnessDeg {
-  font-variant-numeric: tabular-nums;
-  color: var(--np-red);
 }
 
 .metric {
@@ -305,6 +601,24 @@
   padding-inline-start: var(--space-2);
 }
 
+/* Dense one-line evidence summary for index rows (explore desks). */
+.sourceLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  margin: var(--space-1) 0 0;
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--np-ink-soft);
+}
+
+.sourceLineHeat {
+  color: var(--np-red);
+  font-variant-numeric: tabular-nums;
+}
+
 .sourceLink {
   color: var(--np-ink-soft);
   text-decoration: none;
@@ -315,14 +629,23 @@
   border-block-end-color: var(--np-red);
 }
 
-/* Consensus meters — same furniture as the Participate spec sheet */
+/* Consensus meters - same furniture as the Participate spec sheet */
 .meterList {
   list-style: none;
-  margin: 0 0 var(--space-3);
+  margin: 0;
   padding: 0;
   display: grid;
   gap: var(--space-2);
   max-width: 36rem;
+}
+
+/* Names what the single bar on a brief tile is measuring. */
+.meterKicker {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--np-ink-faint);
 }
 
 .meterRow {
@@ -350,6 +673,8 @@
   display: block;
   block-size: 100%;
   background: var(--np-red);
+  transform-origin: right center;
+  animation: heat-wipe var(--np-dur) var(--np-ease) both;
 }
 
 .meterPct {
@@ -362,14 +687,20 @@
 }
 
 .noBallots {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
   font-family: var(--np-font-mono);
-  font-size: var(--text-sm);
-  color: var(--np-ink-soft);
-  margin: 0 0 var(--space-3);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--np-ink-faint);
+  margin: 0;
 }
 
 .topicMeta {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
   font-family: var(--np-font-mono);
   font-size: var(--text-xs);
@@ -377,6 +708,38 @@
   letter-spacing: 0.06em;
   color: var(--np-ink-soft);
   margin: 0;
+}
+
+/* Heat rank rides the meta line on brief tiles - the lead keeps the badge
+   inside its full evidence strip. */
+.metaHeat {
+  color: var(--np-red-ink);
+}
+
+/* The lead tile ends in a door, not a dead edge. */
+.leadCta {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block-start: var(--space-1);
+  padding: var(--space-2) var(--space-4);
+  background: var(--np-red);
+  color: var(--np-paper);
+  font-family: var(--np-font-display);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  transition:
+    background-color var(--np-dur-snap) var(--np-ease),
+    color var(--np-dur-snap) var(--np-ease);
+}
+
+.leadCta:hover,
+.leadCta:focus-visible {
+  background: var(--np-ink);
+  color: var(--np-paper);
 }
 
 /* ============================================================
@@ -407,6 +770,8 @@
 
 .deskFooter {
   display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
   justify-content: flex-start;
   margin-block-start: clamp(var(--space-4), 2vw, var(--space-6));
 }

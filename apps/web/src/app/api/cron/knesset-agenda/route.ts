@@ -11,7 +11,7 @@ const CRON_SECRET = process.env.CRON_SECRET;
  *
  * Cron job endpoint that mirrors the Knesset plenum day order
  * (סדר יום המליאה) from the official Knesset OData API into votable
- * topics scoped to KNESSET_SCOPE. Idempotent — items dedup on their
+ * topics scoped to KNESSET_SCOPE. Idempotent - items dedup on their
  * upstream ItemID; re-runs only refresh sitting metadata.
  */
 export async function POST(request: NextRequest) {

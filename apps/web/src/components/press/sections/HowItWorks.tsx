@@ -27,7 +27,7 @@ const STEPS: readonly Step[] = [
   {
     no: '03',
     title: 'מצביעים ומאמתים',
-    body: 'בוחרים עמדה, מאמתים נוכחות (GPS), ומשתתפים ב-₪3 שנותנים לעמדה גב.',
+    body: 'בוחרים עמדה, מאמתים נוכחות (GPS), ומצביעים. חינם.',
   },
   {
     no: '04',
@@ -53,7 +53,7 @@ export function HowItWorks({ locale = 'he' }: HowItWorksProps) {
           </span>
 
           <h2 id="how-heading" className={styles.headline}>
-            מהרשמה ועד השפעה — <span className={styles.red}>בארבעה צעדים.</span>
+            מהרשמה ועד השפעה: <span className={styles.red}>ארבעה צעדים.</span>
           </h2>
         </header>
 

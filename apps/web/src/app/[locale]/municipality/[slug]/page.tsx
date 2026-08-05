@@ -8,16 +8,18 @@ import {
   type MunicipalityProfile,
   type MunicipalityVoteSummary,
 } from '@/lib/supabase/db';
+import { NewsButton } from '@/components/press/NewsButton';
+import { AnimateIn } from '@/components/uikit/animate-in';
 import { Badge } from '@/components/uikit/badge';
 import {
   Card,
   CardContent,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/uikit/card';
 import { MetricBar } from '@/components/uikit/metric-bar';
 import { Progress } from '@/components/uikit/progress';
-import { Separator } from '@/components/uikit/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/uikit/tabs';
 import type { Locale } from '@/lib/i18n';
 
@@ -38,7 +40,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const name = resolveMunicipality(slug);
   if (!name) return { title: 'רשות לא נמצאה | תַּרְאוּ' };
   return {
-    title: `${name} — פרופיל רשות | תַּרְאוּ`,
+    title: `${name} · פרופיל רשות | תַּרְאוּ`,
     description: `שביעות רצון, מעורבות אזרחית וכל ההצבעות הפתוחות והסגורות ב${name}. נתונים מאומתים, שקופים לכולם.`,
   };
 }
@@ -51,7 +53,7 @@ const dateFmt = new Intl.DateTimeFormat('he-IL', {
 });
 
 function formatDate(iso: string | null): string {
-  return iso ? dateFmt.format(new Date(iso)) : '—';
+  return iso ? dateFmt.format(new Date(iso)) : '-';
 }
 
 function formatHours(hours: number): string {
@@ -63,19 +65,19 @@ function formatHours(hours: number): string {
 function VoteCard({ vote }: { vote: MunicipalityVoteSummary }) {
   const closed = vote.status === 'ended';
   return (
-    <Card>
-      <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
-        <CardTitle>{vote.title}</CardTitle>
-        <div className="flex items-center gap-2">
+    <Card className="flex h-full flex-col">
+      <CardHeader className="flex-row flex-wrap items-start justify-between gap-2">
+        <CardTitle className="min-w-0 flex-1">{vote.title}</CardTitle>
+        <div className="flex shrink-0 items-center gap-2">
           {closed && vote.winningOption ? (
             <Badge variant="red">הוכרע: {vote.winningOption}</Badge>
           ) : null}
-          <Badge variant={closed ? 'soft' : 'default'}>
+          <Badge variant={closed ? 'default' : 'red'}>
             {closed ? 'סגורה' : 'פתוחה · LIVE'}
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-1 flex-col gap-4">
         {vote.description ? (
           <p className="font-body text-base leading-relaxed text-ink-soft">
             {vote.description}
@@ -98,15 +100,60 @@ function VoteCard({ vote }: { vote: MunicipalityVoteSummary }) {
             <p className="font-mono text-xs text-ink-faint">אין אפשרויות הצבעה.</p>
           ) : null}
         </div>
-
-        <Separator className="bg-paper-edge" />
-
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs text-ink-faint">
-          <span>{vote.totalBallots.toLocaleString('he-IL')} קולות מאומתים</span>
-          <span>נפתחה {formatDate(vote.startDate)}</span>
-          <span>{closed ? 'נסגרה' : 'נסגרת'} {formatDate(vote.endDate)}</span>
-        </div>
       </CardContent>
+      <CardFooter className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs text-ink-faint">
+        <span>{vote.totalBallots.toLocaleString('he-IL')} קולות מאומתים</span>
+        <span>נפתחה {formatDate(vote.startDate)}</span>
+        <span>{closed ? 'נסגרה' : 'נסגרת'} {formatDate(vote.endDate)}</span>
+      </CardFooter>
+    </Card>
+  );
+}
+
+/**
+ * Open topic nobody voted on yet - on the table, waiting for a first voice.
+ * "Claiming" it is simply being the first to vote.
+ */
+function TopicCard({ vote, locale }: { vote: MunicipalityVoteSummary; locale: Locale }) {
+  return (
+    <Card className="flex h-full flex-col">
+      <CardHeader className="flex-row flex-wrap items-start justify-between gap-2">
+        <CardTitle className="min-w-0 flex-1">{vote.title}</CardTitle>
+        <Badge variant="soft" className="shrink-0 border-dashed">
+          עדיין בלי קולות
+        </Badge>
+      </CardHeader>
+      <CardContent className="flex flex-1 flex-col gap-4">
+        {vote.description ? (
+          <p className="font-body text-base leading-relaxed text-ink-soft">
+            {vote.description}
+          </p>
+        ) : null}
+
+        <ul className="flex flex-wrap gap-2">
+          {vote.options.map((option) => (
+            <li
+              key={option.id}
+              className="border border-dashed border-ink-soft px-3 py-1 font-mono text-xs font-bold"
+            >
+              {option.text}
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+      <CardFooter className="flex flex-wrap items-center justify-between gap-3">
+        <NewsButton
+          href={`/${locale}/votes/${vote.id}`}
+          variant="red"
+          size="sm"
+          trailing={<span aria-hidden>←</span>}
+        >
+          הצביעו ראשונים
+        </NewsButton>
+        <span className="font-mono text-xs text-ink-faint">
+          נסגרת {formatDate(vote.endDate)}
+        </span>
+      </CardFooter>
     </Card>
   );
 }
@@ -129,7 +176,7 @@ export default async function MunicipalityProfilePage({ params }: PageProps) {
   const name = resolveMunicipality(slug);
   if (!name) notFound();
 
-  // Degrade to the empty state rather than a 500 — the page's "no data yet"
+  // Degrade to the empty state rather than a 500 - the page's "no data yet"
   // copy is honest for both an unreachable DB and a genuinely empty one.
   const { metrics, openVotes, closedVotes } = await getMunicipalityProfile(
     name
@@ -137,6 +184,12 @@ export default async function MunicipalityProfilePage({ params }: PageProps) {
     logger.error('municipality profile unavailable', { error, name });
     return EMPTY_PROFILE;
   });
+
+  // Open votes split by whether anyone has actually voted: with ballots they
+  // are live races; without, they are topics on the table waiting to be
+  // claimed by a first voter.
+  const liveVotes = openVotes.filter((v) => v.totalBallots > 0);
+  const openTopics = openVotes.filter((v) => v.totalBallots === 0);
 
   const engagementPct =
     metrics.engagementRate !== null
@@ -155,120 +208,162 @@ export default async function MunicipalityProfilePage({ params }: PageProps) {
   return (
     <div className="np-page">
       <Masthead locale={locale} />
-      <main className="mx-auto flex w-full max-w-[var(--np-container)] flex-col gap-8 px-[var(--np-gutter)] py-8">
+      <main className="np-container flex flex-col gap-8 py-8">
         {/* Dateline header */}
-        <header className="flex flex-col gap-3">
+        <header className="flex flex-col gap-4">
           <span className="flex items-center gap-2 font-mono text-sm font-extrabold uppercase tracking-widest text-red">
             <span aria-hidden className="inline-block size-[0.7em] bg-red" />
             פרופיל רשות · MUNICIPALITY
           </span>
-          <h1 className="font-display text-5xl font-black leading-none tracking-tight">
+          <h1 className="font-display text-6xl font-black leading-none tracking-tighter md:text-8xl">
             {name}
           </h1>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="outline">
-              {metrics.residents.toLocaleString('he-IL')} תושבים רשומים
-            </Badge>
-            <Badge variant="outline">
-              {metrics.participants.toLocaleString('he-IL')} מצביעים
-            </Badge>
-            <Badge variant="outline">
-              {openVotes.length} הצבעות פתוחות
-            </Badge>
+          <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2 border-y border-ink/40 py-2 font-mono text-xs font-bold uppercase tracking-widest text-ink-soft">
+            <span className="flex items-baseline gap-2">
+              <b className="font-display text-lg font-black tabular-nums text-ink">
+                {metrics.residents.toLocaleString('he-IL')}
+              </b>
+              תושבים רשומים
+            </span>
+            <span className="flex items-baseline gap-2">
+              <b className="font-display text-lg font-black tabular-nums text-ink">
+                {metrics.participants.toLocaleString('he-IL')}
+              </b>
+              מצביעים
+            </span>
+            <span className="flex items-baseline gap-2">
+              <b className="font-display text-lg font-black tabular-nums text-red">
+                {openVotes.length}
+              </b>
+              הצבעות פתוחות
+            </span>
           </div>
         </header>
 
-        <Separator />
-
-        {/* Civic metrics */}
+        {/* Civic metrics - ruled index band, no boxes */}
         <section aria-label="מדדי הרשות">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <Card>
-              <CardContent>
-                <MetricBar
-                  label="מעורבות אזרחית"
-                  value={engagementPct ?? 0}
-                  display={engagementPct !== null ? `${engagementPct}%` : '—'}
-                  caption={
-                    engagementPct !== null
-                      ? `${metrics.participants.toLocaleString('he-IL')} מצביעים מתוך ${metrics.residents.toLocaleString('he-IL')} תושבים רשומים`
-                      : 'אין עדיין נתוני הצבעה'
-                  }
-                />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent>
-                <MetricBar
-                  label="זמן עד הצבעה"
-                  value={timeBarValue ?? 0}
-                  display={
-                    metrics.avgTimeToEngageHours !== null
-                      ? formatHours(metrics.avgTimeToEngageHours)
-                      : '—'
-                  }
-                  caption={
-                    metrics.avgTimeToEngageHours !== null
-                      ? 'ממוצע מפתיחת הצבעה ועד מתן הקול'
-                      : 'אין עדיין נתוני הצבעה'
-                  }
-                />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent>
-                <MetricBar
-                  label="שביעות רצון התושבים"
-                  value={satisfactionPct ?? 0}
-                  display={
-                    metrics.satisfactionAvg !== null
-                      ? `${metrics.satisfactionAvg.toFixed(1)} / 5`
-                      : '—'
-                  }
-                  caption={
-                    metrics.satisfactionCount > 0
-                      ? `${metrics.satisfactionCount.toLocaleString('he-IL')} תושבים דירגו`
-                      : 'אין עדיין דירוגים — הדירוג נאסף בהרשמה'
-                  }
-                />
-              </CardContent>
-            </Card>
-          </div>
+          <AnimateIn className="grid grid-cols-1 border-y-2 border-ink md:grid-cols-3">
+            <div
+              data-animate
+              className="border-ink py-6 md:border-s-2 md:px-8 md:first:border-s-0 md:first:ps-0 md:last:pe-0"
+            >
+              <MetricBar
+                label="מעורבות אזרחית"
+                value={engagementPct ?? 0}
+                display={engagementPct !== null ? `${engagementPct}%` : '-'}
+                caption={
+                  engagementPct !== null
+                    ? `${metrics.participants.toLocaleString('he-IL')} מצביעים מתוך ${metrics.residents.toLocaleString('he-IL')} תושבים רשומים`
+                    : 'אין עדיין נתוני הצבעה'
+                }
+              />
+            </div>
+            <div
+              data-animate
+              className="border-t-2 border-ink py-6 md:border-s-2 md:border-t-0 md:px-8"
+            >
+              <MetricBar
+                label="זמן עד הצבעה"
+                value={timeBarValue ?? 0}
+                display={
+                  metrics.avgTimeToEngageHours !== null
+                    ? formatHours(metrics.avgTimeToEngageHours)
+                    : '-'
+                }
+                caption={
+                  metrics.avgTimeToEngageHours !== null
+                    ? 'ממוצע מפתיחת הצבעה ועד מתן הקול'
+                    : 'אין עדיין נתוני הצבעה'
+                }
+              />
+            </div>
+            <div
+              data-animate
+              className="border-t-2 border-ink py-6 md:border-s-2 md:border-t-0 md:px-8 md:pe-0"
+            >
+              <MetricBar
+                label="שביעות רצון התושבים"
+                value={satisfactionPct ?? 0}
+                display={
+                  metrics.satisfactionAvg !== null
+                    ? `${metrics.satisfactionAvg.toFixed(1)} / 5`
+                    : '-'
+                }
+                caption={
+                  metrics.satisfactionCount > 0
+                    ? `${metrics.satisfactionCount.toLocaleString('he-IL')} תושבים דירגו`
+                    : 'אין עדיין דירוגים. הדירוג נאסף בהרשמה'
+                }
+              />
+            </div>
+          </AnimateIn>
         </section>
 
         {/* Votes */}
         <section aria-label="הצבעות">
-          <Tabs defaultValue="open" dir="rtl">
+          <Tabs defaultValue={liveVotes.length > 0 ? 'live' : 'topics'} dir="rtl">
             <TabsList>
-              <TabsTrigger value="open">
-                פתוחות ({openVotes.length})
+              <TabsTrigger value="live">
+                הצבעות חיות
+                <span className="ms-2 tabular-nums text-red group-data-[state=active]:text-paper">
+                  {liveVotes.length}
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="topics">
+                נושאים על השולחן
+                <span className="ms-2 tabular-nums text-red group-data-[state=active]:text-paper">
+                  {openTopics.length}
+                </span>
               </TabsTrigger>
               <TabsTrigger value="closed">
-                סגורות ({closedVotes.length})
+                סגורות
+                <span className="ms-2 tabular-nums text-red group-data-[state=active]:text-paper">
+                  {closedVotes.length}
+                </span>
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="open">
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                {openVotes.map((vote) => (
-                  <VoteCard key={vote.id} vote={vote} />
+            <TabsContent value="live">
+              <AnimateIn className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {liveVotes.map((vote) => (
+                  <div key={vote.id} data-animate>
+                    <VoteCard vote={vote} />
+                  </div>
                 ))}
-              </div>
-              {openVotes.length === 0 ? (
-                <p className="border-2 border-ink bg-paper-box p-6 font-mono text-sm text-ink-soft">
-                  אין כרגע הצבעות פתוחות ב{name}. ההצבעה הראשונה נפתחת 04.08.26.
+              </AnimateIn>
+              {liveVotes.length === 0 ? (
+                <p className="border-2 border-dashed border-ink-soft p-6 font-mono text-sm text-ink-soft">
+                  עדיין לא נקלטו קולות ב{name}. הנושאים הפתוחים מחכים בלשונית
+                  «נושאים על השולחן».
+                </p>
+              ) : null}
+            </TabsContent>
+
+            <TabsContent value="topics">
+              <AnimateIn className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {openTopics.map((vote) => (
+                  <div key={vote.id} data-animate>
+                    <TopicCard vote={vote} locale={locale} />
+                  </div>
+                ))}
+              </AnimateIn>
+              {openTopics.length === 0 ? (
+                <p className="border-2 border-dashed border-ink-soft p-6 font-mono text-sm text-ink-soft">
+                  אין כרגע נושאים פתוחים ב{name}.
                 </p>
               ) : null}
             </TabsContent>
 
             <TabsContent value="closed">
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <AnimateIn className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 {closedVotes.map((vote) => (
-                  <VoteCard key={vote.id} vote={vote} />
+                  <div key={vote.id} data-animate>
+                    <VoteCard vote={vote} />
+                  </div>
                 ))}
-              </div>
+              </AnimateIn>
               {closedVotes.length === 0 ? (
-                <p className="border-2 border-ink bg-paper-box p-6 font-mono text-sm text-ink-soft">
+                <p className="border-2 border-dashed border-ink-soft p-6 font-mono text-sm text-ink-soft">
                   עוד לא נסגרו הצבעות ב{name}. התוצאות יופיעו כאן, שקופות לכולם.
                 </p>
               ) : null}

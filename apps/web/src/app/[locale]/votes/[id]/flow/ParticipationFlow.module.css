@@ -1,5 +1,5 @@
 /* ==================================================================
- * ParticipationFlow — press multi-step ballot furniture
+ * ParticipationFlow - press multi-step ballot furniture
  * Newsprint + ink + one red accent. Hard corners, mono control surfaces.
  * ================================================================== */
 .flow {
@@ -86,8 +86,19 @@
   margin-block-start: var(--space-4);
 }
 
+.errorNote {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  color: var(--np-red);
+  background: var(--np-paper-2);
+  border: var(--np-rule-hair) solid var(--np-red);
+  padding: var(--space-3) var(--space-4);
+  margin-block-start: var(--space-4);
+}
+
 /* ------------------------------------------------------------------ */
-/* Step 1 — options (ballot rows)                                     */
+/* Step 1 - options (ballot rows)                                     */
 /* ------------------------------------------------------------------ */
 .options {
   display: flex;
@@ -178,7 +189,7 @@
 }
 
 /* ------------------------------------------------------------------ */
-/* Step 2 — presence box                                              */
+/* Step 2 - presence box                                              */
 /* ------------------------------------------------------------------ */
 .presenceBox {
   display: flex;
@@ -226,21 +237,11 @@
 }
 
 /* ------------------------------------------------------------------ */
-/* Step 3 / 4 — receipt + seal                                        */
+/* Step 3 - receipt                                                   */
 /* ------------------------------------------------------------------ */
 .receipt {
   margin-block: var(--space-2) 0;
 }
-.seal {
-  margin-block-start: var(--space-4);
-}
-.payError {
-  font-family: var(--np-font-mono);
-  font-size: var(--text-sm);
-  color: var(--np-red);
-  margin-block: var(--space-3) 0;
-}
-
 /* ------------------------------------------------------------------ */
 /* Actions                                                            */
 /* ------------------------------------------------------------------ */

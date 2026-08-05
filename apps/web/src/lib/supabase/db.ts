@@ -23,6 +23,7 @@ import type {
   MerchOrderRow,
   VoteSource,
   KnessetItem,
+  KnessetRanking,
   InsertTables,
   UpdateTables,
 } from './types';
@@ -136,7 +137,7 @@ export async function updateUserIdentityScore(
 
 /**
  * Get users of a municipality for notifications (id, email, first name).
- * Capped to protect the request path — broadcast batches stay bounded.
+ * Capped to protect the request path - broadcast batches stay bounded.
  */
 export async function getUsersByMunicipality(
   municipalityId: string,
@@ -627,7 +628,7 @@ export async function getLatestRefundablePayment(
   return row ?? null;
 }
 
-/** Outcome of recording a refund request — drives the route's HTTP mapping. */
+/** Outcome of recording a refund request - drives the route's HTTP mapping. */
 export type RefundRequestResult =
   | 'ok'
   | 'not_found' // missing, or not owned by this user
@@ -639,7 +640,7 @@ export type RefundRequestResult =
  * Record a user's refund request on the payment's metadata. Ownership +
  * `completed` status are enforced here so the route can't request a refund on
  * someone else's or an unsettled payment. Refunds are issued manually in Green
- * Invoice (per policy) — this only captures the intake, it does not move money.
+ * Invoice (per policy) - this only captures the intake, it does not move money.
  */
 export async function requestPaymentRefund(
   paymentId: string,
@@ -953,6 +954,31 @@ export async function getKnessetItemsByVoteIds(
   return data || [];
 }
 
+/**
+ * Editorial hotness for a set of votes (agents/knesset-ranker output).
+ * Degrades to an empty map on any failure - ranking is never load-bearing.
+ */
+export async function getKnessetRankingsByVoteIds(
+  voteIds: string[]
+): Promise<Map<string, KnessetRanking>> {
+  const byVote = new Map<string, KnessetRanking>();
+  if (voteIds.length === 0) return byVote;
+
+  const { data, error } = await supabaseAdmin
+    .from('knesset_rankings')
+    .select('*')
+    .in('vote_id', voteIds);
+
+  if (error) {
+    console.error('Failed to get knesset rankings (continuing without):', error);
+    return byVote;
+  }
+  for (const row of (data || []) as KnessetRanking[]) {
+    byVote.set(row.vote_id, row);
+  }
+  return byVote;
+}
+
 export async function createVote(
   voteData: InsertTables<'votes'>
 ): Promise<Vote> {
@@ -1035,6 +1061,43 @@ export async function hasUserParticipated(
 ): Promise<boolean> {
   const vote = await getUserVote(userId, voteId);
   return !!vote;
+}
+
+/** Outcome of an idempotent ballot insert. `created: false` means the ballot already existed. */
+export interface BallotInsertResult {
+  readonly created: boolean;
+  readonly vote: UserVote;
+}
+
+/**
+ * Insert a ballot, tolerating the `UNIQUE(user_id, vote_id)` constraint.
+ *
+ * A double-click, a retry or a replayed request must produce exactly one row,
+ * never a 500, and must not move the tally twice - so the caller keys the
+ * `incrementVoteOption` bump off `created`. Postgres reports the unique
+ * violation as SQLSTATE 23505; on that code we read the existing ballot back
+ * and report it as `created: false`.
+ *
+ * `recordUserVote` is deliberately left alone: the payments webhook still uses
+ * the throwing form.
+ */
+export async function recordUserVoteOnce(
+  voteRecord: InsertTables<'user_votes'>
+): Promise<BallotInsertResult> {
+  const { data, error } = await supabaseAdmin
+    .from('user_votes')
+    .insert(voteRecord)
+    .select()
+    .single();
+
+  if (!error && data) return { created: true, vote: data };
+
+  if (error?.code === '23505') {
+    const existing = await getUserVote(voteRecord.user_id, voteRecord.vote_id);
+    if (existing) return { created: false, vote: existing };
+  }
+
+  throw new Error(`Failed to record vote: ${error?.message ?? 'insert returned no row'}`);
 }
 
 export async function getUserVotes(userId: string): Promise<UserVote[]> {
@@ -1257,7 +1320,7 @@ export function isWebhookStale(
 /**
  * Count every registered user on the platform.
  *
- * Aggregate only — no row is ever returned, so this exposes nothing about any
+ * Aggregate only - no row is ever returned, so this exposes nothing about any
  * individual. Uses a HEAD request so Postgres returns the count without
  * streaming rows.
  */
@@ -1388,7 +1451,7 @@ export async function getTreasuryByMunicipality(municipalityId: string) {
  * NOTE: this returns the municipality-wide ledger, including rows initiated by
  * OTHER users and rows with no owner at all. Callers exposing this over HTTP
  * must strip per-user identifiers. To read a single user's own contributions,
- * use `getUserTreasuryTransactions` instead — do not filter this result set in
+ * use `getUserTreasuryTransactions` instead - do not filter this result set in
  * the client.
  */
 export async function getTreasuryTransactions(
@@ -1421,7 +1484,7 @@ export async function getTreasuryTransactions(
  * Get the treasury transactions a specific user initiated.
  *
  * Ownership is enforced in the query (`user_id = :userId`), so rows belonging
- * to other users — and rows with a NULL `user_id`, which belong to nobody —
+ * to other users - and rows with a NULL `user_id`, which belong to nobody -
  * can never be returned. This is the only supported way to build a user's
  * personal contribution ledger.
  */
@@ -1473,7 +1536,7 @@ export async function getOrCreateTreasury(municipalityId: string): Promise<strin
  */
 export async function recordTreasuryDeposit(params: {
   municipalityId: string;
-  /** Amount in agorot (minor units) — treasury columns store agorot throughout */
+  /** Amount in agorot (minor units) - treasury columns store agorot throughout */
   amountAgorot: number;
   paymentId: string;
   userId: string;
@@ -2224,16 +2287,16 @@ export async function updateMerchOrder(
   return data;
 }
 
-/** Outcome of an atomic paid transition — distinguishes a no-op from a failure. */
+/** Outcome of an atomic paid transition - distinguishes a no-op from a failure. */
 export type MarkPaidResult =
   | { kind: 'updated'; row: MerchOrderRow }
   | { kind: 'noop' } // no pending row matched: already settled, or lost the race
-  | { kind: 'error' }; // transient DB failure — caller should signal a retry
+  | { kind: 'error' }; // transient DB failure - caller should signal a retry
 
 /**
  * Atomically flip an order `pending` → `paid`. The `status = 'pending'` guard
  * is enforced in the same statement, so concurrent webhook deliveries can't
- * both succeed — the loser matches zero rows and returns `noop` (idempotent).
+ * both succeed - the loser matches zero rows and returns `noop` (idempotent).
  */
 export async function markMerchOrderPaid(
   id: string,

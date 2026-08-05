@@ -3,7 +3,7 @@
  * Hebrew RTL-first design
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Assistant:wght@300;400;500;600;700;800&family=Frank+Ruhl+Libre:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Assistant:wght@300;400;500;600;700;800&family=IBM+Plex+Sans+Hebrew:wght@300;400;500;600;700&display=swap');
 
 @import './tokens.css';
 @import './tailwind.css';
@@ -23,10 +23,21 @@
 html {
   /* Direction is set by layout.tsx based on locale */
   scroll-behavior: smooth;
+  scrollbar-width: none;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   font-size: 16px;
+}
+
+/* Form controls and buttons don't reliably inherit smoothing from html on
+ * every engine - pin it so UI chrome renders as crisply as copy. */
+button,
+input,
+textarea,
+select {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Lenis smooth scroll */
@@ -65,7 +76,7 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Film-grain texture over the whole page — unifies sections with a subtle
+/* Film-grain texture over the whole page - unifies sections with a subtle
  * print feel. Pure data-URI SVG noise: zero requests, GPU-composited. */
 body::after {
   content: '';
@@ -78,11 +89,21 @@ body::after {
   background-repeat: repeat;
 }
 
-/* Crisp media everywhere */
+/* High-quality resampling everywhere - `-webkit-optimize-contrast` forces a
+ * cheap sharpening path that aliases downscaled photos; `auto` lets the GPU
+ * use its full trilinear/anisotropic pipeline instead. */
 img,
 svg,
 video {
-  image-rendering: -webkit-optimize-contrast;
+  image-rendering: auto;
+}
+
+/* Anisotropic-friendly rendering for media that gets transformed/scaled:
+ * promote to its own GPU layer so filtering happens in the compositor. */
+.aniso,
+img[data-aniso] {
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 /* ============================================
@@ -108,7 +129,7 @@ h6 {
   font-weight: 400;
 }
 
-/* Fluid headings — mobile-first, scale smoothly to the type ramp */
+/* Fluid headings - mobile-first, scale smoothly to the type ramp */
 h1 {
   font-size: clamp(var(--text-4xl), 3.5vw + 1.6rem, var(--text-6xl));
   letter-spacing: var(--tracking-tight);
@@ -210,21 +231,11 @@ small {
  * SCROLLBAR STYLES
  * ============================================ */
 
-::-webkit-scrollbar {
-  width: var(--space-2);
-}
-
-::-webkit-scrollbar-track {
-  background: var(--color-neutral-100);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--color-neutral-300);
-  border-radius: var(--radius-full);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-neutral-400);
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 /* ============================================
@@ -341,7 +352,7 @@ table {
   box-shadow: var(--lc-e2), var(--lc-glow-brand);
 }
 
-/* Brand gradient text — guard usage to <=1 per viewport */
+/* Brand gradient text - guard usage to <=1 per viewport */
 .lc-gradient-text {
   background: var(--lc-grad-brand);
   -webkit-background-clip: text;
@@ -355,7 +366,7 @@ table {
 .lc-gradient-text--purple { background: var(--lc-grad-purple); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 .lc-gradient-text--amber { background: var(--lc-grad-amber); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 
-/* The consensus line — recurring brand-gradient stroke motif */
+/* The consensus line - recurring brand-gradient stroke motif */
 .lc-rule {
   display: block;
   height: 3px;
@@ -396,26 +407,34 @@ table {
 
 .np-page {
   position: relative;
-  background-color: var(--np-paper);
+  background:
+    radial-gradient(circle at 50% 0%, rgb(224 48 30 / 4.5%), transparent 30rem),
+    linear-gradient(rgb(25 24 22 / 3.5%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(25 24 22 / 3.5%) 1px, transparent 1px),
+    var(--np-paper);
+  background-size: auto, 3.5rem 3.5rem, 3.5rem 3.5rem, auto;
   color: var(--np-ink);
 }
 
 /* Newsprint texture: fibrous ink grain veiling the whole press surface like
-   real paper. Fixed top overlay, multiplied, pointer-events:none. */
+   real paper. Fixed top overlay, pointer-events:none.
+   PERF: normal blend, not multiply - a full-viewport multiply layer forces
+   the compositor to re-blend the entire page every scroll frame (brutal
+   with Lenis running rAF scroll). Plain alpha reads nearly identical on
+   cream and costs a fraction. */
 .np-page::before {
   content: '';
   position: fixed;
   inset: 0;
   z-index: 60;
   pointer-events: none;
-  mix-blend-mode: multiply;
-  opacity: 0.55;
+  opacity: 0.16;
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.62' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.95' intercept='-0.12'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 150px 150px;
 }
 
-/* Halftone press accent — visible dot field, use on bands/dividers/boxes */
+/* Halftone press accent - visible dot field, use on bands/dividers/boxes */
 .np-halftone-band {
   background-image: radial-gradient(var(--np-ink) 1.1px, transparent 1.4px);
   background-size: 7px 7px;
@@ -441,7 +460,7 @@ table {
   height: 5px;
 }
 
-/* Kicker — mono red label */
+/* Kicker - mono red label */
 .np-kicker {
   display: inline-flex;
   align-items: center;

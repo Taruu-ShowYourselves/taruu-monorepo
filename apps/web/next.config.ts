@@ -14,6 +14,8 @@ const HUMAN_ESM = path.resolve(
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Keep the locally previewed interface visually identical to production.
+  devIndicators: false,
 
   webpack: (config) => {
     config.resolve.alias = {
@@ -24,6 +26,8 @@ const nextConfig: NextConfig = {
   },
 
   turbopack: {
+    // Monorepo root - stops Turbopack inferring ~/package-lock.json as root.
+    root: path.resolve(__dirname, '../..'),
     resolveAlias: {
       '@vladmandic/human': HUMAN_ESM,
     },

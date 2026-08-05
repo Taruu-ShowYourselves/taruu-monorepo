@@ -102,7 +102,8 @@ export interface TokenTransaction {
   timestamp: Date;
 }
 
-// Note: Payment amounts in ILS are defined in @sync/shared/constants (VOTE_COST, CREATE_VOTE_COST)
+// Note: Payment amounts in ILS are defined in @sync/shared/constants (CREATE_VOTE_COST).
+// Participation is free (VOTE_PARTICIPATION_COST = 0); only vote creation is charged.
 // The backend converts to agorot (amount * 100) when storing payments.
 // Green Invoice is the merchant of record; ILS settles to the platform bank account and is
 // accrued per-vote in the treasury ledger, then batch-seeded into a Bags.fm bag at

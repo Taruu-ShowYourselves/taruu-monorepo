@@ -86,7 +86,7 @@ function AllocationLedger({ local, external }: { local: number; external: number
   );
 }
 
-/** Single ledger line — type · description · date · amount, dotted leader. */
+/** Single ledger line - type · description · date · amount, dotted leader. */
 function TransactionRow({ transaction }: { transaction: Transaction }) {
   const label = TRANSACTION_TYPE_LABELS[transaction.type];
   const isPositive = transaction.amountILS >= 0;
@@ -115,7 +115,7 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
   );
 }
 
-/** Premium loading skeletons — shimmer ledger placeholders. */
+/** Premium loading skeletons - shimmer ledger placeholders. */
 function DashboardSkeleton() {
   return (
     <section className={styles.section}>
@@ -141,7 +141,7 @@ function DashboardSkeleton() {
   );
 }
 
-/** Honest "coming soon" empty state — never fake metrics. */
+/** Honest "coming soon" empty state - never fake metrics. */
 function ComingSoonBoard() {
   return (
     <div className={styles.emptyBoard}>
@@ -170,7 +170,7 @@ export function TreasuryDashboard() {
           : null;
 
         // Ledger from the dedicated endpoint (the split + resolved count are
-        // derived from it — never fabricated).
+        // derived from it - never fabricated).
         let transactions: Transaction[] = [];
         try {
           const txRes = await fetch(
@@ -194,7 +194,7 @@ export function TreasuryDashboard() {
             );
           }
         } catch {
-          // No ledger — leave transactions empty.
+          // No ledger - leave transactions empty.
         }
 
         const local = transactions
@@ -220,7 +220,7 @@ export function TreasuryDashboard() {
         });
       } catch (err) {
         console.error('Error fetching treasury:', err);
-        // Honest empty board — never fabricated figures.
+        // Honest empty board - never fabricated figures.
         setTreasury(emptyTreasury(selectedMunicipality));
       } finally {
         setLoading(false);
@@ -254,7 +254,7 @@ export function TreasuryDashboard() {
           </h2>
         </header>
 
-        {/* Municipality selector — press segmented control */}
+        {/* Municipality selector - press segmented control */}
         <div className={styles.selectorRow}>
           <span className={styles.selectLabel}>בחירת רשות</span>
           <Segmented
@@ -268,7 +268,7 @@ export function TreasuryDashboard() {
           />
         </div>
 
-        {/* Stats — boxed mono tabular figures */}
+        {/* Stats - boxed mono tabular figures */}
         <motion.div
           className={styles.statsGrid}
           variants={staggerContainer}
@@ -303,7 +303,7 @@ export function TreasuryDashboard() {
           </motion.div>
         </motion.div>
 
-        {/* Allocation breakdown — ledger split + receipt */}
+        {/* Allocation breakdown - ledger split + receipt */}
         <motion.div
           className={styles.board}
           initial={reduced ? false : { opacity: 0, y: 16 }}

@@ -1,3 +1,6 @@
+/* Newsletter - press pill capsule on living paper.
+ * One red accent, ink rules, layered tinted depth. No glass slop. */
+
 .wrapper {
   width: 100%;
   position: relative;
@@ -8,27 +11,23 @@
   flex-direction: column;
   gap: var(--space-4);
   padding: var(--space-6);
-  background: linear-gradient(
-    145deg,
-    rgba(255, 255, 255, 0.9) 0%,
-    rgba(248, 250, 252, 0.95) 100%
-  );
-  backdrop-filter: blur(20px);
-  border-radius: var(--radius-2xl);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.06),
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 40%),
+    color-mix(in srgb, var(--np-paper-box) 90%, transparent);
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  border: var(--np-rule-hair) solid var(--np-paper-edge);
+  border-block-start: var(--np-rule) solid var(--np-ink);
+  border-radius: var(--np-radius-card);
+  box-shadow: var(--np-shadow-float);
+  transition:
+    transform var(--np-dur) var(--np-ease),
+    box-shadow var(--np-dur) var(--np-ease);
 }
 
 .form:hover {
   transform: translateY(-2px);
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.08),
-    0 2px 4px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  box-shadow: var(--np-shadow-float), var(--np-shadow-red-glow);
 }
 
 .form.inline {
@@ -36,8 +35,8 @@
   align-items: flex-start;
 }
 
-/* Compact/inline are embedded inside another surface (e.g. a GlassCard) —
-   drop the form's own glass chrome so it blends instead of nesting a card. */
+/* Compact/inline are embedded inside another surface - drop the form's own
+   chrome so it blends instead of nesting a card. */
 .form.compact,
 .form.inline {
   padding: 0;
@@ -54,13 +53,7 @@
   box-shadow: none;
 }
 
-@property --lc-angle {
-  syntax: '<angle>';
-  initial-value: 0deg;
-  inherits: false;
-}
-
-/* Unified field capsule — input + inline submit fused into one premium control */
+/* Unified field capsule - pill breakage inside the square press grid */
 .inputGroup {
   position: relative;
   isolation: isolate;
@@ -70,72 +63,50 @@
   width: 100%;
   padding: var(--space-1-5);
   padding-inline-start: var(--space-4);
-  background: var(--lc-surface);
-  border: 1px solid var(--lc-glass-edge);
-  border-radius: var(--radius-full);
-  box-shadow: var(--lc-e1), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0) 50%),
+    var(--np-paper-box);
+  border: var(--np-rule) solid var(--np-ink);
+  border-radius: var(--np-radius-pill);
+  box-shadow: var(--np-shadow-soft);
   transition:
-    box-shadow var(--duration-normal) var(--lc-ease-brand),
-    border-color var(--duration-normal) var(--lc-ease-brand),
-    transform var(--duration-normal) var(--lc-ease-brand);
+    box-shadow var(--np-dur) var(--np-ease),
+    border-color var(--np-dur-snap) var(--np-ease),
+    transform var(--np-dur) var(--np-ease);
 }
 
 .field {
   composes: inputGroup;
 }
 
-/* Animated conic gradient border — draws in on focus and rotates */
-.inputGroup::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  padding: 1.5px;
-  background: conic-gradient(from var(--lc-angle), #2563EB, #10B981, #8B5CF6, #2563EB);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  opacity: 0;
-  transition: opacity var(--duration-normal) var(--lc-ease-brand);
-}
-
 .inputGroup:focus-within {
-  border-color: transparent;
+  border-color: var(--np-red);
   transform: translateY(-2px);
-  box-shadow: var(--lc-glow-brand), 0 0 0 4px rgba(37, 99, 235, 0.1);
-}
-
-.inputGroup:focus-within::before {
-  opacity: 1;
-  animation: lc-borderspin 4.5s linear infinite;
-}
-
-@keyframes lc-borderspin {
-  to { --lc-angle: 360deg; }
+  box-shadow: var(--np-shadow-soft), var(--np-focus-ring);
 }
 
 .fieldError {
-  border-color: var(--color-error);
+  border-color: var(--np-red);
+  box-shadow: var(--np-shadow-soft), var(--np-focus-ring);
 }
 
 .mailIcon {
   display: inline-flex;
   flex-shrink: 0;
-  color: var(--lc-ink-faint);
+  color: var(--np-ink-faint);
   transition:
-    color var(--duration-fast) var(--ease-default),
-    transform var(--duration-normal) var(--lc-ease-brand);
+    color var(--np-dur-snap) var(--np-ease),
+    transform var(--np-dur) var(--np-ease);
 }
 
 .inputGroup:focus-within .mailIcon {
-  color: var(--color-primary);
-  transform: scale(1.12) translateY(-1px);
+  color: var(--np-red);
+  transform: scale(1.1) translateY(-1px);
 }
 
-/* Email is valid — the envelope nods, the field hints green-ready */
+/* Email is valid - the envelope signals ready in ink */
 .fieldValid .mailIcon {
-  color: var(--color-secondary-600);
+  color: var(--np-ink);
 }
 
 .input {
@@ -144,15 +115,15 @@
   border: none;
   background: none;
   outline: none;
-  font-family: var(--font-secondary);
+  font-family: var(--np-font-meta);
   font-size: var(--text-base);
   font-weight: var(--font-weight-medium);
-  color: var(--lc-ink);
+  color: var(--np-ink);
   padding-block: var(--space-2);
 }
 
 .input::placeholder {
-  color: var(--lc-ink-faint);
+  color: var(--np-ink-faint);
   opacity: 1;
 }
 
@@ -163,38 +134,38 @@
 .submitButton {
   flex-shrink: 0;
   white-space: nowrap;
-  border-radius: var(--radius-full);
-  background-image: var(--lc-grad-brand);
-  background-size: 170% 100%;
-  background-position: 0% 50%;
+  border-radius: var(--np-radius-pill);
+  background: var(--np-red);
+  background-image: none;
   border-color: transparent;
-  box-shadow: var(--lc-glow-brand);
+  color: var(--np-paper);
+  box-shadow: var(--np-shadow-red-glow);
   transition:
-    background-position var(--duration-normal) var(--lc-ease-brand),
-    box-shadow var(--duration-normal) var(--lc-ease-brand),
-    transform var(--duration-fast) var(--lc-ease-brand);
+    background-color var(--np-dur) var(--np-ease),
+    box-shadow var(--np-dur) var(--np-ease),
+    transform var(--np-dur-snap) var(--np-ease);
 }
 
 .submitButton:hover {
-  background-position: 100% 50%;
-  box-shadow: var(--lc-glow-brand), inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+  background: var(--np-red-dark);
+  box-shadow: var(--np-shadow-red-glow), inset 0 0 0 1px rgba(255, 255, 255, 0.25);
 }
 
 .submitButton:active {
   transform: translateY(1px) scale(0.985);
 }
 
-/* Valid email → button gently pulses a green-ready ring to invite the click */
+/* Valid email → button breathes a quiet ready pulse */
 .submitReady {
-  animation: lc-readypulse 2.2s var(--ease-default) infinite;
+  animation: np-readypulse 2.4s var(--np-ease) infinite;
 }
 
-@keyframes lc-readypulse {
-  0%, 100% { box-shadow: var(--lc-glow-brand); }
-  50% { box-shadow: var(--lc-glow-brand), 0 0 0 4px rgba(16, 185, 129, 0.2); }
+@keyframes np-readypulse {
+  0%, 100% { box-shadow: var(--np-shadow-red-glow); }
+  50% { box-shadow: var(--np-shadow-red-glow), 0 0 0 5px rgba(224, 48, 30, 0.12); }
 }
 
-/* Narrow screens: keep the capsule compact — hide the long label, keep the arrow */
+/* Narrow screens: keep the capsule compact - hide the long label, keep the arrow */
 @media (max-width: 460px) {
   .btnLabel {
     display: none;
@@ -208,24 +179,13 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-8);
-  background: linear-gradient(
-    145deg,
-    rgba(16, 185, 129, 0.08) 0%,
-    rgba(16, 185, 129, 0.04) 100%
-  );
-  border-radius: var(--radius-2xl);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 45%),
+    var(--np-paper-box);
+  border: var(--np-rule) solid var(--np-ink);
+  border-radius: var(--np-radius-card);
+  box-shadow: var(--np-shadow-float);
   text-align: center;
-  animation: successPulse 2s ease-in-out infinite;
-}
-
-@keyframes successPulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.2);
-  }
-  50% {
-    box-shadow: 0 0 20px 4px rgba(16, 185, 129, 0.1);
-  }
 }
 
 .successBadge {
@@ -235,16 +195,16 @@
   justify-content: center;
   inline-size: 4rem;
   block-size: 4rem;
-  border-radius: var(--radius-full);
-  background: radial-gradient(circle at 50% 40%, rgba(16, 185, 129, 0.18), rgba(16, 185, 129, 0.06));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 8px 24px -10px rgba(16, 185, 129, 0.5);
+  border-radius: var(--np-radius-pill);
+  background: var(--np-ink);
+  color: var(--np-paper);
+  box-shadow: var(--np-shadow-soft);
 }
 
 .successIcon {
   width: 2.5rem;
   height: 2.5rem;
-  color: var(--color-secondary-600);
-  filter: drop-shadow(0 3px 6px rgba(16, 185, 129, 0.35));
+  color: var(--np-paper);
 }
 
 /* Burst particles radiating from the checkmark */
@@ -252,11 +212,11 @@
   position: absolute;
   inset-block-start: 50%;
   inset-inline-start: 50%;
-  inline-size: 7px;
-  block-size: 7px;
-  margin: -3.5px 0 0 -3.5px;
-  border-radius: var(--radius-full);
-  background: var(--lc-grad-brand);
+  inline-size: 6px;
+  block-size: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: var(--np-radius-pill);
+  background: var(--np-red);
   pointer-events: none;
 }
 
@@ -268,8 +228,8 @@
 /* Privacy Note */
 .privacyNote {
   text-align: center;
-  opacity: 0.7;
-  transition: opacity 0.2s ease;
+  opacity: 0.75;
+  transition: opacity var(--np-dur) var(--np-ease);
 }
 
 .form:hover .privacyNote {
@@ -284,24 +244,13 @@
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .form {
+  .form,
+  .inputGroup,
+  .mailIcon {
     transition: none;
   }
-  .form:hover {
-    transform: none;
-  }
-  .successMessage {
-    animation: none;
-  }
-  .successIcon {
-    animation: none;
-  }
-  .inputGroup:focus-within {
-    transform: none;
-  }
-  .inputGroup:focus-within::before {
-    animation: none;
-  }
+  .form:hover,
+  .inputGroup:focus-within,
   .inputGroup:focus-within .mailIcon {
     transform: none;
   }

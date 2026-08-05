@@ -7,7 +7,7 @@ import type { Locale } from '@/lib/i18n';
 export const metadata: Metadata = {
   title: 'BAG · bags.fm',
   description:
-    'תיק ה-BAG — ההצבעה שהוא מגבה ב-bags.fm, ההיצע, סכום הגיוס, מחזיקי ה-BAG והחתימה בבלוקצ׳יין. שקוף ומאומת.',
+    'תיק ה-BAG: ההצבעה שהוא מגבה ב-bags.fm, ההיצע, סכום הגיוס, מחזיקי ה-BAG והחתימה בבלוקצ׳יין. שקוף ומאומת.',
 };
 
 interface CoinDetailPageProps {

@@ -39,7 +39,7 @@
 }
 
 /* ============================================
- * Layout — single column first, broadsheet on wide
+ * Layout - single column first, broadsheet on wide
  * ============================================ */
 .grid {
   display: grid;
@@ -120,7 +120,7 @@
 }
 
 /* ============================================
- * Press furniture — store dispatch blocks
+ * Press furniture - store dispatch blocks
  * ============================================ */
 .furniture {
   display: flex;

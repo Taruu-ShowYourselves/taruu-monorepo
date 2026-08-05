@@ -2,19 +2,18 @@
 
 import { motion } from 'framer-motion';
 import { NewsButton } from '@/components/press';
-import { Receipt } from '@/components/press';
 import { useReducedMotion } from '@/hooks';
-import {VOTE_COST, CREATE_VOTE_COST, WHATSAPP_FOUNDERS_LINK} from '@sync/shared';
+import { CREATE_VOTE_COST, WHATSAPP_FOUNDERS_LINK } from '@sync/shared';
 import styles from './PricingContent.module.css';
 
 const WHATSAPP_URL = WHATSAPP_FOUNDERS_LINK;
 
-/** Mono trust line items — the "no fine print" rate-card footer. */
+/** Mono trust line items - the "no fine print" rate-card footer. */
 const TRUST_ITEMS = ['אין מנוי', 'אין דמי חבר', 'אין אותיות קטנות'] as const;
 
 /** Spec-sheet line items under each rate block. ✓ = included. */
 const PARTICIPATION_SPEC = [
-  'עמלה חד-פעמית להצבעה מאומתת בנושא מקומי',
+  'הצבעה מאומתת בנושא מקומי, בלי תשלום',
   'זהות ו-GPS · חתום בבלוקצ׳יין',
   'התמונה המלאה פתוחה לכולם',
 ] as const;
@@ -26,11 +25,10 @@ const CREATE_SPEC = [
 ] as const;
 
 /**
- * Pricing — Brutalist Tech-Press "rate card / spec sheet". Two hard-edged
- * boxed rate blocks (₪3 participation, ₪50 create-vote) with BIG mono prices
- * and ink-ruled line items. The ₪3 split (₪2 community fund / ₪1 operations)
- * is shown as a press Receipt. A mono trust strip kills fine-print anxiety;
- * one red primary "join the pilot" NewsButton closes.
+ * Pricing - Brutalist Tech-Press "rate card / spec sheet". Two hard-edged
+ * boxed rate blocks (free participation, ₪50 create-vote) with BIG mono
+ * figures and ink-ruled line items. A mono trust strip kills fine-print
+ * anxiety; one red primary "join the pilot" NewsButton closes.
  *
  * Hebrew-only, RTL logical props, mobile-first single column → two-up rate
  * cards with a vertical ink column rule ≥768px. The one revealed figure (the
@@ -63,9 +61,8 @@ export function PricingContent() {
           </h2>
 
           <p className={styles.standfirst}>
-            ₪{VOTE_COST} להשתתפות בהצבעה (₪2 לקרן הקהילתית, ₪1 לתפעול). ₪
-            {CREATE_VOTE_COST} ליצירת הצבעה חדשה. אין מנוי, אין דמי חבר, אין
-            אותיות קטנות.
+            ההצבעה חינם. ₪{CREATE_VOTE_COST} ליצירת הצבעה חדשה. אין מנוי, אין
+            דמי חבר, אין אותיות קטנות.
           </p>
         </header>
 
@@ -73,7 +70,7 @@ export function PricingContent() {
 
         {/* ---------- Two rate blocks ---------- */}
         <div className={styles.cards}>
-          {/* RATE 01 — ₪3 participation */}
+          {/* RATE 01 - free participation */}
           <section className={styles.card}>
             <header className={styles.cardHead}>
               <span className={styles.rateNo}>01</span>
@@ -82,10 +79,7 @@ export function PricingContent() {
 
             <div className={styles.priceRow}>
               <motion.span className={styles.price} {...stamp}>
-                <span className={styles.priceShekel} aria-hidden>
-                  ₪
-                </span>
-                {VOTE_COST}
+                חינם
               </motion.span>
               <span className={styles.priceUnit}>/ הצבעה</span>
             </div>
@@ -101,20 +95,16 @@ export function PricingContent() {
               ))}
             </ul>
 
-            {/* ₪3 split shown as a press receipt: ₪2 fund / ₪1 ops */}
-            <Receipt
-              className={styles.receipt}
-              kicker="פירוט · ₪3"
-              rows={[
-                { label: 'קרן הקהילתית', value: '₪2' },
-                { label: 'תפעול ופיתוח', value: '₪1' },
-                { label: 'סה״כ להצבעה', value: '₪3', strong: true },
-              ]}
-              footer="מאומת · חתום בבלוקצ׳יין · בלי עמלות נסתרות"
-            />
+            <div className={styles.note}>
+              <span className={styles.noteMark} aria-hidden>
+                ●
+              </span>
+              בלי תשלום ובלי חסמים. נדרש רק אימות זהות ומיקום, כדי שכל קול
+              ישויך לתושב אמיתי אחד.
+            </div>
           </section>
 
-          {/* RATE 02 — ₪50 create a vote */}
+          {/* RATE 02 - ₪50 create a vote */}
           <section className={styles.card}>
             <header className={styles.cardHead}>
               <span className={styles.rateNo}>02</span>
@@ -146,7 +136,7 @@ export function PricingContent() {
               <span className={styles.noteMark} aria-hidden>
                 ●
               </span>
-              עמלה חד-פעמית. כל הצבעה היא נושא אמיתי שמישהו עומד מאחוריו —
+              עמלה חד-פעמית. כל הצבעה היא נושא אמיתי שמישהו עומד מאחוריו.
               בלי ספאם, בלי רעש.
             </div>
           </section>
@@ -176,7 +166,7 @@ export function PricingContent() {
         <div className={styles.ctaWrap}>
           <h3 className={styles.ctaTitle}>רוצים לשמוע עוד?</h3>
           <p className={styles.ctaBody}>
-            הצטרפו לקבוצת המייסדים — בלי התחייבות, בלי תשלום מראש.
+            הצטרפו לקבוצת המייסדים. בלי התחייבות ובלי תשלום מראש.
           </p>
           <NewsButton
             href={WHATSAPP_URL}

@@ -1,5 +1,5 @@
 /**
- * OTP service tests — the Cloudflare-native replacement for Twilio Verify.
+ * OTP service tests - the Cloudflare-native replacement for Twilio Verify.
  *
  * Exercises the real generate/store/verify logic against the in-memory store
  * fallback (no KV binding in Node), with the SMS sender stubbed via a fetch mock

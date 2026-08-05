@@ -8,7 +8,7 @@ secret values is `apps/web/.dev.vars` (gitignored); push to Cloudflare with
 Legend: **REQ** = needed for basic live site · **PAY** = needed for paid flows ·
 **OPT** = degrades gracefully if unset.
 
-## Generated locally — DONE
+## Generated locally - DONE
 These need no third party; generated into `.dev.vars`:
 `JWT_SECRET`, `CRON_SECRET`, `GREENINVOICE_WEBHOOK_SECRET`,
 `PRINTFUL_WEBHOOK_SECRET`, `BAGS_WEBHOOK_SECRET`.
@@ -28,17 +28,17 @@ These need no third party; generated into `.dev.vars`:
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | OPT | console.upstash.com | Prod rate-limit persistence; degrades to in-memory without. |
 | `BEEHIIV_API_KEY`, `BEEHIIV_PUBLICATION_ID` | OPT | beehiiv.com | Newsletter signup. |
 | `FACEBOOK_APP_ID/SECRET`, `INSTAGRAM_APP_ID/SECRET` | OPT | developers.facebook.com | Extra identity-score providers. |
-| `EXPO_ACCESS_TOKEN` | OPT | expo.dev | Push — web-only build, not needed now. |
-| `QUBIK_API_KEY` | DEAD | — | Stack moved to Solana; qubik dropped. Leave empty. |
+| `EXPO_ACCESS_TOKEN` | OPT | expo.dev | Push - web-only build, not needed now. |
+| `QUBIK_API_KEY` | DEAD | - | Stack moved to Solana; qubik dropped. Leave empty. |
 
 ## Deploy sequence (after REQ/PAY secrets filled)
-1. `./scripts/sync-secrets.sh` — push secrets to Worker.
+1. `./scripts/sync-secrets.sh` - push secrets to Worker.
 2. Ensure NEXT_PUBLIC_* present at build, then `pnpm cf:build`.
 3. `node_modules/.bin/wrangler deploy --dry-run` to validate the bundle.
-4. `pnpm deploy` (ships to production — outward-facing, gated on owner OK).
+4. `pnpm deploy` (ships to production - outward-facing, gated on owner OK).
 5. Attach `taruu.co.il` / `www` / `api` custom domains in the CF dashboard
    (auto-creates proxied DNS). Zone must be Active.
-6. Add the 3 cron triggers in the dashboard (account-level cron gate — see
+6. Add the 3 cron triggers in the dashboard (account-level cron gate - see
    wrangler.jsonc note).
 7. Visually verify auth-gated surfaces with a real session.
 
@@ -46,4 +46,4 @@ These need no third party; generated into `.dev.vars`:
 auto-browser is human-in-the-loop, does **not** solve CAPTCHA, and is explicitly
 not for unauthorized account automation. Logins guarded by 2FA, plus production
 payment/tax onboarding (Green Invoice live) and the **Solana private
-key**, are owner-only / supervised steps — not safe to mint unattended.
+key**, are owner-only / supervised steps - not safe to mint unattended.

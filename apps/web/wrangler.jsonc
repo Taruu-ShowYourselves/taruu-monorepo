@@ -8,7 +8,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "taruu-web",
   // Custom entry (worker.ts) re-exports the OpenNext fetch handler and adds the
-  // scheduled handler that drives the cron routes — see triggers.crons below.
+  // scheduled handler that drives the cron routes - see triggers.crons below.
   "main": "worker.ts",
   "compatibility_date": "2025-03-25",
   // nodejs_compat gives the full Node runtime the app relies on (supabase-js,
@@ -23,7 +23,7 @@
   // Phone OTP store (one-time codes, native TTL). Create once with:
   //   wrangler kv namespace create OTP_KV
   // then paste the returned id below. Without it, OTP falls back to an
-  // in-memory store (dev/test only — not viable across isolates in prod).
+  // in-memory store (dev/test only - not viable across isolates in prod).
   "kv_namespaces": [
     { "binding": "OTP_KV", "id": "6f3f1d0e88df41d18773165a406b86b6" }
   ],
@@ -32,7 +32,7 @@
     "enabled": true
   },
 
-  // Custom-domain routes — Cloudflare creates the proxied DNS records on deploy.
+  // Custom-domain routes - Cloudflare creates the proxied DNS records on deploy.
   // Requires the taruu.co.il zone to be Active in this account.
   "routes": [
     { "pattern": "taruu.co.il", "custom_domain": true },
@@ -43,7 +43,7 @@
   // --- Custom domains ---
   // Do NOT add DNS records by hand. After the first deploy, attach the domains
   // in the dashboard (Workers > taruu-web > Domains & Routes > Add custom
-  // domain) for taruu.co.il, www.taruu.co.il, api.taruu.co.il — Cloudflare
+  // domain) for taruu.co.il, www.taruu.co.il, api.taruu.co.il - Cloudflare
   // creates the proxied DNS records itself. The zone must be Active first.
 
   // --- Scheduled jobs ---
@@ -56,14 +56,14 @@
   //   0 */6 * * *   → /api/cron/knesset-agenda
   // Requires the CRON_SECRET secret to be set (wrangler secret put CRON_SECRET).
   // NOTE: the schedules API rejected these at deploy (account-level cron gate on
-  // this account). worker.ts's scheduled handler IS deployed — add the four
+  // this account). worker.ts's scheduled handler IS deployed - add the four
   // crons in the dashboard (Workers > taruu-web > Settings > Triggers > Cron) or
   // re-enable here once cron triggers are available, then `wrangler triggers deploy`.
   // "triggers": {
   //   "crons": ["*/15 * * * *", "0 * * * *", "*/10 * * * *", "0 */6 * * *"]
   // },
-  // TEMP: only the knesset cron is registered pre-go-live (no-op on the old
-  // worker build; the other three activate with the full deploy).
+  // Only the day-order sync runs on the Worker. Document summaries moved to
+  // agents/knesset-ranker (Agent SDK, no API key) - see docs/KNESSET.md.
   "triggers": {
     "crons": ["0 */6 * * *"]
   },

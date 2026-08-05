@@ -6,9 +6,12 @@ import { useAuth } from '@/providers/AuthProvider';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { NewsButton } from '@/components/press/NewsButton';
-import { PressSelect } from '@/components/press/PressSelect/PressSelect';
+import { PressAutocomplete, MuiPressProvider } from '@/components/press/PressAutocomplete';
+import { PressFormCard } from '@/components/press/PressForm';
+import { PressAtmosphere } from '@/components/press/PressAtmosphere';
 import { MUNICIPALITIES } from '@sync/shared';
 import type { UserProfile } from '@sync/shared';
+import { PressLoader } from '@/components/press/PressMachine';
 import styles from './page.module.css';
 
 const REDIRECT = '/sign-in?redirect=/settings/municipality';
@@ -86,7 +89,7 @@ function MunicipalityContent() {
   if (isLoading || dataLoading) {
     return (
       <div className={styles.loadingContainer}>
-        <div className={styles.spinner} aria-hidden />
+        <PressLoader />
         <p>טוען…</p>
       </div>
     );
@@ -98,6 +101,7 @@ function MunicipalityContent() {
     <>
       <Header />
       <main className={styles.main}>
+        <PressAtmosphere />
         <div className={styles.container}>
           <header className={styles.head}>
             <span className={styles.kicker}>
@@ -108,8 +112,8 @@ function MunicipalityContent() {
               הרשות <span className={styles.red}>שלכם.</span>
             </h1>
             <p className={styles.standfirst}>
-              הרשות המקומית היא העוגן האזרחי שלכם — היא קובעת אילו הצבעות רלוונטיות
-              עבורכם ואיפה קולכם נספר.
+              הרשות המקומית קובעת אילו הצבעות רלוונטיות עבורכם ואיפה קולכם
+              נספר.
             </p>
           </header>
 
@@ -137,26 +141,31 @@ function MunicipalityContent() {
             </div>
           )}
 
-          <section className={styles.formCard}>
-            <PressSelect
-              label="רשות מקומית"
-              placeholder="בחרו רשות"
-              options={MUNICIPALITY_OPTIONS}
-              value={municipality}
-              onChange={(e) => setMunicipality(e.target.value)}
-            />
+          <MuiPressProvider>
+            <PressFormCard className={styles.formCard}>
+              <div data-field>
+                <PressAutocomplete
+                  label="רשות מקומית"
+                  placeholder="חפשו רשות…"
+                  noOptionsText="לא נמצאה רשות"
+                  options={MUNICIPALITY_OPTIONS}
+                  value={municipality}
+                  onChange={setMunicipality}
+                />
+              </div>
 
-            <div className={styles.formActions}>
-              <NewsButton
-                variant="red"
-                size="lg"
-                onClick={handleSave}
-                disabled={saving || !municipality || !changed}
-              >
-                {saving ? 'שומר…' : 'שמירת שינויים'}
-              </NewsButton>
-            </div>
-          </section>
+              <div className={styles.formActions} data-field>
+                <NewsButton
+                  variant="red"
+                  size="lg"
+                  onClick={handleSave}
+                  disabled={saving || !municipality || !changed}
+                >
+                  {saving ? 'שומר…' : 'שמירת שינויים'}
+                </NewsButton>
+              </div>
+            </PressFormCard>
+          </MuiPressProvider>
 
           <div className={styles.backLink}>
             <NewsButton
@@ -183,7 +192,7 @@ export default function MunicipalitySettingsPage() {
     <SuspenseWrapper
       fallback={
         <div className={styles.loadingContainer}>
-          <div className={styles.spinner} aria-hidden />
+          <PressLoader />
           <p>טוען…</p>
         </div>
       }

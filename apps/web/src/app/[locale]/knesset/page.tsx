@@ -15,9 +15,9 @@ import styles from './page.module.css';
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: 'כנסת ישראל — סדר היום',
+  title: 'כנסת ישראל · סדר היום',
   description:
-    'המהדורה הארצית של תַּרְאוּ — סדר יומה של מליאת הכנסת, סעיף אחר סעיף, ' +
+    'המהדורה הארצית של תַּרְאוּ: סדר יומה של מליאת הכנסת, סעיף אחר סעיף, ' +
     'עם הצבעה אזרחית מאומתת על כל נושא.',
 };
 
@@ -29,7 +29,7 @@ export default async function KnessetPage({ params }: KnessetPageProps) {
   const { locale } = await params;
 
   // Degrade to the empty agenda when the DB is unreachable (build-time
-  // prerender in CI has no service-role key — #39); ISR refills at runtime.
+  // prerender in CI has no service-role key - #39); ISR refills at runtime.
   const votes = await getActiveVotesWithOptions(KNESSET_SCOPE).catch(() => []);
   const items = await getKnessetItemsByVoteIds(votes.map((v) => v.id)).catch(() => []);
   const agenda = buildKnessetAgenda(votes, items);
@@ -52,7 +52,7 @@ export default async function KnessetPage({ params }: KnessetPageProps) {
               </h1>
 
               <p className={styles.standfirst}>
-                סדר יומה של מליאת הכנסת, ישירות מהמקור הרשמי — סעיף אחר סעיף.
+                סדר יומה של מליאת הכנסת, ישירות מהמקור הרשמי, סעיף אחר סעיף.
                 על כל נושא שעל שולחן המליאה נפתחת כאן הצבעה אזרחית: אותו מנגנון
                 אימות, אותה ספירה שקופה, בקנה מידה ארצי.
               </p>
@@ -72,7 +72,7 @@ export default async function KnessetPage({ params }: KnessetPageProps) {
                 </p>
                 <p className={styles.noticeNote}>
                   המערכת מושכת את סדר יום המליאה ממאגר המידע הרשמי של הכנסת.
-                  בין מושבים — כשאין ישיבה קרובה — הדסק ממתין לסדר היום הבא.
+                  בין מושבים, כשאין ישיבה קרובה, הדסק ממתין לסדר היום הבא.
                 </p>
                 <div className={styles.noticeActions}>
                   <NewsButton

@@ -91,7 +91,7 @@ export async function GET(
 
     return NextResponse.json(response);
   } catch (error: unknown) {
-    // Log detail server-side; this is a PUBLIC endpoint — don't leak internals.
+    // Log detail server-side; this is a PUBLIC endpoint - don't leak internals.
     console.error('Failed to get vote resolution status:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

@@ -22,7 +22,7 @@ import styles from './CartView.module.css';
 
 const GENERIC_ERROR = 'משהו השתבש אצלנו, לא אצלכם. נסו שוב בעוד רגע.';
 const REQUIRED_MSG = 'צריך למלא את השדה הזה כדי להמשיך.';
-const EMAIL_MSG = 'כתובת האימייל לא נראית תקינה — אפשר לבדוק שוב?';
+const EMAIL_MSG = 'כתובת האימייל לא נראית תקינה. אפשר לבדוק שוב?';
 
 type FormState = Omit<ShippingAddress, 'country'>;
 type FieldErrors = Partial<Record<keyof FormState, string>>;
@@ -80,7 +80,7 @@ export function CartView({ locale }: CartViewProps) {
     setSubmitError(null);
     if (items.length === 0) return;
 
-    // Checkout requires sign-in — send guests to sign-in and back to the cart.
+    // Checkout requires sign-in - send guests to sign-in and back to the cart.
     if (!isAuthenticated) {
       router.push(`/${locale}/sign-in?redirect=/${locale}/store/cart`);
       return;
@@ -216,7 +216,7 @@ export function CartView({ locale }: CartViewProps) {
               ]}
               footer={
                 freeShippingReached
-                  ? 'משלוח חינם — חציתם את ₪250.'
+                  ? 'משלוח חינם: חציתם את ₪250.'
                   : 'משלוח חינם מעל ₪250.'
               }
             />

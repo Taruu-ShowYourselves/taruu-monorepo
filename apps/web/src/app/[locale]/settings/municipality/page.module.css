@@ -1,12 +1,15 @@
-/* Settings · Municipality — boxed ink-ruled select. Brutalist Tech-Press. */
+/* Settings · Municipality - boxed ink-ruled select. Brutalist Tech-Press. */
 
 .main {
+  position: relative;
   background: var(--np-paper);
   min-height: 60vh;
   padding-block: var(--space-10) var(--space-16);
 }
 
 .container {
+  position: relative;
+  z-index: 1;
   inline-size: 100%;
   max-inline-size: 44rem;
   margin-inline: auto;
@@ -98,14 +101,8 @@
   background: var(--np-paper);
 }
 
-/* Form */
+/* Form - visuals come from PressFormCard; page only spaces it */
 .formCard {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-  border: var(--np-rule) solid var(--np-ink);
-  background: var(--np-paper-box);
-  padding: var(--space-5);
   margin-block-end: var(--space-8);
 }
 .formActions {

@@ -210,7 +210,7 @@ export interface TokenChargeResult {
 }
 
 /**
- * Charge a saved card token off-session (MIT — merchant-initiated transaction).
+ * Charge a saved card token off-session (MIT - merchant-initiated transaction).
  * This is the surface the merch flow never exercises: POST /payments/tokens/{id}/charge
  * issues an ILS charge against a previously-stored card and, on success, auto-issues
  * a tax document (receipt/חשבונית קבלה) in one response.
@@ -260,11 +260,11 @@ export async function chargeToken(input: TokenChargeInput): Promise<TokenChargeR
     (data.id as string | undefined) ||
     null;
 
-  // Defensive id read — mirrors webhook route: data.documentId || data.id || data.paymentId
+  // Defensive id read - mirrors webhook route: data.documentId || data.id || data.paymentId
   const documentId =
     ((data.documentId || data.id || data.paymentId) as string | null | undefined) ?? null;
 
-  // Log correlation id only — never the tokenId or raw payload.
+  // Log correlation id only - never the tokenId or raw payload.
   logger.info('Green Invoice token charge issued', { custom: input.custom });
 
   return { chargeId, documentId, raw: data };

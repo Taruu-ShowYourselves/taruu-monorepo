@@ -1,5 +1,5 @@
 /* ============================================================
-   Issue-Coin dossier (detail) — brutalist tech-press
+   Issue-Coin dossier (detail) - brutalist tech-press
    Mobile-first single column → ≥1024 two-column broadsheet.
    ============================================================ */
 
@@ -431,7 +431,7 @@
   block-size: 16em;
 }
 
-/* ── Back this BAG — primary action block (ink furniture) ──────────────── */
+/* ── Back this BAG - primary action block (ink furniture) ──────────────── */
 .back {
   margin-block: var(--space-8);
   background: var(--np-ink);

@@ -1,5 +1,5 @@
 /**
- * Active-liveness challenge machine — pure logic, no camera, no human.js.
+ * Active-liveness challenge machine - pure logic, no camera, no human.js.
  *
  * The selfie step issues a short randomized challenge sequence (a blink plus
  * a head turn) and advances only when the live gesture stream satisfies the
@@ -19,7 +19,7 @@ export interface LivenessState {
   sequence: Challenge[];
   /** Index of the current (unsatisfied) challenge. */
   index: number;
-  /** Consecutive frames without a face — used to abort, not to reset. */
+  /** Consecutive frames without a face - used to abort, not to reset. */
   missingFrames: number;
   passed: boolean;
 }
@@ -75,7 +75,7 @@ export function advanceLiveness(state: LivenessState, obs: Observation): Livenes
 
 /** Hebrew prompt for the current challenge (mirrored for the front camera). */
 export function challengePrompt(state: LivenessState): string {
-  if (state.passed) return 'מצוין — זוהיתם';
+  if (state.passed) return 'מצוין - זוהיתם';
   switch (state.sequence[state.index]) {
     case 'blink':
       return 'מצמצו פעם אחת';

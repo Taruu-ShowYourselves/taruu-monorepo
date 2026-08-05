@@ -49,7 +49,7 @@ describe('resolveLocationState', () => {
     expect(resolveLocationState('תל אביב-יפו', true)).toBe('verified');
   });
 
-  it('never invents a municipality — it only classifies the one given', () => {
+  it('never invents a municipality - it only classifies the one given', () => {
     // The function returns a state, never a name, so there is nowhere for a
     // default town to be introduced.
     const states = [

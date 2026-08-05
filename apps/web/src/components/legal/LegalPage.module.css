@@ -1,5 +1,5 @@
 /* ============================================
- * Legal pages — Brutalist Tech-Press (v2)
+ * Legal pages - Brutalist Tech-Press (v2)
  * Shared by privacy / terms / refund.
  * The fine-print imprint pages of the newspaper: newsprint cream, ink rules,
  * mono datelines, a single serif reading column. RTL logical props only.
@@ -223,7 +223,7 @@
 }
 
 .section {
-  /* Constrained editorial measure — never let body lines run too wide. */
+  /* Constrained editorial measure - never let body lines run too wide. */
   max-width: 68ch;
   scroll-margin-block-start: var(--space-12);
 }

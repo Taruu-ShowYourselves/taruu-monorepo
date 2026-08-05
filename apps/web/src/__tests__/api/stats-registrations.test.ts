@@ -9,7 +9,7 @@
  * - a municipality cohort below MUNICIPALITY_MIN_COHORT is WITHHELD, not
  *   rounded or zeroed, because a count of 1 in a named town identifies a
  *   person to anyone who knows the town;
- * - the platform-wide total is never withheld — it identifies nobody.
+ * - the platform-wide total is never withheld - it identifies nobody.
  */
 
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
@@ -76,7 +76,7 @@ describe('GET /api/stats/registrations', () => {
     expect(data.stats.registeredInMunicipality).toBeNull();
     expect(data.stats.municipalityWithheld).toBe(true);
     // The withheld figure must not survive in ANY field of the payload.
-    // Compared by value, not by substring — "4" would match inside "400".
+    // Compared by value, not by substring - "4" would match inside "400".
     expect(Object.values(data.stats)).not.toContain(MUNICIPALITY_MIN_COHORT - 1);
   });
 
@@ -96,7 +96,7 @@ describe('GET /api/stats/registrations', () => {
 
     const data = await (await GET(req('?municipality=nowhere'))).json();
 
-    // 0 is below the floor, so it is withheld like any other small cohort —
+    // 0 is below the floor, so it is withheld like any other small cohort -
     // the client renders "not enough residents yet", never a hard zero.
     expect(data.stats.registeredInMunicipality).toBeNull();
     expect(data.stats.municipalityWithheld).toBe(true);

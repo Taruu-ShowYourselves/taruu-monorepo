@@ -1,7 +1,7 @@
 /**
  * Pure OCR-text → document-field extraction for Israeli documents.
  *
- * No DOM, no tesseract — plain string processing so it unit-tests in node.
+ * No DOM, no tesseract - plain string processing so it unit-tests in node.
  *
  * Anchors (per document research, issue #32):
  *  - Neither the biometric ID card nor the driver's license carries an MRZ;

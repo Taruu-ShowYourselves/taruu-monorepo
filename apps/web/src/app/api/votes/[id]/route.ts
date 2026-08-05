@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getVoteWithOptions, getUserVote } from '@/lib/supabase/db';
+import {
+  getVoteWithOptions,
+  getUserVote,
+  getKnessetItemsByVoteIds,
+} from '@/lib/supabase/db';
 import { getSessionFromRequest } from '@/services/auth/session';
 
 interface RouteParams {
@@ -25,6 +29,25 @@ export async function GET(
       );
     }
 
+    // Knesset-agenda votes carry their plenum context (background block on
+    // the detail page). getKnessetItemsByVoteIds returns [] on any failure.
+    const [knessetItem] = await getKnessetItemsByVoteIds([voteData.id]);
+    const knesset = knessetItem
+      ? {
+          knessetNum: knessetItem.knesset_num,
+          sessionNumber: knessetItem.session_number,
+          sessionDate: knessetItem.session_date,
+          ordinal: knessetItem.ordinal,
+          itemType: knessetItem.item_type,
+          isDiscussion: knessetItem.is_discussion,
+          // Attached official document (fs.knesset.gov.il) + its AI summary,
+          // filled in by /api/cron/knesset-docs.
+          summary: knessetItem.summary,
+          docUrl: knessetItem.doc_url,
+          docGroup: knessetItem.doc_group,
+        }
+      : undefined;
+
     // Transform to API response format
     const vote = {
       id: voteData.id,
@@ -37,7 +60,7 @@ export async function GET(
       endDate: voteData.end_date,
       participantCount: voteData.participant_count,
       // Note: vote_options table doesn't have description field.
-      // `text`/`votes` are the contract's aliases for label/voteCount —
+      // `text`/`votes` are the contract's aliases for label/voteCount -
       // the detail page consumes them directly.
       options: voteData.options.map((opt) => ({
         id: opt.id,
@@ -48,6 +71,7 @@ export async function GET(
       })),
       createdAt: voteData.created_at,
       updatedAt: voteData.updated_at,
+      knesset,
     };
 
     // Signed-in caller: surface their existing choice (contract: option id).

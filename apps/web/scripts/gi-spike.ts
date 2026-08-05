@@ -1,13 +1,13 @@
 /**
- * gi-spike.ts — Green Invoice card-on-file sandbox spike harness.
+ * gi-spike.ts - Green Invoice card-on-file sandbox spike harness.
  *
  * Exercises the full sequence:
  *   1. JWT token exchange  (/account/token)
- *   2. Payment-form card-setup  (/payments/form)  — manual browser step
- *   3. Token charge (MIT)  (/payments/tokens/{id}/charge)  — requires --charge flag + GI_SPIKE_TOKEN_ID
+ *   2. Payment-form card-setup  (/payments/form)  - manual browser step
+ *   3. Token charge (MIT)  (/payments/tokens/{id}/charge)  - requires --charge flag + GI_SPIKE_TOKEN_ID
  *
  * Guarded: hard-exits before any network call when Green Invoice credentials are absent.
- * NOT a vitest test — deliberate invocation only, never runs in CI.
+ * NOT a vitest test - deliberate invocation only, never runs in CI.
  *
  * Usage:
  *   pnpm spike:gi                             # guard + STEP 1 + STEP 2 instructions
@@ -22,11 +22,11 @@ import {
 } from '../src/services/greenInvoice/index';
 
 // ===========================================================================
-// GUARD FIRST — before any network call
+// GUARD FIRST - before any network call
 // ===========================================================================
 if (!isGreenInvoiceConfigured()) {
   console.error(
-    '[gi-spike] SKIPPED: Green Invoice is not configured — set GREENINVOICE_API_KEY_ID / GREENINVOICE_API_SECRET in apps/web/.dev.vars then re-run. No live call attempted.'
+    '[gi-spike] SKIPPED: Green Invoice is not configured - set GREENINVOICE_API_KEY_ID / GREENINVOICE_API_SECRET in apps/web/.dev.vars then re-run. No live call attempted.'
   );
   process.exit(1);
 }
@@ -43,7 +43,7 @@ console.log('');
 
 async function run(): Promise<void> {
   // -------------------------------------------------------------------------
-  // STEP 1 — acquire JWT
+  // STEP 1 - acquire JWT
   // -------------------------------------------------------------------------
   console.log('[gi-spike] STEP 1: acquiring JWT token…');
   try {
@@ -55,7 +55,7 @@ async function run(): Promise<void> {
   }
 
   // -------------------------------------------------------------------------
-  // STEP 2 — create payment form for card setup
+  // STEP 2 - create payment form for card setup
   // -------------------------------------------------------------------------
   console.log('');
   console.log('[gi-spike] STEP 2: creating payment form for card setup…');
@@ -104,7 +104,7 @@ async function run(): Promise<void> {
   }
 
   // -------------------------------------------------------------------------
-  // STEP 3 — token charge MIT (gated on --charge flag + GI_SPIKE_TOKEN_ID env)
+  // STEP 3 - token charge MIT (gated on --charge flag + GI_SPIKE_TOKEN_ID env)
   // -------------------------------------------------------------------------
   console.log('');
   const hasChargeFlag = process.argv.includes('--charge');
@@ -127,7 +127,7 @@ async function run(): Promise<void> {
     const result = await chargeToken({
       tokenId,
       sum: 6,
-      description: 'תַּרְאוּ — חיוב חברות בדיקה',
+      description: 'תַּרְאוּ - חיוב חברות בדיקה',
       client: { name: 'Spike Test' },
       custom: 'gi-spike-' + Date.now(),
     });
@@ -141,7 +141,7 @@ async function run(): Promise<void> {
   }
 
   console.log('');
-  console.log('[gi-spike] all steps complete — fill SPIKE-RESULT.md with the values above.');
+  console.log('[gi-spike] all steps complete - fill SPIKE-RESULT.md with the values above.');
 }
 
 run().catch((err) => {

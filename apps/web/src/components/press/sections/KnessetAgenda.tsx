@@ -38,7 +38,7 @@ function ConsensusMeters({ topic }: { topic: DeskTopic }) {
           ))}
         </ul>
       ) : (
-        <p className={styles.noBallots}>עדיין אין קולות — היו הראשונים.</p>
+        <p className={styles.noBallots}>טרם נרשמו קולות.</p>
       )}
 
       <p className={styles.itemMeta}>
@@ -63,7 +63,7 @@ function AgendaItemRow({
 
   return (
     <li className={styles.itemRow}>
-      {/* Sequence position, not the official Ordinal — Knesset ordinals
+      {/* Sequence position, not the official Ordinal - Knesset ordinals
           restart per agenda section, so raw values repeat (many "01"s). */}
       <span className={styles.itemOrdinal} aria-hidden>
         {String(position).padStart(2, '0')}
@@ -107,7 +107,7 @@ function SessionBlock({
         <h2 id={`plm-${session.plenumSessionId}`} className={styles.sessionTitle}>
           ישיבת מליאה
           {session.sessionNumber ? ` מס׳ ${session.sessionNumber}` : ''}
-          {date ? ` — ${weekday ? `${weekday}, ` : ''}${date}` : ''}
+          {date ? ` · ${weekday ? `${weekday}, ` : ''}${date}` : ''}
         </h2>
         {session.knessetNum ? (
           <span className={styles.sessionMeta}>הכנסת ה־{session.knessetNum}</span>
@@ -134,7 +134,7 @@ interface KnessetAgendaProps {
 }
 
 /**
- * KnessetAgenda — the plenum day order (סדר יום המליאה) as a broadsheet
+ * KnessetAgenda - the plenum day order (סדר יום המליאה) as a broadsheet
  * index: one block per sitting, entries in their official order, each one
  * a live ballot. National topics without sitting metadata trail at the end.
  */

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { NewsButton } from '@/components/press/NewsButton';
-import { VoteWidget } from '@/components/press/VoteWidget';
+import { LiveVoteWidget } from '@/components/press/VoteWidget';
 import type { Locale } from '@/lib/i18n';
 import styles from './Participate.module.css';
 
@@ -22,7 +22,7 @@ const CONSENSUS_BARS: ConsensusBar[] = [
 ];
 
 /**
- * Participate — the control-surfaces showcase. The brand idea, made literal:
+ * Participate - the control-surfaces showcase. The brand idea, made literal:
  * you don't just read the paper, you participate inside it. The participation
  * control surfaces are laid out as styled press furniture (a technical spec
  * page), each captioned like a figure plate. Surfaces are interactive/styled,
@@ -34,7 +34,7 @@ export function Participate({ locale = 'he' }: ParticipateProps) {
   return (
     <section id="participate" className={styles.participate}>
       <div className={styles.inner}>
-        {/* Section header — kicker, headline, standfirst */}
+        {/* Section header - kicker, headline, standfirst */}
         <header className={styles.header}>
           <span className={styles.kicker}>
             <span aria-hidden className={styles.kickerTick} />
@@ -42,12 +42,12 @@ export function Participate({ locale = 'he' }: ParticipateProps) {
           </span>
 
           <h2 className={styles.headline}>
-            ככה משתתפים — <span className={styles.red}>בתוך העמוד.</span>
+            ככה משתתפים: <span className={styles.red}>בתוך העמוד.</span>
           </h2>
 
           <p className={styles.standfirst}>
-            כל כלי ההשתתפות, גלויים על השולחן. בלי תפריטים נסתרים, בלי טפסים
-            אינסופיים — אתם רואים בדיוק איך הקול שלכם נמדד, מאומת ונספר.
+            כל כלי ההשתתפות גלויים על השולחן. בלי תפריטים נסתרים ובלי טפסים
+            אינסופיים. רואים בדיוק איך הקול נמדד, מאומת ונספר.
           </p>
         </header>
 
@@ -55,21 +55,21 @@ export function Participate({ locale = 'he' }: ParticipateProps) {
 
         {/* Spec-sheet gallery of control surfaces */}
         <div className={styles.specSheet}>
-          {/* FIG. 1 — הצבעה חיה (live ballot) */}
+          {/* FIG. 1 - הצבעה חיה (live ballot) */}
           <figure className={`${styles.fig} ${styles.figBallot}`}>
             <figcaption className={styles.figHead}>
               <span className={styles.figNo}>FIG. 1</span>
               <span className={styles.figTitle}>תא הקלפי</span>
             </figcaption>
             <div className={styles.figBody}>
-              <VoteWidget question="גינת השכונה ברחוב הרצל — מה עושים?" issueNo="04" />
+              <LiveVoteWidget issueNo="04" />
             </div>
             <p className={styles.figNote}>
-              FIG. 1 — תא הקלפי. בחרו עמדה, ראו את הספירה בזמן אמת.
+              FIG. 1 · תא הקלפי. בחרו עמדה, ראו את הספירה בזמן אמת.
             </p>
           </figure>
 
-          {/* FIG. 2 — כפתורי פעולה (action surfaces) */}
+          {/* FIG. 2 - כפתורי פעולה (action surfaces) */}
           <figure className={`${styles.fig} ${styles.figButtons}`}>
             <figcaption className={styles.figHead}>
               <span className={styles.figNo}>FIG. 2</span>
@@ -97,10 +97,10 @@ export function Participate({ locale = 'he' }: ParticipateProps) {
                 </div>
               </div>
             </div>
-            <p className={styles.figNote}>FIG. 2 — משטחי פעולה.</p>
+            <p className={styles.figNote}>FIG. 2 · משטחי פעולה.</p>
           </figure>
 
-          {/* FIG. 3 — מד תמיכה (consensus meter) */}
+          {/* FIG. 3 - מד תמיכה (consensus meter) */}
           <figure className={`${styles.fig} ${styles.figMeter}`}>
             <figcaption className={styles.figHead}>
               <span className={styles.figNo}>FIG. 3</span>
@@ -123,10 +123,10 @@ export function Participate({ locale = 'he' }: ParticipateProps) {
                 ))}
               </ul>
             </div>
-            <p className={styles.figNote}>FIG. 3 — מד קונצנזוס.</p>
+            <p className={styles.figNote}>FIG. 3 · מד קונצנזוס.</p>
           </figure>
 
-          {/* FIG. 4 — הצעת נושא (readers' column input) */}
+          {/* FIG. 4 - הצעת נושא (readers' column input) */}
           <figure className={`${styles.fig} ${styles.figInput}`}>
             <figcaption className={styles.figHead}>
               <span className={styles.figNo}>FIG. 4</span>
@@ -160,7 +160,7 @@ export function Participate({ locale = 'he' }: ParticipateProps) {
                 </div>
               </form>
             </div>
-            <p className={styles.figNote}>FIG. 4 — טור הקוראים.</p>
+            <p className={styles.figNote}>FIG. 4 · טור הקוראים.</p>
           </figure>
         </div>
       </div>

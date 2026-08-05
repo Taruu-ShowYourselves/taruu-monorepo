@@ -127,7 +127,7 @@
   color: var(--np-red);
 }
 
-/* ── Values — mechanical ink-ruled list ───────────────── */
+/* ── Values - mechanical ink-ruled list ───────────────── */
 .values {
   list-style: none;
   margin: clamp(var(--space-8), 4vw, var(--space-12)) 0 0;
