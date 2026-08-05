@@ -103,16 +103,24 @@ if ! id taruu-runner >/dev/null 2>&1; then
   useradd --create-home --shell /bin/bash taruu-runner
 fi
 
-systemctl stop taruu-project-watcher.timer taruu-project-watcher.service \
-  >/dev/null 2>&1 || true
+# The board watcher is gone: work now starts only from an explicit maintainer
+# comment. Tear down any unit left by an earlier bootstrap so a redeployed host
+# cannot silently resume unattended dispatch.
+systemctl disable --now taruu-project-watcher.timer >/dev/null 2>&1 || true
+systemctl stop taruu-project-watcher.service >/dev/null 2>&1 || true
+rm -f /etc/systemd/system/taruu-project-watcher.timer \
+  /etc/systemd/system/taruu-project-watcher.service
+rm -f /opt/taruu-agent/scripts/watch-project.mjs
+rm -rf /srv/taruu-agent/project-watcher
+sed -i '/^AGENT_PROJECT_WATCHER_STATE=/d' /etc/taruu-agent/agent.env 2>/dev/null || true
+systemctl daemon-reload
 
 install -d -o root -g root -m 0755 /opt/taruu-agent
 install -d -o root -g root -m 0755 /opt/taruu-agent/scripts
 install -d -o root -g root -m 0755 /etc/taruu-agent
 install -d -o root -g root -m 0755 /srv/taruu-agent
 install -d -o taruu-agent -g taruu-agent -m 0700 \
-  /srv/taruu-agent/openclaw-state \
-  /srv/taruu-agent/project-watcher
+  /srv/taruu-agent/openclaw-state
 install -d -o taruu-agent -g taruu-agent -m 0750 \
   /srv/taruu-agent/repo \
   /srv/taruu-agent/worktrees \
@@ -228,8 +236,6 @@ upsert_env GH_TOKEN "$gh_agent_token"
 upsert_env AGENT_REPOSITORY "Taruu-ShowYourselves/taruu-monorepo"
 upsert_env AGENT_PROJECT_OWNER "Taruu-ShowYourselves"
 upsert_env AGENT_PROJECT_NUMBER "2"
-upsert_env AGENT_PROJECT_WATCHER_STATE \
-  "/srv/taruu-agent/project-watcher/state.json"
 upsert_env AGENT_REPOSITORY_ROOT "/srv/taruu-agent/repo"
 upsert_env AGENT_WORKTREES_ROOT "/srv/taruu-agent/worktrees"
 
@@ -360,12 +366,6 @@ echo "Installing the OpenClaw system service"
 install -o root -g root -m 0644 \
   "$bundle_root/infra/agentic/systemd/taruu-openclaw.service" \
   /etc/systemd/system/taruu-openclaw.service
-install -o root -g root -m 0644 \
-  "$bundle_root/infra/agentic/systemd/taruu-project-watcher.service" \
-  /etc/systemd/system/taruu-project-watcher.service
-install -o root -g root -m 0644 \
-  "$bundle_root/infra/agentic/systemd/taruu-project-watcher.timer" \
-  /etc/systemd/system/taruu-project-watcher.timer
 systemctl daemon-reload
 systemctl enable taruu-openclaw.service
 
@@ -570,9 +570,6 @@ sudo -u taruu-agent -H bash -lc '
   openclaw browser doctor --json > /srv/taruu-agent/logs/browser-doctor.json
 '
 
-echo "Starting the GitHub Project In Progress watcher"
-systemctl start taruu-project-watcher.service
-systemctl enable --now taruu-project-watcher.timer
 
 unset \
   gh_agent_token \
