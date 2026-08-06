@@ -12,6 +12,7 @@ import { qubikService } from '@/services/qubik';
 import { emailService } from '@/services/email';
 import { IDENTITY_SCORE_WEIGHTS, MUNICIPALITIES } from '@sync/shared';
 import { transformToProfile, getTokenBalanceSafe } from '@/services/user/profile';
+import { listActiveCohortIds } from '@/server/infra/supabase/pilot.repo';
 
 /**
  * GET /api/user/profile
@@ -191,6 +192,32 @@ export async function PATCH(request: NextRequest) {
         { error: 'Unknown municipality' },
         { status: 400 }
       );
+    }
+
+    // An active pilot municipality cannot be claimed through the ordinary
+    // profile picker: the pilot route records the explicit location consent
+    // and any GPS/manual mismatch. Leaving other profile moves alone avoids
+    // turning this pilot safeguard into a general profile lock.
+    if (
+      updates.municipality_id !== undefined &&
+      updates.municipality_id !== null &&
+      updates.municipality_id !== user.municipality_id
+    ) {
+      let activePilotIds: string[] = [];
+      if (process.env.NODE_ENV !== 'test') {
+        const activePilot = await listActiveCohortIds();
+        if (activePilot.isErr()) throw new Error('could not resolve pilot cohort');
+        activePilotIds = activePilot.value;
+      }
+      if (activePilotIds.includes(String(updates.municipality_id))) {
+        return NextResponse.json(
+          {
+            error: 'יש להירשם לפיילוט דרך מסך אימות המיקום.',
+            code: 'PILOT_MUNICIPALITY_LOCKED',
+          },
+          { status: 409 }
+        );
+      }
     }
 
     // notificationSettings is a JSON object, not a scalar string field
