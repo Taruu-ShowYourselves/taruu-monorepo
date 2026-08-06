@@ -30,6 +30,13 @@ export const TOKEN_RATE = 1;
 export const WHATSAPP_FOUNDERS_LINK =
   'https://chat.whatsapp.com/FITvea9IVsn2Ljie1yCrAc';
 
+/**
+ * The desk's public address — where a reader writes to a person rather than
+ * to a form. Distinct from `support@` (transactional, quoted in the legal
+ * pages) on purpose: this one is the masthead's.
+ */
+export const CONTACT_EMAIL = 'shalom@taruu.co.il';
+
 // Vote duration limits (in days)
 export const MIN_VOTE_DURATION = 3;
 export const MAX_VOTE_DURATION = 30;

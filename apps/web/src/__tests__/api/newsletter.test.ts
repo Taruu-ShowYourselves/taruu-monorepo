@@ -1,241 +1,154 @@
 /**
- * Newsletter API Route Tests
+ * Newsletter API route tests.
  *
- * Tests for the /api/newsletter/subscribe endpoint:
- * - POST /api/newsletter/subscribe - Subscribe to newsletter
+ * The list lives in our own database now, so these mock Supabase rather than
+ * `fetch`. That distinction is the whole reason the old suite was worthless:
+ * it mocked a third-party HTTP call, passed for months, and never once noticed
+ * that the real credential behind that call had gone dead.
  */
 
-import { describe, it, expect, beforeEach, vi, type Mock, afterAll } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-// Mock fetch globally
-global.fetch = vi.fn();
+/** Postgres unique_violation, as PostgREST reports it. */
+const UNIQUE_VIOLATION = { code: '23505', message: 'duplicate key value' };
 
-// Mock headers
-vi.mock('next/headers', () => ({
-  headers: vi.fn().mockImplementation(() => {
-    return Promise.resolve({
-      get: vi.fn((name: string) => {
-        if (name === 'x-forwarded-for') {
-          return '192.168.1.1';
-        }
-        return null;
-      }),
-    });
-  }),
-}));
+const insert = vi.fn();
+const updateEq2 = vi.fn();
+const update = vi.fn();
 
-// Mock rate limiter (async check method)
-vi.mock('@/lib/rate-limit', () => ({
-  newsletterLimiter: {
-    check: vi.fn(() => Promise.resolve({ limited: false })),
+vi.mock('@/lib/supabase/server', () => ({
+  supabaseAdmin: {
+    from: () => ({
+      insert,
+      update,
+    }),
   },
-  createRateLimitResponse: vi.fn(),
 }));
 
-import { newsletterLimiter, createRateLimitResponse } from '@/lib/rate-limit';
+vi.mock('next/headers', () => ({
+  headers: () =>
+    Promise.resolve({
+      get: (name: string) => (name === 'x-forwarded-for' ? '192.168.1.1' : null),
+    }),
+}));
 
-describe('Newsletter API Routes', () => {
-  const originalEnv = process.env;
-  let POST: typeof import('@/app/api/newsletter/subscribe/route').POST;
+vi.mock('@/lib/rate-limit', () => ({
+  newsletterLimiter: { check: vi.fn(() => Promise.resolve({ limited: false })) },
+  createRateLimitResponse: vi.fn(
+    () => new Response(JSON.stringify({ success: false }), { status: 429 })
+  ),
+}));
 
-  beforeEach(async () => {
+import { newsletterLimiter } from '@/lib/rate-limit';
+import { POST } from '@/app/api/newsletter/route';
+
+function post(body: unknown) {
+  return new NextRequest('http://localhost:3000/api/newsletter', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+describe('POST /api/newsletter', () => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    process.env = {
-      ...originalEnv,
-      BEEHIIV_API_KEY: 'test-api-key',
-      BEEHIIV_PUBLICATION_ID: 'test-pub-id',
-    };
-    // Re-import to get fresh instance
-    vi.resetModules();
-    const routeModule = await import('@/app/api/newsletter/subscribe/route');
-    POST = routeModule.POST;
+    insert.mockResolvedValue({ error: null });
+    // update().eq().eq() - the reactivation chain.
+    updateEq2.mockResolvedValue({ error: null });
+    update.mockReturnValue({ eq: () => ({ eq: updateEq2 }) });
+    (newsletterLimiter.check as ReturnType<typeof vi.fn>).mockResolvedValue({
+      limited: false,
+    });
   });
 
-  afterAll(() => {
-    process.env = originalEnv;
+  it('rejects a missing email without touching the database', async () => {
+    const response = await POST(post({}));
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.success).toBe(false);
+    expect(insert).not.toHaveBeenCalled();
   });
 
-  describe('POST /api/newsletter/subscribe', () => {
-    it('should return 400 when email is missing', async () => {
-      const request = new NextRequest('http://localhost:3000/api/newsletter/subscribe', {
-        method: 'POST',
-        body: JSON.stringify({}),
-      });
-      const response = await POST(request);
-      const data = await response.json();
-
+  it('rejects a malformed address', async () => {
+    for (const email of ['', 'invalid-email', 'test@', 'a b@c.com']) {
+      const response = await POST(post({ email }));
       expect(response.status).toBe(400);
-      expect(data.message).toBe('נא להזין כתובת אימייל');
+    }
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it('stores a valid address and answers 201', async () => {
+    const response = await POST(
+      post({ email: 'test@example.com', source: 'homepage_cta' })
+    );
+    const data = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(data.success).toBe(true);
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'test@example.com', source: 'homepage_cta' })
+    );
+  });
+
+  it('normalises the address before it reaches the table', async () => {
+    await POST(post({ email: '  TEST@Example.COM  ' }));
+
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({ email: 'test@example.com' })
+    );
+  });
+
+  it('treats an address already on the list as a success', async () => {
+    insert.mockResolvedValue({ error: UNIQUE_VIOLATION });
+
+    const response = await POST(post({ email: 'existing@example.com' }));
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.success).toBe(true);
+  });
+
+  it('reactivates a row that had unsubscribed', async () => {
+    insert.mockResolvedValue({ error: UNIQUE_VIOLATION });
+
+    await POST(post({ email: 'returning@example.com' }));
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'active', unsubscribed_at: null })
+    );
+    expect(updateEq2).toHaveBeenCalled();
+  });
+
+  it('answers 500 when the insert fails for any other reason', async () => {
+    insert.mockResolvedValue({ error: { code: '42P01', message: 'no such table' } });
+
+    const response = await POST(post({ email: 'test@example.com' }));
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data.success).toBe(false);
+  });
+
+  it('honours the rate limiter before reading the body', async () => {
+    (newsletterLimiter.check as ReturnType<typeof vi.fn>).mockResolvedValue({
+      limited: true,
     });
 
-    it('should return 400 when email is empty string', async () => {
-      const request = new NextRequest('http://localhost:3000/api/newsletter/subscribe', {
-        method: 'POST',
-        body: JSON.stringify({ email: '' }),
-      });
-      const response = await POST(request);
-      const data = await response.json();
+    const response = await POST(post({ email: 'test@example.com' }));
 
-      expect(response.status).toBe(400);
-      expect(data.message).toBe('נא להזין כתובת אימייל');
-    });
+    expect(response.status).toBe(429);
+    expect(insert).not.toHaveBeenCalled();
+  });
 
-    it('should return 400 for invalid email format', async () => {
-      const request = new NextRequest('http://localhost:3000/api/newsletter/subscribe', {
-        method: 'POST',
-        body: JSON.stringify({ email: 'invalid-email' }),
-      });
-      const response = await POST(request);
-      const data = await response.json();
+  it('answers in the locale the form was rendered in', async () => {
+    const he = await (await POST(post({ email: 'a@example.com' }))).json();
+    const en = await (
+      await POST(post({ email: 'b@example.com', locale: 'en' }))
+    ).json();
 
-      expect(response.status).toBe(400);
-      expect(data.message).toBe('נא להזין כתובת אימייל תקינה');
-    });
-
-    it('should return 400 for email without domain', async () => {
-      const request = new NextRequest('http://localhost:3000/api/newsletter/subscribe', {
-        method: 'POST',
-        body: JSON.stringify({ email: 'test@' }),
-      });
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(400);
-      expect(data.message).toBe('נא להזין כתובת אימייל תקינה');
-    });
-
-    it('should subscribe successfully with valid email', async () => {
-      (global.fetch as Mock).mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ data: { id: 'sub-123' } }),
-      });
-
-      const request = new NextRequest('http://localhost:3000/api/newsletter/subscribe', {
-        method: 'POST',
-        body: JSON.stringify({ email: 'test@example.com' }),
-      });
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(201);
-      expect(data.message).toBe('נרשמתם בהצלחה לעדכונים!');
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('beehiiv.com'),
-        expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({
-            'Content-Type': 'application/json',
-          }),
-        })
-      );
-    });
-
-    it('should trim and lowercase email', async () => {
-      (global.fetch as Mock).mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ data: { id: 'sub-123' } }),
-      });
-
-      const request = new NextRequest('http://localhost:3000/api/newsletter/subscribe', {
-        method: 'POST',
-        body: JSON.stringify({ email: '  TEST@EXAMPLE.COM  ' }),
-      });
-      const response = await POST(request);
-
-      expect(response.status).toBe(201);
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          body: expect.stringContaining('test@example.com'),
-        })
-      );
-    });
-
-    it('should return 409 when email is already subscribed', async () => {
-      (global.fetch as Mock).mockResolvedValueOnce({
-        ok: false,
-        status: 409,
-        json: () => Promise.resolve({ message: 'Email already subscribed' }),
-      });
-
-      const request = new NextRequest('http://localhost:3000/api/newsletter/subscribe', {
-        method: 'POST',
-        body: JSON.stringify({ email: 'existing@example.com' }),
-      });
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(409);
-      expect(data.message).toBe('כתובת האימייל כבר רשומה לעדכונים');
-    });
-
-    it('should return 500 when Beehiiv API fails', async () => {
-      (global.fetch as Mock).mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        json: () => Promise.resolve({ message: 'Internal error' }),
-      });
-
-      const request = new NextRequest('http://localhost:3000/api/newsletter/subscribe', {
-        method: 'POST',
-        body: JSON.stringify({ email: 'test@example.com' }),
-      });
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(500);
-      expect(data.message).toBe('שגיאה בהרשמה. נסו שוב מאוחר יותר.');
-    });
-
-    it('should return 500 when Beehiiv not configured', async () => {
-      // Remove Beehiiv config
-      delete process.env.BEEHIIV_API_KEY;
-      delete process.env.BEEHIIV_PUBLICATION_ID;
-
-      // Re-import to pick up new env
-      vi.resetModules();
-      const { POST: POST2 } = await import('@/app/api/newsletter/subscribe/route');
-
-      const request = new NextRequest('http://localhost:3000/api/newsletter/subscribe', {
-        method: 'POST',
-        body: JSON.stringify({ email: 'test@example.com' }),
-      });
-      const response = await POST2(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(500);
-      expect(data.message).toBe('שגיאת תצורה. אנא נסו שוב מאוחר יותר.');
-    });
-
-    it('should handle network errors gracefully', async () => {
-      (global.fetch as Mock).mockRejectedValueOnce(new Error('Network error'));
-
-      const request = new NextRequest('http://localhost:3000/api/newsletter/subscribe', {
-        method: 'POST',
-        body: JSON.stringify({ email: 'test@example.com' }),
-      });
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(500);
-      expect(data.message).toBe('שגיאה בהרשמה. נסו שוב מאוחר יותר.');
-    });
-
-    it('should return 429 when rate limited', async () => {
-      (newsletterLimiter.check as Mock).mockResolvedValueOnce({ limited: true, remaining: 0, resetIn: 60000 });
-      (createRateLimitResponse as Mock).mockReturnValue(
-        new Response(JSON.stringify({ error: 'Too many requests' }), { status: 429 })
-      );
-
-      const request = new NextRequest('http://localhost:3000/api/newsletter/subscribe', {
-        method: 'POST',
-        body: JSON.stringify({ email: 'test@example.com' }),
-      });
-      const response = await POST(request);
-
-      expect(response.status).toBe(429);
-      expect(newsletterLimiter.check).toHaveBeenCalledWith('192.168.1.1');
-    });
+    expect(he.message).toMatch(/[֐-׿]/);
+    expect(en.message).not.toMatch(/[֐-׿]/);
   });
 });

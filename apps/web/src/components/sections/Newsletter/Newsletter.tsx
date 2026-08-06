@@ -60,16 +60,19 @@ export function Newsletter() {
     lastSubmitRef.current = now;
 
     try {
-      const response = await fetch('/api/newsletter/subscribe', {
+      const response = await fetch('/api/newsletter', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, source: 'homepage_section' }),
       });
 
-      if (!response.ok) {
-        const data = await response.json();
+      // The route answers `{ success, message }` on every path - an address
+      // already on the list is a 200 success, not an error to decode.
+      const data = await response.json();
+
+      if (!data.success) {
         throw new Error(data.message || 'שגיאה בהרשמה');
       }
 

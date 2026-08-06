@@ -183,7 +183,7 @@ export function SubscribeForm({ locale = 'he' }: SubscribeFormProps) {
       const r = await fetch('/api/newsletter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: v, source: 'homepage_cta' }),
+        body: JSON.stringify({ email: v, source: 'homepage_cta', locale }),
       });
       const d = await r.json();
       if (d.success) {
