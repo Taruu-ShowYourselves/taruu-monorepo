@@ -1,14 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import { MUNICIPALITY_GEO, distanceKm } from '@sync/shared';
 import { NewsButton } from '@/components/press/NewsButton';
 import { getStoredMunicipality, LOCALITY_EVENT } from '@/lib/locality';
-import { useAuth } from '@/providers/AuthProvider';
-import { submitParticipation } from '@/app/[locale]/votes/[id]/flow/submitParticipation';
-import { DeskTopicRow, slotVariant, type DeskTopic } from './DeskTopicRow';
-import { DeskCarousel } from './DeskCarousel';
+import type { DeskTopic } from './DeskTopicRow';
+import { DeskStream } from './DeskStream';
 import styles from './ConsensusDesk.module.css';
 import { localePrefix, type Locale } from '@/lib/i18n';
 
@@ -29,11 +26,6 @@ interface DeskCopy {
   proposeCta: string;
   carouselLabel: string;
   allTopicsCta: string;
-  quickVote: string;
-  chooseOption: string;
-  castVote: string;
-  casting: string;
-  close: string;
   /** Direction-semantic CTA glyph: mirrored between RTL and LTR. */
   ctaArrow: string;
 }
@@ -52,11 +44,6 @@ const COPY: Record<Locale, DeskCopy> = {
     proposeCta: 'הציעו נושא',
     carouselLabel: 'נושאי הקונצנזוס לפי רשות',
     allTopicsCta: 'לכל הנושאים',
-    quickVote: 'הצבעה מהירה',
-    chooseOption: 'בחרו עמדה כדי להצביע',
-    castVote: 'הצביעו',
-    casting: 'רושמים את הקול…',
-    close: 'סגירה',
     ctaArrow: '←',
   },
   en: {
@@ -72,11 +59,6 @@ const COPY: Record<Locale, DeskCopy> = {
     proposeCta: 'Propose a topic',
     carouselLabel: 'Consensus topics by municipality',
     allTopicsCta: 'All topics',
-    quickVote: 'Quick vote',
-    chooseOption: 'Choose a position to vote',
-    castVote: 'Cast vote',
-    casting: 'Recording your vote…',
-    close: 'Close',
     ctaArrow: '→',
   },
 };
@@ -93,12 +75,7 @@ interface ConsensusDeskClientProps {
  */
 export function ConsensusDeskClient({ desks, locale }: ConsensusDeskClientProps) {
   const t = COPY[locale];
-  const { isAuthenticated } = useAuth();
   const [home, setHome] = useState<string | null>(null);
-  const [openTopic, setOpenTopic] = useState<DeskTopic | null>(null);
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const apply = () => setHome(getStoredMunicipality());
@@ -146,31 +123,6 @@ export function ConsensusDeskClient({ desks, locale }: ConsensusDeskClientProps)
       .map((e) => ({ ...e, heatRank: heatRank.get(e.topic.id) }));
   }, [desks, home]);
 
-  const openQuickVote = (topic: DeskTopic) => {
-    if (!isAuthenticated) {
-      window.location.assign(`${localePrefix(locale)}/votes/${topic.id}`);
-      return;
-    }
-    setSelectedOption(null);
-    setMessage(null);
-    setOpenTopic(topic);
-  };
-
-  const castVote = async () => {
-    if (!openTopic || !selectedOption || submitting) return;
-    setSubmitting(true);
-    setMessage(null);
-    const result = await submitParticipation({ voteId: openTopic.id, optionId: selectedOption, locale });
-    setSubmitting(false);
-    setMessage(
-      result.status === 'recorded'
-        ? locale === 'he'
-          ? 'הקול נרשם.'
-          : 'Your vote is recorded.'
-        : result.message
-    );
-  };
-
   return (
     <section
       id="consensus-desk"
@@ -214,20 +166,7 @@ export function ConsensusDeskClient({ desks, locale }: ConsensusDeskClientProps)
           </div>
         ) : (
           <>
-            <DeskCarousel label={t.carouselLabel} locale={locale}>
-              {entries.map(({ topic, municipality, heatRank }, i) => (
-                <DeskTopicRow
-                  key={topic.id}
-                  topic={topic}
-                  municipality={municipality}
-                  index={i}
-                  heatRank={heatRank}
-                  variant={slotVariant(i)}
-                  onOpen={openQuickVote}
-                  locale={locale}
-                />
-              ))}
-            </DeskCarousel>
+            <DeskStream label={t.carouselLabel} locale={locale} entries={entries} />
 
             <div className={styles.deskFooter}>
               <NewsButton
@@ -242,46 +181,6 @@ export function ConsensusDeskClient({ desks, locale }: ConsensusDeskClientProps)
           </>
         )}
       </div>
-
-      <AlertDialog.Root open={openTopic !== null} onOpenChange={(open) => !open && setOpenTopic(null)}>
-        <AlertDialog.Portal>
-          <AlertDialog.Overlay className={styles.quickVoteBackdrop} />
-          <AlertDialog.Content className={styles.quickVoteDialog}>
-            {openTopic ? (
-              <>
-                <span className={styles.quickVoteKicker}>{t.quickVote}</span>
-                <AlertDialog.Title className={styles.quickVoteTitle}>{openTopic.title}</AlertDialog.Title>
-                <AlertDialog.Description className={styles.quickVoteDescription}>
-                  {openTopic.description}
-                </AlertDialog.Description>
-                <fieldset className={styles.quickVoteOptions}>
-                  <legend>{t.chooseOption}</legend>
-                  {openTopic.options.map((option) => (
-                    <button
-                      key={option.id}
-                      type="button"
-                      className={selectedOption === option.id ? styles.quickVoteOptionSelected : styles.quickVoteOption}
-                      onClick={() => setSelectedOption(option.id)}
-                      aria-pressed={selectedOption === option.id}
-                    >
-                      {option.text} <span>{option.pct}%</span>
-                    </button>
-                  ))}
-                </fieldset>
-                {message ? <p className={styles.quickVoteMessage} role="status">{message}</p> : null}
-                <div className={styles.quickVoteActions}>
-                  <NewsButton variant="red" size="md" onClick={castVote} disabled={!selectedOption || submitting}>
-                    {submitting ? t.casting : t.castVote}
-                  </NewsButton>
-                  <AlertDialog.Cancel asChild>
-                    <NewsButton variant="outline" size="md">{t.close}</NewsButton>
-                  </AlertDialog.Cancel>
-                </div>
-              </>
-            ) : null}
-          </AlertDialog.Content>
-        </AlertDialog.Portal>
-      </AlertDialog.Root>
     </section>
   );
 }

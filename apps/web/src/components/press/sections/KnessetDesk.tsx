@@ -8,8 +8,7 @@ import { activeVotesWithOptions } from '@/server/read/active-votes';
 import { NewsButton } from '@/components/press/NewsButton';
 import type { Locale } from '@/lib/i18n';
 import { formatBillTitle } from '@/lib/knesset/billTitle';
-import { DeskTopicRow, slotVariant } from './DeskTopicRow';
-import { DeskCarousel } from './DeskCarousel';
+import { DeskStream } from './DeskStream';
 import { toDeskTopic } from './deskData';
 import styles from './ConsensusDesk.module.css';
 import { localePrefix } from '@/lib/i18n';
@@ -168,24 +167,18 @@ export async function KnessetDesk({ locale = 'he' }: KnessetDeskProps) {
           </div>
         ) : (
           <>
-            <DeskCarousel label={t.carouselLabel} locale={locale}>
-              {topics.map((topic, i) => (
-                <DeskTopicRow
-                  key={topic.id}
-                  topic={topic}
-                  municipality={KNESSET_SCOPE}
-                  index={i}
-                  ranking={deskRankingOf(topic.id)}
-                  heatRank={
-                    rankings.has(topic.id)
-                      ? rankedIds.indexOf(topic.id) + 1
-                      : undefined
-                  }
-                  variant={slotVariant(i)}
-                  locale={locale}
-                />
-              ))}
-            </DeskCarousel>
+            <DeskStream
+              label={t.carouselLabel}
+              locale={locale}
+              entries={topics.map((topic) => ({
+                topic,
+                municipality: KNESSET_SCOPE,
+                ranking: deskRankingOf(topic.id),
+                heatRank: rankings.has(topic.id)
+                  ? rankedIds.indexOf(topic.id) + 1
+                  : undefined,
+              }))}
+            />
             <div className={styles.deskFooter}>
               <Link href={`${localePrefix(locale)}/knesset`} className={styles.sourceLink}>
                 {t.footerLink}

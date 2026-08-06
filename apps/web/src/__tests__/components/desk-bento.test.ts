@@ -4,7 +4,7 @@ import {
   OBJECTING_KINDS,
   reactionSentiment,
 } from '@/components/press/reactions';
-import { slotVariant } from '@/components/press/sections/DeskTopicRow';
+import { slotVariant } from '@/components/press/sections/deskBento';
 
 describe('reactionSentiment', () => {
   it('splits the six reaction kinds into approval and objection', () => {
