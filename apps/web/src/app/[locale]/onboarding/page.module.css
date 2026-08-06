@@ -5,7 +5,8 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  background: var(--np-paper);
+  /* Desk: the wizard card is already a sheet in all but elevation. */
+  background: var(--np-desk);
   padding: var(--space-8) var(--space-4) var(--space-16);
 }
 
@@ -21,6 +22,7 @@
   max-inline-size: 34rem;
   background: var(--np-paper-box);
   border: var(--np-rule-heavy) solid var(--np-ink);
+  box-shadow: var(--np-shadow-float);
   padding: var(--space-6) var(--space-5) var(--space-8);
   display: flex;
   flex-direction: column;

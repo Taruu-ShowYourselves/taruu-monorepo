@@ -194,7 +194,7 @@ export default function CreateVotePage() {
     return (
       <>
         <Header />
-        <main className={styles.main}>
+        <main className={`${styles.main} np-desk`}>
           <div className={styles.container}>
             <span className={`${styles.shimmer} ${styles.skHead}`} />
             <span className={`${styles.shimmer} ${styles.skBar}`} />
@@ -213,8 +213,9 @@ export default function CreateVotePage() {
     return (
       <>
         <Header />
-        <main className={styles.main}>
+        <main className={`${styles.main} np-desk`}>
           <div className={styles.container}>
+            <div className={`${styles.sheet} np-sheet`}>
             <header className={styles.head}>
               <span className={styles.kicker}>
                 <span aria-hidden className={styles.kickerTick} />
@@ -256,6 +257,7 @@ export default function CreateVotePage() {
                 לכל ההצבעות
               </NewsButton>
             </div>
+            </div>
           </div>
         </main>
         <Footer />
@@ -276,8 +278,9 @@ export default function CreateVotePage() {
   return (
     <>
       <Header />
-      <main className={styles.main}>
+      <main className={`${styles.main} np-desk`}>
         <div className={styles.container}>
+          <div className={`${styles.sheet} np-sheet`}>
           {/* Masthead-style header */}
           <header className={styles.head}>
             <span className={styles.kicker}>
@@ -462,6 +465,7 @@ export default function CreateVotePage() {
             >
               {primaryLabel}
             </NewsButton>
+          </div>
           </div>
         </div>
       </main>

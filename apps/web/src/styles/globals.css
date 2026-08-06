@@ -448,6 +448,59 @@ table {
   padding-inline: var(--np-gutter);
 }
 
+/* Desk + sheet — WORKSPACE surfaces only (dashboard, settings, verification,
+ * the create flow, space-admin). The editorial pages deliberately do NOT use
+ * these: there the newspaper IS the page, and a sheet inside a masthead would
+ * frame the frame.
+ *
+ * `.np-desk` is the surface the working page lies on; `.np-sheet` is the page.
+ * Depth comes entirely from the shadow stack. A blurred pseudo-element behind
+ * the sheet cannot substitute: any transform or filter on the sheet makes it a
+ * stacking context, and a `z-index: -1` child then paints OVER the sheet's own
+ * background rather than under the element.
+ */
+.np-desk {
+  background-color: var(--np-desk);
+  color: var(--np-ink);
+}
+
+.np-sheet {
+  background: var(--np-paper);
+  border: var(--np-rule-hair) solid var(--np-paper-edge);
+  /* Float for the sheet, soft for the boxes printed on it (--np-shadow-soft,
+     applied by the surfaces themselves). Two storeys, and the second is the
+     shorter of the pair on purpose: the sheet is off the desk, a box is only
+     off the sheet, and matching them flattens the hierarchy back out. */
+  box-shadow: var(--np-shadow-float);
+  padding: clamp(var(--space-5), 3vw, var(--space-10));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (max-width: 640px) {
+  .np-sheet {
+    padding-inline: var(--space-4);
+    box-shadow: var(--np-shadow-soft);
+  }
+}
+
+/* A printed page needs no picture of a printed page. The box shadow token is
+   zeroed rather than set to `none`, which would be invalid inside a composed
+   shadow list (`0 4px 0 -2px red, var(--np-shadow-soft)`) and take that whole
+   declaration - hard rule included - down with it. */
+@media print {
+  .np-desk {
+    background: var(--np-paper);
+  }
+
+  .np-sheet {
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    --np-shadow-soft: 0 0 0 0 transparent;
+  }
+}
+
 /* Rules */
 .np-rule { border: 0; border-block-start: var(--np-rule) solid var(--np-ink); }
 .np-rule-hair { border: 0; border-block-start: var(--np-rule-hair) solid var(--np-ink); }

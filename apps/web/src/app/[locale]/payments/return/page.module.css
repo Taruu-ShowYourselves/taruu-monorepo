@@ -3,7 +3,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--np-paper);
+  background: var(--np-desk);
   padding: var(--space-16) var(--space-4);
 }
 
@@ -13,6 +13,11 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  /* Receipt on a desk: one sheet, lifted. */
+  background: var(--np-paper);
+  border: var(--np-rule-hair) solid var(--np-paper-edge);
+  box-shadow: var(--np-shadow-float);
+  padding: clamp(var(--space-5), 3vw, var(--space-8));
 }
 
 .kicker {

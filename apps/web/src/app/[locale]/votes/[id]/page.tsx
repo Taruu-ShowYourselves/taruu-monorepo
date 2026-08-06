@@ -376,7 +376,7 @@ export default function VoteDetailPage() {
     return (
       <>
         <Header />
-        <main className={styles.main}>
+        <main className={`${styles.main} np-desk`}>
           <div className={styles.container}>
             <div className={styles.skeletonHead}>
               <span className={`${styles.shimmer} ${styles.skBadge}`} />
@@ -397,7 +397,7 @@ export default function VoteDetailPage() {
     return (
       <>
         <Header />
-        <main className={styles.main}>
+        <main className={`${styles.main} np-desk`}>
           <div className={styles.errorContainer}>
             <span className={styles.errorIcon} aria-hidden>
               <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2">
@@ -455,15 +455,21 @@ export default function VoteDetailPage() {
     }
   };
 
-  const titleAnim = reduced
-    ? {}
-    : { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.4 } };
+  /* Same rule as the ballot's stage: keep the visible end state unconditional,
+     or the reduced-motion flip leaves the headline stuck at its hidden
+     `initial`. */
+  const titleAnim = {
+    initial: reduced ? false : { opacity: 0, y: 16 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: reduced ? 0 : 0.4 },
+  };
 
   return (
     <>
       <Header />
-      <main className={styles.main}>
+      <main className={`${styles.main} np-desk`}>
         <div className={styles.container}>
+          <div className={`${styles.sheet} np-sheet`}>
           {/* Back / dateline bar */}
           <div className={styles.topBar}>
             <button className={styles.backButton} onClick={() => router.back()}>
@@ -744,6 +750,7 @@ export default function VoteDetailPage() {
                 </section>
               )}
             </aside>
+          </div>
           </div>
         </div>
       </main>
