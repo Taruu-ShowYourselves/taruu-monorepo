@@ -23,6 +23,7 @@ export type ParticipationRejectionCode =
   | 'UNAUTHENTICATED'
   | 'RESIDENCY_NOT_VERIFIED'
   | 'IDENTITY_NOT_VERIFIED'
+  | 'PILOT_MUNICIPALITY_ONLY'
   | 'RATE_LIMITED'
   | 'VOTE_ENDED'
   | 'VOTE_NOT_OPEN'
@@ -39,6 +40,7 @@ export type ParticipationRejectionCode =
 export const TERMINAL_REJECTION_CODES = [
   'VOTE_ENDED',
   'VOTE_NOT_OPEN',
+  'PILOT_MUNICIPALITY_ONLY',
   'NOT_FOUND',
 ] as const satisfies readonly ParticipationRejectionCode[];
 
@@ -55,6 +57,7 @@ export const PARTICIPATION_MESSAGES: Record<ParticipationRejectionCode, string> 
   UNAUTHENTICATED: 'צריך להתחבר כדי להצביע.',
   RESIDENCY_NOT_VERIFIED: 'צריך לאמת תושבוּת לפני ההצבעה.',
   IDENTITY_NOT_VERIFIED: 'צריך לאמת זהות לפני ההצבעה.',
+  PILOT_MUNICIPALITY_ONLY: 'ההצבעה פתוחה לתושבי הרשות המשתתפת בלבד.',
   RATE_LIMITED: 'יותר מדי בקשות. נסו שוב בעוד דקה.',
   VOTE_ENDED: 'ההצבעה נסגרה והקול לא נרשם. אפשר לצפות בתוצאות.',
   VOTE_NOT_OPEN: 'ההצבעה עדיין לא נפתחה.',
@@ -69,6 +72,7 @@ const PARTICIPATION_MESSAGES_EN: Record<ParticipationRejectionCode, string> = {
   UNAUTHENTICATED: 'You need to sign in to vote.',
   RESIDENCY_NOT_VERIFIED: 'You need to verify residency before voting.',
   IDENTITY_NOT_VERIFIED: 'You need to verify your identity before voting.',
+  PILOT_MUNICIPALITY_ONLY: 'This vote is open to residents of the participating municipality only.',
   RATE_LIMITED: 'Too many requests. Try again in a minute.',
   VOTE_ENDED: 'The vote has closed and your vote was not recorded. You can view the results.',
   VOTE_NOT_OPEN: 'The vote has not opened yet.',
@@ -169,6 +173,9 @@ export async function submitParticipation(
     case 401:
       return rejected('UNAUTHENTICATED', locale);
     case 403:
+      if (errorCode === 'PILOT_MUNICIPALITY_ONLY') {
+        return rejected('PILOT_MUNICIPALITY_ONLY', locale);
+      }
       return rejected(
         errorCode === 'IDENTITY_NOT_VERIFIED' ? 'IDENTITY_NOT_VERIFIED' : 'RESIDENCY_NOT_VERIFIED',
         locale

@@ -1,3 +1,6 @@
+'use client';
+
+import { useParallaxBackdrop } from '@/hooks';
 import type { Locale } from '@/lib/i18n';
 import styles from './WhatIsTaruu.module.css';
 
@@ -92,8 +95,13 @@ const COPY: Record<Locale, WhatIsTaruuCopy> = {
  */
 export function WhatIsTaruu({ locale = 'he' }: WhatIsTaruuProps) {
   const t = COPY[locale];
+  // A full-viewport section gives the layers room, so the separation between
+  // the ruled grid and the ghost numeral can be wider than on the reminder.
+  const sectionRef = useParallaxBackdrop<HTMLElement>({ back: -0.06, fore: 0.14 });
+
   return (
     <section
+      ref={sectionRef}
       id="what-is-taruu"
       className={styles.section}
       aria-labelledby="what-is-taruu-headline"

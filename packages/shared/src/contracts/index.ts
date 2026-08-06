@@ -17,3 +17,4 @@ export * from './municipality';
 export * from './council';
 export * from './dashboard';
 export * from './spaceAdmin';
+export * from './pilot';
