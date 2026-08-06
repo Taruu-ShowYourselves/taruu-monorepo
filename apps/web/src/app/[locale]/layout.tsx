@@ -32,6 +32,18 @@ export async function generateStaticParams() {
   return i18n.locales.map((locale) => ({ locale }));
 }
 
+/**
+ * Only the locales above may fill this segment.
+ *
+ * `[locale]` otherwise matches any first path segment, including a filename:
+ * a request for an asset the app does not serve (/sitemap.xml) rendered the
+ * homepage with `locale = 'sitemap.xml'`, and every surface that indexes a
+ * `Record<Locale, Copy>` deck threw before this layout's `notFound()` could
+ * land — a 500 where a 404 belongs. Refusing the param upstream keeps the
+ * pages out of it entirely.
+ */
+export const dynamicParams = false;
+
 export async function generateMetadata({
   params,
 }: {
@@ -255,7 +267,7 @@ function generateStructuredData(locale: Locale) {
       '@type': 'Country',
       name: 'Israel',
     },
-    priceRange: 'חינם',
+    priceRange: isHebrew ? 'חינם' : 'Free',
   };
 
   return [organization, website, softwareApp, faq, localBusiness];
