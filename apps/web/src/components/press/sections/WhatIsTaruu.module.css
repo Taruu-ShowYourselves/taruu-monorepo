@@ -10,10 +10,12 @@
   color: var(--np-ink);
 }
 
+/* Overhangs the section so the parallax drift never pulls an edge into view. */
 .section::before {
   content: '';
   position: absolute;
-  inset: 0;
+  inset-block: -8%;
+  inset-inline: 0;
   z-index: -2;
   opacity: 0.48;
   background-image:
@@ -21,6 +23,8 @@
     linear-gradient(90deg, rgb(25 24 22 / 4.5%) 1px, transparent 1px);
   background-size: clamp(3.25rem, 5vw, 5.5rem) clamp(3.25rem, 5vw, 5.5rem);
   mask-image: linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
+  transform: translate3d(0, var(--np-parallax-back, 0), 0);
+  will-change: transform;
 }
 
 .section::after {
@@ -29,6 +33,8 @@
   inset-inline-end: clamp(-0.08em, -1vw, 0);
   inset-block-start: 3vh;
   z-index: -1;
+  transform: translate3d(0, var(--np-parallax-fore, 0), 0);
+  will-change: transform;
   font-family: var(--np-font-display);
   font-size: clamp(12rem, 31vw, 34rem);
   font-weight: 900;
@@ -298,4 +304,14 @@
     gap: 2rem;
   }
 
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Belt and braces: the hook stops writing the offsets, this ignores any
+     value already on the element. */
+  .section::before,
+  .section::after {
+    transform: none;
+    will-change: auto;
+  }
 }

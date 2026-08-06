@@ -1614,6 +1614,301 @@ export interface Database {
         };
         Relationships: [];
       };
+      pilot_municipalities: {
+        Row: {
+          municipality_id: string;
+          rank: number | null;
+          engagement_score: number;
+          engagement_snapshot: Json;
+          status: 'selected' | 'active' | 'paused' | 'completed';
+          curated_by: string;
+          curated_at: string;
+          activated_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          municipality_id: string;
+          rank?: number | null;
+          engagement_score?: number;
+          engagement_snapshot?: Json;
+          status?: 'selected' | 'active' | 'paused' | 'completed';
+          curated_by: string;
+          curated_at?: string;
+          activated_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          municipality_id?: string;
+          rank?: number | null;
+          engagement_score?: number;
+          engagement_snapshot?: Json;
+          status?: 'selected' | 'active' | 'paused' | 'completed';
+          curated_by?: string;
+          curated_at?: string;
+          activated_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      pilot_votes: {
+        Row: {
+          municipality_id: string;
+          vote_id: string;
+          position: number;
+          added_by: string;
+          created_at: string;
+        };
+        Insert: {
+          municipality_id: string;
+          vote_id: string;
+          position: number;
+          added_by: string;
+          created_at?: string;
+        };
+        Update: {
+          municipality_id?: string;
+          vote_id?: string;
+          position?: number;
+          added_by?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      pilot_campaigns: {
+        Row: {
+          id: string;
+          municipality_id: string;
+          created_by: string;
+          group_name: string;
+          group_url: string | null;
+          status: 'draft' | 'ready' | 'posted' | 'archived';
+          current_copy_id: string | null;
+          posted_at: string | null;
+          posted_by: string | null;
+          post_permalink: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          municipality_id: string;
+          created_by: string;
+          group_name: string;
+          group_url?: string | null;
+          status?: 'draft' | 'ready' | 'posted' | 'archived';
+          current_copy_id?: string | null;
+          posted_at?: string | null;
+          posted_by?: string | null;
+          post_permalink?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          municipality_id?: string;
+          created_by?: string;
+          group_name?: string;
+          group_url?: string | null;
+          status?: 'draft' | 'ready' | 'posted' | 'archived';
+          current_copy_id?: string | null;
+          posted_at?: string | null;
+          posted_by?: string | null;
+          post_permalink?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      pilot_campaign_copies: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          version: number;
+          body: string;
+          author: 'llm' | 'human';
+          author_user_id: string;
+          model: string | null;
+          prompt_snapshot: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          campaign_id: string;
+          version: number;
+          body: string;
+          author: 'llm' | 'human';
+          author_user_id: string;
+          model?: string | null;
+          prompt_snapshot?: Json | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          campaign_id?: string;
+          version?: number;
+          body?: string;
+          author?: 'llm' | 'human';
+          author_user_id?: string;
+          model?: string | null;
+          prompt_snapshot?: Json | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      pilot_links: {
+        Row: {
+          code: string;
+          campaign_id: string | null;
+          municipality_id: string;
+          target_path: string;
+          created_by: string;
+          disabled_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          code: string;
+          campaign_id?: string | null;
+          municipality_id: string;
+          target_path?: string;
+          created_by: string;
+          disabled_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          code?: string;
+          campaign_id?: string | null;
+          municipality_id?: string;
+          target_path?: string;
+          created_by?: string;
+          disabled_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      pilot_link_clicks: {
+        Row: {
+          id: number;
+          link_code: string;
+          clicked_at: string;
+          user_agent: string | null;
+          referer: string | null;
+          ip_hash: string | null;
+          country: string | null;
+          is_bot: boolean;
+        };
+        Insert: {
+          link_code: string;
+          clicked_at?: string;
+          user_agent?: string | null;
+          referer?: string | null;
+          ip_hash?: string | null;
+          country?: string | null;
+          is_bot?: boolean;
+        };
+        Update: {
+          link_code?: string;
+          clicked_at?: string;
+          user_agent?: string | null;
+          referer?: string | null;
+          ip_hash?: string | null;
+          country?: string | null;
+          is_bot?: boolean;
+        };
+        Relationships: [];
+      };
+      pilot_registrations: {
+        Row: {
+          id: string;
+          user_id: string;
+          role: 'participant' | 'observer';
+          lat: number | null;
+          lng: number | null;
+          accuracy_m: number | null;
+          location_consent_at: string | null;
+          consent_version: string | null;
+          claimed_municipality_id: string | null;
+          gps_municipality_id: string | null;
+          resolved_municipality_id: string | null;
+          resolution: 'gps' | 'manual' | 'profile' | 'none';
+          ref_code: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          role: 'participant' | 'observer';
+          lat?: number | null;
+          lng?: number | null;
+          accuracy_m?: number | null;
+          location_consent_at?: string | null;
+          consent_version?: string | null;
+          claimed_municipality_id?: string | null;
+          gps_municipality_id?: string | null;
+          resolved_municipality_id?: string | null;
+          resolution?: 'gps' | 'manual' | 'profile' | 'none';
+          ref_code?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          role?: 'participant' | 'observer';
+          lat?: number | null;
+          lng?: number | null;
+          accuracy_m?: number | null;
+          location_consent_at?: string | null;
+          consent_version?: string | null;
+          claimed_municipality_id?: string | null;
+          gps_municipality_id?: string | null;
+          resolved_municipality_id?: string | null;
+          resolution?: 'gps' | 'manual' | 'profile' | 'none';
+          ref_code?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      pilot_audit_log: {
+        Row: {
+          id: string;
+          actor_user_id: string;
+          municipality_id: string | null;
+          action: string;
+          object_type: 'cohort' | 'campaign' | 'copy' | 'link' | 'vote_set';
+          object_id: string | null;
+          prior_state: Json | null;
+          new_state: Json | null;
+          reason: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          actor_user_id: string;
+          municipality_id?: string | null;
+          action: string;
+          object_type: 'cohort' | 'campaign' | 'copy' | 'link' | 'vote_set';
+          object_id?: string | null;
+          prior_state?: Json | null;
+          new_state?: Json | null;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          actor_user_id?: string;
+          municipality_id?: string | null;
+          action?: string;
+          object_type?: 'cohort' | 'campaign' | 'copy' | 'link' | 'vote_set';
+          object_id?: string | null;
+          prior_state?: Json | null;
+          new_state?: Json | null;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -1697,6 +1992,50 @@ export interface Database {
           generated_at: string;
         }[];
       };
+      pilot_engagement_ranking: {
+        Args: Record<string, never>;
+        Returns: {
+          municipality_id: string;
+          vote_count: number;
+          post_count: number;
+          comments_count: number;
+          reactions_count: number;
+          score: number;
+        }[];
+      };
+      pilot_link_click_stats: {
+        Args: { p_code: string };
+        Returns: {
+          day: string;
+          total_clicks: number;
+          human_clicks: number;
+          unique_visitors: number;
+        }[];
+      };
+      pilot_campaign_funnel: {
+        Args: { p_campaign: string };
+        Returns: {
+          clicks: number;
+          unique_visitors: number;
+          registrations: number;
+          participants: number;
+          ballots: number;
+        }[];
+      };
+      pilot_overview: {
+        Args: Record<string, never>;
+        Returns: {
+          municipality_id: string;
+          rank: number | null;
+          status: 'selected' | 'active' | 'paused' | 'completed';
+          campaigns: number;
+          posted_campaigns: number;
+          human_clicks: number;
+          registrations: number;
+          participants: number;
+          ballots: number;
+        }[];
+      };
       can_admin_space: {
         Args: { p_space: string | null };
         Returns: boolean;
@@ -1774,3 +2113,11 @@ export type CommunityManagerApplication = Tables<'community_manager_applications
 export type RoleGrantEvent = Tables<'role_grant_events'>;
 export type KnessetRanking = Tables<'knesset_rankings'>;
 export type VoteCardArt = Tables<'vote_card_art'>;
+export type PilotMunicipality = Tables<'pilot_municipalities'>;
+export type PilotVoteRow = Tables<'pilot_votes'>;
+export type PilotCampaignRow = Tables<'pilot_campaigns'>;
+export type PilotCampaignCopyRow = Tables<'pilot_campaign_copies'>;
+export type PilotLinkRow = Tables<'pilot_links'>;
+export type PilotLinkClickRow = Tables<'pilot_link_clicks'>;
+export type PilotRegistrationRow = Tables<'pilot_registrations'>;
+export type PilotAuditRow = Tables<'pilot_audit_log'>;

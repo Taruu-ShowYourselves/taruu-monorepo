@@ -98,4 +98,9 @@ export default nextConfig;
 // Initialise the OpenNext Cloudflare dev shim so `next dev` can access Workers
 // bindings (env / secrets) locally via getCloudflareContext(). No-op at build.
 import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare';
-initOpenNextCloudflareForDev();
+// CI/sandbox previews do not expose a writable Wrangler registry. Keep the
+// production-equivalent shim by default, with an explicit local escape hatch
+// for rendering the Next UI without Workers bindings.
+if (process.env.SKIP_CLOUDFLARE_DEV_SHIM !== '1') {
+  initOpenNextCloudflareForDev();
+}

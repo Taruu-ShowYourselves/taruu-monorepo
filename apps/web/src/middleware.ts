@@ -19,6 +19,7 @@ export function middleware(request: NextRequest) {
   // Skip API routes, static files, internals
   if (
     pathname.startsWith('/api') ||
+    pathname.startsWith('/l/') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/static') ||
     pathname.includes('.')
@@ -43,5 +44,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next|api|static|.*\\..*).*)'],
+  matcher: ['/((?!_next|api|static|l/|.*\\..*).*)'],
 };

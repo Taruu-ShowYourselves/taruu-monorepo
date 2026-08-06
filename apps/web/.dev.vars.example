@@ -84,6 +84,16 @@ CRON_SECRET=
 # Optional — set to false to remove the space-admin dashboard routes and pages (issue #75). Defaults to on.
 SPACE_ADMIN_ENABLED=true
 
+# Pilot program — LLM copy drafting in the campaign desk (POST /api/pilot-admin/campaigns/[id]/draft-copy)
+# Google AI Studio key for generativelanguage.googleapis.com. Optional: without
+# it only the draft button fails, every other pilot surface is unaffected.
+GEMINI_API_KEY=
+# Optional override for the drafting model. Defaults to gemini-3.6-flash.
+PILOT_COPY_MODEL=
+
+# Pilot program — HMAC key for one-way click IP hashing (falls back to JWT_SECRET, like IDENTITY_HASH_SECRET)
+CLICK_HASH_SECRET=
+
 # Public app URLs
 NEXT_PUBLIC_APP_URL=https://taruu.co.il
 EXPO_PUBLIC_API_URL=https://api.taruu.co.il
