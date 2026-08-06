@@ -42,9 +42,15 @@
   margin-block-end: 0;
   padding: clamp(var(--space-5), 3vw, var(--space-8));
   padding-inline-end: var(--space-12);
+  /* The plate needs room to be a picture before the type sits on it. */
+  min-block-size: clamp(15rem, 34vh, 22rem);
+  align-content: end;
   border-block-end: var(--np-rule-heavy) solid var(--np-ink);
 }
 
+/* Printed at full strength and desaturated to press ink - the earlier wash
+   left it a grey haze behind the headline, which is neither a picture nor a
+   clean masthead. Contrast lifts the plate's flat midtones back into black. */
 .plate {
   position: absolute;
   inset: 0;
@@ -52,21 +58,23 @@
   inline-size: 100%;
   block-size: 100%;
   object-fit: cover;
-  mix-blend-mode: multiply;
-  opacity: 0.38;
+  filter: grayscale(1) contrast(1.12);
 }
 
-/* The wash under the type: paper at the type's edge, clearing toward the
-   plate's own ground so the image is still read as an image. */
+/* Paper flooding up from the foot: the type stands on solid stock while the
+   top of the plate stays a photograph. Vertical, so it holds in both
+   directions without a mirrored gradient. */
 .headPlated::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: -1;
   background: linear-gradient(
-    to bottom,
-    color-mix(in srgb, var(--np-paper-box) 78%, transparent),
-    color-mix(in srgb, var(--np-paper-box) 32%, transparent)
+    to top,
+    var(--np-paper-box) 0%,
+    var(--np-paper-box) 38%,
+    color-mix(in srgb, var(--np-paper-box) 55%, transparent) 62%,
+    transparent 92%
   );
 }
 
