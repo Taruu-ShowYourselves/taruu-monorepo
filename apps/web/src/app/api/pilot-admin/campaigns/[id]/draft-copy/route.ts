@@ -1,0 +1,2 @@
+import type { NextRequest } from 'next/server'; import { draftPilotCampaignCopy } from '@/server/app/pilot/campaigns'; import { respond } from '@/server/http/respond'; import { getSessionFromRequest } from '@/services/auth/session';
+export async function POST(request: NextRequest,{params}:{params:Promise<{id:string}>}) { const {id}=await params; return respond(draftPilotCampaignCopy(await getSessionFromRequest(request),id,request.nextUrl.origin)); }

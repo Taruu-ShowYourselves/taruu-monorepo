@@ -1,0 +1,2 @@
+import type { NextRequest } from 'next/server'; import { requirePilotAdmin } from '@/server/app/pilot/authorize'; import { pilotOverview } from '@/server/infra/supabase/pilot.repo'; import { respond } from '@/server/http/respond'; import { getSessionFromRequest } from '@/services/auth/session';
+export async function GET(request: NextRequest) { return respond(requirePilotAdmin(await getSessionFromRequest(request)).andThen(()=>pilotOverview().map((municipalities)=>({municipalities})))); }
