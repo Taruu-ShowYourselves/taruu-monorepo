@@ -28,6 +28,15 @@
     { "binding": "OTP_KV", "id": "6f3f1d0e88df41d18773165a406b86b6" }
   ],
 
+  // ISR / Data-Cache store for the OpenNext incremental cache (see
+  // open-next.config.ts). The binding NAME is fixed by the adapter - do not
+  // rename it. Create the bucket once with:
+  //   wrangler r2 bucket create taruu-web-cache
+  // Without this binding every `revalidate` route regenerates per isolate.
+  "r2_buckets": [
+    { "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "taruu-web-cache" }
+  ],
+
   "observability": {
     "enabled": true
   },

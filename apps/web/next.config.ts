@@ -51,7 +51,22 @@ const nextConfig: NextConfig = {
   },
 
   experimental: {
-    optimizePackageImports: ['framer-motion'],
+    // Barrel-heavy packages: without this a single named import pulls the
+    // whole entry module into the route's chunk. Purely a bundling change -
+    // same modules, same behaviour, less shipped.
+    // `@sync/shared` is deliberately absent: it declares no `sideEffects:
+    // false`, so the transform cannot safely fire there yet.
+    optimizePackageImports: [
+      'framer-motion',
+      'animejs',
+      'embla-carousel-react',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-alert-dialog',
+      '@radix-ui/react-progress',
+      '@radix-ui/react-separator',
+      '@mui/material',
+    ],
   },
 
   async rewrites() {
