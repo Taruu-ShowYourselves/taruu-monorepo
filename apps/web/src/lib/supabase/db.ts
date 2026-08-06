@@ -894,6 +894,14 @@ export async function getActiveVotesWithOptions(
  * stopping POST /api/ingest/topics from creating a second copy of a topic that
  * is already sitting in the review queue, unpublished and therefore invisible
  * to a `pending`/`active`-only lookup.
+ *
+ * Throws rather than degrading to null, unlike most readers in this file. Here
+ * `null` is not "no answer" but "no such vote", and the only caller acts on it
+ * by inserting one. A database that answered with an error has not said the
+ * topic is absent, and treating it as if it had is how a single unapplied
+ * migration turned every ingest run into a fresh copy of the whole batch: the
+ * status window named enum labels the deployed database did not have yet, every
+ * lookup came back 22P02, and 184 duplicate votes accumulated behind it.
  */
 export async function findVoteByMunicipalityAndTitle(
   municipalityId: string,
@@ -910,7 +918,7 @@ export async function findVoteByMunicipalityAndTitle(
 
   if (error) {
     console.error('Failed to find vote by title:', error);
-    return null;
+    throw new Error(`vote lookup failed for "${title}": ${error.message}`);
   }
   return data;
 }
