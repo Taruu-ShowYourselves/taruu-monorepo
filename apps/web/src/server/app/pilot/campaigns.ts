@@ -2,7 +2,7 @@ import type { CreateCampaignRequest, MarkPostedRequest, PilotCampaign, SaveCopyR
 import { errAsync, ResultAsync, type ResultAsync as ResultAsyncType } from 'neverthrow';
 import type { Json, PilotCampaignCopyRow, PilotCampaignRow } from '@/lib/supabase/types';
 import { conflict, notFound, type AppError } from '@/server/http/errors';
-import { draftPilotFacebookPost } from '@/server/infra/anthropic/draft-pilot-post';
+import { draftPilotFacebookPost, pilotCopyModel } from '@/server/infra/google/draft-pilot-post';
 import { insertPilotAudit } from '@/server/infra/supabase/pilot-audit.repo';
 import {
   deletePilotCampaign,
@@ -128,7 +128,7 @@ export function draftPilotCampaignCopy(session: Session | null, campaignId: stri
               createCopy(session, campaignId, {
                 body,
                 author: 'llm',
-                model: process.env.PILOT_COPY_MODEL || 'claude-sonnet-4-20250514',
+                model: pilotCopyModel(),
                 prompt,
               })
             );
