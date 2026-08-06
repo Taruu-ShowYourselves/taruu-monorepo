@@ -150,6 +150,22 @@ function FeedCardImpl({
     >
       <div className={styles.shell}>
         <div className={styles.frame} data-stage={stage}>
+          {topic.artUrl ? (
+            /* The desk's duotone plate, ghosted under the card - the same
+               impression the tile carried, so a topic is recognisable across
+               surfaces. Plain <img>: pre-optimized WebP from storage, and
+               next/image optimization is unverified on the Workers runtime. */
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={topic.artUrl}
+              alt=""
+              aria-hidden
+              loading="lazy"
+              decoding="async"
+              className={styles.cardArt}
+            />
+          ) : null}
+
           {/* --- shell chrome: present in every deck --- */}
           <header className={styles.cardHead}>
             <span className={styles.kicker}>

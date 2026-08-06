@@ -51,7 +51,18 @@ interface Vote {
   };
   /** Present on Knesset-agenda votes - plenum background for the fact sheet. */
   knesset?: KnessetContext;
+  /** Duotone plate from the art job; null until the vote has been plated. */
+  artUrl?: string | null;
 }
+
+/**
+ * Headline length past which the masthead drops a display step.
+ *
+ * Roughly a full line of Hebrew at the large size in the article column. Set
+ * from the copy rather than measured, because measuring means a layout pass
+ * after paint, which is a visible reflow of the largest type on the page.
+ */
+const LONG_TITLE_CHARS = 42;
 
 interface VoteDetailCopy {
   timeEnded: string;
@@ -488,12 +499,36 @@ export default function VoteDetailPage() {
 
           {/* Article masthead - kicker + headline + standfirst */}
           <header className={styles.head}>
+            {vote.artUrl ? (
+              /* The same duotone plate the desk tiles print, at masthead size:
+                 a reader arriving from a tile should recognise the story.
+                 Plain <img> on purpose - a pre-optimized WebP out of storage,
+                 and next/image optimization is unverified on Workers. */
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={vote.artUrl}
+                alt=""
+                aria-hidden
+                decoding="async"
+                className={styles.headArt}
+              />
+            ) : null}
+
             <span className={styles.kicker}>
               <span aria-hidden className={styles.kickerTick} />
               {t.liveKicker}<MunicipalityLink name={vote.municipality} />
             </span>
 
-            <motion.h1 className={styles.title} {...titleAnim}>
+            {/* Long headlines set smaller. Hebrew legal citations run to a
+                dozen words, and one display size cannot serve both them and a
+                four-word municipal topic - at the larger step they filled the
+                column with four lines of 80px type. */}
+            <motion.h1
+              className={`${styles.title} ${
+                vote.title.length > LONG_TITLE_CHARS ? styles.titleLong : ''
+              }`}
+              {...titleAnim}
+            >
               {vote.title}
             </motion.h1>
 

@@ -130,6 +130,14 @@
 }
 
 .frame {
+  position: relative;
+  /* Own stacking context, so the ghosted plate at z-index -1 sits above the
+     card's own background instead of dropping behind the page. */
+  isolation: isolate;
+  /* Size container for the type below: the card is a fixed measure inside a
+     full-bleed deck, so viewport units set a headline for a window the copy
+     never occupies. */
+  container-type: inline-size;
   inline-size: 100%;
   max-inline-size: 46rem;
   block-size: 100%;
@@ -144,6 +152,30 @@
   border: var(--np-rule) solid var(--np-ink);
   border-radius: var(--np-radius-card);
   box-shadow: var(--np-shadow-float);
+}
+
+/* The desk's plate, ghosted under the card. Absolute rather than a grid child
+   on purpose - in the flow it would claim the first row and push the chrome
+   down. Multiply sinks its cream ground into the paper; the inverted deck
+   screens it so the linework reads as an impression on black, not a hole. */
+.cardArt {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  opacity: 0.12;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  user-select: none;
+}
+
+.frameInvert .cardArt {
+  filter: invert(1) grayscale(1);
+  mix-blend-mode: screen;
+  opacity: 0.15;
 }
 
 .frameInvert {
@@ -249,11 +281,14 @@
 .headline {
   font-family: var(--np-font-display);
   font-weight: 900;
-  font-size: clamp(var(--text-2xl), 5.5vw, var(--text-4xl));
-  line-height: 1.02;
+  /* Scales with the card, not the window - see the container on .frame. */
+  font-size: clamp(var(--text-xl), 5.6cqi, var(--text-4xl));
+  line-height: 1.04;
   letter-spacing: -0.02em;
   color: inherit;
   margin: 0;
+  overflow-wrap: break-word;
+  text-wrap: balance;
 }
 
 .deckTitle {

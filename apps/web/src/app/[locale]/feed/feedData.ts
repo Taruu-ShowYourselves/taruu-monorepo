@@ -114,7 +114,9 @@ export function buildFeedItems(
   votes: readonly VoteWithRelations[],
   knessetItems: readonly KnessetItem[],
   rankings: ReadonlyMap<string, KnessetRanking>,
-  locale: Locale = 'he'
+  locale: Locale = 'he',
+  /** voteId → plate URL. Omitted, every card simply prints without art. */
+  art: ReadonlyMap<string, string> = new Map()
 ): FeedTopicItem[] {
   const agendaByVote = new Map(knessetItems.map((item) => [item.vote_id, item]));
 
@@ -122,7 +124,7 @@ export function buildFeedItems(
     const rankingRow = rankings.get(vote.id) ?? null;
     const agendaRow = agendaByVote.get(vote.id) ?? null;
     const isNational = vote.municipality_id === KNESSET_SCOPE;
-    const base = toDeskTopic(vote);
+    const base = toDeskTopic(vote, art.get(vote.id) ?? null);
     // National titles arrive as legal citations; split them so the feed sets
     // the same headline the Knesset desk does.
     const topic: DeskTopic = isNational

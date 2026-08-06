@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import {
   getActiveVotesWithOptions,
+  getCardArtByVoteIds,
   getKnessetItemsByVoteIds,
   getKnessetRankingsByVoteIds,
 } from '@/lib/supabase/db';
@@ -49,14 +50,17 @@ export default async function FeedPage({ params }: FeedPageProps) {
 
   const votes = await getActiveVotesWithOptions().catch(() => []);
   const voteIds = votes.map((vote) => vote.id);
-  const [knessetItems, rankings] = await Promise.all([
+  const [knessetItems, rankings, art] = await Promise.all([
     getKnessetItemsByVoteIds(voteIds).catch(() => []),
     getKnessetRankingsByVoteIds(voteIds).catch(
       () => new Map<string, KnessetRanking>()
     ),
+    // Art is never load-bearing: the helper already degrades to an empty map,
+    // and a card without a plate is a complete card.
+    getCardArtByVoteIds(voteIds).catch(() => new Map<string, string>()),
   ]);
 
-  const items = buildFeedItems(votes, knessetItems, rankings, locale);
+  const items = buildFeedItems(votes, knessetItems, rankings, locale, art);
 
   return <FeedReader items={items} locale={locale} />;
 }
