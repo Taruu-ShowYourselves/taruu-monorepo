@@ -144,6 +144,29 @@ describe('findVoteByMunicipalityAndTitle (ingest dedup window)', () => {
     expect(window).toContain('pending');
     expect(window).toContain('active');
   });
+
+  it('throws when the query fails, so a broken lookup is never read as "no such vote"', async () => {
+    // What this pins down: the desk printed one Bat Yam topic four times
+    // because this status window named enum labels the deployed database did
+    // not have, every lookup came back 22P02, and a `null` return told the
+    // ingest route to insert a fresh copy - 184 surplus rows deep.
+    queryResult = {
+      data: null,
+      error: { code: '22P02', message: 'invalid input value for enum vote_status: "draft"' },
+    };
+
+    await expect(
+      findVoteByMunicipalityAndTitle('חיפה', 'שדרוג גן העיר')
+    ).rejects.toThrow(/שדרוג גן העיר/);
+  });
+
+  it('returns null only when the query succeeded and matched nothing', async () => {
+    queryResult = { data: null, error: null };
+
+    await expect(
+      findVoteByMunicipalityAndTitle('חיפה', 'שדרוג גן העיר')
+    ).resolves.toBeNull();
+  });
 });
 
 describe('countVotesCreatedByUser', () => {

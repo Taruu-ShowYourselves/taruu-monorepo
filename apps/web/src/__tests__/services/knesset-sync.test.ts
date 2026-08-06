@@ -27,6 +27,7 @@ import {
   getKnessetItemByItemId,
   upsertKnessetItem,
 } from '@/lib/supabase/db';
+import { UniqueViolationError } from '@/lib/supabase/errors';
 import {
   syncKnessetAgenda,
   selectSessions,
@@ -196,6 +197,25 @@ describe('syncKnessetAgenda', () => {
     expect(result.skippedTitleDup).toBe(1);
     expect(result.created).toBe(0);
     expect(createVote).not.toHaveBeenCalled();
+  });
+
+  it('counts a unique-constraint rejection as a title dup, not a run error', async () => {
+    // The lookup and the insert are not one step: an overlapping run can open
+    // the ballot in between, and `ux_votes_live_topic` is what says so. Same
+    // verdict the guard above reaches, one moment later.
+    stubOData([session({ StartDate: '2026-07-20T11:00:00' })], [item()]);
+    (getKnessetItemByItemId as Mock).mockResolvedValue(null);
+    (findVoteByMunicipalityAndTitle as Mock).mockResolvedValue(null);
+    (createVote as Mock).mockRejectedValue(
+      new UniqueViolationError('ux_votes_live_topic', 'Vote already exists')
+    );
+
+    const result = await syncKnessetAgenda();
+
+    expect(result.skippedTitleDup).toBe(1);
+    expect(result.created).toBe(0);
+    expect(result.errors).toEqual([]);
+    expect(createVoteOptions).not.toHaveBeenCalled();
   });
 
   it('ignores items with empty or too-short names', async () => {
