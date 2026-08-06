@@ -4,7 +4,7 @@ import { CountdownClock } from '@/components/press/Countdown/Countdown';
 import { SubscribeForm } from './SubscribeForm';
 import type { Locale } from '@/lib/i18n';
 import styles from './Colophon.module.css';
-import { WHATSAPP_FOUNDERS_LINK } from '@sync/shared';
+import { CONTACT_EMAIL, WHATSAPP_FOUNDERS_LINK } from '@sync/shared';
 import { localePath, localePrefix } from '@/lib/i18n';
 
 const WHATSAPP_LINK = WHATSAPP_FOUNDERS_LINK;
@@ -20,6 +20,7 @@ interface ColophonCopy {
   wordmark: string;
   tagline: string;
   foundersCta: string;
+  contactLabel: string;
   arrow: string;
   navLabel: string;
   productHead: string;
@@ -47,6 +48,7 @@ const COPY: Record<Locale, ColophonCopy> = {
     wordmark: 'תַּרְאוּ',
     tagline: 'עיתון אזרחי. מודדים, מאמתים, מנגישים.',
     foundersCta: 'קבוצת המייסדים',
+    contactLabel: 'כתבו לנו',
     arrow: '←',
     navLabel: 'ניווט תחתון',
     productHead: 'המוצר',
@@ -72,6 +74,7 @@ const COPY: Record<Locale, ColophonCopy> = {
     wordmark: 'Taruu',
     tagline: 'A civic newspaper. We measure, we verify, we make it public.',
     foundersCta: 'The founders’ group',
+    contactLabel: 'Write to us',
     arrow: '→',
     navLabel: 'Footer navigation',
     productHead: 'Product',
@@ -126,6 +129,13 @@ export function Colophon({ locale = 'he' }: ColophonProps) {
           >
             {t.foundersCta}
           </NewsButton>
+
+          <div className={styles.contact}>
+            <span className={styles.contactLabel}>{t.contactLabel}</span>
+            <a href={`mailto:${CONTACT_EMAIL}`} className={styles.contactMail}>
+              {CONTACT_EMAIL}
+            </a>
+          </div>
         </div>
 
         <nav className={styles.cols} aria-label={t.navLabel}>

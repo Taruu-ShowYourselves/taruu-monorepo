@@ -30,64 +30,59 @@
 
 /* ---- Masthead ---- */
 
-/* The plated masthead bleeds the topic's art to the sheet's edges and sets the
-   type over it. Multiply sinks the plate's cream ground into the paper, so it
-   reads as printed stock rather than as a photo pasted onto the page; the
-   gradient keeps the headline legible over the busiest quarter of any plate. */
+/* The plated masthead sets the topic's art beside the type rather than under
+   it. The plates are square, so a full-bleed band across a wide sheet could
+   only ever crop them - and these are commissioned artwork, not texture. Side
+   by side, the whole plate prints at a size worth looking at and the headline
+   keeps clean paper to stand on. */
 .headPlated {
-  position: relative;
-  isolation: isolate;
-  inline-size: calc(100% + 2 * clamp(var(--space-5), 3vw, var(--space-8)));
-  margin: calc(-1 * clamp(var(--space-5), 3vw, var(--space-8)));
-  margin-block-end: 0;
-  padding: clamp(var(--space-5), 3vw, var(--space-8));
-  padding-inline-end: var(--space-12);
-  /* The plate needs room to be a picture before the type sits on it. */
-  min-block-size: clamp(15rem, 34vh, 22rem);
-  align-content: end;
+  display: grid;
+  gap: clamp(var(--space-4), 2.5vw, var(--space-6));
+  align-items: center;
+  padding-block-end: clamp(var(--space-4), 2vw, var(--space-6));
   border-block-end: var(--np-rule-heavy) solid var(--np-ink);
 }
 
-/* Printed at full strength and desaturated to press ink - the earlier wash
-   left it a grey haze behind the headline, which is neither a picture nor a
-   clean masthead. Contrast lifts the plate's flat midtones back into black. */
+@media (min-width: 52rem) {
+  .headPlated {
+    grid-template-columns: clamp(16rem, 36%, 26rem) minmax(0, 1fr);
+  }
+}
+
+/* Whole plate, never cropped: the square is honoured by `aspect-ratio`, and
+   `contain` guarantees that a plate delivered at another ratio letterboxes on
+   paper instead of losing its edges. Desaturated to press ink, with contrast
+   lifting the flat midtones back into black. */
 .plate {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
   inline-size: 100%;
-  block-size: 100%;
-  object-fit: cover;
+  block-size: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+  background: var(--np-paper);
+  border: var(--np-rule-heavy) solid var(--np-ink);
   filter: grayscale(1) contrast(1.12);
 }
 
-/* Paper flooding up from the foot: the type stands on solid stock while the
-   top of the plate stays a photograph. Vertical, so it holds in both
-   directions without a mirrored gradient. */
-.headPlated::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: linear-gradient(
-    to top,
-    var(--np-paper-box) 0%,
-    var(--np-paper-box) 38%,
-    color-mix(in srgb, var(--np-paper-box) 55%, transparent) 62%,
-    transparent 92%
-  );
+/* Below the two-column breakpoint the plate would run the full width of the
+   sheet and push the headline off the first screen. */
+@media (max-width: 52rem) {
+  .plate {
+    max-inline-size: 26rem;
+    justify-self: center;
+  }
 }
 
 .head,
-.headPlated {
+.headText {
   display: grid;
   gap: var(--space-2);
   justify-items: start;
+  align-content: center;
 }
 
-/* Room for the close square, which is pinned to the sheet's corner. The
-   plated masthead already reserves it inside its own bleed padding. */
-.head {
+/* Room for the close square, which is pinned to the sheet's corner. It rides
+   over the type column in both compositions, so the type keeps clear of it. */
+.headText {
   padding-inline-end: var(--space-8);
 }
 

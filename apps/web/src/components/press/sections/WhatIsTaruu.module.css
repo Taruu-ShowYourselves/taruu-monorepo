@@ -64,10 +64,6 @@
   text-wrap: balance;
 }
 
-.headline span {
-  color: var(--np-red);
-}
-
 .system {
   display: grid;
   border-block-end: var(--np-rule-heavy) solid var(--np-ink);
@@ -147,11 +143,35 @@
   color: var(--np-ink);
 }
 
+/* The lede carries the section's charge now that the headline has none - but
+   it carries it on three phrases, not on every word. A paragraph set entirely
+   in red has no emphasis left to spend. */
 .copy .lede {
   color: var(--np-ink);
   font-size: clamp(1.1rem, 1.45vw, 1.45rem);
-  font-weight: 700;
-  line-height: 1.42;
+  font-weight: 600;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+/* The diagnosis: red, set heavier, and tracked in slightly so it reads as one
+   phrase rather than a run of loose adjectives. `mark` carries the semantics;
+   its browser default highlight is not the treatment we want. */
+.copy .lede .ledeMark {
+  background: none;
+  color: var(--np-red);
+  font-weight: 900;
+  letter-spacing: -0.012em;
+}
+
+/* The mechanism behind the diagnosis: ink, so it does not compete with the
+   red, but underscored in red so the eye still catches it going past. The
+   rule is drawn with a shadow rather than a border - it stays clear of the
+   descenders that a text-decoration would cut through. */
+.copy .lede .ledeStrong {
+  font-weight: 900;
+  color: var(--np-ink);
+  box-shadow: inset 0 -0.16em 0 0 color-mix(in srgb, var(--np-red) 24%, transparent);
 }
 
 .mechanism {

@@ -320,11 +320,11 @@ function TopicDialogBody({
         data-plated={topic.artUrl ? '' : undefined}
       >
         {topic.artUrl ? (
-          /* The desk agents' duotone plate, set behind the masthead type the
-             way the tile sets it behind its headline - the sheet opens on the
-             same image the reader clicked. Plain <img> for the tile's reason:
-             the file is a pre-optimized WebP from storage and next/image
-             optimization is unverified on the Workers runtime. */
+          /* The desk agents' commissioned plate, printed whole beside the
+             masthead type - the sheet opens on the same image the reader
+             clicked, at a size worth the commission. Plain <img> for the
+             tile's reason: the file is a pre-optimized WebP from storage and
+             next/image optimization is unverified on the Workers runtime. */
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={topic.artUrl}
@@ -336,6 +336,7 @@ function TopicDialogBody({
           />
         ) : null}
 
+        <div className={styles.headText}>
         <span className={styles.kicker}>
           <span aria-hidden className={styles.kickerTick} />
           {isActive ? t.liveKicker : t.endedKicker}
@@ -388,6 +389,7 @@ function TopicDialogBody({
               </span>
             </>
           ) : null}
+        </div>
         </div>
       </header>
 
