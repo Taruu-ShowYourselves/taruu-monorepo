@@ -65,6 +65,24 @@ ssh "$TARGET" "$NVM"'
   claude --version || true
 '
 
+echo "==> ensuring Higgsfield CLI (art job renderer)"
+# Binary release from github.com/higgsfield-ai/cli; the box is linux. The art
+# job still needs a one-time `higgsfield auth login` on the box (device flow).
+ssh "$TARGET" '
+  export PATH="$HOME/.npm-global/bin:$PATH"
+  if ! command -v higgsfield >/dev/null 2>&1; then
+    ARCH=$(uname -m); case "$ARCH" in x86_64) ARCH=amd64;; aarch64) ARCH=arm64;; esac
+    TAG=$(curl -s https://api.github.com/repos/higgsfield-ai/cli/releases/latest \
+      | grep -m1 "\"tag_name\"" | cut -d\" -f4)
+    mkdir -p "$HOME/.npm-global/bin" /tmp/hf-cli
+    curl -sL "https://github.com/higgsfield-ai/cli/releases/download/$TAG/hf_${TAG#v}_linux_${ARCH}.tar.gz" \
+      | tar -xz -C /tmp/hf-cli
+    BIN=$(find /tmp/hf-cli -maxdepth 2 -type f -perm -u+x | head -1)
+    install -m 755 "$BIN" "$HOME/.npm-global/bin/higgsfield" && rm -rf /tmp/hf-cli
+  fi
+  higgsfield version || true
+'
+
 echo "==> installing crontab entries (docs every 30m, ranker every 6h, art every 6h)"
 # Docs runs first and more often: the ranker reads the summaries it writes.
 # The prelude must tolerate a box WITHOUT nvm (system node): sourcing a missing
