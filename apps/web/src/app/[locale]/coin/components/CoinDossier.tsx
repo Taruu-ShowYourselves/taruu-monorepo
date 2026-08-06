@@ -260,7 +260,7 @@ export function CoinDossier({ voteId, locale = 'he' }: CoinDossierProps) {
     return () => {
       cancelled = true;
     };
-  }, [voteId]);
+  }, [voteId, t.loadError]);
 
   if (loading) return <DossierSkeleton locale={locale} />;
 

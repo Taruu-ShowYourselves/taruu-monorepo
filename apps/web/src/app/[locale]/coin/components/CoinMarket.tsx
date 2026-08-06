@@ -130,7 +130,7 @@ export function CoinMarket({ locale = 'he' }: CoinMarketProps) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t.loadError]);
 
   const municipalities = useMemo(() => {
     const set = new Set<string>();
