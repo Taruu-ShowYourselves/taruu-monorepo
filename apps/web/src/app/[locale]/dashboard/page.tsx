@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { NewsButton, Segmented, TallyBar } from '@/components/press';
-import { useReducedMotion } from '@/hooks';
+import { useReducedMotion, useVotingGate } from '@/hooks';
 import { resolveLocationState } from '@/lib/locationStatus';
 import { MunicipalityLink } from '@/components/uikit/municipality-link';
 import { CertificateCard, type Certificate } from '@/components/certificate/CertificateCard';
@@ -392,6 +392,11 @@ export default function DashboardPage() {
   const [activeInCity, setActiveInCity] = useState<{ id: string; title: string }[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [tab, setTab] = useState<DashboardTab>('history');
+  // Server truth for the ballot gate. The session profile carries the identity
+  // points but not the residency evidence (a check-in lives in
+  // `verification_runs`), so computing it here would print "40/80" at a
+  // resident who has already checked in and may vote.
+  const serverGate = useVotingGate(isAuthenticated);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -541,10 +546,11 @@ export default function DashboardPage() {
   const verificationPhase = user?.verificationStatus?.phase || 'not_started';
   const isVerified = verificationPhase === 'completed';
 
-  // The ballot gate, scored the way the server scores it: identity points plus
-  // residency. Advisory here - the server is still the only authority - but the
-  // reader is owed the arithmetic rather than a verdict.
-  const gate = voterGate(user);
+  // The ballot gate: the server's answer once it lands, the local reading of
+  // the profile until then. The local one can only understate residency, so the
+  // worst first paint is a figure that grows - never a ballot promised and then
+  // withdrawn.
+  const gate = serverGate ?? voterGate(user);
   const breakdown = user?.identityScore?.breakdown;
   const socialEarned =
     (breakdown?.facebook ?? 0) + (breakdown?.instagram ?? 0);
