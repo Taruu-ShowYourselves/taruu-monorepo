@@ -10,14 +10,81 @@ import {
 } from '@/components/press/PressAutocomplete';
 import { municipalityHref } from '@/components/uikit/municipality-link';
 import type { VoteFilter } from './types';
+import type { Locale } from '@/lib/i18n';
 import styles from './VotesHero.module.css';
 
-const filters: { value: VoteFilter; label: string }[] = [
-  { value: 'all', label: 'הכל' },
-  { value: 'active', label: 'פעילות' },
-  { value: 'ended', label: 'הסתיימו' },
-  { value: 'pending', label: 'ממתינות' },
-];
+interface HeroCopy {
+  kicker: string;
+  nationwide: string;
+  headingLead: string;
+  headingEm: string;
+  deck: string;
+  bylineDesk: string;
+  bylineSigned: string;
+  bylineLive: string;
+  editionLabel: string;
+  editionAria: string;
+  myMunicipality: string;
+  scoutLabel: string;
+  scoutPlaceholder: string;
+  scoutNoOptions: string;
+  deskLink: string;
+  filterLabel: string;
+  filterAria: string;
+  filterAll: string;
+  filterActive: string;
+  filterEnded: string;
+  filterPending: string;
+}
+
+const COPY: Record<Locale, HeroCopy> = {
+  he: {
+    kicker: 'הצבעות פומביות',
+    nationwide: 'כל הארץ',
+    headingLead: 'מה על הפרק בקהילה',
+    headingEm: 'שלכם.',
+    deck: 'כל הנושאים הפעילים במקום אחד. תוצאות בזמן אמת, גלויות לכולם.',
+    bylineDesk: 'מדור ההצבעות',
+    bylineSigned: 'חתום בבלוקצ׳יין',
+    bylineLive: 'תוצאות בזמן אמת',
+    editionLabel: 'מהדורה',
+    editionAria: 'בחירת מהדורה',
+    myMunicipality: 'הרשות שלי',
+    scoutLabel: 'סיירו ברשויות',
+    scoutPlaceholder: 'הקלידו שם רשות…',
+    scoutNoOptions: 'הרשות עוד לא על הלוח',
+    deskLink: 'לדסק הרשות ←',
+    filterLabel: 'סינון',
+    filterAria: 'סינון הצבעות',
+    filterAll: 'הכל',
+    filterActive: 'פעילות',
+    filterEnded: 'הסתיימו',
+    filterPending: 'ממתינות',
+  },
+  en: {
+    kicker: 'Public Votes',
+    nationwide: 'Nationwide',
+    headingLead: "What's on the agenda in",
+    headingEm: 'your community.',
+    deck: 'Every active issue in one place. Real-time results, visible to all.',
+    bylineDesk: 'The Votes Desk',
+    bylineSigned: 'Blockchain-signed',
+    bylineLive: 'Real-time results',
+    editionLabel: 'Edition',
+    editionAria: 'Choose an edition',
+    myMunicipality: 'My municipality',
+    scoutLabel: 'Browse municipalities',
+    scoutPlaceholder: 'Type a municipality name…',
+    scoutNoOptions: 'That municipality is not on the board yet',
+    deskLink: 'To the municipality desk →',
+    filterLabel: 'Filter',
+    filterAria: 'Filter votes',
+    filterAll: 'All',
+    filterActive: 'Active',
+    filterEnded: 'Ended',
+    filterPending: 'Pending',
+  },
+};
 
 interface VotesHeroProps {
   activeFilter: VoteFilter;
@@ -27,6 +94,7 @@ interface VotesHeroProps {
   /** Reader's own municipality when known (already validated). */
   homeMunicipality: string | null;
   onScopeChange: (scope: string | null) => void;
+  locale?: Locale;
 }
 
 export function VotesHero({
@@ -35,7 +103,20 @@ export function VotesHero({
   scope,
   homeMunicipality,
   onScopeChange,
+  locale = 'he',
 }: VotesHeroProps) {
+  const t = COPY[locale];
+
+  const filters: { value: VoteFilter; label: string }[] = useMemo(
+    () => [
+      { value: 'all', label: t.filterAll },
+      { value: 'active', label: t.filterActive },
+      { value: 'ended', label: t.filterEnded },
+      { value: 'pending', label: t.filterPending },
+    ],
+    [t]
+  );
+
   const scoutOptions = useMemo(
     () => MUNICIPALITIES.map((name) => ({ value: name, label: name })),
     []
@@ -46,36 +127,34 @@ export function VotesHero({
       <div className={styles.container}>
         <span className={styles.kicker}>
           <span aria-hidden className={styles.kickerTick} />
-          הצבעות פומביות · {scope ?? 'כל הארץ'}
+          {t.kicker} · {scope ?? t.nationwide}
         </span>
 
         <h1 className={styles.heading}>
-          מה על הפרק בקהילה <span className={styles.red}>שלכם.</span>
+          {t.headingLead} <span className={styles.red}>{t.headingEm}</span>
         </h1>
 
-        <p className={styles.deck}>
-          כל הנושאים הפעילים במקום אחד. תוצאות בזמן אמת, גלויות לכולם.
-        </p>
+        <p className={styles.deck}>{t.deck}</p>
 
         <div className={styles.byline}>
-          <span>מדור ההצבעות</span>
+          <span>{t.bylineDesk}</span>
           <span className={styles.sep} aria-hidden>■</span>
-          <span>חתום בבלוקצ׳יין</span>
+          <span>{t.bylineSigned}</span>
           <span className={styles.sep} aria-hidden>■</span>
-          <span>תוצאות בזמן אמת</span>
+          <span>{t.bylineLive}</span>
         </div>
 
         <div className={styles.scopeRow}>
-          <span className={styles.filterLabel}>מהדורה</span>
+          <span className={styles.filterLabel}>{t.editionLabel}</span>
 
-          <div className={styles.scopeChips} role="group" aria-label="בחירת מהדורה">
+          <div className={styles.scopeChips} role="group" aria-label={t.editionAria}>
             <button
               type="button"
               className={scope === null ? styles.chipActive : styles.chip}
               aria-pressed={scope === null}
               onClick={() => onScopeChange(null)}
             >
-              כל הארץ
+              {t.nationwide}
             </button>
 
             {homeMunicipality ? (
@@ -88,7 +167,7 @@ export function VotesHero({
                 onClick={() => onScopeChange(homeMunicipality)}
               >
                 <span aria-hidden className={styles.chipGlyph}>●</span>
-                הרשות שלי · {homeMunicipality}
+                {t.myMunicipality} · {homeMunicipality}
               </button>
             ) : null}
           </div>
@@ -96,31 +175,31 @@ export function VotesHero({
           <div className={styles.scout}>
             <MuiPressProvider>
               <PressAutocomplete
-                label="סיירו ברשויות"
+                label={t.scoutLabel}
                 options={scoutOptions}
                 value={scope ?? ''}
                 onChange={(name) => onScopeChange(name || null)}
-                placeholder="הקלידו שם רשות…"
-                noOptionsText="הרשות עוד לא על הלוח"
+                placeholder={t.scoutPlaceholder}
+                noOptionsText={t.scoutNoOptions}
               />
             </MuiPressProvider>
           </div>
 
           {scope ? (
             <Link href={municipalityHref(scope)} className={styles.deskLink}>
-              לדסק הרשות ←
+              {t.deskLink}
             </Link>
           ) : null}
         </div>
 
         <div className={styles.filterRow}>
-          <span className={styles.filterLabel}>סינון</span>
+          <span className={styles.filterLabel}>{t.filterLabel}</span>
           <Segmented
             segments={filters}
             value={activeFilter}
             onChange={onFilterChange}
             variant="ink"
-            aria-label="סינון הצבעות"
+            aria-label={t.filterAria}
             className={styles.filters}
           />
         </div>

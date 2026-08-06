@@ -24,12 +24,18 @@ export function LenisProvider({ children }: LenisProviderProps) {
 
     lenisRef.current = lenis;
 
+    // The handle has to be captured and cancelled. Without it the callback
+    // re-queues itself forever and survives `destroy()`, so every remount
+    // leaves an orphaned loop driving a dead instance - and because
+    // `reactStrictMode` double-invokes effects, development ran two of them
+    // from the first mount onward.
+    let frame = 0;
     function raf(time: number) {
       lenis.raf(time);
-      requestAnimationFrame(raf);
+      frame = requestAnimationFrame(raf);
     }
 
-    requestAnimationFrame(raf);
+    frame = requestAnimationFrame(raf);
 
     // Handle resize
     const handleResize = () => {
@@ -39,23 +45,11 @@ export function LenisProvider({ children }: LenisProviderProps) {
     window.addEventListener('resize', handleResize);
 
     return () => {
+      cancelAnimationFrame(frame);
       lenis.destroy();
       window.removeEventListener('resize', handleResize);
     };
   }, []);
 
   return <>{children}</>;
-}
-
-// Hook to access Lenis instance
-export function useLenis() {
-  const lenisRef = useRef<Lenis | null>(null);
-
-  useEffect(() => {
-    const lenis = new Lenis();
-    lenisRef.current = lenis;
-    return () => lenis.destroy();
-  }, []);
-
-  return lenisRef.current;
 }

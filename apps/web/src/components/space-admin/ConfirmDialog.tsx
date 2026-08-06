@@ -4,6 +4,7 @@ import React, { useEffect, useId, useState } from 'react';
 import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import { NewsButton } from '@/components/press/NewsButton';
 import { PressInput } from '@/components/press/PressInput/PressInput';
+import type { Locale } from '@/lib/i18n';
 import disabledStyles from './disabledButton.module.css';
 import kicker from './kicker.module.css';
 import styles from './ConfirmDialog.module.css';
@@ -32,9 +33,41 @@ export const disabledButtonClass: string = disabledStyles.control;
  */
 export const confirmButtonClass = `${disabledStyles.control} ${styles.confirmBtn}`;
 
+interface ConfirmDialogCopy {
+  kickerAudited: string;
+  kickerIrreversible: string;
+  reasonLabel: string;
+  reasonError: string;
+  cancelLabel: string;
+  unblockHint: string;
+  pendingLabel: string;
+}
+
+const COPY: Record<Locale, ConfirmDialogCopy> = {
+  he: {
+    kickerAudited: 'פעולה מתועדת · AUDITED',
+    kickerIrreversible: 'פעולה בלתי הפיכה · IRREVERSIBLE',
+    reasonLabel: 'נימוק ההחלטה (חובה)',
+    reasonError: 'נדרש נימוק — לפחות 10 תווים.',
+    cancelLabel: 'ביטול',
+    unblockHint: 'הנימוק נדרש כדי להמשיך.',
+    pendingLabel: '…שולח',
+  },
+  en: {
+    kickerAudited: 'RECORDED ACTION · AUDITED',
+    kickerIrreversible: 'CANNOT BE UNDONE · IRREVERSIBLE',
+    reasonLabel: 'Reason for the decision (required)',
+    reasonError: 'A reason is required — at least 10 characters.',
+    cancelLabel: 'Cancel',
+    unblockHint: 'The reason is required to continue.',
+    pendingLabel: 'Sending…',
+  },
+};
+
 interface ConfirmDialogBaseProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  locale?: Locale;
   /** The question, e.g. `לאשר ולפרסם את ההצעה?`. */
   heading: string;
   /** What happens. */
@@ -105,16 +138,19 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
     body,
     consequence,
     confirmLabel,
-    reasonLabel = 'נימוק ההחלטה (חובה)',
-    reasonError = 'נדרש נימוק — לפחות 10 תווים.',
     placeholder,
-    cancelLabel = 'ביטול',
-    unblockHint = 'הנימוק נדרש כדי להמשיך.',
     pending = false,
-    pendingLabel = '…שולח',
     error,
     onConfirm,
+    locale = 'he',
   } = props;
+
+  const t = COPY[locale];
+  const reasonLabel = props.reasonLabel ?? t.reasonLabel;
+  const reasonError = props.reasonError ?? t.reasonError;
+  const cancelLabel = props.cancelLabel ?? t.cancelLabel;
+  const unblockHint = props.unblockHint ?? t.unblockHint;
+  const pendingLabel = props.pendingLabel ?? t.pendingLabel;
 
   const reasonId = useId();
   const [reason, setReason] = useState('');
@@ -155,7 +191,7 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
               <span aria-hidden className={kicker.tick}>
                 ■
               </span>
-              {irreversible ? 'פעולה בלתי הפיכה · IRREVERSIBLE' : 'פעולה מתועדת · AUDITED'}
+              {irreversible ? t.kickerIrreversible : t.kickerAudited}
             </span>
 
             <AlertDialog.Title className={styles.heading}>{heading}</AlertDialog.Title>

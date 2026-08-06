@@ -1,22 +1,94 @@
 'use client';
 
+import type { Locale } from '@/lib/i18n';
 import styles from './AppFeatures.module.css';
 
-interface Feature {
+interface AppFeaturesProps {
+  locale?: Locale;
+}
+
+interface FeatureMeta {
   no: string;
   label: string;
-  title: string;
-  description: string;
   icon: React.ReactNode;
 }
 
-const features: Feature[] = [
+interface FeatureCopy {
+  title: string;
+  description: string;
+}
+
+interface AppFeaturesCopy {
+  kicker: string;
+  heading: string;
+  headingRed: string;
+  standfirst: string;
+  features: FeatureCopy[];
+}
+
+const COPY: Record<Locale, AppFeaturesCopy> = {
+  he: {
+    kicker: 'מפרט · SPEC SHEET',
+    heading: 'כל מה שצריך כדי שהקול שלכם',
+    headingRed: 'ייספר.',
+    standfirst: 'השתתפות בקבלת החלטות מקומיות - מאומתת, שקופה ובקצות האצבעות.',
+    features: [
+      {
+        title: 'הצבעות בזמן אמת',
+        description:
+          'עקבו אחרי תמונת המצב המתעדכנת וקבלו התראה על כל הצבעה חדשה ברשות שלכם.',
+      },
+      {
+        title: 'אימות מיקום',
+        description:
+          'אימות GPS פשוט מבטיח שרק תושבי המקום מצביעים - בלי זיופים, בלי כפילויות.',
+      },
+      {
+        title: 'מאומת ובלתי ניתן לזיוף',
+        description:
+          'כל הצבעה נחתמת ונרשמת בשרשרת ציבורית פתוחה לביקורת - שקיפות מלאה, מקצה לקצה.',
+      },
+      {
+        title: 'בעברית, על המובייל',
+        description:
+          'ממשק נקי ומלא בעברית, מותאם RTL ולכף היד - להשפיע על הקהילה בכמה הקשות.',
+      },
+    ],
+  },
+  en: {
+    kicker: 'The specification · SPEC SHEET',
+    heading: 'Everything it takes for your voice to',
+    headingRed: 'count.',
+    standfirst: 'Taking part in local decisions — verified, transparent and at your fingertips.',
+    features: [
+      {
+        title: 'Votes in real time',
+        description:
+          'Follow the picture as it updates and get an alert for every new vote in your municipality.',
+      },
+      {
+        title: 'Location verification',
+        description:
+          'Simple GPS verification ensures only local residents vote — no fakes, no duplicates.',
+      },
+      {
+        title: 'Verified and tamper-proof',
+        description:
+          'Every vote is signed and recorded on a public chain open to audit — full transparency, end to end.',
+      },
+      {
+        title: 'In Hebrew, on mobile',
+        description:
+          'A clean, fully Hebrew interface, built for RTL and for the palm of your hand — shape your community in a few taps.',
+      },
+    ],
+  },
+};
+
+const FEATURE_META: FeatureMeta[] = [
   {
     no: '01',
     label: 'LIVE',
-    title: 'הצבעות בזמן אמת',
-    description:
-      'עקבו אחרי תמונת המצב המתעדכנת וקבלו התראה על כל הצבעה חדשה ברשות שלכם.',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" aria-hidden focusable="false">
         <path
@@ -31,9 +103,6 @@ const features: Feature[] = [
   {
     no: '02',
     label: 'GPS',
-    title: 'אימות מיקום',
-    description:
-      'אימות GPS פשוט מבטיח שרק תושבי המקום מצביעים - בלי זיופים, בלי כפילויות.',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" aria-hidden focusable="false">
         <path
@@ -49,9 +118,6 @@ const features: Feature[] = [
   {
     no: '03',
     label: 'CHAIN',
-    title: 'מאומת ובלתי ניתן לזיוף',
-    description:
-      'כל הצבעה נחתמת ונרשמת בשרשרת ציבורית פתוחה לביקורת - שקיפות מלאה, מקצה לקצה.',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" aria-hidden focusable="false">
         <path
@@ -73,9 +139,6 @@ const features: Feature[] = [
   {
     no: '04',
     label: 'RTL',
-    title: 'בעברית, על המובייל',
-    description:
-      'ממשק נקי ומלא בעברית, מותאם RTL ולכף היד - להשפיע על הקהילה בכמה הקשות.',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" aria-hidden focusable="false">
         <rect x="7" y="3" width="10" height="18" stroke="currentColor" strokeWidth="2" />
@@ -85,7 +148,8 @@ const features: Feature[] = [
   },
 ];
 
-export function AppFeatures() {
+export function AppFeatures({ locale = 'he' }: AppFeaturesProps) {
+  const t = COPY[locale];
   return (
     <section
       id="features"
@@ -95,12 +159,12 @@ export function AppFeatures() {
       <div className={styles.inner}>
         {/* Dateline / section head */}
         <div className={styles.head}>
-          <span className={`np-kicker ${styles.kicker}`}>מפרט · SPEC SHEET</span>
+          <span className={`np-kicker ${styles.kicker}`}>{t.kicker}</span>
           <h2 id="features-headline" className={styles.heading}>
-            כל מה שצריך כדי שהקול שלכם <span className={styles.red}>ייספר.</span>
+            {t.heading} <span className={styles.red}>{t.headingRed}</span>
           </h2>
           <p className={`np-mono ${styles.standfirst}`}>
-            השתתפות בקבלת החלטות מקומיות - מאומתת, שקופה ובקצות האצבעות.
+            {t.standfirst}
           </p>
         </div>
 
@@ -108,8 +172,8 @@ export function AppFeatures() {
 
         {/* Mechanical spec list */}
         <ul className={styles.specList}>
-          {features.map((feature) => (
-            <li key={feature.title} className={styles.spec}>
+          {FEATURE_META.map((feature, i) => (
+            <li key={feature.no} className={styles.spec}>
               <span className={`np-mono ${styles.specNo}`}>{feature.no}</span>
 
               <span className={styles.specIcon} aria-hidden>
@@ -118,10 +182,10 @@ export function AppFeatures() {
 
               <div className={styles.specBody}>
                 <div className={styles.specTitleRow}>
-                  <h3 className={styles.specTitle}>{feature.title}</h3>
+                  <h3 className={styles.specTitle}>{t.features[i]?.title}</h3>
                   <span className={`np-mono ${styles.specLabel}`}>{feature.label}</span>
                 </div>
-                <p className={styles.specText}>{feature.description}</p>
+                <p className={styles.specText}>{t.features[i]?.description}</p>
               </div>
             </li>
           ))}

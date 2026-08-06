@@ -13,35 +13,85 @@ interface Step {
   body: string;
 }
 
-const STEPS: readonly Step[] = [
-  {
-    no: '01',
-    title: 'נרשמים בקלות',
-    body: 'אימייל או טלפון, אימות קצר. אתם בפנים.',
+interface HowItWorksCopy {
+  kicker: string;
+  headline: string;
+  headlineRed: string;
+  steps: readonly Step[];
+  microcopy: string;
+  cta: string;
+  arrow: string;
+}
+
+const COPY: Record<Locale, HowItWorksCopy> = {
+  he: {
+    kicker: 'המדריך · HOW IT WORKS',
+    headline: 'מהרשמה ועד השפעה:',
+    headlineRed: 'ארבעה צעדים.',
+    steps: [
+      {
+        no: '01',
+        title: 'נרשמים בקלות',
+        body: 'אימייל או טלפון, אימות קצר. אתם בפנים.',
+      },
+      {
+        no: '02',
+        title: 'רואים מה על הפרק',
+        body: 'הצבעות פעילות ברשות שלכם, או מציעים נושא חדש משלכם.',
+      },
+      {
+        no: '03',
+        title: 'מצביעים ומאמתים',
+        body: 'בוחרים עמדה, מאמתים נוכחות (GPS), ומצביעים. חינם.',
+      },
+      {
+        no: '04',
+        title: 'עוקבים אחרי התוצאה',
+        body: 'נתונים בזמן אמת, שמוגשים למועצה כעמדה קהילתית מגובה.',
+      },
+    ],
+    microcopy: 'כל התהליך לוקח פחות מדקה.',
+    cta: 'קבוצת המייסדים',
+    arrow: '←',
   },
-  {
-    no: '02',
-    title: 'רואים מה על הפרק',
-    body: 'הצבעות פעילות ברשות שלכם, או מציעים נושא חדש משלכם.',
+  en: {
+    kicker: 'THE GUIDE · HOW IT WORKS',
+    headline: 'From sign-up to impact:',
+    headlineRed: 'four steps.',
+    steps: [
+      {
+        no: '01',
+        title: 'Sign up easily',
+        body: 'Email or phone, one short verification. You are in.',
+      },
+      {
+        no: '02',
+        title: 'See what is on the agenda',
+        body: 'Active votes in your municipality, or propose a new topic of your own.',
+      },
+      {
+        no: '03',
+        title: 'Vote and verify',
+        body: 'Pick a position, verify presence (GPS), and cast your vote. Free.',
+      },
+      {
+        no: '04',
+        title: 'Follow the result',
+        body: 'Real-time numbers, submitted to the council as a substantiated community position.',
+      },
+    ],
+    microcopy: 'The whole process takes less than a minute.',
+    cta: 'The founders group',
+    arrow: '→',
   },
-  {
-    no: '03',
-    title: 'מצביעים ומאמתים',
-    body: 'בוחרים עמדה, מאמתים נוכחות (GPS), ומצביעים. חינם.',
-  },
-  {
-    no: '04',
-    title: 'עוקבים אחרי התוצאה',
-    body: 'נתונים בזמן אמת, שמוגשים למועצה כעמדה קהילתית מגובה.',
-  },
-] as const;
+};
 
 interface HowItWorksProps {
   locale?: Locale;
 }
 
 export function HowItWorks({ locale = 'he' }: HowItWorksProps) {
-  void locale;
+  const t = COPY[locale];
 
   return (
     <section id="how" className={styles.section} aria-labelledby="how-heading">
@@ -49,18 +99,18 @@ export function HowItWorks({ locale = 'he' }: HowItWorksProps) {
         <header className={styles.head}>
           <span className={styles.kicker}>
             <span aria-hidden className={styles.kickerTick} />
-            המדריך · HOW IT WORKS
+            {t.kicker}
           </span>
 
           <h2 id="how-heading" className={styles.headline}>
-            מהרשמה ועד השפעה: <span className={styles.red}>ארבעה צעדים.</span>
+            {t.headline} <span className={styles.red}>{t.headlineRed}</span>
           </h2>
         </header>
 
         <hr className={styles.ruleHeavy} aria-hidden />
 
         <ol className={styles.steps}>
-          {STEPS.map((step) => (
+          {t.steps.map((step) => (
             <li key={step.no} className={styles.step}>
               <span className={styles.stepNo} aria-hidden>
                 {step.no}
@@ -76,7 +126,7 @@ export function HowItWorks({ locale = 'he' }: HowItWorksProps) {
         <footer className={styles.foot}>
           <span className={styles.microcopy}>
             <span aria-hidden className={styles.footTick} />
-            כל התהליך לוקח פחות מדקה.
+            {t.microcopy}
           </span>
 
           <NewsButton
@@ -85,9 +135,9 @@ export function HowItWorks({ locale = 'he' }: HowItWorksProps) {
             rel="noopener noreferrer"
             variant="red"
             size="md"
-            trailing={<span aria-hidden>←</span>}
+            trailing={<span aria-hidden>{t.arrow}</span>}
           >
-            קבוצת המייסדים
+            {t.cta}
           </NewsButton>
         </footer>
       </div>

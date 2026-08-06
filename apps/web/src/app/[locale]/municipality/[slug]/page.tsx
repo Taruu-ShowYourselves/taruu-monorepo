@@ -22,6 +22,7 @@ import { MetricBar } from '@/components/uikit/metric-bar';
 import { Progress } from '@/components/uikit/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/uikit/tabs';
 import type { Locale } from '@/lib/i18n';
+import { localePrefix } from '@/lib/i18n';
 
 // Aggregations are heavy-ish; refresh every 5 minutes like the homepage desks.
 export const revalidate = 300;
@@ -143,7 +144,7 @@ function TopicCard({ vote, locale }: { vote: MunicipalityVoteSummary; locale: Lo
       </CardContent>
       <CardFooter className="flex flex-wrap items-center justify-between gap-3">
         <NewsButton
-          href={`/${locale}/votes/${vote.id}`}
+          href={`${localePrefix(locale)}/votes/${vote.id}`}
           variant="red"
           size="sm"
           trailing={<span aria-hidden>←</span>}

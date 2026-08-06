@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
+import type { Locale } from '@/lib/i18n';
+import { localePath, localePrefix } from '@/lib/i18n';
 import styles from '../../sign-in/[[...sign-in]]/page.module.css';
 
 // Reuse the membership-desk styles - sign-up shares the press desk.
@@ -21,35 +23,151 @@ function GoogleIcon() {
   );
 }
 
+interface SignUpCopy {
+  wordmark: string;
+  kicker: string;
+  titleLead: string;
+  titleRed: string;
+  standfirst: string;
+  errors: {
+    authFailed: string;
+    stateMismatch: string;
+    callbackFailed: string;
+    accessDenied: string;
+    generic: string;
+  };
+  googleCta: string;
+  googleCtaLoading: string;
+  freeNote: string;
+  termsPrefix: string;
+  termsLink: string;
+  termsJoin: string;
+  privacyLink: string;
+  dividerPrompt: string;
+  switchCta: string;
+  features: { scope: string; oneVoice: string; openResults: string };
+  trust: string;
+  brand: {
+    wordmark: string;
+    line: string;
+    lineRed: string;
+    sub: string;
+    city: string;
+    knesset: string;
+    government: string;
+  };
+}
+
+const COPY: Record<Locale, SignUpCopy> = {
+  he: {
+    wordmark: 'תַּרְאוּ',
+    kicker: 'דלפק המשתתפים · פתיחת חשבון',
+    titleLead: 'הקול שלכם',
+    titleRed: 'נכנס למניין.',
+    standfirst:
+      'פתחו חשבון בחינם והצביעו על מה שקורה בעיר, בכנסת ובממשלה. הקול שלכם יצטרף לקולות מאומתים אחרים וייכלל בתוצאה גלויה שאפשר לבדוק.',
+    errors: {
+      authFailed: 'ההרשמה נכשלה. נסו שוב.',
+      stateMismatch: 'שגיאת אבטחה. נסו שוב.',
+      callbackFailed: 'שגיאה בתהליך ההרשמה.',
+      accessDenied: 'הגישה נדחתה.',
+      generic: 'לא הצלחנו להשלים את ההרשמה. נסו שוב בעוד רגע.',
+    },
+    googleCta: 'פתיחת חשבון עם Google',
+    googleCtaLoading: 'פותחים חשבון…',
+    freeNote: 'ההרשמה וההשתתפות חינם. האימות מתבצע בעת ההצבעה.',
+    termsPrefix: 'בהרשמה אתם מסכימים',
+    termsLink: 'לתנאי השימוש',
+    termsJoin: 'ול',
+    privacyLink: 'מדיניות הפרטיות',
+    dividerPrompt: 'כבר יש לכם חשבון?',
+    switchCta: 'להתחברות ←',
+    features: {
+      scope: 'עיר · כנסת · ממשלה',
+      oneVoice: 'אדם אחד, קול אחד בכל הצבעה',
+      openResults: 'תוצאות שקופות',
+    },
+    trust: 'פותחים חשבון. בוחרים רשות. מצביעים.',
+    brand: {
+      wordmark: 'תַּרְאוּ',
+      line: 'כתבתם. שיתפתם. צעקתם.',
+      lineRed: 'מי ספר אתכם בכנסת ובממשלה?',
+      sub: 'פוסט בודד נעלם בפיד. תַּרְאוּ מרכזת קולות מאומתים על מה שקורה בעיר, בכנסת ובממשלה, ומציגה את תוצאת המשתתפים בגלוי.',
+      city: 'מה קורה בעיר',
+      knesset: 'מה עולה בכנסת',
+      government: 'מה עושה הממשלה',
+    },
+  },
+  en: {
+    wordmark: 'Taruu',
+    kicker: 'Participants’ desk · New account',
+    titleLead: 'Your voice',
+    titleRed: 'joins the count.',
+    standfirst:
+      'Open a free account and vote on what is happening in your city, in the Knesset and in the government. Your voice joins other verified voices and is counted in an open result that anyone can check.',
+    errors: {
+      authFailed: 'Sign-up failed. Try again.',
+      stateMismatch: 'Security error. Try again.',
+      callbackFailed: 'An error occurred during sign-up.',
+      accessDenied: 'Access denied.',
+      generic: 'We could not complete the sign-up. Try again in a moment.',
+    },
+    googleCta: 'Open an account with Google',
+    googleCtaLoading: 'Opening your account…',
+    freeNote: 'Sign-up and participation are free. Verification takes place when you vote.',
+    termsPrefix: 'By signing up you agree to the',
+    termsLink: 'Terms of Use',
+    termsJoin: 'and the ',
+    privacyLink: 'Privacy Policy',
+    dividerPrompt: 'Already have an account?',
+    switchCta: 'Sign in →',
+    features: {
+      scope: 'City · Knesset · Government',
+      oneVoice: 'One person, one voice in every vote',
+      openResults: 'Transparent results',
+    },
+    trust: 'Open an account. Choose your municipality. Vote.',
+    brand: {
+      wordmark: 'Taruu',
+      line: 'You wrote. You shared. You shouted.',
+      lineRed: 'Who counted you in the Knesset and the government?',
+      sub: 'A single post disappears into the feed. Taruu gathers verified voices on what is happening in the city, the Knesset and the government, and shows the participants’ result in the open.',
+      city: 'What is happening in the city',
+      knesset: 'What is coming up in the Knesset',
+      government: 'What the government is doing',
+    },
+  },
+};
+
 export default function SignUpPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { locale: rawLocale } = useParams<{ locale: string }>();
+  const locale: Locale = rawLocale === 'en' ? 'en' : 'he';
+  const t = COPY[locale];
   const { signInWithGoogle, isAuthenticated, isLoading } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !isLoading) {
-      router.push('/onboarding');
+      router.push(`${localePrefix(locale)}/onboarding`);
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, router, locale]);
 
   // Handle error from URL
   useEffect(() => {
     const errorParam = searchParams.get('error');
     if (errorParam) {
       const errorMessages: Record<string, string> = {
-        auth_failed: 'ההרשמה נכשלה. נסו שוב.',
-        state_mismatch: 'שגיאת אבטחה. נסו שוב.',
-        callback_failed: 'שגיאה בתהליך ההרשמה.',
-        access_denied: 'הגישה נדחתה.',
+        auth_failed: t.errors.authFailed,
+        state_mismatch: t.errors.stateMismatch,
+        callback_failed: t.errors.callbackFailed,
+        access_denied: t.errors.accessDenied,
       };
-      setError(
-        errorMessages[errorParam] ||
-          'לא הצלחנו להשלים את ההרשמה. נסו שוב בעוד רגע.'
-      );
+      setError(errorMessages[errorParam] || t.errors.generic);
     }
-  }, [searchParams]);
+  }, [searchParams, t]);
 
   const handleGoogleSignUp = () => {
     setError(null);
@@ -59,22 +177,19 @@ export default function SignUpPage() {
   return (
     <div className={styles.field}>
       <div className={styles.desk}>
-        <Link href="/" className={styles.wordmark}>
-          תַּרְאוּ
+        <Link href={localePath(locale)} className={styles.wordmark}>
+          {t.wordmark}
         </Link>
 
         <span className={styles.kicker}>
           <span aria-hidden className={styles.kickerTick} />
-          דלפק המשתתפים · פתיחת חשבון
+          {t.kicker}
         </span>
 
         <h1 className={styles.title}>
-          הקול שלכם <span className={styles.red}>נכנס למניין.</span>
+          {t.titleLead} <span className={styles.red}>{t.titleRed}</span>
         </h1>
-        <p className={styles.standfirst}>
-          פתחו חשבון בחינם והצביעו על מה שקורה בעיר, בכנסת ובממשלה. הקול שלכם
-          יצטרף לקולות מאומתים אחרים וייכלל בתוצאה גלויה שאפשר לבדוק.
-        </p>
+        <p className={styles.standfirst}>{t.standfirst}</p>
 
         <div className={styles.rule} aria-hidden />
 
@@ -95,31 +210,29 @@ export default function SignUpPage() {
             <GoogleIcon />
           </span>
           <span className={styles.googleLabel}>
-            {isLoading ? 'פותחים חשבון…' : 'פתיחת חשבון עם Google'}
+            {isLoading ? t.googleCtaLoading : t.googleCta}
           </span>
         </button>
 
-        <p className={styles.freeNote}>
-          ההרשמה וההשתתפות חינם. האימות מתבצע בעת ההצבעה.
-        </p>
+        <p className={styles.freeNote}>{t.freeNote}</p>
 
         <p className={styles.terms}>
-          בהרשמה אתם מסכימים{' '}
-          <Link href="/terms" className={styles.link}>
-            לתנאי השימוש
+          {t.termsPrefix}{' '}
+          <Link href={`${localePrefix(locale)}/terms`} className={styles.link}>
+            {t.termsLink}
           </Link>{' '}
-          ול
-          <Link href="/privacy" className={styles.link}>
-            מדיניות הפרטיות
+          {t.termsJoin}
+          <Link href={`${localePrefix(locale)}/privacy`} className={styles.link}>
+            {t.privacyLink}
           </Link>
         </p>
 
         <div className={styles.divider}>
-          <span>כבר יש לכם חשבון?</span>
+          <span>{t.dividerPrompt}</span>
         </div>
 
-        <Link href="/sign-in" className={styles.switchLink}>
-          להתחברות ←
+        <Link href={`${localePrefix(locale)}/sign-in`} className={styles.switchLink}>
+          {t.switchCta}
         </Link>
 
         <ul className={styles.features}>
@@ -127,46 +240,42 @@ export default function SignUpPage() {
             <span aria-hidden className={styles.featGlyph}>
               ●
             </span>
-            <span>עיר · כנסת · ממשלה</span>
+            <span>{t.features.scope}</span>
           </li>
           <li className={styles.feature}>
             <span aria-hidden className={styles.featGlyph}>
               ■
             </span>
-            <span>אדם אחד, קול אחד בכל הצבעה</span>
+            <span>{t.features.oneVoice}</span>
           </li>
           <li className={styles.feature}>
             <span aria-hidden className={styles.featGlyph}>
               ▍
             </span>
-            <span>תוצאות שקופות</span>
+            <span>{t.features.openResults}</span>
           </li>
         </ul>
 
-        <p className={styles.trust}>
-          פותחים חשבון. בוחרים רשות. מצביעים.
-        </p>
+        <p className={styles.trust}>{t.trust}</p>
       </div>
 
       <aside className={styles.brand} aria-hidden>
-        <span className={styles.brandWordmark}>תַּרְאוּ</span>
+        <span className={styles.brandWordmark}>{t.brand.wordmark}</span>
         <p className={styles.brandLine}>
-          כתבתם. שיתפתם. צעקתם.{' '}
-          <span className={styles.brandRed}>מי ספר אתכם בכנסת ובממשלה?</span>
+          {t.brand.line}{' '}
+          <span className={styles.brandRed}>{t.brand.lineRed}</span>
         </p>
-        <p className={styles.brandSub}>
-          פוסט בודד נעלם בפיד. תַּרְאוּ מרכזת קולות מאומתים על מה שקורה בעיר,
-          בכנסת ובממשלה, ומציגה את תוצאת המשתתפים בגלוי.
-        </p>
+        <p className={styles.brandSub}>{t.brand.sub}</p>
         <ul className={styles.brandTrust}>
           <li>
-            <span className={styles.brandTrustGlyph}>●</span> מה קורה בעיר
+            <span className={styles.brandTrustGlyph}>●</span> {t.brand.city}
           </li>
           <li>
-            <span className={styles.brandTrustGlyph}>■</span> מה עולה בכנסת
+            <span className={styles.brandTrustGlyph}>■</span> {t.brand.knesset}
           </li>
           <li>
-            <span className={styles.brandTrustGlyph}>▍</span> מה עושה הממשלה
+            <span className={styles.brandTrustGlyph}>▍</span>{' '}
+            {t.brand.government}
           </li>
         </ul>
       </aside>

@@ -1,11 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { AnimatedFadeInUp } from '@/components/animations';
 import type { Locale } from '@/lib/i18n';
 import styles from './Footer.module.css';
 import { WHATSAPP_FOUNDERS_LINK } from '@sync/shared';
+import { localePath, localePrefix, localeSwitchPath } from '@/lib/i18n';
 
 const WHATSAPP_LINK = WHATSAPP_FOUNDERS_LINK;
 
@@ -24,33 +26,105 @@ interface FooterSection {
   links: FooterLink[];
 }
 
-const getFooterLinks = (locale: Locale): FooterSection[] => [
-  {
-    title: 'המוצר',
-    links: [
-      { href: `/${locale}/about`, label: 'אודות' },
-      { href: `/${locale}/votes`, label: 'הצבעות' },
-      { href: `/${locale}/economics`, label: 'כלכלה אזרחית' },
-      { href: `/${locale}/treasury`, label: 'שקיפות הקרן' },
-    ],
+interface FooterCopy {
+  logo: string;
+  logoAria: string;
+  tagline: string;
+  product: { title: string; about: string; votes: string; economics: string; treasury: string };
+  support: { title: string; faq: string; pricing: string; contact: string };
+  legal: { title: string; privacy: string; terms: string; refund: string };
+  rights: string;
+  creditPrefix: string;
+  langSwitch: string;
+}
+
+const COPY: Record<Locale, FooterCopy> = {
+  he: {
+    logo: 'תַּרְאוּ',
+    logoAria: 'תַּרְאוּ, דף הבית',
+    tagline: 'הקול שלכם. הקהילה שלכם. העתיד שלנו.',
+    product: {
+      title: 'המוצר',
+      about: 'אודות',
+      votes: 'הצבעות',
+      economics: 'כלכלה אזרחית',
+      treasury: 'שקיפות הקרן',
+    },
+    support: {
+      title: 'תמיכה',
+      faq: 'שאלות נפוצות',
+      pricing: 'תמחור',
+      contact: 'יצירת קשר · וואטסאפ',
+    },
+    legal: {
+      title: 'משפטי',
+      privacy: 'מדיניות פרטיות',
+      terms: 'תנאי שימוש',
+      refund: 'מדיניות החזרים',
+    },
+    rights: 'תַּרְאוּ. כל הזכויות שמורות.',
+    creditPrefix: 'נבנה על ידי',
+    langSwitch: 'EN',
   },
-  {
-    title: 'תמיכה',
-    links: [
-      { href: `/${locale}/faq`, label: 'שאלות נפוצות' },
-      { href: `/${locale}/pricing`, label: 'תמחור' },
-      { href: WHATSAPP_LINK, label: 'יצירת קשר · וואטסאפ', external: true },
-    ],
+  en: {
+    logo: 'Taruu',
+    logoAria: 'Taruu, home page',
+    tagline: 'Your voice. Your community. Our future.',
+    product: {
+      title: 'Product',
+      about: 'About',
+      votes: 'Votes',
+      economics: 'Civic Economics',
+      treasury: 'Treasury Transparency',
+    },
+    support: {
+      title: 'Support',
+      faq: 'FAQ',
+      pricing: 'Pricing',
+      contact: 'Contact · WhatsApp',
+    },
+    legal: {
+      title: 'Legal',
+      privacy: 'Privacy Policy',
+      terms: 'Terms of Use',
+      refund: 'Refund Policy',
+    },
+    rights: 'Taruu. All rights reserved.',
+    creditPrefix: 'Built by',
+    langSwitch: 'עברית',
   },
-  {
-    title: 'משפטי',
-    links: [
-      { href: `/${locale}/privacy`, label: 'מדיניות פרטיות' },
-      { href: `/${locale}/terms`, label: 'תנאי שימוש' },
-      { href: `/${locale}/refund`, label: 'מדיניות החזרים' },
-    ],
-  },
-];
+};
+
+const getFooterLinks = (locale: Locale): FooterSection[] => {
+  const t = COPY[locale];
+  return [
+    {
+      title: t.product.title,
+      links: [
+        { href: `${localePrefix(locale)}/about`, label: t.product.about },
+        { href: `${localePrefix(locale)}/votes`, label: t.product.votes },
+        { href: `${localePrefix(locale)}/economics`, label: t.product.economics },
+        { href: `${localePrefix(locale)}/treasury`, label: t.product.treasury },
+      ],
+    },
+    {
+      title: t.support.title,
+      links: [
+        { href: `${localePrefix(locale)}/faq`, label: t.support.faq },
+        { href: `${localePrefix(locale)}/pricing`, label: t.support.pricing },
+        { href: WHATSAPP_LINK, label: t.support.contact, external: true },
+      ],
+    },
+    {
+      title: t.legal.title,
+      links: [
+        { href: `${localePrefix(locale)}/privacy`, label: t.legal.privacy },
+        { href: `${localePrefix(locale)}/terms`, label: t.legal.terms },
+        { href: `${localePrefix(locale)}/refund`, label: t.legal.refund },
+      ],
+    },
+  ];
+};
 
 const SOCIAL_LINKS = [
   {
@@ -71,9 +145,13 @@ const SOCIAL_LINKS = [
 ];
 
 export function Footer({ locale = 'he' }: FooterProps) {
+  const t = COPY[locale];
+  const pathname = usePathname();
   const footerSections = getFooterLinks(locale);
-  const tagline = 'הקול שלכם. הקהילה שלכם. העתיד שלנו.';
+  const tagline = t.tagline;
   const currentYear = new Date().getFullYear();
+  const switchLocale: Locale = locale === 'he' ? 'en' : 'he';
+  const switchHref = localeSwitchPath(pathname, switchLocale);
 
   return (
     <footer className={styles.footer}>
@@ -84,8 +162,8 @@ export function Footer({ locale = 'he' }: FooterProps) {
         <div className={styles.grid}>
           {/* Brand Column */}
           <AnimatedFadeInUp className={styles.brandColumn}>
-            <Link href={`/${locale}`} className={styles.logo} aria-label="תַּרְאוּ, דף הבית">
-              <span className={`${styles.logoText} logo-text`}>תַּרְאוּ</span>
+            <Link href={localePath(locale)} className={styles.logo} aria-label={t.logoAria}>
+              <span className={`${styles.logoText} logo-text`}>{t.logo}</span>
             </Link>
             <p className={styles.tagline}>{tagline}</p>
             <div className={styles.socialLinks}>
@@ -147,10 +225,13 @@ export function Footer({ locale = 'he' }: FooterProps) {
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <p className={styles.copyright}>
-            {currentYear} · תַּרְאוּ. כל הזכויות שמורות.
+            {currentYear} · {t.rights}
           </p>
+          <Link href={switchHref} className={styles.langSwitch}>
+            {t.langSwitch}
+          </Link>
           <p className={styles.credit}>
-            נבנה על ידי{' '}
+            {t.creditPrefix}{' '}
             <a
               href="https://saharbarak.dev"
               target="_blank"

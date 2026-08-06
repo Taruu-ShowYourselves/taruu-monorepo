@@ -1,3 +1,4 @@
+import type { Locale } from '@/lib/i18n';
 import type { KnessetItem } from '@/lib/supabase/types';
 import type { DeskTopic } from './DeskTopicRow';
 import { toDeskTopic, type VoteWithRelations } from './deskData';
@@ -37,15 +38,20 @@ export function formatAgendaDate(sessionDate: string | null): string | null {
   return `${match[3]}.${match[2]}.${match[1]}`;
 }
 
-/** Hebrew weekday for a session date ("יום שני"), or null. */
-export function weekdayOf(sessionDate: string | null): string | null {
+/** Localized weekday for a session date ("יום שני" / "Monday"), or null. */
+export function weekdayOf(
+  sessionDate: string | null,
+  locale: Locale = 'he'
+): string | null {
   const match = sessionDate?.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!match) return null;
   // Anchor at UTC noon so the calendar day never shifts with the runtime TZ.
   const day = new Date(
     Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12)
   );
-  return new Intl.DateTimeFormat('he-IL', { weekday: 'long' }).format(day);
+  return new Intl.DateTimeFormat(locale === 'he' ? 'he-IL' : 'en-GB', {
+    weekday: 'long',
+  }).format(day);
 }
 
 /** Group national votes into sittings by their day-order metadata. */

@@ -6,11 +6,14 @@ import { NewsButton, PressInput, Segmented } from '@/components/press';
 import { useReducedMotion } from '@/hooks';
 import {
   faqData,
+  faqDataEn,
   faqCategories,
+  faqCategoriesEn,
   faqCategoryOrder,
   type FAQItem,
   type FAQCategory,
 } from '../data/faqData';
+import type { Locale } from '@/lib/i18n';
 import styles from './FAQList.module.css';
 import { WHATSAPP_FOUNDERS_LINK } from '@sync/shared';
 
@@ -18,10 +21,57 @@ const WHATSAPP_LINK = WHATSAPP_FOUNDERS_LINK;
 
 type FilterValue = 'all' | FAQCategory;
 
-const SEGMENTS: { value: FilterValue; label: string }[] = [
-  { value: 'all', label: 'הכול' },
-  ...faqCategoryOrder.map((c) => ({ value: c, label: faqCategories[c] })),
-];
+interface FAQListCopy {
+  srTitle: string;
+  searchLabel: string;
+  searchPlaceholder: string;
+  filterLabel: string;
+  filterAriaLabel: string;
+  allLabel: string;
+  emptyText: string;
+  escalateKicker: string;
+  escalateTitleStart: string;
+  escalateTitleAccent: string;
+  ctaLabel: string;
+  ctaGlyph: string;
+  items: FAQItem[];
+  categories: Record<FAQCategory, string>;
+}
+
+const COPY: Record<Locale, FAQListCopy> = {
+  he: {
+    srTitle: 'רשימת שאלות נפוצות',
+    searchLabel: 'חיפוש',
+    searchPlaceholder: 'חפשו נושא, מילה או שאלה…',
+    filterLabel: 'סינון לפי נושא',
+    filterAriaLabel: 'סינון שאלות לפי נושא',
+    allLabel: 'הכול',
+    emptyText: 'לא מצאנו נושא כזה. נסו ניסוח אחר, או הציעו אותו כהצבעה חדשה.',
+    escalateKicker: 'עדיין תקועים?',
+    escalateTitleStart: 'לא מצאתם? כתבו לנו בוואטסאפ,',
+    escalateTitleAccent: 'אנחנו אנשים אמיתיים.',
+    ctaLabel: 'דברו איתנו בוואטסאפ',
+    ctaGlyph: '←',
+    items: faqData,
+    categories: faqCategories,
+  },
+  en: {
+    srTitle: 'List of frequently asked questions',
+    searchLabel: 'Search',
+    searchPlaceholder: 'Search a topic, a word, or a question…',
+    filterLabel: 'Filter by topic',
+    filterAriaLabel: 'Filter questions by topic',
+    allLabel: 'All',
+    emptyText: 'We could not find that topic. Try different wording, or propose it as a new vote.',
+    escalateKicker: 'Still stuck?',
+    escalateTitleStart: 'Didn’t find it? Write to us on WhatsApp,',
+    escalateTitleAccent: 'we are real people.',
+    ctaLabel: 'Talk to us on WhatsApp',
+    ctaGlyph: '→',
+    items: faqDataEn,
+    categories: faqCategoriesEn,
+  },
+};
 
 function FAQRow({
   item,
@@ -72,15 +122,25 @@ function FAQRow({
   );
 }
 
-export function FAQList() {
+interface FAQListProps {
+  locale?: Locale;
+}
+
+export function FAQList({ locale = 'he' }: FAQListProps) {
+  const t = COPY[locale];
   const reduced = useReducedMotion();
-  const [openId, setOpenId] = useState<string | null>(faqData[0]?.id ?? null);
+  const [openId, setOpenId] = useState<string | null>(t.items[0]?.id ?? null);
   const [filter, setFilter] = useState<FilterValue>('all');
   const [query, setQuery] = useState('');
 
+  const segments: { value: FilterValue; label: string }[] = [
+    { value: 'all', label: t.allLabel },
+    ...faqCategoryOrder.map((c) => ({ value: c, label: t.categories[c] })),
+  ];
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return faqData.filter((item) => {
+    return t.items.filter((item) => {
       const matchesCategory = filter === 'all' || item.category === filter;
       const matchesQuery =
         q === '' ||
@@ -88,34 +148,34 @@ export function FAQList() {
         item.answer.toLowerCase().includes(q);
       return matchesCategory && matchesQuery;
     });
-  }, [filter, query]);
+  }, [t.items, filter, query]);
 
   return (
     <section className={styles.section} aria-labelledby="faq-list-title">
       <div className={styles.container}>
         <h2 id="faq-list-title" className={styles.srOnly}>
-          רשימת שאלות נפוצות
+          {t.srTitle}
         </h2>
 
         {/* Control bar: search + category filter */}
         <div className={styles.controls}>
           <PressInput
-            label="חיפוש"
+            label={t.searchLabel}
             type="search"
             inputMode="search"
-            placeholder="חפשו נושא, מילה או שאלה…"
+            placeholder={t.searchPlaceholder}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className={styles.search}
           />
           <div className={styles.filterWrap}>
-            <span className={styles.filterLabel}>סינון לפי נושא</span>
+            <span className={styles.filterLabel}>{t.filterLabel}</span>
             <Segmented
-              segments={SEGMENTS}
+              segments={segments}
               value={filter}
               onChange={setFilter}
               variant="red"
-              aria-label="סינון שאלות לפי נושא"
+              aria-label={t.filterAriaLabel}
             />
           </div>
         </div>
@@ -137,9 +197,7 @@ export function FAQList() {
         ) : (
           <div className={styles.empty}>
             <span className={styles.emptyGlyph} aria-hidden>✕</span>
-            <p className={styles.emptyText}>
-              לא מצאנו נושא כזה. נסו ניסוח אחר, או הציעו אותו כהצבעה חדשה.
-            </p>
+            <p className={styles.emptyText}>{t.emptyText}</p>
           </div>
         )}
 
@@ -147,11 +205,11 @@ export function FAQList() {
         <div className={styles.escalate}>
           <span className={styles.escalateKicker}>
             <span aria-hidden className={styles.escalateTick} />
-            עדיין תקועים?
+            {t.escalateKicker}
           </span>
           <h3 className={styles.escalateTitle}>
-            לא מצאתם? כתבו לנו בוואטסאפ,{' '}
-            <span className={styles.red}>אנחנו אנשים אמיתיים.</span>
+            {t.escalateTitleStart}{' '}
+            <span className={styles.red}>{t.escalateTitleAccent}</span>
           </h3>
           <NewsButton
             href={WHATSAPP_LINK}
@@ -159,9 +217,9 @@ export function FAQList() {
             rel="noopener noreferrer"
             variant="red"
             size="lg"
-            trailing={<span aria-hidden>←</span>}
+            trailing={<span aria-hidden>{t.ctaGlyph}</span>}
           >
-            דברו איתנו בוואטסאפ
+            {t.ctaLabel}
           </NewsButton>
         </div>
       </div>

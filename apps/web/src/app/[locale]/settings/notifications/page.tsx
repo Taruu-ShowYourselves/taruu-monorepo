@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -9,9 +9,9 @@ import { NewsButton } from '@/components/press/NewsButton';
 import { Segmented } from '@/components/press/Segmented/Segmented';
 import type { NotificationSettings, UserProfile } from '@sync/shared';
 import { PressLoader } from '@/components/press/PressMachine';
+import type { Locale } from '@/lib/i18n';
+import { localePrefix } from '@/lib/i18n';
 import styles from './page.module.css';
-
-const REDIRECT = '/sign-in?redirect=/settings/notifications';
 
 const DEFAULT_SETTINGS: NotificationSettings = {
   newVotes: true,
@@ -20,42 +20,121 @@ const DEFAULT_SETTINGS: NotificationSettings = {
   marketing: false,
 };
 
-const TOGGLE_STATE = [
-  { value: 'on' as const, label: 'פעיל' },
-  { value: 'off' as const, label: 'כבוי' },
-];
-
 interface NotificationRow {
   key: keyof NotificationSettings;
   label: string;
   description: string;
 }
 
-const ROWS: NotificationRow[] = [
-  {
-    key: 'newVotes',
-    label: 'הצבעות חדשות',
-    description: 'התראה כשנפתחת הצבעה חדשה ברשות שלכם.',
+interface NotificationsCopy {
+  loading: string;
+  kicker: string;
+  titleLead: string;
+  titleRed: string;
+  standfirst: string;
+  dismissLabel: string;
+  toggleSegments: { value: 'on' | 'off'; label: string }[];
+  rows: NotificationRow[];
+  loadError: string;
+  saveSuccess: string;
+  saveError: string;
+  saving: string;
+  save: string;
+  backToDashboard: string;
+  /** Direction-semantic back glyph: mirrored between RTL and LTR. */
+  backArrow: string;
+}
+
+const COPY: Record<Locale, NotificationsCopy> = {
+  he: {
+    loading: 'טוען…',
+    kicker: 'התראות · NOTIFICATIONS',
+    titleLead: 'מה ש',
+    titleRed: 'חשוב לכם.',
+    standfirst: 'בחרו אילו עדכונים תרצו לקבל. תוכלו לשנות זאת בכל עת.',
+    dismissLabel: 'סגור',
+    toggleSegments: [
+      { value: 'on', label: 'פעיל' },
+      { value: 'off', label: 'כבוי' },
+    ],
+    rows: [
+      {
+        key: 'newVotes',
+        label: 'הצבעות חדשות',
+        description: 'התראה כשנפתחת הצבעה חדשה ברשות שלכם.',
+      },
+      {
+        key: 'voteEnding',
+        label: 'הצבעות שמסתיימות',
+        description: 'תזכורת לפני שהצבעה שאתם עוקבים אחריה נסגרת.',
+      },
+      {
+        key: 'voteResults',
+        label: 'תוצאות הצבעה',
+        description: 'עדכון כשמתפרסמות תוצאות של הצבעה שהשתתפתם בה.',
+      },
+      {
+        key: 'marketing',
+        label: 'עדכוני מוצר',
+        description: 'הודעות על שינויים ותכונות חדשות בתַּרְאוּ.',
+      },
+    ],
+    loadError: 'שגיאה בטעינת ההגדרות',
+    saveSuccess: 'העדפות ההתראות נשמרו.',
+    saveError: 'שגיאה בשמירה',
+    saving: 'שומר…',
+    save: 'שמירת העדפות',
+    backToDashboard: 'חזרה ללוח הבקרה',
+    backArrow: '←',
   },
-  {
-    key: 'voteEnding',
-    label: 'הצבעות שמסתיימות',
-    description: 'תזכורת לפני שהצבעה שאתם עוקבים אחריה נסגרת.',
+  en: {
+    loading: 'Loading…',
+    kicker: 'NOTIFICATIONS',
+    titleLead: 'What ',
+    titleRed: 'matters to you.',
+    standfirst: 'Choose which updates you would like to receive. You can change this at any time.',
+    dismissLabel: 'Close',
+    toggleSegments: [
+      { value: 'on', label: 'On' },
+      { value: 'off', label: 'Off' },
+    ],
+    rows: [
+      {
+        key: 'newVotes',
+        label: 'New votes',
+        description: 'An alert when a new vote opens in your municipality.',
+      },
+      {
+        key: 'voteEnding',
+        label: 'Votes closing soon',
+        description: 'A reminder before a vote you follow closes.',
+      },
+      {
+        key: 'voteResults',
+        label: 'Vote results',
+        description: 'An update when the results of a vote you took part in are published.',
+      },
+      {
+        key: 'marketing',
+        label: 'Product updates',
+        description: 'News about changes and new features in Taruu.',
+      },
+    ],
+    loadError: 'Error loading the settings',
+    saveSuccess: 'Notification preferences saved.',
+    saveError: 'Error saving',
+    saving: 'Saving…',
+    save: 'Save preferences',
+    backToDashboard: 'Back to the dashboard',
+    backArrow: '→',
   },
-  {
-    key: 'voteResults',
-    label: 'תוצאות הצבעה',
-    description: 'עדכון כשמתפרסמות תוצאות של הצבעה שהשתתפתם בה.',
-  },
-  {
-    key: 'marketing',
-    label: 'עדכוני מוצר',
-    description: 'הודעות על שינויים ותכונות חדשות בתַּרְאוּ.',
-  },
-];
+};
 
 function NotificationsContent() {
+  const params = useParams();
   const router = useRouter();
+  const locale: Locale = params?.locale === 'en' ? 'en' : 'he';
+  const t = COPY[locale];
   const { isAuthenticated, isLoading, refreshSession } = useAuth();
 
   const [dataLoading, setDataLoading] = useState(true);
@@ -67,7 +146,9 @@ function NotificationsContent() {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push(REDIRECT);
+      router.push(
+        `${localePrefix(locale)}/sign-in?redirect=${localePrefix(locale)}/settings/notifications`
+      );
       return;
     }
 
@@ -78,10 +159,10 @@ function NotificationsContent() {
           const { profile: p } = (await response.json()) as { profile: UserProfile };
           setSettings({ ...DEFAULT_SETTINGS, ...(p.notificationSettings ?? {}) });
         } else {
-          setErrorMessage('שגיאה בטעינת ההגדרות');
+          setErrorMessage(t.loadError);
         }
       } catch {
-        setErrorMessage('שגיאה בטעינת ההגדרות');
+        setErrorMessage(t.loadError);
       } finally {
         setDataLoading(false);
       }
@@ -90,7 +171,7 @@ function NotificationsContent() {
     if (isAuthenticated) {
       fetchData();
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, router, locale, t.loadError]);
 
   const toggle = (key: keyof NotificationSettings, next: 'on' | 'off') => {
     setSettings((prev) => ({ ...prev, [key]: next === 'on' }));
@@ -108,14 +189,14 @@ function NotificationsContent() {
       });
 
       if (response.ok) {
-        setSuccessMessage('העדפות ההתראות נשמרו.');
+        setSuccessMessage(t.saveSuccess);
         await refreshSession();
       } else {
         const err = await response.json().catch(() => ({}));
-        setErrorMessage(err.error || 'שגיאה בשמירה');
+        setErrorMessage(err.error || t.saveError);
       }
     } catch {
-      setErrorMessage('שגיאה בשמירה');
+      setErrorMessage(t.saveError);
     } finally {
       setSaving(false);
     }
@@ -125,7 +206,7 @@ function NotificationsContent() {
     return (
       <div className={styles.loadingContainer}>
         <PressLoader />
-        <p>טוען…</p>
+        <p>{t.loading}</p>
       </div>
     );
   }
@@ -138,14 +219,12 @@ function NotificationsContent() {
           <header className={styles.head}>
             <span className={styles.kicker}>
               <span aria-hidden className={styles.kickerTick} />
-              התראות · NOTIFICATIONS
+              {t.kicker}
             </span>
             <h1 className={styles.title}>
-              מה ש<span className={styles.red}>חשוב לכם.</span>
+              {t.titleLead}<span className={styles.red}>{t.titleRed}</span>
             </h1>
-            <p className={styles.standfirst}>
-              בחרו אילו עדכונים תרצו לקבל. תוכלו לשנות זאת בכל עת.
-            </p>
+            <p className={styles.standfirst}>{t.standfirst}</p>
           </header>
 
           {successMessage && (
@@ -154,7 +233,7 @@ function NotificationsContent() {
                 ✓
               </span>
               <p>{successMessage}</p>
-              <button onClick={() => setSuccessMessage(null)} aria-label="סגור">
+              <button onClick={() => setSuccessMessage(null)} aria-label={t.dismissLabel}>
                 ✕
               </button>
             </div>
@@ -166,7 +245,7 @@ function NotificationsContent() {
                 ✕
               </span>
               <p>{errorMessage}</p>
-              <button onClick={() => setErrorMessage(null)} aria-label="סגור">
+              <button onClick={() => setErrorMessage(null)} aria-label={t.dismissLabel}>
                 ✕
               </button>
             </div>
@@ -174,14 +253,14 @@ function NotificationsContent() {
 
           <section className={styles.formCard}>
             <ul className={styles.rows}>
-              {ROWS.map((row) => (
+              {t.rows.map((row) => (
                 <li key={row.key} className={styles.row}>
                   <div className={styles.rowText}>
                     <h2 className={styles.rowTitle}>{row.label}</h2>
                     <p className={styles.rowDescription}>{row.description}</p>
                   </div>
                   <Segmented
-                    segments={TOGGLE_STATE}
+                    segments={t.toggleSegments}
                     value={settings[row.key] ? 'on' : 'off'}
                     onChange={(next) => toggle(row.key, next)}
                     variant="ink"
@@ -194,7 +273,7 @@ function NotificationsContent() {
 
             <div className={styles.formActions}>
               <NewsButton variant="red" size="lg" onClick={handleSave} disabled={saving}>
-                {saving ? 'שומר…' : 'שמירת העדפות'}
+                {saving ? t.saving : t.save}
               </NewsButton>
             </div>
           </section>
@@ -203,10 +282,10 @@ function NotificationsContent() {
             <NewsButton
               variant="outline"
               size="md"
-              onClick={() => router.push('/dashboard')}
-              trailing={<span aria-hidden>←</span>}
+              onClick={() => router.push(`${localePrefix(locale)}/dashboard`)}
+              trailing={<span aria-hidden>{t.backArrow}</span>}
             >
-              חזרה ללוח הבקרה
+              {t.backToDashboard}
             </NewsButton>
           </div>
         </div>
@@ -220,12 +299,15 @@ function NotificationsContent() {
 const SuspenseWrapper = Suspense as any;
 
 export default function NotificationsSettingsPage() {
+  const params = useParams();
+  const locale: Locale = params?.locale === 'en' ? 'en' : 'he';
+  const t = COPY[locale];
   return (
     <SuspenseWrapper
       fallback={
         <div className={styles.loadingContainer}>
           <PressLoader />
-          <p>טוען…</p>
+          <p>{t.loading}</p>
         </div>
       }
     >

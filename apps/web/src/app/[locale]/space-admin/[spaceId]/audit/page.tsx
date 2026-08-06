@@ -17,9 +17,10 @@ import {
   type AuditFilterValue,
 } from './filters';
 import styles from './page.module.css';
+import { localePrefix } from '@/lib/i18n';
 
 /**
- * Surface 6 — `/he/space-admin/{spaceId}/audit`.
+ * Surface 6 — `/space-admin/{spaceId}/audit`.
  *
  * The page calls `listSpaceAudit`, the authorized use-case, which resolves
  * `audit.read` before it reaches anything. It does NOT call the repository
@@ -55,7 +56,7 @@ export default async function SpaceAuditPage({ params, searchParams }: AuditPage
   const query = await searchParams;
 
   const session = await getSessionFromCookies();
-  if (!session) redirect(`/${locale}/sign-in`);
+  if (!session) redirect(`${localePrefix(locale)}/sign-in`);
 
   const requested = readParam(query.objectType);
   const filter: AuditFilterValue = isAuditFilter(requested)

@@ -26,6 +26,8 @@ import {
   type AuditFilterValue,
 } from './filters';
 import styles from './page.module.css';
+import { localePrefix } from '@/lib/i18n';
+import type { Locale } from '@/lib/i18n';
 
 /**
  * Surface 6 — the audit history.
@@ -74,77 +76,213 @@ export {
 // Copy
 // ---------------------------------------------------------------------------
 
-const ACTOR_LABEL = 'מבצע/ת הפעולה';
-const ACTOR_PLACEHOLDER = 'כל המנהלים';
-const CLEAR_FILTERS = 'ניקוי סינון';
+interface AuditCopy {
+  actorLabel: string;
+  actorPlaceholder: string;
+  clearFilters: string;
+  oldestHint: string;
+  newestHint: string;
+  loadError: string;
+  emptyHeading: string;
+  emptyBody: string;
+  noResultsHeading: string;
+  noResultsBody: string;
+  /** aria-label on the chip group. */
+  chipsGroupLabel: string;
+  colWhen: string;
+  colWho: string;
+  colAction: string;
+  colObject: string;
+  colTransition: string;
+  colReason: string;
+  hideReason: string;
+  showFullReason: string;
+  showDetails: string;
+  detailFrom: string;
+  detailTo: string;
+  yes: string;
+  no: string;
+  /**
+   * Copy for every action the phase writes. Not in the copy deck — the deck
+   * specifies the audit COLUMNS and leaves the vocabulary to the
+   * implementation — so these are written in the deck's voice, past tense,
+   * using its words (`הצעה`, `הרשאה`, `התראה`, `להשעות`).
+   *
+   * An action with no entry renders its stored identifier rather than a
+   * guess. This is a record: an unmapped row must still be legible as itself,
+   * and hiding it or labelling it `אחר` would be the one thing the log may
+   * not do.
+   */
+  actionLabels: Readonly<Record<string, string>>;
+  /** The object types the log records. */
+  objectLabels: Readonly<Record<string, string>>;
+  /** The keys the state payloads use. */
+  stateKeys: Readonly<Record<string, string>>;
+  /** Capability values inside `capability` state payloads. */
+  capabilityLabels: Readonly<Record<string, string>>;
+  tableDescription: (spaceName: string) => string;
+  rowsMeta: (count: number) => string;
+  truncation: (count: number) => string;
+  /** BCP 47 tag for the timestamp on each row. */
+  dateLocale: string;
+}
 
-const OLDEST_HINT = 'זו הרשומה הישנה ביותר.';
-const NEWEST_HINT = 'אתם בתחילת היומן.';
-
-const ERROR_HE = 'לא הצלחנו לטעון את היומן. הרשומות עצמן לא נפגעו — נסו שוב.';
-
-const EMPTY_HEADING = 'היומן ריק';
-const EMPTY_BODY =
-  'כל הכרעה, שינוי הרשאה ומשלוח התראה במרחב יירשמו כאן אוטומטית.';
-const NO_RESULTS_HEADING = 'אין רשומות שתואמות לסינון';
-const NO_RESULTS_BODY = 'נסו טווח או סוג פעולה אחר.';
-
-/**
- * Hebrew for every action the phase writes. Not in the copy deck — the deck
- * specifies the audit COLUMNS and leaves the vocabulary to the implementation
- * — so these are written in the deck's voice, past tense, using its words
- * (`הצעה`, `הרשאה`, `התראה`, `להשעות`).
- *
- * An action with no entry renders its stored identifier rather than a guess.
- * This is a record: an unmapped row must still be legible as itself, and
- * hiding it or labelling it `אחר` would be the one thing the log may not do.
- */
-const ACTION_LABELS_HE: Readonly<Record<string, string>> = {
-  'proposal.approved': 'הצעה אושרה ופורסמה',
-  'proposal.rejected': 'הצעה נדחתה',
-  'proposal.changes_requested': 'הצעה הוחזרה לתיקון',
-  'grant.created': 'הרשאה הוענקה',
-  'grant.revoked': 'הרשאה נשללה',
-  'grant.suspended': 'הרשאה הושעתה',
-  'member.suspended': 'חבר/ה הושעה/תה במרחב',
-  'member.reinstated': 'השעיה במרחב בוטלה',
-  'content.hidden': 'תוכן הוסתר מהתושבים',
-  'content.unhidden': 'תוכן הוחזר לתצוגה',
-  'content.flagged': 'תוכן סומן לבדיקה',
-  'content.unflagged': 'סימון לבדיקה בוטל',
-  'notification.sent': 'התראה נשלחה',
+const COPY: Record<Locale, AuditCopy> = {
+  he: {
+    actorLabel: 'מבצע/ת הפעולה',
+    actorPlaceholder: 'כל המנהלים',
+    clearFilters: 'ניקוי סינון',
+    oldestHint: 'זו הרשומה הישנה ביותר.',
+    newestHint: 'אתם בתחילת היומן.',
+    loadError: 'לא הצלחנו לטעון את היומן. הרשומות עצמן לא נפגעו — נסו שוב.',
+    emptyHeading: 'היומן ריק',
+    emptyBody:
+      'כל הכרעה, שינוי הרשאה ומשלוח התראה במרחב יירשמו כאן אוטומטית.',
+    noResultsHeading: 'אין רשומות שתואמות לסינון',
+    noResultsBody: 'נסו טווח או סוג פעולה אחר.',
+    chipsGroupLabel: 'סינון לפי סוג פעולה',
+    colWhen: 'מתי',
+    colWho: 'מי',
+    colAction: 'פעולה',
+    colObject: 'אובייקט',
+    colTransition: 'ממצב → למצב',
+    colReason: 'נימוק',
+    hideReason: 'הסתר',
+    showFullReason: 'הצג נימוק מלא',
+    showDetails: 'הצג פרטים',
+    detailFrom: 'ממצב',
+    detailTo: 'למצב',
+    yes: 'כן',
+    no: 'לא',
+    actionLabels: {
+      'proposal.approved': 'הצעה אושרה ופורסמה',
+      'proposal.rejected': 'הצעה נדחתה',
+      'proposal.changes_requested': 'הצעה הוחזרה לתיקון',
+      'grant.created': 'הרשאה הוענקה',
+      'grant.revoked': 'הרשאה נשללה',
+      'grant.suspended': 'הרשאה הושעתה',
+      'member.suspended': 'חבר/ה הושעה/תה במרחב',
+      'member.reinstated': 'השעיה במרחב בוטלה',
+      'content.hidden': 'תוכן הוסתר מהתושבים',
+      'content.unhidden': 'תוכן הוחזר לתצוגה',
+      'content.flagged': 'תוכן סומן לבדיקה',
+      'content.unflagged': 'סימון לבדיקה בוטל',
+      'notification.sent': 'התראה נשלחה',
+    },
+    objectLabels: {
+      vote: 'הצעה',
+      grant: 'הרשאה',
+      space: 'מרחב',
+      member: 'חבר/ה',
+      notification_campaign: 'משלוח התראה',
+      content: 'תוכן',
+      escalation: 'פנייה למנהל־על',
+    },
+    stateKeys: {
+      status: 'סטטוס',
+      suspended: 'מושעה',
+      capability: 'הרשאה',
+      active: 'פעילה',
+      hidden: 'מוסתר',
+      flagged: 'מסומן',
+      paymentId: 'מזהה חיוב',
+      amountAgorot: 'סכום באגורות',
+    },
+    capabilityLabels: CAPABILITY_LABELS_HE,
+    tableDescription: (spaceName) =>
+      `יומן הפעולות של המרחב ${spaceName}, מהחדש לישן. כל שורה כוללת מועד, מבצע/ת הפעולה, סוג הפעולה, האובייקט, המעבר בין המצבים והנימוק.`,
+    rowsMeta: (count) => `מוצגות ${count} רשומות`,
+    truncation: (count) =>
+      `מוצגות ${count} הרשומות האחרונות. לרשומות ישנות יותר — המשיכו בדפדוף.`,
+    dateLocale: 'he-IL',
+  },
+  en: {
+    actorLabel: 'Actor',
+    actorPlaceholder: 'All admins',
+    clearFilters: 'Clear filters',
+    oldestHint: 'This is the oldest entry.',
+    newestHint: 'You are at the head of the log.',
+    loadError: 'We could not load the log. The entries themselves are intact — try again.',
+    emptyHeading: 'The log is empty',
+    emptyBody:
+      'Every decision, capability change and notification dispatch in this space will be recorded here automatically.',
+    noResultsHeading: 'No entries match the filter',
+    noResultsBody: 'Try a different range or action type.',
+    chipsGroupLabel: 'Filter by action type',
+    colWhen: 'When',
+    colWho: 'Who',
+    colAction: 'Action',
+    colObject: 'Object',
+    colTransition: 'From → To',
+    colReason: 'Reasoning',
+    hideReason: 'Hide',
+    showFullReason: 'Show full reasoning',
+    showDetails: 'Show details',
+    detailFrom: 'From',
+    detailTo: 'To',
+    yes: 'Yes',
+    no: 'No',
+    actionLabels: {
+      'proposal.approved': 'Proposal approved and published',
+      'proposal.rejected': 'Proposal rejected',
+      'proposal.changes_requested': 'Proposal returned for changes',
+      'grant.created': 'Capability granted',
+      'grant.revoked': 'Capability revoked',
+      'grant.suspended': 'Capability suspended',
+      'member.suspended': 'Member suspended in this space',
+      'member.reinstated': 'Space suspension lifted',
+      'content.hidden': 'Content hidden from residents',
+      'content.unhidden': 'Content restored to view',
+      'content.flagged': 'Content flagged for review',
+      'content.unflagged': 'Review flag removed',
+      'notification.sent': 'Notification sent',
+    },
+    objectLabels: {
+      vote: 'Proposal',
+      grant: 'Capability',
+      space: 'Space',
+      member: 'Member',
+      notification_campaign: 'Notification dispatch',
+      content: 'Content',
+      escalation: 'Super-admin escalation',
+    },
+    stateKeys: {
+      status: 'Status',
+      suspended: 'Suspended',
+      capability: 'Capability',
+      active: 'Active',
+      hidden: 'Hidden',
+      flagged: 'Flagged',
+      paymentId: 'Payment ID',
+      amountAgorot: 'Amount in agorot',
+    },
+    // English mirrors of `CAPABILITY_LABELS_HE` — same keys, deck voice.
+    capabilityLabels: {
+      'proposal.read': 'Review proposals',
+      'proposal.approve': 'Approve and publish proposals',
+      'proposal.reject': 'Reject proposals',
+      'member.read': 'View the member list',
+      'member.suspend': 'Suspend members in this space',
+      'grant.create': 'Grant capabilities',
+      'grant.revoke': 'Revoke capabilities',
+      'content.moderate': 'Moderate permitted content',
+      'metrics.read': 'View aggregate figures',
+      'notification.send': 'Send notifications to residents',
+      'audit.read': 'View the audit log',
+    },
+    tableDescription: (spaceName) =>
+      `The audit log of the space ${spaceName}, newest first. Each row carries the time, the actor, the action, the object, the state transition and the reasoning.`,
+    rowsMeta: (count) => `Showing ${count} entries`,
+    truncation: (count) =>
+      `Showing the most recent ${count} entries. For older entries, keep paging.`,
+    dateLocale: 'en-GB',
+  },
 };
 
-/** Hebrew for the object types the log records. */
-const OBJECT_LABELS_HE: Readonly<Record<string, string>> = {
-  vote: 'הצעה',
-  grant: 'הרשאה',
-  space: 'מרחב',
-  member: 'חבר/ה',
-  notification_campaign: 'משלוח התראה',
-  content: 'תוכן',
-  escalation: 'פנייה למנהל־על',
-};
-
-/** Hebrew for the keys the state payloads use. */
-const STATE_KEYS_HE: Readonly<Record<string, string>> = {
-  status: 'סטטוס',
-  suspended: 'מושעה',
-  capability: 'הרשאה',
-  active: 'פעילה',
-  hidden: 'מוסתר',
-  flagged: 'מסומן',
-  paymentId: 'מזהה חיוב',
-  amountAgorot: 'סכום באגורות',
-};
-
-const YES_HE = 'כן';
-const NO_HE = 'לא';
-
-const stateValue = (key: string, value: unknown): string => {
-  if (typeof value === 'boolean') return value ? YES_HE : NO_HE;
+const stateValue = (t: AuditCopy, key: string, value: unknown): string => {
+  if (typeof value === 'boolean') return value ? t.yes : t.no;
   if (key === 'capability' && typeof value === 'string') {
-    return CAPABILITY_LABELS_HE[value as keyof typeof CAPABILITY_LABELS_HE] ?? value;
+    return t.capabilityLabels[value] ?? value;
   }
   if (value === null || value === undefined) return '—';
   return String(value);
@@ -155,7 +293,7 @@ const stateValue = (key: string, value: unknown): string => {
  * record of what changed, and a summary that omits a field is a summary of a
  * different event. Long ones clamp and open in the row expansion.
  */
-const describeState = (payload: unknown): string => {
+const describeState = (t: AuditCopy, payload: unknown): string => {
   if (payload === null || payload === undefined) return '—';
   if (typeof payload !== 'object') return String(payload);
 
@@ -163,7 +301,7 @@ const describeState = (payload: unknown): string => {
   if (entries.length === 0) return '—';
 
   return entries
-    .map(([key, value]) => `${STATE_KEYS_HE[key] ?? key}: ${stateValue(key, value)}`)
+    .map(([key, value]) => `${t.stateKeys[key] ?? key}: ${stateValue(t, key, value)}`)
     .join(' · ');
 };
 
@@ -184,7 +322,7 @@ export type AuditSurfaceState =
 
 export interface AuditClientProps {
   spaceId: string;
-  locale: string;
+  locale: Locale;
   /** The filter already applied by the server. Mirrors `?objectType=`. */
   filter: AuditFilterValue;
   /** The actor already applied by the server. Mirrors `?actor=`. */
@@ -210,6 +348,7 @@ export function AuditClient({
   trail,
   state,
 }: AuditClientProps) {
+  const t = COPY[locale];
   const router = useRouter();
   const pathname = usePathname();
   const detailsIdBase = useId();
@@ -273,7 +412,7 @@ export function AuditClient({
   if (state.kind === 'failed') {
     return (
       <ErrorPanel
-        body={ERROR_HE}
+        body={t.loadError}
         onRetry={() => startTransition(() => router.refresh())}
       />
     );
@@ -285,7 +424,7 @@ export function AuditClient({
 
   const filters = (
     <div className={styles.filters}>
-      <div className={styles.chips} role="group" aria-label="סינון לפי סוג פעולה">
+      <div className={styles.chips} role="group" aria-label={t.chipsGroupLabel}>
         {AUDIT_FILTERS.map((chip) => (
           <button
             key={chip.value}
@@ -294,15 +433,15 @@ export function AuditClient({
             aria-pressed={chip.value === filter}
             onClick={() => go({ filter: chip.value, cursor: null, trail: [] })}
           >
-            {chip.label}
+            {chip.labels[locale]}
           </button>
         ))}
       </div>
 
       <PressSelect
         className={styles.actorFilter}
-        label={ACTOR_LABEL}
-        placeholder={ACTOR_PLACEHOLDER}
+        label={t.actorLabel}
+        placeholder={t.actorPlaceholder}
         options={actorOptions}
         value={actor ?? ''}
         onChange={(event) =>
@@ -324,7 +463,7 @@ export function AuditClient({
               })
             }
           >
-            {CLEAR_FILTERS}
+            {t.clearFilters}
           </NewsButton>
         </div>
       ) : null}
@@ -334,11 +473,11 @@ export function AuditClient({
   const columns: readonly PressTableColumn<AuditRow>[] = [
     {
       key: 'when',
-      header: 'מתי',
+      header: t.colWhen,
       primary: true,
       cell: (row) => (
         <span className={styles.mono}>
-          {new Date(row.createdAt).toLocaleString('he-IL', {
+          {new Date(row.createdAt).toLocaleString(t.dateLocale, {
             dateStyle: 'short',
             timeStyle: 'short',
           })}
@@ -347,7 +486,7 @@ export function AuditClient({
     },
     {
       key: 'who',
-      header: 'מי',
+      header: t.colWho,
       secondary: true,
       cell: (row) => (
         <ClampedText lines={1} title={row.actorDisplayName}>
@@ -357,10 +496,10 @@ export function AuditClient({
     },
     {
       key: 'action',
-      header: 'פעולה',
+      header: t.colAction,
       cell: (row) => (
         <span className={styles.mono}>
-          {ACTION_LABELS_HE[row.action] ?? (
+          {t.actionLabels[row.action] ?? (
             <span dir="ltr" className={styles.latin}>
               {row.action}
             </span>
@@ -370,10 +509,10 @@ export function AuditClient({
     },
     {
       key: 'object',
-      header: 'אובייקט',
+      header: t.colObject,
       secondary: true,
       cell: (row) => {
-        const label = OBJECT_LABELS_HE[row.objectType] ?? row.objectType;
+        const label = t.objectLabels[row.objectType] ?? row.objectType;
         if (row.objectId === null) return <span className={styles.mono}>{label}</span>;
 
         // A decided proposal is reachable from its own log row. The deep link
@@ -384,7 +523,7 @@ export function AuditClient({
           return (
             <Link
               className={styles.objectLink}
-              href={`/${locale}/space-admin/${spaceId}/proposals?proposal=${row.objectId}`}
+              href={`${localePrefix(locale)}/space-admin/${spaceId}/proposals?proposal=${row.objectId}`}
             >
               {label} <ShortId value={row.objectId} />
             </Link>
@@ -400,19 +539,19 @@ export function AuditClient({
     },
     {
       key: 'transition',
-      header: 'ממצב → למצב',
+      header: t.colTransition,
       secondary: true,
       cell: (row) => (
         <span className={styles.transition}>
-          <ClampedText lines={2}>{describeState(row.priorState)}</ClampedText>
+          <ClampedText lines={2}>{describeState(t, row.priorState)}</ClampedText>
           <span aria-hidden>→</span>
-          <ClampedText lines={2}>{describeState(row.newState)}</ClampedText>
+          <ClampedText lines={2}>{describeState(t, row.newState)}</ClampedText>
         </span>
       ),
     },
     {
       key: 'reason',
-      header: 'נימוק',
+      header: t.colReason,
       omitFromDetails: true,
       cell: (row) => {
         const isExpanded = expanded === row.id;
@@ -429,11 +568,11 @@ export function AuditClient({
               onClick={() => setExpanded(isExpanded ? null : row.id)}
             >
               {isExpanded ? (
-                'הסתר'
+                t.hideReason
               ) : (
                 <>
-                  <span className={styles.wideLabel}>הצג נימוק מלא</span>
-                  <span className={styles.narrowLabel}>הצג פרטים</span>
+                  <span className={styles.wideLabel}>{t.showFullReason}</span>
+                  <span className={styles.narrowLabel}>{t.showDetails}</span>
                 </>
               )}
               <span aria-hidden>{isExpanded ? ' ▴' : ' ▾'}</span>
@@ -455,12 +594,12 @@ export function AuditClient({
       <p className={styles.fullReason}>{row.reason}</p>
 
       <dl className={clsx(styles.detailsList, styles.hiddenColumns)}>
-        <dt>מי</dt>
+        <dt>{t.colWho}</dt>
         <dd>{row.actorDisplayName}</dd>
 
-        <dt>אובייקט</dt>
+        <dt>{t.colObject}</dt>
         <dd>
-          {OBJECT_LABELS_HE[row.objectType] ?? row.objectType}
+          {t.objectLabels[row.objectType] ?? row.objectType}
           {row.objectId ? (
             <>
               {' '}
@@ -471,11 +610,11 @@ export function AuditClient({
           ) : null}
         </dd>
 
-        <dt>ממצב</dt>
-        <dd>{describeState(row.priorState)}</dd>
+        <dt>{t.detailFrom}</dt>
+        <dd>{describeState(t, row.priorState)}</dd>
 
-        <dt>למצב</dt>
-        <dd>{describeState(row.newState)}</dd>
+        <dt>{t.detailTo}</dt>
+        <dd>{describeState(t, row.newState)}</dd>
       </dl>
     </div>
   );
@@ -487,11 +626,11 @@ export function AuditClient({
       {filters}
 
       {empty && !filtering ? (
-        <EmptyPanel heading={EMPTY_HEADING} body={EMPTY_BODY} />
+        <EmptyPanel heading={t.emptyHeading} body={t.emptyBody} />
       ) : empty ? (
         <EmptyPanel
-          heading={NO_RESULTS_HEADING}
-          body={NO_RESULTS_BODY}
+          heading={t.noResultsHeading}
+          body={t.noResultsBody}
           action={
             <NewsButton
               variant="outline"
@@ -504,7 +643,7 @@ export function AuditClient({
                 })
               }
             >
-              {CLEAR_FILTERS}
+              {t.clearFilters}
             </NewsButton>
           }
         />
@@ -514,7 +653,7 @@ export function AuditClient({
             columns={columns}
             rows={rows}
             rowKey={(row) => row.id}
-            description={`יומן הפעולות של המרחב ${spaceName}, מהחדש לישן. כל שורה כוללת מועד, מבצע/ת הפעולה, סוג הפעולה, האובייקט, המעבר בין המצבים והנימוק.`}
+            description={t.tableDescription(spaceName)}
             loading={isPending}
             renderExpansion={renderExpansion}
             expandedKey={expanded}
@@ -535,17 +674,14 @@ export function AuditClient({
               },
               olderDisabled: nextCursor === null,
               newerDisabled: cursor === null,
-              olderHint: OLDEST_HINT,
-              newerHint: NEWEST_HINT,
-              meta: `מוצגות ${rows.length} רשומות`,
+              olderHint: t.oldestHint,
+              newerHint: t.newestHint,
+              meta: t.rowsMeta(rows.length),
             }}
           />
 
           {truncated ? (
-            <p className={styles.truncation}>
-              מוצגות {rows.length} הרשומות האחרונות. לרשומות ישנות יותר — המשיכו
-              בדפדוף.
-            </p>
+            <p className={styles.truncation}>{t.truncation(rows.length)}</p>
           ) : null}
         </>
       )}

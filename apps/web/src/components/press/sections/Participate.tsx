@@ -15,11 +15,85 @@ interface ConsensusBar {
   pct: number;
 }
 
-const CONSENSUS_BARS: ConsensusBar[] = [
-  { label: 'בעד', pct: 72 },
-  { label: 'נגד', pct: 19 },
-  { label: 'נמנע', pct: 9 },
-];
+interface ParticipateCopy {
+  kicker: string;
+  headline: string;
+  headlineRed: string;
+  standfirst: string;
+  fig1Title: string;
+  fig1Note: string;
+  fig2Title: string;
+  voteBtn: string;
+  joinBtn: string;
+  readMoreBtn: string;
+  fig2Note: string;
+  fig3Title: string;
+  bars: readonly ConsensusBar[];
+  fig3Note: string;
+  fig4Title: string;
+  inputLabel: string;
+  placeholder: string;
+  submitBtn: string;
+  fig4Note: string;
+  arrow: string;
+}
+
+const COPY: Record<Locale, ParticipateCopy> = {
+  he: {
+    kicker: 'השליטה בידיים שלכם · PARTICIPATE',
+    headline: 'ככה משתתפים:',
+    headlineRed: 'בתוך העמוד.',
+    standfirst:
+      'כל כלי ההשתתפות גלויים על השולחן. בלי תפריטים נסתרים ובלי טפסים אינסופיים. רואים בדיוק איך הקול נמדד, מאומת ונספר.',
+    fig1Title: 'תא הקלפי',
+    fig1Note: 'FIG. 1 · תא הקלפי. בחרו עמדה, ראו את הספירה בזמן אמת.',
+    fig2Title: 'כפתורי פעולה',
+    voteBtn: 'הצביעו',
+    joinBtn: 'הצטרפו',
+    readMoreBtn: 'קראו עוד',
+    fig2Note: 'FIG. 2 · משטחי פעולה.',
+    fig3Title: 'מד תמיכה',
+    bars: [
+      { label: 'בעד', pct: 72 },
+      { label: 'נגד', pct: 19 },
+      { label: 'נמנע', pct: 9 },
+    ],
+    fig3Note: 'FIG. 3 · מד קונצנזוס.',
+    fig4Title: 'הצעת נושא',
+    inputLabel: 'הציעו נושא להצבעה',
+    placeholder: 'מה מטריד אתכם ברחוב?',
+    submitBtn: 'שלחו',
+    fig4Note: 'FIG. 4 · טור הקוראים.',
+    arrow: '←',
+  },
+  en: {
+    kicker: 'CONTROL IN YOUR HANDS · PARTICIPATE',
+    headline: 'This is how you participate:',
+    headlineRed: 'inside the page.',
+    standfirst:
+      'Every participation tool is out on the table. No hidden menus and no endless forms. You see exactly how a vote is measured, verified, and counted.',
+    fig1Title: 'The voting booth',
+    fig1Note: 'FIG. 1 · The voting booth. Pick a position, watch the count in real time.',
+    fig2Title: 'Action buttons',
+    voteBtn: 'Vote',
+    joinBtn: 'Join',
+    readMoreBtn: 'Read more',
+    fig2Note: 'FIG. 2 · Action surfaces.',
+    fig3Title: 'Support meter',
+    bars: [
+      { label: 'For', pct: 72 },
+      { label: 'Against', pct: 19 },
+      { label: 'Abstain', pct: 9 },
+    ],
+    fig3Note: 'FIG. 3 · Consensus meter.',
+    fig4Title: 'Propose a topic',
+    inputLabel: 'Propose a topic for a vote',
+    placeholder: 'What bothers you on your street?',
+    submitBtn: 'Submit',
+    fig4Note: "FIG. 4 · The readers' column.",
+    arrow: '→',
+  },
+};
 
 /**
  * Participate - the control-surfaces showcase. The brand idea, made literal:
@@ -30,6 +104,7 @@ const CONSENSUS_BARS: ConsensusBar[] = [
  */
 export function Participate({ locale = 'he' }: ParticipateProps) {
   const [topic, setTopic] = useState('');
+  const t = COPY[locale];
 
   return (
     <section id="participate" className={styles.participate}>
@@ -38,17 +113,14 @@ export function Participate({ locale = 'he' }: ParticipateProps) {
         <header className={styles.header}>
           <span className={styles.kicker}>
             <span aria-hidden className={styles.kickerTick} />
-            השליטה בידיים שלכם · PARTICIPATE
+            {t.kicker}
           </span>
 
           <h2 className={styles.headline}>
-            ככה משתתפים: <span className={styles.red}>בתוך העמוד.</span>
+            {t.headline} <span className={styles.red}>{t.headlineRed}</span>
           </h2>
 
-          <p className={styles.standfirst}>
-            כל כלי ההשתתפות גלויים על השולחן. בלי תפריטים נסתרים ובלי טפסים
-            אינסופיים. רואים בדיוק איך הקול נמדד, מאומת ונספר.
-          </p>
+          <p className={styles.standfirst}>{t.standfirst}</p>
         </header>
 
         <div className={styles.ruleHeavy} aria-hidden />
@@ -59,56 +131,54 @@ export function Participate({ locale = 'he' }: ParticipateProps) {
           <figure className={`${styles.fig} ${styles.figBallot}`}>
             <figcaption className={styles.figHead}>
               <span className={styles.figNo}>FIG. 1</span>
-              <span className={styles.figTitle}>תא הקלפי</span>
+              <span className={styles.figTitle}>{t.fig1Title}</span>
             </figcaption>
             <div className={styles.figBody}>
-              <LiveVoteWidget issueNo="04" />
+              <LiveVoteWidget issueNo="04" locale={locale} />
             </div>
-            <p className={styles.figNote}>
-              FIG. 1 · תא הקלפי. בחרו עמדה, ראו את הספירה בזמן אמת.
-            </p>
+            <p className={styles.figNote}>{t.fig1Note}</p>
           </figure>
 
           {/* FIG. 2 - כפתורי פעולה (action surfaces) */}
           <figure className={`${styles.fig} ${styles.figButtons}`}>
             <figcaption className={styles.figHead}>
               <span className={styles.figNo}>FIG. 2</span>
-              <span className={styles.figTitle}>כפתורי פעולה</span>
+              <span className={styles.figTitle}>{t.fig2Title}</span>
             </figcaption>
             <div className={styles.figBody}>
               <div className={styles.buttonRack}>
                 <div className={styles.buttonCell}>
                   <span className={styles.cellLabel}>VARIANT · RED</span>
-                  <NewsButton variant="red" size="md" trailing={<span aria-hidden>←</span>}>
-                    הצביעו
+                  <NewsButton variant="red" size="md" trailing={<span aria-hidden>{t.arrow}</span>}>
+                    {t.voteBtn}
                   </NewsButton>
                 </div>
                 <div className={styles.buttonCell}>
                   <span className={styles.cellLabel}>VARIANT · INK</span>
-                  <NewsButton variant="ink" size="md" trailing={<span aria-hidden>←</span>}>
-                    הצטרפו
+                  <NewsButton variant="ink" size="md" trailing={<span aria-hidden>{t.arrow}</span>}>
+                    {t.joinBtn}
                   </NewsButton>
                 </div>
                 <div className={styles.buttonCell}>
                   <span className={styles.cellLabel}>VARIANT · OUTLINE</span>
                   <NewsButton variant="outline" size="md">
-                    קראו עוד
+                    {t.readMoreBtn}
                   </NewsButton>
                 </div>
               </div>
             </div>
-            <p className={styles.figNote}>FIG. 2 · משטחי פעולה.</p>
+            <p className={styles.figNote}>{t.fig2Note}</p>
           </figure>
 
           {/* FIG. 3 - מד תמיכה (consensus meter) */}
           <figure className={`${styles.fig} ${styles.figMeter}`}>
             <figcaption className={styles.figHead}>
               <span className={styles.figNo}>FIG. 3</span>
-              <span className={styles.figTitle}>מד תמיכה</span>
+              <span className={styles.figTitle}>{t.fig3Title}</span>
             </figcaption>
             <div className={styles.figBody}>
               <ul className={styles.meterList}>
-                {CONSENSUS_BARS.map((bar) => (
+                {t.bars.map((bar) => (
                   <li key={bar.label} className={styles.meterRow}>
                     <span className={styles.meterLabel}>{bar.label}</span>
                     <span className={styles.meterTrack}>
@@ -123,14 +193,14 @@ export function Participate({ locale = 'he' }: ParticipateProps) {
                 ))}
               </ul>
             </div>
-            <p className={styles.figNote}>FIG. 3 · מד קונצנזוס.</p>
+            <p className={styles.figNote}>{t.fig3Note}</p>
           </figure>
 
           {/* FIG. 4 - הצעת נושא (readers' column input) */}
           <figure className={`${styles.fig} ${styles.figInput}`}>
             <figcaption className={styles.figHead}>
               <span className={styles.figNo}>FIG. 4</span>
-              <span className={styles.figTitle}>הצעת נושא</span>
+              <span className={styles.figTitle}>{t.fig4Title}</span>
             </figcaption>
             <div className={styles.figBody}>
               <form
@@ -138,13 +208,13 @@ export function Participate({ locale = 'he' }: ParticipateProps) {
                 onSubmit={(e) => e.preventDefault()}
               >
                 <label className={styles.inputLabel} htmlFor="participate-topic">
-                  הציעו נושא להצבעה
+                  {t.inputLabel}
                 </label>
                 <input
                   id="participate-topic"
                   type="text"
                   className={styles.input}
-                  placeholder="מה מטריד אתכם ברחוב?"
+                  placeholder={t.placeholder}
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
                 />
@@ -153,14 +223,14 @@ export function Participate({ locale = 'he' }: ParticipateProps) {
                     type="submit"
                     variant="red"
                     size="md"
-                    trailing={<span aria-hidden>←</span>}
+                    trailing={<span aria-hidden>{t.arrow}</span>}
                   >
-                    שלחו
+                    {t.submitBtn}
                   </NewsButton>
                 </div>
               </form>
             </div>
-            <p className={styles.figNote}>FIG. 4 · טור הקוראים.</p>
+            <p className={styles.figNote}>{t.fig4Note}</p>
           </figure>
         </div>
       </div>

@@ -49,6 +49,7 @@ import { getSpaceOverview } from '@/server/app/space-admin/get-space-overview';
 import { getSessionFromCookies } from '@/services/auth/session';
 import { StatsFallback } from './StatsFallback';
 import styles from './page.module.css';
+import { localePrefix } from '@/lib/i18n';
 
 /**
  * The suppressed figure is a literal string, not a computed bound. The client
@@ -125,7 +126,7 @@ export default async function SpaceStatsPage({ params }: SpaceStatsPageProps) {
   const { locale, spaceId } = await params;
 
   const session = await getSessionFromCookies();
-  if (!session) redirect(`/${locale}/sign-in`);
+  if (!session) redirect(`${localePrefix(locale)}/sign-in`);
 
   const overview = await getSpaceOverview(session, spaceId);
 

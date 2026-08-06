@@ -1,5 +1,6 @@
 import { KNESSET_SCOPE } from '@sync/shared';
-import { getActiveVotesWithOptions, getCardArtByVoteIds } from '@/lib/supabase/db';
+import { getCardArtByVoteIds } from '@/lib/supabase/db';
+import { activeVotesWithOptions } from '@/server/read/active-votes';
 import type { Locale } from '@/lib/i18n';
 import type { DeskTopic } from './DeskTopicRow';
 import { toDeskTopic } from './deskData';
@@ -16,9 +17,11 @@ interface ConsensusDeskProps {
  * revalidation window, hands the grouped map to the client picker.
  */
 export async function ConsensusDesk({ locale = 'he' }: ConsensusDeskProps) {
-  // Degrade to the empty desk when the DB is unreachable (build-time
-  // prerender in CI has no service-role key - #39); ISR refills at runtime.
-  const votes = await getActiveVotesWithOptions().catch(() => []);
+  // Request-scoped read shared with the national desk - one ledger query per
+  // render, not one per desk. Degrades to the empty desk when the DB is
+  // unreachable (build-time prerender in CI has no service-role key - #39);
+  // ISR refills at runtime.
+  const votes = await activeVotesWithOptions();
   // Faded tile plates from the art job; degrades to an empty map on failure.
   const art = await getCardArtByVoteIds(votes.map((v) => v.id));
 

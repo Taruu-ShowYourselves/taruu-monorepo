@@ -9,13 +9,55 @@ import {
   type KnessetAgenda as KnessetAgendaData,
 } from './knessetAgendaData';
 import styles from './KnessetAgenda.module.css';
+import { localePrefix } from '@/lib/i18n';
+
+interface KnessetAgendaCopy {
+  noBallots: string;
+  participants: string;
+  endsToday: string;
+  daysLeft: (days: number) => string;
+  sessionStamp: string;
+  plenumSession: string;
+  sessionNo: (n: number) => string;
+  knessetNum: (n: number) => string;
+  voteCta: string;
+  extrasHeader: string;
+}
+
+const COPY: Record<Locale, KnessetAgendaCopy> = {
+  he: {
+    noBallots: 'טרם נרשמו קולות.',
+    participants: 'משתתפים',
+    endsToday: 'מסתיים היום',
+    daysLeft: (days) => `נותרו ${days} ימים`,
+    sessionStamp: 'סדר יום · DAY ORDER',
+    plenumSession: 'ישיבת מליאה',
+    sessionNo: (n) => ` מס׳ ${n}`,
+    knessetNum: (n) => `הכנסת ה־${n}`,
+    voteCta: 'להצבעה ←',
+    extrasHeader: '■ עוד על הדסק הארצי',
+  },
+  en: {
+    noBallots: 'No ballots recorded yet.',
+    participants: 'participants',
+    endsToday: 'Ends today',
+    daysLeft: (days) => `${days} days remaining`,
+    sessionStamp: 'ORDER OF THE DAY',
+    plenumSession: 'Plenum sitting',
+    sessionNo: (n) => ` No. ${n}`,
+    knessetNum: (n) => `Knesset ${n}`,
+    voteCta: 'To the vote →',
+    extrasHeader: '■ More from the national desk',
+  },
+};
 
 function daysRemaining(endDate: string): number {
   const ms = new Date(endDate).getTime() - Date.now();
   return Math.max(0, Math.ceil(ms / 86_400_000));
 }
 
-function ConsensusMeters({ topic }: { topic: DeskTopic }) {
+function ConsensusMeters({ topic, locale }: { topic: DeskTopic; locale: Locale }) {
+  const t = COPY[locale];
   const hasBallots = topic.options.some((o) => o.votes > 0);
   const days = daysRemaining(topic.endDate);
 
@@ -38,13 +80,13 @@ function ConsensusMeters({ topic }: { topic: DeskTopic }) {
           ))}
         </ul>
       ) : (
-        <p className={styles.noBallots}>טרם נרשמו קולות.</p>
+        <p className={styles.noBallots}>{t.noBallots}</p>
       )}
 
       <p className={styles.itemMeta}>
-        <span>{topic.participantCount} משתתפים</span>
+        <span>{topic.participantCount} {t.participants}</span>
         <span aria-hidden>·</span>
-        <span>{days === 0 ? 'מסתיים היום' : `נותרו ${days} ימים`}</span>
+        <span>{days === 0 ? t.endsToday : t.daysLeft(days)}</span>
       </p>
     </>
   );
@@ -60,6 +102,7 @@ function AgendaItemRow({
   locale: Locale;
 }) {
   const { topic } = row;
+  const t = COPY[locale];
 
   return (
     <li className={styles.itemRow}>
@@ -75,15 +118,15 @@ function AgendaItemRow({
         ) : null}
 
         <h3 className={styles.itemTitle}>
-          <Link href={`/${locale}/votes/${topic.id}`} className={styles.itemLink}>
+          <Link href={`${localePrefix(locale)}/votes/${topic.id}`} className={styles.itemLink}>
             {topic.title}
           </Link>
         </h3>
 
-        <ConsensusMeters topic={topic} />
+        <ConsensusMeters topic={topic} locale={locale} />
 
-        <Link href={`/${locale}/votes/${topic.id}`} className={styles.voteCta}>
-          להצבעה ←
+        <Link href={`${localePrefix(locale)}/votes/${topic.id}`} className={styles.voteCta}>
+          {t.voteCta}
         </Link>
       </div>
     </li>
@@ -97,20 +140,21 @@ function SessionBlock({
   session: AgendaSession;
   locale: Locale;
 }) {
+  const t = COPY[locale];
   const date = formatAgendaDate(session.sessionDate);
-  const weekday = weekdayOf(session.sessionDate);
+  const weekday = weekdayOf(session.sessionDate, locale);
 
   return (
     <section aria-labelledby={`plm-${session.plenumSessionId}`}>
       <header className={styles.sessionHeader}>
-        <span className={styles.sessionStamp}>סדר יום · DAY ORDER</span>
+        <span className={styles.sessionStamp}>{t.sessionStamp}</span>
         <h2 id={`plm-${session.plenumSessionId}`} className={styles.sessionTitle}>
-          ישיבת מליאה
-          {session.sessionNumber ? ` מס׳ ${session.sessionNumber}` : ''}
+          {t.plenumSession}
+          {session.sessionNumber ? t.sessionNo(session.sessionNumber) : ''}
           {date ? ` · ${weekday ? `${weekday}, ` : ''}${date}` : ''}
         </h2>
         {session.knessetNum ? (
-          <span className={styles.sessionMeta}>הכנסת ה־{session.knessetNum}</span>
+          <span className={styles.sessionMeta}>{t.knessetNum(session.knessetNum)}</span>
         ) : null}
       </header>
 
@@ -139,6 +183,7 @@ interface KnessetAgendaProps {
  * a live ballot. National topics without sitting metadata trail at the end.
  */
 export function KnessetAgenda({ agenda, locale }: KnessetAgendaProps) {
+  const t = COPY[locale];
   return (
     <div className={styles.agenda}>
       {agenda.sessions.map((session) => (
@@ -153,7 +198,7 @@ export function KnessetAgenda({ agenda, locale }: KnessetAgendaProps) {
         <section aria-labelledby="knesset-extras">
           <header className={styles.sessionHeader}>
             <h2 id="knesset-extras" className={styles.extrasHeader}>
-              ■ עוד על הדסק הארצי
+              {t.extrasHeader}
             </h2>
           </header>
           <ol className={styles.itemList}>

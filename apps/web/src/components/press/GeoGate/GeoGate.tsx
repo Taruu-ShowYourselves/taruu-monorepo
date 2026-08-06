@@ -8,6 +8,7 @@ import {
 } from '@sync/shared';
 import { NewsButton } from '@/components/press/NewsButton';
 import { useAuth } from '@/providers/AuthProvider';
+import type { Locale } from '@/lib/i18n';
 import {
   dismissLocalityPrompt,
   getStoredMunicipality,
@@ -18,18 +19,93 @@ import styles from './GeoGate.module.css';
 
 type GateState = 'closed' | 'open' | 'locating' | 'confirm';
 
+interface GeoGateCopy {
+  kicker: string;
+  headline: string;
+  why: string;
+  confirmLede: string;
+  confirmAsk: string;
+  confirmYes: string;
+  confirmYesGlyph: string;
+  confirmNo: string;
+  locateCta: string;
+  locating: string;
+  or: string;
+  townLabel: string;
+  townPlaceholder: string;
+  openBoard: string;
+  matchPrefix: string;
+  skip: string;
+  errNoGeoSupport: string;
+  errNoMatchNearby: string;
+  errNoPermission: string;
+  errNoTextMatch: string;
+}
+
+const COPY: Record<Locale, GeoGateCopy> = {
+  he: {
+    kicker: 'מקומי קודם · LOCAL FIRST',
+    headline: 'מאיפה אתם קוראים אותנו?',
+    why: 'תַּרְאוּ היא עיתון מקומי: כל נושא, כל הצבעה וכל קופה שייכים לרשות מקומית אחת. כדי לפתוח את הלוח של היישוב שלכם אנחנו צריכים לדעת איפה אתם גרים. המיקום נשאר במכשיר שלכם בלבד, לא נשלח לשרת ולא נשמר אצלנו.',
+    confirmLede: 'זיהינו אתכם ליד:',
+    confirmAsk: 'זה היישוב שלכם?',
+    confirmYes: 'כן, פתחו את הלוח',
+    confirmYesGlyph: '←',
+    confirmNo: 'לא, אכתוב בעצמי',
+    locateCta: 'אתרו אותי אוטומטית',
+    locating: 'מאתרים…',
+    or: 'או',
+    townLabel: 'שם היישוב',
+    townPlaceholder: 'כתבו את שם היישוב…',
+    openBoard: 'פתחו את הלוח',
+    matchPrefix: 'נמצא:',
+    skip: 'לא עכשיו, הראו לי את כל הרשויות',
+    errNoGeoSupport: 'הדפדפן לא תומך באיתור מיקום. כתבו את שם היישוב.',
+    errNoMatchNearby: 'לא זיהינו רשות נתמכת בקרבתכם. כתבו את שם היישוב.',
+    errNoPermission: 'לא קיבלנו הרשאת מיקום. כתבו את שם היישוב במקום.',
+    errNoTextMatch: 'לא מצאנו רשות תואמת. נסו שם עיר או מועצה מהרשימה.',
+  },
+  en: {
+    kicker: 'Local first',
+    headline: 'Where are you reading us from?',
+    why: 'Taruu is a local newspaper for Israel: every topic, every vote and every fund belongs to a single municipality, and voting is reserved for Israeli residents. To open your town’s board we need to know where you live. Your location stays on your device only — it is never sent to a server and never stored by us.',
+    confirmLede: 'We placed you near:',
+    confirmAsk: 'Is this your town?',
+    confirmYes: 'Yes, open the board',
+    confirmYesGlyph: '→',
+    confirmNo: 'No, I will type it myself',
+    locateCta: 'Detect my location',
+    locating: 'Locating…',
+    or: 'or',
+    townLabel: 'Town name',
+    townPlaceholder: 'Type the name of your town…',
+    openBoard: 'Open the board',
+    matchPrefix: 'Found:',
+    skip: 'Not now, show me all municipalities',
+    errNoGeoSupport:
+      'Your browser does not support location services. Type the name of your town instead.',
+    errNoMatchNearby:
+      'We could not find a supported municipality near you. Taruu serves residents of Israeli municipalities — if you live in Israel, type the name of your town.',
+    errNoPermission:
+      'Location permission was declined. Type the name of your town instead.',
+    errNoTextMatch:
+      'No matching municipality was found. Try a city or council name from the list.',
+  },
+};
+
 /**
  * GeoGate - the geo-first entry prompt. The platform is municipal: without
  * knowing the reader's town we can't open the right board. Shown once per
  * browser when there is no auth session and no stored locality; resolves via
  * GPS (nearest municipality centroid, on-device) or a typed town name.
  */
-export function GeoGate() {
+export function GeoGate({ locale = 'he' }: { locale?: Locale }) {
   const { isAuthenticated, isLoading } = useAuth();
   const [state, setState] = useState<GateState>('closed');
   const [town, setTown] = useState('');
   const [detected, setDetected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const t = COPY[locale];
 
   useEffect(() => {
     if (isLoading || isAuthenticated) return;
@@ -51,7 +127,7 @@ export function GeoGate() {
 
   const locate = () => {
     if (!navigator.geolocation) {
-      setError('הדפדפן לא תומך באיתור מיקום. כתבו את שם היישוב.');
+      setError(t.errNoGeoSupport);
       return;
     }
     setError(null);
@@ -68,12 +144,12 @@ export function GeoGate() {
           setState('confirm');
         } else {
           setState('open');
-          setError('לא זיהינו רשות נתמכת בקרבתכם. כתבו את שם היישוב.');
+          setError(t.errNoMatchNearby);
         }
       },
       () => {
         setState('open');
-        setError('לא קיבלנו הרשאת מיקום. כתבו את שם היישוב במקום.');
+        setError(t.errNoPermission);
       },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
     );
@@ -84,7 +160,7 @@ export function GeoGate() {
     if (textMatch) {
       choose(textMatch.name);
     } else {
-      setError('לא מצאנו רשות תואמת. נסו שם עיר או מועצה מהרשימה.');
+      setError(t.errNoTextMatch);
     }
   };
 
@@ -98,34 +174,29 @@ export function GeoGate() {
       <div className={styles.plate}>
         <span className={styles.kicker}>
           <span aria-hidden className={styles.kickerTick} />
-          מקומי קודם · LOCAL FIRST
+          {t.kicker}
         </span>
 
         <h2 id="geogate-headline" className={styles.headline}>
-          מאיפה אתם קוראים אותנו?
+          {t.headline}
         </h2>
 
-        <p className={styles.why}>
-          תַּרְאוּ היא עיתון מקומי: כל נושא, כל הצבעה וכל קופה שייכים לרשות
-          מקומית אחת. כדי לפתוח את הלוח של היישוב שלכם אנחנו צריכים
-          לדעת איפה אתם גרים. המיקום נשאר במכשיר שלכם בלבד, לא נשלח לשרת ולא
-          נשמר אצלנו.
-        </p>
+        <p className={styles.why}>{t.why}</p>
 
         {state === 'confirm' && detected ? (
           <div className={styles.confirm}>
             <p className={styles.confirmLede}>
-              זיהינו אתכם ליד: <span className={styles.confirmName}>{detected}</span>
+              {t.confirmLede} <span className={styles.confirmName}>{detected}</span>
             </p>
-            <p className={styles.confirmAsk}>זה היישוב שלכם?</p>
+            <p className={styles.confirmAsk}>{t.confirmAsk}</p>
             <div className={styles.confirmActions}>
               <NewsButton
                 variant="red"
                 size="md"
                 onClick={() => choose(detected)}
-                trailing={<span aria-hidden>←</span>}
+                trailing={<span aria-hidden>{t.confirmYesGlyph}</span>}
               >
-                כן, פתחו את הלוח
+                {t.confirmYes}
               </NewsButton>
               <NewsButton
                 variant="outline"
@@ -135,7 +206,7 @@ export function GeoGate() {
                   setState('open');
                 }}
               >
-                לא, אכתוב בעצמי
+                {t.confirmNo}
               </NewsButton>
             </div>
           </div>
@@ -148,18 +219,18 @@ export function GeoGate() {
             disabled={state === 'locating'}
             trailing={<span aria-hidden>◎</span>}
           >
-            {state === 'locating' ? 'מאתרים…' : 'אתרו אותי אוטומטית'}
+            {state === 'locating' ? t.locating : t.locateCta}
           </NewsButton>
-          <span className={styles.or}>או</span>
+          <span className={styles.or}>{t.or}</span>
           <form className={styles.townForm} onSubmit={submitTown}>
             <label className={styles.srOnly} htmlFor="geogate-town">
-              שם היישוב
+              {t.townLabel}
             </label>
             <input
               id="geogate-town"
               type="text"
               className={styles.input}
-              placeholder="כתבו את שם היישוב…"
+              placeholder={t.townPlaceholder}
               value={town}
               onChange={(e) => {
                 setTown(e.target.value);
@@ -174,19 +245,19 @@ export function GeoGate() {
               ))}
             </datalist>
             <NewsButton type="submit" variant="ink" size="md" disabled={!textMatch}>
-              פתחו את הלוח
+              {t.openBoard}
             </NewsButton>
           </form>
         </div>
         )}
 
         {textMatch && town.trim() !== textMatch.name ? (
-          <p className={styles.match}>נמצא: {textMatch.name}</p>
+          <p className={styles.match}>{t.matchPrefix} {textMatch.name}</p>
         ) : null}
         {error ? <p className={styles.error}>{error}</p> : null}
 
         <button type="button" className={styles.skip} onClick={dismiss}>
-          לא עכשיו, הראו לי את כל הרשויות
+          {t.skip}
         </button>
       </div>
     </div>

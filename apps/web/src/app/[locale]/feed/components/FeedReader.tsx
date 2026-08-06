@@ -12,11 +12,58 @@ import { FeedCard } from './FeedCard';
 import { SuggestCard } from './SuggestCard';
 import { EndCard } from './EndCard';
 import styles from './Feed.module.css';
+import { localePath, localePrefix, type Locale } from '@/lib/i18n';
 
 interface FeedReaderProps {
   items: FeedTopicItem[];
-  locale: string;
+  locale: Locale;
 }
+
+interface FeedReaderCopy {
+  wordmark: string;
+  editionOf: (home: string) => string;
+  nationalEdition: string;
+  progressLabel: string;
+  emptyKicker: string;
+  emptyTitle: string;
+  emptyTitleRed: string;
+  emptyText: string;
+  emptyCta: string;
+  allVotesLink: string;
+  /** Direction-semantic CTA glyph: mirrored between RTL and LTR. */
+  arrow: string;
+}
+
+const COPY: Record<Locale, FeedReaderCopy> = {
+  he: {
+    wordmark: 'תַּרְאוּ',
+    editionOf: (home) => `המהדורה של ${home}`,
+    nationalEdition: 'מהדורה ארצית',
+    progressLabel: 'התקדמות במהדורה',
+    emptyKicker: 'המהדורה שלי · MY EDITION',
+    emptyTitle: 'אין נושאים פתוחים',
+    emptyTitleRed: 'כרגע.',
+    emptyText:
+      'ברגע שייפתח נושא ברשות שלכם או על שולחן הכנסת, הוא יופיע כאן ראשון. בינתיים אפשר לעלות נושא משלכם.',
+    emptyCta: 'העלו נושא',
+    allVotesLink: 'לכל ההצבעות ←',
+    arrow: '←',
+  },
+  en: {
+    wordmark: 'Taruu',
+    editionOf: (home) => `The ${home} edition`,
+    nationalEdition: 'National edition',
+    progressLabel: 'Progress through the edition',
+    emptyKicker: 'MY EDITION · THE FEED',
+    emptyTitle: 'No topics are open',
+    emptyTitleRed: 'right now.',
+    emptyText:
+      "The moment a topic opens in your municipality or on the Knesset's table, it will appear here first. In the meantime, you can raise one of your own.",
+    emptyCta: 'Raise a topic',
+    allVotesLink: 'All votes →',
+    arrow: '→',
+  },
+};
 
 /** Anchor id for a topic card - also the return target after an auth detour. */
 export function cardAnchor(voteId: string): string {
@@ -72,6 +119,7 @@ function withLiveTallies(
  * the site-wide smooth-scroll would otherwise fight CSS scroll snapping.
  */
 export function FeedReader({ items, locale }: FeedReaderProps) {
+  const t = COPY[locale];
   const rootRef = useRef<HTMLDivElement | null>(null);
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -207,12 +255,12 @@ export function FeedReader({ items, locale }: FeedReaderProps) {
   return (
     <div className={`np-page ${styles.page}`}>
       <header className={styles.bar}>
-        <Link href={`/${locale}`} className={styles.wordmark}>
-          תַּרְאוּ
+        <Link href={localePath(locale)} className={styles.wordmark}>
+          {t.wordmark}
         </Link>
 
         <span className={styles.barEdition}>
-          {home ? `המהדורה של ${home}` : 'מהדורה ארצית'}
+          {home ? t.editionOf(home) : t.nationalEdition}
         </span>
 
         <span className={styles.barCount}>
@@ -226,7 +274,7 @@ export function FeedReader({ items, locale }: FeedReaderProps) {
         <div
           className={styles.progress}
           role="progressbar"
-          aria-label="התקדמות במהדורה"
+          aria-label={t.progressLabel}
           aria-valuemin={0}
           aria-valuemax={Math.max(topicCount, 1)}
           aria-valuenow={Math.max(activeTopicNo, 0)}
@@ -294,31 +342,29 @@ export function FeedReader({ items, locale }: FeedReaderProps) {
 }
 
 /** No open ballots anywhere - the pre-launch edition. */
-function EmptyEdition({ locale }: { locale: string }) {
+function EmptyEdition({ locale }: { locale: Locale }) {
+  const t = COPY[locale];
   return (
     <div className={styles.empty}>
       <span className={styles.kicker}>
         <span aria-hidden className={styles.kickerTick} />
-        המהדורה שלי · MY EDITION
+        {t.emptyKicker}
       </span>
       <h1 className={styles.emptyTitle}>
-        אין נושאים פתוחים <span className={styles.red}>כרגע.</span>
+        {t.emptyTitle} <span className={styles.red}>{t.emptyTitleRed}</span>
       </h1>
-      <p className={styles.emptyText}>
-        ברגע שייפתח נושא ברשות שלכם או על שולחן הכנסת, הוא יופיע כאן ראשון.
-        בינתיים אפשר לעלות נושא משלכם.
-      </p>
+      <p className={styles.emptyText}>{t.emptyText}</p>
       <div className={styles.emptyActions}>
         <NewsButton
-          href={`/${locale}/votes/create`}
+          href={`${localePrefix(locale)}/votes/create`}
           variant="red"
           size="lg"
-          trailing={<span aria-hidden>←</span>}
+          trailing={<span aria-hidden>{t.arrow}</span>}
         >
-          העלו נושא
+          {t.emptyCta}
         </NewsButton>
-        <Link href={`/${locale}/votes`} className={styles.textLink}>
-          לכל ההצבעות ←
+        <Link href={`${localePrefix(locale)}/votes`} className={styles.textLink}>
+          {t.allVotesLink}
         </Link>
       </div>
     </div>

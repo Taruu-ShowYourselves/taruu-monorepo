@@ -117,20 +117,14 @@
   inset-inline-start: clamp(1.5rem, 4.5vw, 5rem);
   inset-block-end: clamp(3.4rem, 6vh, 5.4rem);
   z-index: 5;
-  display: grid;
-  grid-template-areas:
-    "logo links"
-    "socials links";
-  grid-template-columns: auto auto;
+  display: flex;
   direction: rtl;
   align-items: center;
-  column-gap: clamp(0.9rem, 1.5vw, 1.5rem);
-  row-gap: 0.42rem;
+  gap: clamp(0.9rem, 1.5vw, 1.5rem);
   color: var(--intro-ink);
 }
 
 .introLogo {
-  grid-area: logo;
   font-family: var(--np-font-display);
   font-size: clamp(2rem, 3.2vw, 4rem);
   font-weight: 900;
@@ -143,12 +137,10 @@
 }
 
 .introSocials {
-  grid-area: socials;
   display: flex;
   direction: ltr;
   align-items: center;
   justify-content: center;
-  justify-self: center;
   gap: 0.42rem;
 }
 
@@ -195,63 +187,32 @@
   stroke: none;
 }
 
-.introQuickNav {
-  grid-area: links;
-  display: flex;
-  align-items: center;
-  gap: clamp(1.1rem, 2vw, 2.2rem);
-  direction: rtl;
-  inline-size: auto;
-}
-
-.introQuickNav a {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding-block: 0.35rem;
-  font-family: var(--np-font-display);
-  font-size: clamp(0.66rem, 0.78vw, 0.82rem);
-  font-weight: 800;
-  color: var(--intro-ink);
-  text-align: start;
-  text-decoration: none;
-  white-space: nowrap;
-  transition:
-    color 200ms var(--np-ease),
-    transform 200ms var(--np-ease);
-}
-
-.introQuickNav a:hover,
-.introQuickNav a:focus-visible {
-  color: var(--intro-red);
-  transform: translateY(-2px);
-  outline: none;
-}
-
-.introQuickNav span {
-  font-family: var(--np-font-mono);
-  font-size: 0.48rem;
-  color: var(--intro-red);
-}
-
-.introQuickNav i {
-  font-family: var(--np-font-mono);
-  font-size: 0.62rem;
-  font-style: normal;
-  color: var(--intro-red);
-}
-
+/* Two columns on one row: the headline + its action row sit on the right, the
+   live ledger sits on the left and centres against them. The closing sentence
+   is the only absolute piece - it has to keep its bottom-left corner so the
+   scroll split can throw the two halves apart. */
 .questionCopy {
   position: absolute;
   z-index: 3;
   inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  align-content: start;
+  align-items: center;
+  column-gap: clamp(1.5rem, 4vw, 4rem);
+  padding: clamp(5rem, 13svh, 10rem) 5.5% 0;
   direction: rtl;
   will-change: transform, opacity, filter;
 }
 
+.questionLead {
+  display: grid;
+  justify-items: start;
+  gap: clamp(1.4rem, 3.2vh, 2.6rem);
+  min-inline-size: 0;
+}
+
 .question {
-  position: absolute;
-  inset: 0;
   margin: 0;
   font-family: var(--np-font-display);
   font-size: clamp(3.2rem, 5.35vw, 6.5rem);
@@ -262,9 +223,8 @@
 }
 
 .questionSentence {
-  position: absolute;
   display: block;
-  inline-size: min(58vw, 64rem);
+  inline-size: 100%;
   text-align: start;
   text-wrap: balance;
   text-shadow:
@@ -275,13 +235,16 @@
 }
 
 .questionTopRight {
-  inset-block-start: 12%;
-  right: 5.5%;
+  max-inline-size: 64rem;
 }
 
+/* Absolute so the scroll split can still throw it out to the bottom-left while
+   the lead block keeps its normal flow. Insets resolve against .questionCopy's
+   padding box, so 0 lines it up with the ledger column below it. */
 .questionBottomLeft {
+  position: absolute;
   right: auto;
-  left: 4.5%;
+  left: 0;
   inset-block-end: 14%;
   inline-size: min(42vw, 47rem);
 }
@@ -321,14 +284,11 @@
 }
 
 .questionActions {
-  position: absolute;
+  position: relative;
   z-index: 6;
-  right: 5.5%;
-  left: auto;
-  inset-block-start: 39%;
-  inset-block-end: auto;
   display: flex;
   direction: rtl;
+  flex-wrap: wrap;
   align-items: center;
   gap: clamp(0.9rem, 1.6vw, 1.5rem);
   will-change: transform;
@@ -383,6 +343,41 @@
 .questionSecondary:focus-visible {
   gap: 0.8rem;
   color: var(--intro-ink);
+}
+
+.questionStats {
+  z-index: 4;
+  display: flex;
+  gap: clamp(1rem, 2.5vw, 2.5rem);
+  margin: 0;
+  direction: rtl;
+}
+
+.questionStats div {
+  display: grid;
+  flex: 1 1 0;
+  gap: 0.2rem;
+  min-inline-size: 0;
+  max-inline-size: 13rem;
+  padding-inline-start: clamp(0.8rem, 1.3vw, 1.25rem);
+  border-inline-start: 1px solid rgba(25, 24, 22, 0.24);
+}
+
+.questionStats dt {
+  font-family: var(--np-font-body);
+  font-size: clamp(0.62rem, 0.76vw, 0.78rem);
+  font-weight: 750;
+  line-height: 1.25;
+  color: var(--intro-soft);
+}
+
+.questionStats dd {
+  margin: 0;
+  font-family: var(--np-font-display);
+  font-size: clamp(1.3rem, 2.1vw, 2.15rem);
+  font-weight: 900;
+  line-height: 1;
+  color: var(--intro-red);
 }
 
 .thesisLedger {
@@ -1580,8 +1575,7 @@
   color: var(--intro-soft);
 }
 
-/* Below desktop, the identity becomes a compact product dock. It stays out of
-   the headline's reading path while keeping the primary destinations present. */
+/* Below desktop, the identity becomes a compact dock. */
 @media (max-width: 1100px) {
   .introBrand {
     z-index: 8;
@@ -1591,14 +1585,9 @@
     inset-block-end: 0;
     inline-size: 100vw;
     max-inline-size: none;
-    display: grid;
-    grid-template-areas:
-      "logo links"
-      "socials links";
-    grid-template-columns: auto minmax(0, 1fr);
+    display: flex;
     align-items: center;
-    column-gap: clamp(0.8rem, 2.2vw, 1.6rem);
-    row-gap: 0;
+    gap: clamp(0.8rem, 2.2vw, 1.6rem);
     padding: 0.7rem clamp(1rem, 3vw, 2rem);
     border-block-start: 1px solid rgba(25, 24, 22, 0.28);
     background: color-mix(in srgb, var(--intro-white) 96%, transparent);
@@ -1608,7 +1597,6 @@
   }
 
   .introLogo {
-    grid-area: logo;
     position: relative;
     padding-inline-end: clamp(0.8rem, 2vw, 1.35rem);
     border-inline-end: 1px solid rgba(25, 24, 22, 0.22);
@@ -1616,8 +1604,6 @@
   }
 
   .introSocials {
-    grid-area: socials;
-    justify-self: center;
   }
 
   .introSocials a {
@@ -1625,42 +1611,6 @@
     block-size: 1.25rem;
   }
 
-  .introQuickNav {
-    grid-area: links;
-    display: flex;
-    justify-content: end;
-    inline-size: 100%;
-    gap: clamp(1rem, 2.8vw, 2.4rem);
-    margin: 0;
-    padding: 0;
-  }
-
-  .introQuickNav a {
-    position: relative;
-    min-inline-size: 0;
-    gap: 0;
-    padding-block: 0.65rem;
-    font-size: clamp(0.66rem, 1.35vw, 0.82rem);
-    text-align: center;
-  }
-
-  .introQuickNav a:first-child {
-    color: var(--intro-red);
-  }
-
-  .introQuickNav a:first-child::after {
-    content: "";
-    position: absolute;
-    inset-inline: 0;
-    inset-block-end: 0;
-    block-size: 2px;
-    background: var(--intro-red);
-  }
-
-  .introQuickNav span,
-  .introQuickNav i {
-    display: none;
-  }
 }
 
 @media (max-width: 800px) {
@@ -1677,63 +1627,24 @@
     inset-inline: auto;
     inset-inline-start: calc(100% - 100vw);
     inset-block-end: 0;
-    display: grid;
-    grid-template-areas:
-      "logo links"
-      "socials links";
-    grid-template-columns: auto minmax(0, 1fr);
-    column-gap: 0.65rem;
-    row-gap: 0;
+    display: flex;
+    gap: 0.65rem;
     box-sizing: border-box;
     inline-size: 100vw;
     padding: 0.55rem 0 0.38rem;
   }
 
   .introLogo {
-    grid-area: logo;
     margin-inline-start: 1rem;
-    padding-inline-end: 0.8rem;
     font-size: 1.85rem;
   }
 
   .introSocials {
-    grid-area: socials;
-    justify-self: center;
   }
 
   .introSocials a {
     inline-size: 1.1rem;
     block-size: 1.1rem;
-  }
-
-  .introQuickNav {
-    grid-area: links;
-    display: flex;
-    justify-content: stretch;
-    inline-size: 100%;
-    gap: 0.25rem;
-    align-self: stretch;
-    margin-block-start: 0;
-    padding: 0.12rem 0.75rem;
-    border-block-start: 0;
-  }
-
-  .introQuickNav a {
-    flex: 1 1 0;
-    min-inline-size: 0;
-    gap: 0;
-    padding-block: 0.35rem;
-    font-size: clamp(0.61rem, 2.8vw, 0.7rem);
-    text-align: center;
-  }
-
-  .introQuickNav a:first-child::after {
-    inset-block-end: -0.14rem;
-  }
-
-  .introQuickNav span,
-  .introQuickNav i {
-    display: none;
   }
 
   .questionScene {
@@ -1760,25 +1671,30 @@
     block-size: 90%;
   }
 
-  .questionSentence {
-    inline-size: calc(100% - 2.5rem);
+  /* One column: headline, actions, then the ledger under them. */
+  .questionCopy {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    row-gap: clamp(1.5rem, 4svh, 2.4rem);
+    padding: clamp(4.75rem, 10svh, 5.5rem) 1.25rem 0;
+  }
+
+  .questionLead {
+    gap: 1.1rem;
   }
 
   .questionTopRight {
-    inset-block-start: clamp(4.75rem, 10svh, 5.5rem);
-    inset-inline-start: 1.25rem;
+    max-inline-size: none;
   }
 
   .questionBottomLeft {
-    inset-inline-end: 1.25rem;
+    inline-size: 100%;
+    left: 0;
+    inset-inline-end: 0;
     inset-block-end: clamp(8.2rem, 22%, 11.5rem);
   }
 
   .questionActions {
-    right: 1.25rem;
-    left: auto;
-    inset-block-start: 36%;
-    inset-block-end: auto;
     align-items: center;
     flex-direction: row;
     gap: 0.55rem;
@@ -1792,6 +1708,25 @@
 
   .questionSecondary {
     font-size: 0.72rem;
+  }
+
+  .questionStats {
+    justify-content: space-between;
+    gap: 0.6rem;
+  }
+
+  .questionStats div {
+    gap: 0.15rem;
+    max-inline-size: none;
+    padding-inline-start: 0.55rem;
+  }
+
+  .questionStats dt {
+    font-size: clamp(0.48rem, 2.15vw, 0.62rem);
+  }
+
+  .questionStats dd {
+    font-size: clamp(1.05rem, 5.3vw, 1.5rem);
   }
 
   .thesisLedger {

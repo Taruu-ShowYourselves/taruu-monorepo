@@ -5,6 +5,7 @@ import { WHATSAPP_FOUNDERS_LINK } from '@sync/shared';
 import { NewsButton } from '@/components/press/NewsButton';
 import { useDeckStage } from './useDeckStage';
 import styles from './Feed.module.css';
+import { localePrefix } from '@/lib/i18n';
 
 interface SuggestCardProps {
   index: number;
@@ -70,7 +71,7 @@ export function SuggestCard({
             <div className={styles.suggestActions}>
               {isAuthenticated ? (
                 <NewsButton
-                  href={`/${locale}/votes/create`}
+                  href={`${localePrefix(locale)}/votes/create`}
                   variant="red"
                   size="lg"
                   trailing={<span aria-hidden>←</span>}
@@ -79,7 +80,7 @@ export function SuggestCard({
                 </NewsButton>
               ) : (
                 <NewsButton
-                  href={`/${locale}/sign-up?redirect=${encodeURIComponent(`/${locale}/votes/create`)}`}
+                  href={`${localePrefix(locale)}/sign-up?redirect=${encodeURIComponent(`${localePrefix(locale)}/votes/create`)}`}
                   variant="red"
                   size="lg"
                   trailing={<span aria-hidden>←</span>}
@@ -112,7 +113,7 @@ export function SuggestCard({
               </span>
             </button>
 
-            <Link href={`/${locale}/votes`} className={styles.textLink}>
+            <Link href={`${localePrefix(locale)}/votes`} className={styles.textLink}>
               לכל ההצבעות ←
             </Link>
           </footer>

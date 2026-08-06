@@ -8,6 +8,7 @@ import { useReducedMotion } from '@/hooks';
 import type { Locale } from '@/lib/i18n';
 import { WHATSAPP_LINK, formatCurrency, formatNumber, formatPercent } from './format';
 import styles from '../page.module.css';
+import { localePrefix } from '@/lib/i18n';
 
 const EASE = [0.2, 0, 0, 1] as const;
 
@@ -27,6 +28,74 @@ interface CoinMarketProps {
   locale?: Locale;
 }
 
+interface CoinMarketCopy {
+  kicker: string;
+  headline: string;
+  headlineRed: string;
+  standfirst: string;
+  loadError: string;
+  loadingLabel: string;
+  filterLabel: string;
+  segmentAll: string;
+  marketLabel: string;
+  colToken: string;
+  colMuni: string;
+  colRaised: string;
+  colChange: string;
+  colVolume: string;
+  emptyTitle: string;
+  emptyText: string;
+  foundersCta: string;
+  arrow: string;
+}
+
+const COPY: Record<Locale, CoinMarketCopy> = {
+  he: {
+    kicker: 'מטבע ההצבעה · BAGS.FM',
+    headline: 'להשקיע בהחלטה של',
+    headlineRed: 'הרוב.',
+    standfirst:
+      'כל הצבעה מקבלת BAG משלה ב-bags.fm: מטבע ממים מבוסס בלוקצ׳יין, ממותג סביב הפלטפורמה, שמאפשר לאנשים מבחוץ להשקיע בתנועה הכלכלית של ההצבעה, בדיוק כמו במניה, ולתמוך בביצוע החלטת הרוב. ככל שה-BAG גדל, לנושא יש יותר משאבים אמיתיים מאחוריו. כל מספר מאומת, שקוף וחתום בבלוקצ׳יין.',
+    loadError: 'לא הצלחנו לטעון את שוק ה-BAGS כרגע.',
+    loadingLabel: 'טוען',
+    filterLabel: 'סינון לפי רשות',
+    segmentAll: 'הכול',
+    marketLabel: 'שוק ה-BAGS',
+    colToken: 'BAG / הצבעה',
+    colMuni: 'רשות',
+    colRaised: 'גויס · ₪',
+    colChange: '24ש׳',
+    colVolume: 'מחזור 24ש׳',
+    emptyTitle: 'עוד לא נפתחו BAGS.',
+    emptyText:
+      'ה-BAG הראשון ייפתח ב-bags.fm עם ההצבעה הראשונה, ב-04.08.26. עדכון יישלח בקבוצת המייסדים.',
+    foundersCta: 'קבוצת המייסדים',
+    arrow: '←',
+  },
+  en: {
+    kicker: 'The vote’s coin · BAGS.FM',
+    headline: 'Invest in the decision of',
+    headlineRed: 'the majority.',
+    standfirst:
+      'Every vote gets a BAG of its own on bags.fm: a blockchain-based meme coin, branded around the platform, that lets outsiders invest in the vote’s economic momentum, just like a share, and support the execution of the majority’s decision. As the BAG grows, the issue has more real resources behind it. Every number is verified, transparent and sealed on the blockchain.',
+    loadError: 'We could not load the BAGS market right now.',
+    loadingLabel: 'Loading',
+    filterLabel: 'Filter by municipality',
+    segmentAll: 'All',
+    marketLabel: 'The BAGS market',
+    colToken: 'BAG / vote',
+    colMuni: 'Municipality',
+    colRaised: 'Raised · ₪',
+    colChange: '24h',
+    colVolume: '24h volume',
+    emptyTitle: 'No BAGS have opened yet.',
+    emptyText:
+      'The first BAG will open on bags.fm with the first vote, on 04.08.26. An update will go out in the founders’ group.',
+    foundersCta: 'The founders’ group',
+    arrow: '→',
+  },
+};
+
 type MunicipalityFilter = string;
 
 /** Build a token symbol/name pair for display (API trending has no symbol field). */
@@ -36,6 +105,7 @@ function deriveSymbol(coin: TrendingCoin): string {
 }
 
 export function CoinMarket({ locale = 'he' }: CoinMarketProps) {
+  const t = COPY[locale];
   const reduced = useReducedMotion();
   const [coins, setCoins] = useState<TrendingCoin[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +121,7 @@ export function CoinMarket({ locale = 'he' }: CoinMarketProps) {
         const data = await res.json();
         if (!cancelled) setCoins(Array.isArray(data.coins) ? data.coins : []);
       } catch {
-        if (!cancelled) setError('לא הצלחנו לטעון את שוק ה-BAGS כרגע.');
+        if (!cancelled) setError(t.loadError);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -80,10 +150,10 @@ export function CoinMarket({ locale = 'he' }: CoinMarketProps) {
 
   const segments = useMemo(
     () => [
-      { value: 'all', label: 'הכול' },
+      { value: 'all', label: t.segmentAll },
       ...municipalities.map((m) => ({ value: m, label: m })),
     ],
-    [municipalities]
+    [municipalities, t.segmentAll]
   );
 
   return (
@@ -92,49 +162,46 @@ export function CoinMarket({ locale = 'he' }: CoinMarketProps) {
       <header className={styles.head}>
         <span className={styles.kicker}>
           <span aria-hidden className={styles.kickerTick} />
-          מטבע ההצבעה · BAGS.FM
+          {t.kicker}
         </span>
         <h1 className={styles.headline}>
-          להשקיע בהחלטה של <span className={styles.red}>הרוב.</span>
+          {t.headline} <span className={styles.red}>{t.headlineRed}</span>
         </h1>
         <p className={styles.standfirst}>
-          כל הצבעה מקבלת BAG משלה ב-bags.fm: מטבע ממים מבוסס בלוקצ׳יין, ממותג סביב
-          הפלטפורמה, שמאפשר לאנשים מבחוץ להשקיע בתנועה הכלכלית של ההצבעה, בדיוק כמו במניה,
-          ולתמוך בביצוע החלטת הרוב. ככל שה-BAG גדל, לנושא יש יותר משאבים אמיתיים מאחוריו.
-          כל מספר מאומת, שקוף וחתום בבלוקצ׳יין.
+          {t.standfirst}
         </p>
       </header>
 
       {/* Municipality filter */}
       {!loading && !error && municipalities.length > 0 ? (
         <div className={styles.filterBar}>
-          <span className={styles.filterLabel}>סינון לפי רשות</span>
+          <span className={styles.filterLabel}>{t.filterLabel}</span>
           <Segmented
             segments={segments}
             value={muni}
             onChange={setMuni}
             variant="red"
-            aria-label="סינון לפי רשות"
+            aria-label={t.filterLabel}
             className={styles.segmented}
           />
         </div>
       ) : null}
 
       {/* States */}
-      {loading ? <MarketSkeleton /> : null}
+      {loading ? <MarketSkeleton locale={locale} /> : null}
       {!loading && error ? <ErrorState message={error} /> : null}
-      {!loading && !error && filtered.length === 0 ? <EmptyState /> : null}
+      {!loading && !error && filtered.length === 0 ? <EmptyState locale={locale} /> : null}
 
       {/* Market table */}
       {!loading && !error && filtered.length > 0 ? (
-        <div className={styles.market} role="table" aria-label="שוק ה-BAGS">
+        <div className={styles.market} role="table" aria-label={t.marketLabel}>
           {/* Header row (desktop only) */}
           <div className={styles.colHead} role="row" aria-hidden>
-            <span className={styles.chToken}>BAG / הצבעה</span>
-            <span className={styles.chMuni}>רשות</span>
-            <span className={styles.chRaised}>גויס · ₪</span>
-            <span className={styles.chChange}>24ש׳</span>
-            <span className={styles.chVol}>מחזור 24ש׳</span>
+            <span className={styles.chToken}>{t.colToken}</span>
+            <span className={styles.chMuni}>{t.colMuni}</span>
+            <span className={styles.chRaised}>{t.colRaised}</span>
+            <span className={styles.chChange}>{t.colChange}</span>
+            <span className={styles.chVol}>{t.colVolume}</span>
           </div>
 
           <ul className={styles.rows}>
@@ -143,7 +210,7 @@ export function CoinMarket({ locale = 'he' }: CoinMarketProps) {
               const up = coin.priceChange24h >= 0;
               return (
                 <li key={coin.voteId} role="row">
-                  <Link className={styles.row} href={`/${locale}/coin/${coin.voteId}`}>
+                  <Link className={styles.row} href={`${localePrefix(locale)}/coin/${coin.voteId}`}>
                     {/* Token + issue */}
                     <span className={styles.cToken}>
                       <span className={styles.rank}>{String(i + 1).padStart(2, '0')}</span>
@@ -155,7 +222,7 @@ export function CoinMarket({ locale = 'he' }: CoinMarketProps) {
 
                     {/* Municipality */}
                     <span className={styles.cMuni}>
-                      <span className={styles.muniMobileLabel}>רשות</span>
+                      <span className={styles.muniMobileLabel}>{t.colMuni}</span>
                       {coin.municipality || '-'}
                     </span>
 
@@ -175,7 +242,7 @@ export function CoinMarket({ locale = 'he' }: CoinMarketProps) {
 
                     {/* 24h change */}
                     <span className={styles.cChange}>
-                      <span className={styles.changeMobileLabel}>24ש׳</span>
+                      <span className={styles.changeMobileLabel}>{t.colChange}</span>
                       <span className={up ? styles.up : styles.down}>
                         {up ? '↗' : '↘'} {formatPercent(coin.priceChange24h)}
                       </span>
@@ -183,7 +250,7 @@ export function CoinMarket({ locale = 'he' }: CoinMarketProps) {
 
                     {/* Volume */}
                     <span className={styles.cVol}>
-                      <span className={styles.volMobileLabel}>מחזור 24ש׳</span>
+                      <span className={styles.volMobileLabel}>{t.colVolume}</span>
                       {formatCurrency(coin.volume24h)}
                     </span>
                   </Link>
@@ -199,9 +266,9 @@ export function CoinMarket({ locale = 'he' }: CoinMarketProps) {
 
 /* ---------- States ---------- */
 
-function MarketSkeleton() {
+function MarketSkeleton({ locale = 'he' }: { locale?: Locale }) {
   return (
-    <div className={styles.market} aria-busy="true" aria-label="טוען">
+    <div className={styles.market} aria-busy="true" aria-label={COPY[locale].loadingLabel}>
       <ul className={styles.rows}>
         {Array.from({ length: 5 }).map((_, i) => (
           <li key={i}>
@@ -236,16 +303,16 @@ function ErrorState({ message }: { message: string }) {
   );
 }
 
-function EmptyState() {
+function EmptyState({ locale = 'he' }: { locale?: Locale }) {
+  const t = COPY[locale];
   return (
     <div className={styles.empty}>
       <span className={styles.emptyGlyph} aria-hidden>
         ▍
       </span>
-      <h2 className={styles.emptyTitle}>עוד לא נפתחו BAGS.</h2>
+      <h2 className={styles.emptyTitle}>{t.emptyTitle}</h2>
       <p className={styles.emptyText}>
-        ה-BAG הראשון ייפתח ב-bags.fm עם ההצבעה הראשונה, ב-04.08.26. עדכון יישלח
-        בקבוצת המייסדים.
+        {t.emptyText}
       </p>
       <NewsButton
         href={WHATSAPP_LINK}
@@ -253,9 +320,9 @@ function EmptyState() {
         rel="noopener noreferrer"
         variant="red"
         size="lg"
-        trailing={<span aria-hidden>←</span>}
+        trailing={<span aria-hidden>{t.arrow}</span>}
       >
-        קבוצת המייסדים
+        {t.foundersCta}
       </NewsButton>
     </div>
   );

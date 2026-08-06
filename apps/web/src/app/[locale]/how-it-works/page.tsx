@@ -9,14 +9,33 @@ import {
 } from '@/components/press/sections';
 import type { Locale } from '@/lib/i18n';
 
-export const metadata: Metadata = {
-  title: 'איך זה עובד',
-  description:
-    'כך תַּרְאוּ מודדת קונצנזוס אזרחי: כלי ההשתתפות, עמודי התווך של המנגנון, שלבי התהליך והפתיחה הארצית ב-04.08.26.',
+interface HowItWorksMetaCopy {
+  title: string;
+  description: string;
+}
+
+const META: Record<Locale, HowItWorksMetaCopy> = {
+  he: {
+    title: 'איך זה עובד',
+    description:
+      'כך תַּרְאוּ מודדת קונצנזוס אזרחי: כלי ההשתתפות, עמודי התווך של המנגנון, שלבי התהליך והפתיחה הארצית ב-04.08.26.',
+  },
+  en: {
+    title: 'How it works',
+    description:
+      'How Taruu measures civic consensus: the participation tools, the pillars of the mechanism, the steps of the process, and the national launch on 04.08.26.',
+  },
 };
 
 interface HowItWorksPageProps {
   params: Promise<{ locale: Locale }>;
+}
+
+export async function generateMetadata({
+  params,
+}: HowItWorksPageProps): Promise<Metadata> {
+  const { locale } = await params;
+  return META[locale];
 }
 
 export default async function HowItWorksPage({ params }: HowItWorksPageProps) {

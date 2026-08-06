@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { MUNICIPALITIES } from '@sync/shared';
-import { i18n } from '@/lib/i18n/config';
+import { localePrefix, i18n } from '@/lib/i18n/config';
+import type { Locale } from '@/lib/i18n/config';
 import { cn } from '@/lib/cn';
 
 interface MunicipalityLinkProps {
@@ -9,10 +10,11 @@ interface MunicipalityLinkProps {
   className?: string;
   /** Rendered when `name` is empty. Pass '-' where call sites showed a dash. */
   fallback?: string;
+  locale?: Locale;
 }
 
-export function municipalityHref(name: string): string {
-  return `/${i18n.defaultLocale}/municipality/${encodeURIComponent(name)}`;
+export function municipalityHref(name: string, locale: string = i18n.defaultLocale): string {
+  return `${localePrefix(locale)}/municipality/${encodeURIComponent(name)}`;
 }
 
 export function isMunicipality(name: string): boolean {
@@ -29,6 +31,7 @@ export function MunicipalityLink({
   name,
   className,
   fallback,
+  locale = 'he',
 }: MunicipalityLinkProps) {
   if (!name) {
     return fallback ? <span className={className}>{fallback}</span> : null;
@@ -38,12 +41,12 @@ export function MunicipalityLink({
   }
   return (
     <Link
-      href={municipalityHref(name)}
+      href={municipalityHref(name, locale)}
       className={cn(
         'underline-offset-2 hover:underline focus-visible:underline',
         className
       )}
-      title={`פרופיל רשות - ${name}`}
+      title={locale === 'he' ? `פרופיל רשות - ${name}` : `Municipality profile - ${name}`}
     >
       {name}
     </Link>

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { NewsButton } from '@/components/press/NewsButton';
 import { MunicipalityLink } from '@/components/uikit/municipality-link';
@@ -9,6 +10,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import type { Locale } from '@/lib/i18n';
 import styles from './Masthead.module.css';
 import { WHATSAPP_FOUNDERS_LINK } from '@sync/shared';
+import { localeDirections, localePath, localePrefix, localeSwitchPath } from '@/lib/i18n';
 
 const WHATSAPP_LINK = WHATSAPP_FOUNDERS_LINK;
 
@@ -16,49 +18,153 @@ interface MastheadProps {
   locale?: Locale;
 }
 
+interface NavItem {
+  label: string;
+  href: string;
+}
+
+interface MastheadCopy {
+  edition: string;
+  region: string;
+  tagL: string;
+  wordmark: string;
+  tagR: string;
+  homeAriaLabel: string;
+  mainNavAriaLabel: string;
+  livePulse: string;
+  nav: NavItem[];
+  more: string;
+  navMore: { label: string; items: NavItem[] }[];
+  accountMenuAriaLabel: string;
+  accountRows: { dashboard: string; profile: string; socialConnections: string };
+  signOut: string;
+  foundersGroup: string;
+  signIn: string;
+  /** Label of the OTHER edition — what the switcher link shows. */
+  switchLabel: string;
+}
+
 /**
  * The primary row is places a reader ACTS in - their edition, the open
  * ballots, the national desk. Everything explanatory, financial or
- * institutional is one click away in "עוד" rather than competing with them
- * for the same glance.
+ * institutional is one click away in the "more" menu rather than competing
+ * with them for the same glance.
  */
-const NAV = [
-  { label: 'הפיד', href: 'feed' },
-  { label: 'הצבעות', href: 'votes' },
-  { label: 'כנסת ישראל', href: 'knesset' },
-];
-
-/** Secondary destinations, grouped so nine links read as three decisions. */
-const NAV_MORE: { label: string; items: { label: string; href: string }[] }[] = [
-  {
-    label: 'להבין',
-    items: [
-      { label: 'מהי תַּרְאוּ?', href: '#what-is-taruu' },
-      { label: 'איך זה עובד', href: 'how-it-works' },
-      { label: 'שאלות נפוצות', href: 'faq' },
+const COPY: Record<Locale, MastheadCopy> = {
+  he: {
+    edition: 'מהדורת הפיילוט · גיליון 04',
+    region: 'כל הארץ',
+    tagL: 'THE PUBLIC LEDGER',
+    wordmark: 'תַּרְאוּ',
+    tagR: 'מנגנון הקונצנזוס הציבורי',
+    homeAriaLabel: 'תַּרְאוּ - דף הבית',
+    mainNavAriaLabel: 'ניווט ראשי',
+    livePulse: 'דופק חי',
+    nav: [
+      { label: 'הפיד', href: 'feed' },
+      { label: 'הצבעות', href: 'votes' },
+      { label: 'כנסת ישראל', href: 'knesset' },
     ],
-  },
-  {
-    label: 'הכלכלה',
-    items: [
-      { label: 'כלכלה אזרחית', href: 'economics' },
-      { label: 'שקיפות הקרן', href: 'treasury' },
-      { label: 'BAGS', href: 'coin' },
+    more: 'עוד',
+    // Secondary destinations, grouped so nine links read as three decisions.
+    navMore: [
+      {
+        label: 'להבין',
+        items: [
+          { label: 'מהי תַּרְאוּ?', href: '#what-is-taruu' },
+          { label: 'איך זה עובד', href: 'how-it-works' },
+          { label: 'שאלות נפוצות', href: 'faq' },
+        ],
+      },
+      {
+        label: 'הכלכלה',
+        items: [
+          { label: 'כלכלה אזרחית', href: 'economics' },
+          { label: 'שקיפות הקרן', href: 'treasury' },
+          { label: 'BAGS', href: 'coin' },
+        ],
+      },
+      {
+        label: 'בעיתון',
+        items: [
+          { label: 'סדר היום', href: 'explore' },
+          { label: 'חנות', href: 'store' },
+          { label: 'אודות', href: 'about' },
+        ],
+      },
     ],
+    accountMenuAriaLabel: 'תפריט חשבון',
+    accountRows: {
+      dashboard: 'לוח שלי',
+      profile: 'הפרופיל שלי',
+      socialConnections: 'חשבונות מקושרים',
+    },
+    signOut: 'התנתקות',
+    foundersGroup: 'קבוצת המייסדים',
+    signIn: 'התחברות',
+    switchLabel: 'EN',
   },
-  {
-    label: 'בעיתון',
-    items: [
-      { label: 'סדר היום', href: 'explore' },
-      { label: 'חנות', href: 'store' },
-      { label: 'אודות', href: 'about' },
+  en: {
+    edition: 'Pilot edition · Issue 04',
+    region: 'Nationwide',
+    tagL: 'THE PUBLIC LEDGER',
+    wordmark: 'Taruu',
+    tagR: 'The public consensus mechanism',
+    homeAriaLabel: 'Taruu - home page',
+    mainNavAriaLabel: 'Main navigation',
+    livePulse: 'Live pulse',
+    nav: [
+      { label: 'The Feed', href: 'feed' },
+      { label: 'Votes', href: 'votes' },
+      { label: 'The Knesset', href: 'knesset' },
     ],
+    more: 'More',
+    navMore: [
+      {
+        label: 'Understand',
+        items: [
+          { label: 'What is Taruu?', href: '#what-is-taruu' },
+          { label: 'How it works', href: 'how-it-works' },
+          { label: 'FAQ', href: 'faq' },
+        ],
+      },
+      {
+        label: 'The economy',
+        items: [
+          { label: 'Civic economics', href: 'economics' },
+          { label: 'Treasury transparency', href: 'treasury' },
+          { label: 'BAGS', href: 'coin' },
+        ],
+      },
+      {
+        label: 'In the paper',
+        items: [
+          { label: 'The agenda', href: 'explore' },
+          { label: 'Store', href: 'store' },
+          { label: 'About', href: 'about' },
+        ],
+      },
+    ],
+    accountMenuAriaLabel: 'Account menu',
+    accountRows: {
+      dashboard: 'My board',
+      profile: 'My profile',
+      socialConnections: 'Linked accounts',
+    },
+    signOut: 'Sign out',
+    foundersGroup: 'The founders\' group',
+    signIn: 'Sign in',
+    switchLabel: 'עברית',
   },
-];
+};
 
 /** Hash entries anchor on the homepage; everything else is a locale route. */
 function navHref(locale: Locale, href: string): string {
-  return href.startsWith('#') ? `/${locale}${href}` : `/${locale}/${href}`;
+  // Hash anchors must stay rooted on the locale's homepage ('/#x', '/en#x'),
+  // not resolve relative to whatever page the visitor is on.
+  return href.startsWith('#')
+    ? `${localePath(locale)}${href}`
+    : `${localePrefix(locale)}/${href}`;
 }
 
 /** Initials from first/last name, falling back to a glyph. */
@@ -74,15 +180,16 @@ interface MoreMenuProps {
 }
 
 /**
- * "עוד" - secondary nav collapsed into a dropdown. Radix DropdownMenu does
- * the hard part (positioning, viewport collision, focus, keyboard, RTL);
- * press tokens style it.
+ * Secondary nav collapsed into a dropdown. Radix DropdownMenu does the hard
+ * part (positioning, viewport collision, focus, keyboard, direction); press
+ * tokens style it.
  */
 function MoreMenu({ locale }: MoreMenuProps) {
+  const t = COPY[locale];
   return (
-    <DropdownMenu.Root dir="rtl" modal={false}>
+    <DropdownMenu.Root dir={localeDirections[locale]} modal={false}>
       <DropdownMenu.Trigger className={styles.moreBtn}>
-        עוד
+        {t.more}
         <span aria-hidden className={styles.moreCaret}>▾</span>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
@@ -93,7 +200,7 @@ function MoreMenu({ locale }: MoreMenuProps) {
           collisionPadding={16}
           loop
         >
-          {NAV_MORE.map((group, i) => (
+          {t.navMore.map((group, i) => (
             <DropdownMenu.Group key={group.label}>
               {i > 0 ? (
                 <DropdownMenu.Separator className={styles.moreSep} />
@@ -121,6 +228,7 @@ interface AccountClusterProps {
 }
 
 function AccountCluster({ locale }: AccountClusterProps) {
+  const t = COPY[locale];
   const { user, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -151,9 +259,9 @@ function AccountCluster({ locale }: AccountClusterProps) {
   const closeMenu = () => setOpen(false);
 
   const navRows = [
-    { label: 'לוח שלי', href: `/${locale}/dashboard` },
-    { label: 'הפרופיל שלי', href: `/${locale}/settings/profile` },
-    { label: 'חשבונות מקושרים', href: `/${locale}/settings/social-connections` },
+    { label: t.accountRows.dashboard, href: `${localePrefix(locale)}/dashboard` },
+    { label: t.accountRows.profile, href: `${localePrefix(locale)}/settings/profile` },
+    { label: t.accountRows.socialConnections, href: `${localePrefix(locale)}/settings/social-connections` },
   ];
 
   return (
@@ -163,7 +271,7 @@ function AccountCluster({ locale }: AccountClusterProps) {
           <span className={styles.cityGlyph} aria-hidden>
             ●
           </span>
-          <MunicipalityLink name={cityLabel} />
+          <MunicipalityLink name={cityLabel} locale={locale} />
         </span>
       ) : null}
 
@@ -173,7 +281,7 @@ function AccountCluster({ locale }: AccountClusterProps) {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label="תפריט חשבון"
+        aria-label={t.accountMenuAriaLabel}
       >
         {user?.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -219,7 +327,7 @@ function AccountCluster({ locale }: AccountClusterProps) {
               void signOut();
             }}
           >
-            התנתקות
+            {t.signOut}
           </button>
         </div>
       ) : null}
@@ -227,23 +335,33 @@ function AccountCluster({ locale }: AccountClusterProps) {
   );
 }
 
-/** Hebrew edition dateline, e.g. "יום חמישי · 23.07.26" (Israel time). */
-function formatDateline(date: Date): string {
-  const weekday = new Intl.DateTimeFormat('he-IL', {
+/**
+ * Edition dateline in the locale's own convention (Israel time), e.g.
+ * "יום חמישי · 23.07.26" / "Thursday · 23.07.26".
+ */
+function formatDateline(date: Date, locale: Locale): string {
+  const intlLocale = locale === 'he' ? 'he-IL' : 'en-GB';
+  const weekday = new Intl.DateTimeFormat(intlLocale, {
     weekday: 'long',
     timeZone: 'Asia/Jerusalem',
   }).format(date);
-  const dmy = new Intl.DateTimeFormat('he-IL', {
+  const dmy = new Intl.DateTimeFormat(intlLocale, {
     day: '2-digit',
     month: '2-digit',
     year: '2-digit',
     timeZone: 'Asia/Jerusalem',
   }).format(date);
-  return `יום ${weekday.replace(/^יום /, '')} · ${dmy}`;
+  const dmyDotted = dmy.replace(/\//g, '.');
+  return locale === 'he'
+    ? `יום ${weekday.replace(/^יום /, '')} · ${dmyDotted}`
+    : `${weekday} · ${dmyDotted}`;
 }
 
 export function Masthead({ locale = 'he' }: MastheadProps) {
+  const t = COPY[locale];
   const { isAuthenticated } = useAuth();
+  const pathname = usePathname();
+  const otherLocale: Locale = locale === 'he' ? 'en' : 'he';
 
   // The auth store rehydrates from localStorage before the first client
   // render, so an authenticated client would disagree with the guest SSR
@@ -297,46 +415,51 @@ export function Masthead({ locale = 'he' }: MastheadProps) {
         {/* Edition ears */}
         <div className={styles.ears}>
           {/* suppressHydrationWarning: server and client may straddle midnight */}
-          <span suppressHydrationWarning>{formatDateline(new Date())}</span>
-          <span>מהדורת הפיילוט · גיליון 04</span>
-          <span>כל הארץ</span>
+          <span suppressHydrationWarning>{formatDateline(new Date(), locale)}</span>
+          <span>{t.edition}</span>
+          <span>
+            {t.region}
+            {' · '}
+            <Link href={localeSwitchPath(pathname ?? localePath(locale), otherLocale)} lang={otherLocale}>
+              {t.switchLabel}
+            </Link>
+          </span>
         </div>
 
         <div className={styles.ruleHair} />
 
         {/* Wordmark row */}
         <div className={styles.brandRow}>
-          <span className={styles.tagL}>THE PUBLIC LEDGER</span>
-          <Link href={`/${locale}`} className={styles.wordmark}>
-            תַּרְאוּ
+          <span className={styles.tagL}>{t.tagL}</span>
+          <Link href={localePath(locale)} className={styles.wordmark}>
+            {t.wordmark}
           </Link>
-          <span className={styles.tagR}>מנגנון הקונצנזוס הציבורי</span>
+          <span className={styles.tagR}>{t.tagR}</span>
         </div>
 
         <div className={styles.ruleMast} />
       </header>
 
-      {/* This row reaches the viewport edge with the dashboard, then remains pinned. */}
       <div
         ref={dockRef}
         className={`${styles.navDock} ${dockHidden ? styles.navDockHidden : ''}`}
       >
-        <nav className={styles.nav} aria-label="ניווט ראשי">
-          <Link href={`/${locale}`} className={styles.navWordmark} aria-label="תַּרְאוּ - דף הבית">
-            תַּרְאוּ<span aria-hidden>.</span>
+        <nav className={styles.nav} aria-label={t.mainNavAriaLabel}>
+          <Link href={localePath(locale)} className={styles.navWordmark} aria-label={t.homeAriaLabel}>
+            {t.wordmark}<span aria-hidden>.</span>
           </Link>
 
           <ul className={styles.navList}>
             <li>
               <Link
-                href={`/${locale}/#live-dashboard`}
+                href={`${localePath(locale)}#live-dashboard`}
                 className={styles.liveDashboardLink}
               >
                 <i aria-hidden />
-                דופק חי
+                {t.livePulse}
               </Link>
             </li>
-            {NAV.map((n) => (
+            {t.nav.map((n) => (
               <li key={n.href}>
                 <Link href={navHref(locale, n.href)} className={styles.navLink}>
                   {n.label}
@@ -353,10 +476,10 @@ export function Masthead({ locale = 'he' }: MastheadProps) {
           ) : (
             <div className={styles.guestActions}>
               <NewsButton href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" variant="red" size="sm">
-                קבוצת המייסדים
+                {t.foundersGroup}
               </NewsButton>
-              <Link href={`/${locale}/sign-in`} className={styles.signIn}>
-                התחברות
+              <Link href={`${localePrefix(locale)}/sign-in`} className={styles.signIn}>
+                {t.signIn}
               </Link>
             </div>
           )}

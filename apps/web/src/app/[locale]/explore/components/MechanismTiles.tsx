@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Locale } from '@/lib/i18n';
 import styles from './MechanismTiles.module.css';
+import { localePrefix } from '@/lib/i18n';
 
 interface Tile {
   href: string;
@@ -17,25 +18,25 @@ interface Tile {
 export function MechanismTiles({ locale }: { locale: Locale }) {
   const tiles: Tile[] = [
     {
-      href: `/${locale}/how-it-works`,
+      href: `${localePrefix(locale)}/how-it-works`,
       no: '01',
       title: 'איך זה עובד',
       note: 'מאימות ועד קלפי: כל המנגנון, צעד אחר צעד.',
     },
     {
-      href: `/${locale}/pricing`,
+      href: `${localePrefix(locale)}/pricing`,
       no: '02',
       title: 'תמחור',
       note: 'להצביע - חינם. לפתוח נושא - ₪50.',
     },
     {
-      href: `/${locale}/faq`,
+      href: `${localePrefix(locale)}/faq`,
       no: '03',
       title: 'שאלות נפוצות',
       note: 'הספקות של כולם, עם תשובות ישרות.',
     },
     {
-      href: `/${locale}/about`,
+      href: `${localePrefix(locale)}/about`,
       no: '04',
       title: 'אודות',
       note: 'מי מאחורי המערכת, ולמה עכשיו.',
@@ -76,7 +77,7 @@ export function MechanismTiles({ locale }: { locale: Locale }) {
 
         <p className={styles.archiveLine}>
           מחפשים הצבעות שהסתיימו?{' '}
-          <Link href={`/${locale}/votes/archive`} className={styles.archiveLink}>
+          <Link href={`${localePrefix(locale)}/votes/archive`} className={styles.archiveLink}>
             לארכיון התוצאות ←
           </Link>
         </p>

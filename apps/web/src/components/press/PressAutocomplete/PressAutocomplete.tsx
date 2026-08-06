@@ -4,6 +4,7 @@ import React, { useId } from 'react';
 import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
 import clsx from 'clsx';
+import type { Locale } from '@/lib/i18n';
 import styles from './PressAutocomplete.module.css';
 
 interface Option {
@@ -22,8 +23,18 @@ interface PressAutocompleteProps {
   onInputChange?: (text: string) => void;
   placeholder?: string;
   noOptionsText?: string;
+  locale?: Locale;
   className?: string;
 }
+
+interface PressAutocompleteCopy {
+  noOptions: string;
+}
+
+const COPY: Record<Locale, PressAutocompleteCopy> = {
+  he: { noOptions: 'לא נמצאו תוצאות' },
+  en: { noOptions: 'No results found' },
+};
 
 const inputSx = {
   '& .MuiOutlinedInput-root': {
@@ -95,9 +106,11 @@ export function PressAutocomplete({
   onChange,
   onInputChange,
   placeholder,
-  noOptionsText = 'לא נמצאו תוצאות',
+  noOptionsText,
+  locale = 'he',
   className,
 }: PressAutocompleteProps) {
+  const t = COPY[locale];
   const fieldId = useId();
   const invalid = Boolean(error);
   const selected = options.find((o) => o.value === value) ?? null;
@@ -119,7 +132,7 @@ export function PressAutocomplete({
         }
         getOptionLabel={(o) => o.label}
         isOptionEqualToValue={(a, b) => a.value === b.value}
-        noOptionsText={noOptionsText}
+        noOptionsText={noOptionsText ?? t.noOptions}
         fullWidth
         slotProps={{ paper: { sx: paperSx } }}
         sx={inputSx}

@@ -9,15 +9,17 @@ import {
   ConsensusDesk,
   WhatIsTaruu,
   CivicReminder,
-  ActNow,
   Colophon,
 } from '@/components/press/sections';
 import type { Locale } from '@/lib/i18n';
 
-// The homepage contains live civic data and a scroll-driven client handoff.
-// Never serve a stale cinematic shell during development or production.
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+// The homepage carries live civic data, but "live" is the client's job: the
+// dashboard and the intro re-poll /api/votes and /api/stats/* every 30s, so
+// only the pre-hydration shell can be stale, and only for a minute. Rendering
+// it per request instead cost a ~4s TTFB - every visitor paid a full SSR plus
+// ~7 Supabase round-trips. Requires the incremental cache wired in
+// open-next.config.ts, or this is inert on Workers.
+export const revalidate = 60;
 
 interface HomePageProps {
   params: Promise<{ locale: Locale }>;
@@ -28,17 +30,17 @@ export default async function HomePage({ params }: HomePageProps) {
 
   return (
     <HomepageExperience
+      locale={locale}
       liveDashboard={<EventDashboard locale={locale} />}
     >
       <div className="np-page">
-        <Masthead locale={locale} />
-        <Ticker />
         <main>
           <CivicReminder locale={locale} />
           <WhatIsTaruu locale={locale} />
+          <Masthead locale={locale} />
+          <Ticker locale={locale} />
           <ConsensusDesk locale={locale} />
           <KnessetDesk locale={locale} />
-          <ActNow locale={locale} />
         </main>
         <Colophon locale={locale} />
       </div>

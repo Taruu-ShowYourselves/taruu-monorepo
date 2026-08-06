@@ -125,7 +125,7 @@ function MessageState({
         <p className={styles.eyebrow}>פרופיל מועצה · COUNCIL</p>
         <h1>{title}</h1>
         <p>{children}</p>
-        <Link href="/he">חזרה לעמוד הראשי</Link>
+        <Link href="/">חזרה לעמוד הראשי</Link>
       </section>
     </main>
   );

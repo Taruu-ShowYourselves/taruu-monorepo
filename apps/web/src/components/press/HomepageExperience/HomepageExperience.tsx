@@ -2,18 +2,41 @@
 
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useReducedMotion } from 'framer-motion';
+import type { Locale } from '@/lib/i18n';
 import { CinematicIntro } from '@/components/press/CinematicIntro/CinematicIntro';
 import styles from './HomepageExperience.module.css';
+
+interface HomepageCopy {
+  dashboardAria: string;
+  closeAria: string;
+  close: string;
+}
+
+const COPY: Record<Locale, HomepageCopy> = {
+  he: {
+    dashboardAria: 'דאשבורד אירועים בזמן אמת',
+    closeAria: 'סגירת הדאשבורד',
+    close: 'סגירה',
+  },
+  en: {
+    dashboardAria: 'Live events dashboard',
+    closeAria: 'Close the dashboard',
+    close: 'Close',
+  },
+};
 
 interface HomepageExperienceProps {
   children: ReactNode;
   liveDashboard?: ReactNode;
+  locale?: Locale;
 }
 
 export function HomepageExperience({
   children,
   liveDashboard,
+  locale = 'he',
 }: HomepageExperienceProps) {
+  const t = COPY[locale];
   const rootRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
 
@@ -98,7 +121,7 @@ export function HomepageExperience({
       ref={rootRef}
       className={`${styles.experience} ${shouldReduceMotion ? styles.reduced : ''}`}
     >
-      <CinematicIntro />
+      <CinematicIntro locale={locale} />
       <div className={styles.siteDock} data-site-dock>
         <div className={styles.siteLayer} data-site-layer>
           {children}
@@ -110,14 +133,14 @@ export function HomepageExperience({
           className={styles.liveOverlay}
           role="dialog"
           aria-modal="true"
-          aria-label="דאשבורד אירועים בזמן אמת"
+          aria-label={t.dashboardAria}
         >
           <a
             href="#dashboard-closed"
             className={styles.liveOverlayClose}
-            aria-label="סגירת הדאשבורד"
+            aria-label={t.closeAria}
           >
-            סגירה <span aria-hidden>×</span>
+            {t.close} <span aria-hidden>×</span>
           </a>
           {liveDashboard}
         </div>

@@ -2,6 +2,41 @@ import Link from 'next/link';
 import type { Locale } from '@/lib/i18n';
 import { PulseCounter } from './PulseCounter';
 import styles from './PulseStrip.module.css';
+import { localePrefix } from '@/lib/i18n';
+
+interface PulseStripCopy {
+  sectionAriaLabel: string;
+  pending: string;
+  registeredLabel: string;
+  activeVotesLabel: string;
+  municipalitiesLabel: string;
+  fundLabel: string;
+  growthMore: string;
+  growthLess: string;
+}
+
+const COPY: Record<Locale, PulseStripCopy> = {
+  he: {
+    sectionAriaLabel: 'הדופק - נתוני הרשת',
+    pending: 'בהכנה',
+    registeredLabel: 'אזרחים רשומים',
+    activeVotesLabel: 'הצבעות פעילות',
+    municipalitiesLabel: 'רשויות על הלוח',
+    fundLabel: 'בקרן האזרחית',
+    growthMore: '% מצביעים יותר מהשבוע שעבר',
+    growthLess: '% מצביעים פחות מהשבוע שעבר',
+  },
+  en: {
+    sectionAriaLabel: 'The pulse - network figures',
+    pending: 'pending',
+    registeredLabel: 'Registered citizens',
+    activeVotesLabel: 'Active votes',
+    municipalitiesLabel: 'Municipalities on the board',
+    fundLabel: 'In the civic fund',
+    growthMore: '% more voters than last week',
+    growthLess: '% fewer voters than last week',
+  },
+};
 
 interface PulseStripProps {
   locale: Locale;
@@ -21,18 +56,20 @@ interface CounterCellProps {
   href?: string;
   /** Rendered before the number (e.g. the ₪ glyph). */
   unit?: string;
+  locale?: Locale;
 }
 
 /**
  * One counter between ink column rules. Missing figures print `-` with a
  * mono `בהכנה` note - never a fake zero for money (spec §3.2).
  */
-function CounterCell({ label, value, href, unit }: CounterCellProps) {
+function CounterCell({ label, value, href, unit, locale = 'he' }: CounterCellProps) {
+  const t = COPY[locale];
   const body = (
     <>
       <span className={styles.value}>
         {value === null ? (
-          <span className={styles.dash} aria-label="בהכנה">
+          <span className={styles.dash} aria-label={t.pending}>
             -
           </span>
         ) : (
@@ -43,7 +80,7 @@ function CounterCell({ label, value, href, unit }: CounterCellProps) {
         )}
       </span>
       <span className={styles.label}>{label}</span>
-      {value === null ? <span className={styles.pending}>בהכנה</span> : null}
+      {value === null ? <span className={styles.pending}>{t.pending}</span> : null}
     </>
   );
 
@@ -69,27 +106,30 @@ export function PulseStrip({
   totalRaisedIls,
   weeklyGrowth,
 }: PulseStripProps) {
+  const t = COPY[locale];
   const growthPct =
     weeklyGrowth !== null && weeklyGrowth !== 0
       ? Math.round(Math.abs(weeklyGrowth) * 100)
       : null;
 
   return (
-    <section id="pulse" className={styles.strip} aria-label="הדופק - נתוני הרשת">
+    <section id="pulse" className={styles.strip} aria-label={t.sectionAriaLabel}>
       <div className={styles.inner}>
         <div className={styles.grid}>
-          <CounterCell label="אזרחים רשומים" value={registered} />
+          <CounterCell label={t.registeredLabel} value={registered} locale={locale} />
           <CounterCell
-            label="הצבעות פעילות"
+            label={t.activeVotesLabel}
             value={activeVotes}
-            href={`/${locale}/votes`}
+            href={`${localePrefix(locale)}/votes`}
+            locale={locale}
           />
-          <CounterCell label="רשויות על הלוח" value={municipalitiesLive} />
+          <CounterCell label={t.municipalitiesLabel} value={municipalitiesLive} locale={locale} />
           <CounterCell
-            label="בקרן האזרחית"
+            label={t.fundLabel}
             value={totalRaisedIls === null ? null : Math.round(totalRaisedIls)}
             unit="₪"
-            href={`/${locale}/treasury`}
+            href={`${localePrefix(locale)}/treasury`}
+            locale={locale}
           />
         </div>
 
@@ -98,7 +138,7 @@ export function PulseStrip({
             <span aria-hidden className={styles.growthArrow}>
               {weeklyGrowth > 0 ? '↑' : '↓'}
             </span>
-            {growthPct}% מצביעים {weeklyGrowth > 0 ? 'יותר' : 'פחות'} מהשבוע שעבר
+            {growthPct}{weeklyGrowth > 0 ? t.growthMore : t.growthLess}
           </p>
         ) : null}
       </div>

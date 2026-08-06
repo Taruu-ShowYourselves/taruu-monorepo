@@ -66,8 +66,12 @@ describe('fund tab renders a coming-soon state only', () => {
   });
 
   it('shows a בקרוב state under the fund tab', () => {
+    // The panel prints the copy deck rather than a literal since the surface
+    // went bilingual, so the assertion is in two halves: the panel renders the
+    // coming-soon slot, and the Hebrew deck fills it with בקרוב.
     const fundPanel = dashboardCode.slice(dashboardCode.indexOf("tab === 'fund'"));
-    expect(fundPanel.slice(0, 900)).toContain('בקרוב');
+    expect(fundPanel.slice(0, 900)).toContain('{t.soonTitle}');
+    expect(dashboardCode).toContain("soonTitle: 'בקרוב'");
   });
 });
 
@@ -113,8 +117,10 @@ describe("the dashboard's create-vote button carries no price", () => {
 
   it('still navigates to the create-vote flow, unchanged', () => {
     // Only the label changed; the destination and the flow behind it are
-    // outside this slice and untouched.
-    expect(dashboardCode).toContain("router.push('/votes/create')");
+    // outside this slice and untouched. The path now carries the locale
+    // prefix (empty for Hebrew, `/en` otherwise) — same route, addressed for
+    // whichever edition the reader is in.
+    expect(dashboardCode).toContain('router.push(`${prefix}/votes/create`)');
   });
 });
 

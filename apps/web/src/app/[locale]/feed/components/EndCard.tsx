@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { NewsButton } from '@/components/press/NewsButton';
 import { useDeckStage } from './useDeckStage';
 import styles from './Feed.module.css';
+import { localePrefix } from '@/lib/i18n';
 
 interface EndCardProps {
   index: number;
@@ -45,7 +46,7 @@ export function EndCard({ index, rootRef, locale, onPosition }: EndCardProps) {
 
             <div className={styles.suggestActions}>
               <NewsButton
-                href={`/${locale}/votes/create`}
+                href={`${localePrefix(locale)}/votes/create`}
                 variant="red"
                 size="lg"
                 trailing={<span aria-hidden>←</span>}
@@ -53,10 +54,10 @@ export function EndCard({ index, rootRef, locale, onPosition }: EndCardProps) {
                 העלו נושא להצבעה
               </NewsButton>
 
-              <Link href={`/${locale}/votes/archive`} className={styles.textLink}>
+              <Link href={`${localePrefix(locale)}/votes/archive`} className={styles.textLink}>
                 לרשומות הסגורות ←
               </Link>
-              <Link href={`/${locale}/knesset`} className={styles.textLink}>
+              <Link href={`${localePrefix(locale)}/knesset`} className={styles.textLink}>
                 לסדר היום המלא בכנסת ←
               </Link>
             </div>

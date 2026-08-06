@@ -36,7 +36,12 @@ export async function GET(request: NextRequest) {
     status: normalizeStatusFilter(params.get('status')) ?? undefined,
     includeOptions: params.get('include') === 'options' || undefined,
   });
-  return respond(query.asyncAndThen(listVotes));
+  // Public, unauthenticated, aggregate-only: safe in a shared edge cache.
+  // Cloudflare keys on the full URL, so each municipality/status variant is
+  // cached separately. The 30s window matches the clients' own poll interval.
+  return respond(query.asyncAndThen(listVotes), {
+    cacheControl: 'public, s-maxage=30, stale-while-revalidate=120',
+  });
 }
 
 // Municipality is always derived from the creator's profile, never the body.

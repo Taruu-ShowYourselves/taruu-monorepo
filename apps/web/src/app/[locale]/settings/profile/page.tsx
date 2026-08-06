@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -11,12 +11,91 @@ import { PressFormCard } from '@/components/press/PressForm';
 import { PressAtmosphere } from '@/components/press/PressAtmosphere';
 import type { UserProfile } from '@sync/shared';
 import { PressLoader } from '@/components/press/PressMachine';
+import type { Locale } from '@/lib/i18n';
+import { localePrefix } from '@/lib/i18n';
 import styles from './page.module.css';
 
-const REDIRECT = '/sign-in?redirect=/settings/profile';
+interface ProfileCopy {
+  loading: string;
+  kicker: string;
+  titleLead: string;
+  titleRed: string;
+  standfirst: string;
+  dismissLabel: string;
+  loadError: string;
+  saveSuccess: string;
+  saveError: string;
+  avatarTitle: string;
+  avatarNote: string;
+  firstNameLabel: string;
+  lastNameLabel: string;
+  phoneLabel: string;
+  cityLabel: string;
+  cityPlaceholder: string;
+  cityHint: string;
+  saving: string;
+  save: string;
+  backToDashboard: string;
+  /** Direction-semantic back glyph: mirrored between RTL and LTR. */
+  backArrow: string;
+}
+
+const COPY: Record<Locale, ProfileCopy> = {
+  he: {
+    loading: 'טוען…',
+    kicker: 'פרופיל אישי · PROFILE',
+    titleLead: 'הפרטים',
+    titleRed: 'שלכם.',
+    standfirst:
+      'עדכנו את שמכם ופרטי הקשר. המדינה קבועה על ישראל (פיילוט במדינה אחת). העיר ניתנת לעריכה.',
+    dismissLabel: 'סגור',
+    loadError: 'שגיאה בטעינת הפרופיל',
+    saveSuccess: 'הפרופיל עודכן בהצלחה.',
+    saveError: 'שגיאה בשמירת הפרופיל',
+    avatarTitle: 'תמונת הפרופיל',
+    avatarNote: 'התמונה מסונכרנת מחשבון Google שלכם ואינה ניתנת לעריכה כאן.',
+    firstNameLabel: 'שם פרטי',
+    lastNameLabel: 'שם משפחה',
+    phoneLabel: 'טלפון',
+    cityLabel: 'עיר',
+    cityPlaceholder: 'עיר מגורים',
+    cityHint: 'ישראל · פיילוט במדינה אחת',
+    saving: 'שומר…',
+    save: 'שמירת שינויים',
+    backToDashboard: 'חזרה ללוח הבקרה',
+    backArrow: '←',
+  },
+  en: {
+    loading: 'Loading…',
+    kicker: 'Personal profile · PROFILE',
+    titleLead: 'Your',
+    titleRed: 'details.',
+    standfirst:
+      'Update your name and contact details. The country is fixed to Israel (a one-country pilot). The city can be edited.',
+    dismissLabel: 'Close',
+    loadError: 'Error loading the profile',
+    saveSuccess: 'Profile updated successfully.',
+    saveError: 'Error saving the profile',
+    avatarTitle: 'Profile photo',
+    avatarNote: 'The photo is synced from your Google account and cannot be edited here.',
+    firstNameLabel: 'First name',
+    lastNameLabel: 'Last name',
+    phoneLabel: 'Phone',
+    cityLabel: 'City',
+    cityPlaceholder: 'City of residence',
+    cityHint: 'Israel · one-country pilot',
+    saving: 'Saving…',
+    save: 'Save changes',
+    backToDashboard: 'Back to the dashboard',
+    backArrow: '→',
+  },
+};
 
 function ProfileContent() {
+  const params = useParams();
   const router = useRouter();
+  const locale: Locale = params?.locale === 'en' ? 'en' : 'he';
+  const t = COPY[locale];
   const { isAuthenticated, isLoading, refreshSession } = useAuth();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -33,7 +112,9 @@ function ProfileContent() {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push(REDIRECT);
+      router.push(
+        `${localePrefix(locale)}/sign-in?redirect=${localePrefix(locale)}/settings/profile`
+      );
       return;
     }
 
@@ -48,10 +129,10 @@ function ProfileContent() {
           setPhone(p.phone ?? '');
           setCity(p.city ?? '');
         } else {
-          setErrorMessage('שגיאה בטעינת הפרופיל');
+          setErrorMessage(t.loadError);
         }
       } catch {
-        setErrorMessage('שגיאה בטעינת הפרופיל');
+        setErrorMessage(t.loadError);
       } finally {
         setDataLoading(false);
       }
@@ -60,7 +141,7 @@ function ProfileContent() {
     if (isAuthenticated) {
       fetchData();
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, router, locale, t.loadError]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -81,16 +162,16 @@ function ProfileContent() {
       if (response.ok) {
         const { profile: p } = (await response.json()) as { profile: UserProfile };
         setProfile(p);
-        setSuccessMessage('הפרופיל עודכן בהצלחה.');
+        setSuccessMessage(t.saveSuccess);
         await refreshSession();
       } else {
         const err = await response.json().catch(() => ({}));
-        setErrorMessage(err.error || 'שגיאה בשמירת הפרופיל');
-        setShakeTick((t) => t + 1);
+        setErrorMessage(err.error || t.saveError);
+        setShakeTick((tick) => tick + 1);
       }
     } catch {
-      setErrorMessage('שגיאה בשמירת הפרופיל');
-      setShakeTick((t) => t + 1);
+      setErrorMessage(t.saveError);
+      setShakeTick((tick) => tick + 1);
     } finally {
       setSaving(false);
     }
@@ -100,7 +181,7 @@ function ProfileContent() {
     return (
       <div className={styles.loadingContainer}>
         <PressLoader />
-        <p>טוען…</p>
+        <p>{t.loading}</p>
       </div>
     );
   }
@@ -114,15 +195,12 @@ function ProfileContent() {
           <header className={styles.head}>
             <span className={styles.kicker}>
               <span aria-hidden className={styles.kickerTick} />
-              פרופיל אישי · PROFILE
+              {t.kicker}
             </span>
             <h1 className={styles.title}>
-              הפרטים <span className={styles.red}>שלכם.</span>
+              {t.titleLead} <span className={styles.red}>{t.titleRed}</span>
             </h1>
-            <p className={styles.standfirst}>
-              עדכנו את שמכם ופרטי הקשר. המדינה קבועה על ישראל (פיילוט במדינה
-              אחת). העיר ניתנת לעריכה.
-            </p>
+            <p className={styles.standfirst}>{t.standfirst}</p>
           </header>
 
           {successMessage && (
@@ -131,7 +209,7 @@ function ProfileContent() {
                 ✓
               </span>
               <p>{successMessage}</p>
-              <button onClick={() => setSuccessMessage(null)} aria-label="סגור">
+              <button onClick={() => setSuccessMessage(null)} aria-label={t.dismissLabel}>
                 ✕
               </button>
             </div>
@@ -143,7 +221,7 @@ function ProfileContent() {
                 ✕
               </span>
               <p>{errorMessage}</p>
-              <button onClick={() => setErrorMessage(null)} aria-label="סגור">
+              <button onClick={() => setErrorMessage(null)} aria-label={t.dismissLabel}>
                 ✕
               </button>
             </div>
@@ -162,10 +240,8 @@ function ProfileContent() {
               )}
             </span>
             <div className={styles.avatarText}>
-              <h2 className={styles.avatarTitle}>תמונת הפרופיל</h2>
-              <p className={styles.avatarNote}>
-                התמונה מסונכרנת מחשבון Google שלכם ואינה ניתנת לעריכה כאן.
-              </p>
+              <h2 className={styles.avatarTitle}>{t.avatarTitle}</h2>
+              <p className={styles.avatarNote}>{t.avatarNote}</p>
             </div>
           </section>
 
@@ -174,7 +250,7 @@ function ProfileContent() {
             <div data-field>
               <PressInput
                 type="text"
-                label="שם פרטי"
+                label={t.firstNameLabel}
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 autoComplete="given-name"
@@ -183,7 +259,7 @@ function ProfileContent() {
             <div data-field>
               <PressInput
                 type="text"
-                label="שם משפחה"
+                label={t.lastNameLabel}
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 autoComplete="family-name"
@@ -193,7 +269,7 @@ function ProfileContent() {
               <PressInput
                 type="tel"
                 inputMode="tel"
-                label="טלפון"
+                label={t.phoneLabel}
                 placeholder="050-0000000"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
@@ -203,9 +279,9 @@ function ProfileContent() {
             <div data-field>
               <PressInput
                 type="text"
-                label="עיר"
-                placeholder="עיר מגורים"
-                hint="ישראל · פיילוט במדינה אחת"
+                label={t.cityLabel}
+                placeholder={t.cityPlaceholder}
+                hint={t.cityHint}
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 autoComplete="address-level2"
@@ -214,7 +290,7 @@ function ProfileContent() {
 
             <div className={styles.formActions} data-field>
               <NewsButton variant="red" size="lg" onClick={handleSave} disabled={saving}>
-                {saving ? 'שומר…' : 'שמירת שינויים'}
+                {saving ? t.saving : t.save}
               </NewsButton>
             </div>
           </PressFormCard>
@@ -223,10 +299,10 @@ function ProfileContent() {
             <NewsButton
               variant="outline"
               size="md"
-              onClick={() => router.push('/dashboard')}
-              trailing={<span aria-hidden>←</span>}
+              onClick={() => router.push(`${localePrefix(locale)}/dashboard`)}
+              trailing={<span aria-hidden>{t.backArrow}</span>}
             >
-              חזרה ללוח הבקרה
+              {t.backToDashboard}
             </NewsButton>
           </div>
         </div>
@@ -240,12 +316,15 @@ function ProfileContent() {
 const SuspenseWrapper = Suspense as any;
 
 export default function ProfileSettingsPage() {
+  const params = useParams();
+  const locale: Locale = params?.locale === 'en' ? 'en' : 'he';
+  const t = COPY[locale];
   return (
     <SuspenseWrapper
       fallback={
         <div className={styles.loadingContainer}>
           <PressLoader />
-          <p>טוען…</p>
+          <p>{t.loading}</p>
         </div>
       }
     >

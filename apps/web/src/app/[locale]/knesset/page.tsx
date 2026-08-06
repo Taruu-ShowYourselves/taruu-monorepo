@@ -11,6 +11,7 @@ import {
 } from '@/lib/supabase/db';
 import type { Locale } from '@/lib/i18n';
 import styles from './page.module.css';
+import { localePrefix } from '@/lib/i18n';
 
 export const revalidate = 300;
 
@@ -85,7 +86,7 @@ export default async function KnessetPage({ params }: KnessetPageProps) {
                   >
                     הצטרפו למייסדים
                   </NewsButton>
-                  <Link href={`/${locale}#consensus-desk`} className={styles.backLink}>
+                  <Link href={`${localePrefix(locale)}#consensus-desk`} className={styles.backLink}>
                     לנושאי הרשויות המקומיות ←
                   </Link>
                 </div>

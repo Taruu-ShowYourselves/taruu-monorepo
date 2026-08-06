@@ -11,12 +11,59 @@ import { ProductImage } from './ProductImage';
 import { CartLink } from './CartLink';
 import { QtyStepper } from './QtyStepper';
 import styles from './ProductDetail.module.css';
+import { localePrefix } from '@/lib/i18n';
 
-const CATEGORY_LABEL: Record<string, string> = {
-  apparel: 'הלבשה',
-  sticker: 'מדבקות',
-  accessory: 'אביזרים',
-  print: 'הדפסים',
+interface ProductDetailCopy {
+  crumb: string;
+  categoryLabel: Record<string, string>;
+  figCapSuffix: string;
+  variantLabel: string;
+  qtyLabel: string;
+  addToCart: string;
+  added: string;
+  addedLink: string;
+  trustFulfilment: string;
+  trustPayment: string;
+  arrow: string;
+}
+
+const COPY: Record<Locale, ProductDetailCopy> = {
+  he: {
+    crumb: '→ חזרה לחנות',
+    categoryLabel: {
+      apparel: 'הלבשה',
+      sticker: 'מדבקות',
+      accessory: 'אביזרים',
+      print: 'הדפסים',
+    },
+    figCapSuffix: 'הדפס מערכת',
+    variantLabel: 'בחירת גרסה',
+    qtyLabel: 'כמות',
+    addToCart: 'הוסיפו לעגלה',
+    added: 'נוסף ·',
+    addedLink: 'לעגלה',
+    trustFulfilment: 'הדפסה לפי הזמנה. נשלח תוך 7–14 ימי עסקים.',
+    trustPayment: 'תשלום מאובטח בשקלים · חשבונית מס נשלחת במייל.',
+    arrow: '←',
+  },
+  en: {
+    crumb: '← Back to the store',
+    categoryLabel: {
+      apparel: 'Apparel',
+      sticker: 'Stickers',
+      accessory: 'Accessories',
+      print: 'Prints',
+    },
+    figCapSuffix: 'Editorial print',
+    variantLabel: 'Choose a version',
+    qtyLabel: 'Quantity',
+    addToCart: 'Add to cart',
+    added: 'Added ·',
+    addedLink: 'to the cart',
+    trustFulfilment: 'Printed to order. Ships within 7–14 business days.',
+    trustPayment: 'Secure payment in shekels · A tax invoice is sent by email.',
+    arrow: '→',
+  },
 };
 
 interface ProductDetailProps {
@@ -26,6 +73,7 @@ interface ProductDetailProps {
 
 export function ProductDetail({ product, locale }: ProductDetailProps) {
   const addItem = useMerchCartStore((s) => s.addItem);
+  const t = COPY[locale];
 
   const [variantId, setVariantId] = useState(product.variants[0]?.id ?? '');
   const [qty, setQty] = useState(1);
@@ -49,10 +97,10 @@ export function ProductDetail({ product, locale }: ProductDetailProps) {
     <div className={styles.detail}>
       <div className={styles.inner}>
         <nav className={styles.crumbRow}>
-          <Link href={`/${locale}/store`} className={styles.crumb}>
-            → חזרה לחנות
+          <Link href={`${localePrefix(locale)}/store`} className={styles.crumb}>
+            {t.crumb}
           </Link>
-          <CartLink href={`/${locale}/store/cart`} />
+          <CartLink href={`${localePrefix(locale)}/store/cart`} locale={locale} />
         </nav>
 
         <div className={styles.ruleHeavy} aria-hidden />
@@ -69,14 +117,14 @@ export function ProductDetail({ product, locale }: ProductDetailProps) {
             />
             <figcaption className={styles.figCap}>
               <span aria-hidden className={styles.figTick} />
-              {CATEGORY_LABEL[product.category] ?? product.category} · הדפס מערכת
+              {t.categoryLabel[product.category] ?? product.category} · {t.figCapSuffix}
             </figcaption>
           </figure>
 
           {/* Details */}
           <div className={styles.body}>
             <span className={styles.cat}>
-              {CATEGORY_LABEL[product.category] ?? product.category}
+              {t.categoryLabel[product.category] ?? product.category}
             </span>
             <h1 className={styles.name}>{product.name}</h1>
 
@@ -88,24 +136,25 @@ export function ProductDetail({ product, locale }: ProductDetailProps) {
 
             {segments.length > 1 ? (
               <div className={styles.control}>
-                <span className={styles.controlLabel}>בחירת גרסה</span>
+                <span className={styles.controlLabel}>{t.variantLabel}</span>
                 <Segmented
                   segments={segments}
                   value={variantId}
                   onChange={setVariantId}
                   variant="ink"
-                  aria-label="בחירת גרסה"
+                  aria-label={t.variantLabel}
                 />
               </div>
             ) : null}
 
             <div className={styles.control}>
-              <span className={styles.controlLabel}>כמות</span>
+              <span className={styles.controlLabel}>{t.qtyLabel}</span>
               <QtyStepper
                 value={qty}
                 onChange={setQty}
                 min={1}
                 max={MERCH_MAX_QTY_PER_LINE}
+                locale={locale}
               />
             </div>
 
@@ -114,15 +163,15 @@ export function ProductDetail({ product, locale }: ProductDetailProps) {
                 variant="red"
                 size="lg"
                 onClick={handleAdd}
-                trailing={<span aria-hidden>←</span>}
+                trailing={<span aria-hidden>{t.arrow}</span>}
               >
-                הוסיפו לעגלה
+                {t.addToCart}
               </NewsButton>
               {added ? (
                 <span className={styles.added} role="status">
-                  <span aria-hidden>✓ </span>נוסף ·
-                  <Link href={`/${locale}/store/cart`} className={styles.addedLink}>
-                    {' '}לעגלה
+                  <span aria-hidden>✓ </span>{t.added}
+                  <Link href={`${localePrefix(locale)}/store/cart`} className={styles.addedLink}>
+                    {' '}{t.addedLink}
                   </Link>
                 </span>
               ) : null}
@@ -133,13 +182,13 @@ export function ProductDetail({ product, locale }: ProductDetailProps) {
                 <span aria-hidden className={styles.trustMark}>
                   ■
                 </span>
-                הדפסה לפי הזמנה. נשלח תוך 7–14 ימי עסקים.
+                {t.trustFulfilment}
               </li>
               <li className={styles.trustRow}>
                 <span aria-hidden className={styles.trustMark}>
                   ■
                 </span>
-                תשלום מאובטח בשקלים · חשבונית מס נשלחת במייל.
+                {t.trustPayment}
               </li>
             </ul>
           </div>

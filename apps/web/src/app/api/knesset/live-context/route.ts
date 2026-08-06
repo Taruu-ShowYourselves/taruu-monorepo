@@ -71,8 +71,15 @@ export async function GET(request: NextRequest) {
     })
   );
 
+  // s-maxage is what lets the Cloudflare edge hold this, not just the browser.
+  // The ranker refreshes on a 6-hourly cron, so 120s at the edge is generous.
   return NextResponse.json(
     { evidence },
-    { headers: { 'Cache-Control': 'public, max-age=30, stale-while-revalidate=120' } }
+    {
+      headers: {
+        'Cache-Control':
+          'public, max-age=30, s-maxage=120, stale-while-revalidate=600',
+      },
+    }
   );
 }

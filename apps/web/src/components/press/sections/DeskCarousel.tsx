@@ -1,14 +1,29 @@
 'use client';
 
-import { Children, cloneElement, isValidElement, useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
-import AutoScroll from 'embla-carousel-auto-scroll';
+import AutoScroll, { type AutoScrollType } from 'embla-carousel-auto-scroll';
+import type { Locale } from '@/lib/i18n';
 import styles from './DeskCarousel.module.css';
+
+interface CarouselCopy {
+  prevLabel: string;
+  nextLabel: string;
+  /** Paging glyphs are direction-semantic: mirrored between RTL and LTR. */
+  prevGlyph: string;
+  nextGlyph: string;
+}
+
+const COPY: Record<Locale, CarouselCopy> = {
+  he: { prevLabel: 'הקודם', nextLabel: 'הבא', prevGlyph: '→', nextGlyph: '←' },
+  en: { prevLabel: 'Previous', nextLabel: 'Next', prevGlyph: '←', nextGlyph: '→' },
+};
 
 interface DeskCarouselProps {
   children: React.ReactNode;
   /** Announced label for the carousel region. */
   label: string;
+  locale?: Locale;
 }
 
 /**
@@ -18,25 +33,18 @@ interface DeskCarouselProps {
  * entirely under prefers-reduced-motion. Press-square arrows for manual
  * paging.
  */
-export function DeskCarousel({ children, label }: DeskCarouselProps) {
+export function DeskCarousel({ children, label, locale = 'he' }: DeskCarouselProps) {
+  const t = COPY[locale];
   // Computed once - plugin config doesn't affect SSR markup, so the
   // server/client difference is hydration-safe.
-  const [plugins] = useState(() => {
+  const [autoScroll] = useState<AutoScrollType | null>(() => {
     if (
       typeof window !== 'undefined' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
     ) {
-      return [];
+      return null;
     }
-    return [
-      AutoScroll({
-        speed: 0.6,
-        startDelay: 800,
-        stopOnInteraction: false,
-        stopOnMouseEnter: true,
-        stopOnFocusIn: true,
-      }),
-    ];
+    return AutoScroll({ speed: 0.6, startDelay: 800, stopOnInteraction: false });
   });
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
@@ -49,23 +57,10 @@ export function DeskCarousel({ children, label }: DeskCarouselProps) {
       // Embla (and with it the auto-scroll drift) stands down entirely.
       breakpoints: { '(max-width: 800px)': { active: false } },
     },
-    plugins
+    autoScroll ? [autoScroll] : []
   );
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(false);
-
-  // Mirrors the CSS breakpoint so the loop-padding clones below are not
-  // rendered into the static mobile grid, where they would print every topic
-  // twice. Starts false so the first client render matches the SSR markup.
-  const [bento, setBento] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 800px)');
-    const apply = () => setBento(mq.matches);
-    apply();
-    mq.addEventListener('change', apply);
-    return () => mq.removeEventListener('change', apply);
-  }, []);
 
   const refresh = useCallback(() => {
     if (!emblaApi) return;
@@ -84,26 +79,15 @@ export function DeskCarousel({ children, label }: DeskCarouselProps) {
     };
   }, [emblaApi, refresh]);
 
-  // Embla's loop (and with it the continuous sway) needs the track to
-  // overflow the viewport. With only a few cards it can't engage - pad the
-  // loop with cloned slides so the drift never runs out of runway.
-  const items = Children.toArray(children);
-  const slides =
-    !bento && items.length > 0 && items.length < 6
-      ? [
-          ...items,
-          ...items.map((child, i) =>
-            isValidElement(child)
-              ? cloneElement(child, { key: `loop-dup-${i}` })
-              : child
-          ),
-        ]
-      : items;
-
   return (
     <div className={styles.carousel} role="region" aria-label={label}>
-      <div className={styles.viewport} ref={emblaRef}>
-        <ol className={styles.track}>{slides}</ol>
+      <div
+        className={styles.viewport}
+        ref={emblaRef}
+        onMouseEnter={() => autoScroll?.stop()}
+        onMouseLeave={() => autoScroll?.play()}
+      >
+        <ol className={styles.track}>{children}</ol>
       </div>
 
       {(canPrev || canNext) && (
@@ -113,18 +97,18 @@ export function DeskCarousel({ children, label }: DeskCarouselProps) {
             className={styles.arrow}
             onClick={() => emblaApi?.scrollPrev()}
             disabled={!canPrev}
-            aria-label="הקודם"
+            aria-label={t.prevLabel}
           >
-            →
+            {t.prevGlyph}
           </button>
           <button
             type="button"
             className={styles.arrow}
             onClick={() => emblaApi?.scrollNext()}
             disabled={!canNext}
-            aria-label="הבא"
+            aria-label={t.nextLabel}
           >
-            ←
+            {t.nextGlyph}
           </button>
         </div>
       )}
