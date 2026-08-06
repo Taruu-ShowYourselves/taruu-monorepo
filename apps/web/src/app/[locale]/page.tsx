@@ -8,6 +8,7 @@ import {
   KnessetDesk,
   ConsensusDesk,
   WhatIsTaruu,
+  CivicMandate,
   CivicReminder,
   Colophon,
 } from '@/components/press/sections';
@@ -35,8 +36,9 @@ export default async function HomePage({ params }: HomePageProps) {
     >
       <div className="np-page">
         <main>
-          <CivicReminder locale={locale} />
           <WhatIsTaruu locale={locale} />
+          <CivicReminder locale={locale} />
+          <CivicMandate locale={locale} />
           <Masthead locale={locale} />
           <Ticker locale={locale} />
           <ConsensusDesk locale={locale} />

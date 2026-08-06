@@ -1,6 +1,7 @@
 export { Lead } from './Lead';
 export { ConsensusDesk } from './ConsensusDesk';
 export { WhatIsTaruu } from './WhatIsTaruu';
+export { CivicMandate } from './CivicMandate';
 export { CivicReminder } from './CivicReminder';
 export { KnessetDesk } from './KnessetDesk';
 export { KnessetAgenda } from './KnessetAgenda';

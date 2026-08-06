@@ -12,24 +12,15 @@ interface WhatIsTaruuCopy {
   headlineSub: string;
   authoritiesLabel: string;
   authorities: { number: string; title: string; role: string }[];
-  feedbackLabel: string;
-  feedbackStrong: string;
-  feedbackText: string;
   lede: string;
-  counterLead: string;
-  counterStrong1: string;
-  counterMid: string;
-  counterStrong2: string;
-  counterTail: string;
-  counterStrong3: string;
   mechanismLabel: string;
   mechanism: { number: string; title: string; body: string }[];
 }
 
 const COPY: Record<Locale, WhatIsTaruuCopy> = {
   he: {
-    editionLine: 'למה תַּרְאוּ? · מנגנון נגד אזרחי / 06',
-    editionEcho: 'PUBLIC BALANCE / CIVIC COUNTERWEIGHT',
+    editionLine: 'למה תַּרְאוּ? · מנגנון אזרחי מסייע החלטה',
+    editionEcho: 'PUBLIC BALANCE / CIVIC DECISION SUPPORT',
     headline: 'שלוש רשויות מאזנות אחת את השנייה.',
     headlineSub: ' אבל האיזון אינו מגיע בזמן.',
     authoritiesLabel: 'שלוש רשויות השלטון',
@@ -38,16 +29,7 @@ const COPY: Record<Locale, WhatIsTaruuCopy> = {
       { number: '02', title: 'הממשלה', role: 'מבצעת.' },
       { number: '03', title: 'בתי המשפט', role: 'מפרשים את הדין ומכריעים בסכסוכים.' },
     ],
-    feedbackLabel: 'מנגנון נגד אזרחי',
-    feedbackStrong: 'לא רשות רביעית.',
-    feedbackText: ' ריבון אזרחי שמחזיר את האיזון.',
-    lede: 'תהליכי הרשויות ארוכים, איטיים, בזבזניים ומסורבלים. בשנים האחרונות אנו רואים כיצד ממשלות מנצלות תהליך זה לרעה, כמדיניות של סחבת והסחת דעת.',
-    counterLead: 'ועל כן, כ',
-    counterStrong1: 'מנגנון נגד',
-    counterMid: ', ניצוק את קולנו לגיבוש',
-    counterStrong2: 'ריבון אזרחי',
-    counterTail: '. את רצונו אנו מצפים מן הממשלה והרשויות',
-    counterStrong3: 'לבצע ללא כל הסתייגות.',
+    lede: 'תהליכי הרשויות ארוכים, איטיים, בזבזניים ומסורבלים. מפלגות פרלמנטריות מכניסות שיקולים מנותקי אזרח לתמונה שמבלבלים את העשייה הפוליטית והציבורית. בשנים האחרונות אנו רואים כיצד ממשלות, רשויות ומועצות מקומיות מנצלות תהליך זה לרעה, כמדיניות של סחבת והסחת דעת.',
     mechanismLabel: 'כך עובד מנגנון תראו',
     mechanism: [
       { number: '01', title: 'מגבשים', body: 'את הנושאים הדורשים הכרעה ציבורית.' },
@@ -56,8 +38,8 @@ const COPY: Record<Locale, WhatIsTaruuCopy> = {
     ],
   },
   en: {
-    editionLine: 'Why Taruu? · A civic counter-mechanism / 06',
-    editionEcho: 'איזון ציבורי / מנגנון נגד אזרחי',
+    editionLine: 'Why Taruu? · A civic decision-support mechanism',
+    editionEcho: 'איזון ציבורי / מנגנון אזרחי מסייע החלטה',
     headline: 'Three branches balance one another.',
     headlineSub: ' But the balance does not arrive in time.',
     authoritiesLabel: 'The three branches of government',
@@ -66,16 +48,7 @@ const COPY: Record<Locale, WhatIsTaruuCopy> = {
       { number: '02', title: 'The Government', role: 'Executes.' },
       { number: '03', title: 'The Courts', role: 'Interpret the law and settle disputes.' },
     ],
-    feedbackLabel: 'A civic counter-mechanism',
-    feedbackStrong: 'Not a fourth branch.',
-    feedbackText: ' A civic sovereign that restores the balance.',
-    lede: 'The branches’ processes are long, slow, wasteful, and cumbersome. In recent years we have watched governments abuse that process as a policy of delay and distraction.',
-    counterLead: 'And so, as a ',
-    counterStrong1: 'counter-mechanism',
-    counterMid: ', we pour our voice into forming a',
-    counterStrong2: 'civic sovereign',
-    counterTail: '. Its will we expect the government and the authorities',
-    counterStrong3: 'to carry out without reservation.',
+    lede: 'The branches’ processes are long, slow, wasteful, and cumbersome. Parliamentary parties add considerations detached from the citizen, muddying political and public action. In recent years we have watched governments, authorities, and local councils abuse that process as a policy of delay and distraction.',
     mechanismLabel: 'How the Taruu mechanism works',
     mechanism: [
       { number: '01', title: 'We frame', body: 'the issues that demand a public decision.' },
@@ -123,25 +96,12 @@ export function WhatIsTaruu({ locale = 'he' }: WhatIsTaruuProps) {
               </li>
             ))}
           </ol>
-
-          <div className={styles.feedback}>
-            <span className={styles.feedbackLabel}>{t.feedbackLabel}</span>
-            <p>
-              <strong>{t.feedbackStrong}</strong>
-              <span>{t.feedbackText}</span>
-            </p>
-          </div>
         </div>
 
         <div className={styles.explainer}>
           <div className={styles.copy}>
             <p className={styles.lede}>
               {t.lede}
-            </p>
-            <p className={styles.counterCopy}>
-              {t.counterLead}<strong>{t.counterStrong1}</strong>{t.counterMid}{' '}
-              <strong>{t.counterStrong2}</strong>{t.counterTail}{' '}
-              <strong>{t.counterStrong3}</strong>
             </p>
           </div>
 

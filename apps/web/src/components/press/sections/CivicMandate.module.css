@@ -1,0 +1,161 @@
+.section {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  align-items: center;
+  padding: clamp(3rem, 7vh, 6rem) var(--np-gutter);
+  border-block-end: var(--np-rule-heavy) solid var(--np-ink);
+  color: var(--np-paper);
+}
+
+/* The ink surface is a layer, not this element's own background: the homepage
+   shell forces `background-color: transparent !important` on every `main >
+   section` so its paper siteLayer shows through the whole scroll. A child
+   layer is the only way a section can paint itself full-bleed. */
+.section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--np-ink);
+}
+
+.inner {
+  display: grid;
+  gap: clamp(1.25rem, 3vh, 2.25rem);
+  inline-size: 100%;
+  max-inline-size: var(--np-container);
+  margin-inline: auto;
+}
+
+.editionLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  padding-block-end: clamp(0.75rem, 1.5vh, 1.25rem);
+  border-block-end: var(--np-rule) solid rgb(250 249 246 / 28%);
+  font-family: var(--np-font-mono);
+  font-size: clamp(0.68rem, 0.8vw, 0.82rem);
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  color: var(--np-red);
+  text-transform: uppercase;
+}
+
+.editionLine span:last-child {
+  color: rgb(250 249 246 / 45%);
+}
+
+.label {
+  margin: 0;
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: rgb(250 249 246 / 62%);
+  text-transform: uppercase;
+}
+
+.statement {
+  max-inline-size: 24ch;
+  margin: 0;
+  font-family: var(--np-font-display);
+  font-size: clamp(2.1rem, 4.4vw, 4.6rem);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+
+.statement strong {
+  font-weight: 950;
+}
+
+.binding {
+  display: block;
+  color: var(--np-red);
+}
+
+.foot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(1.25rem, 3vw, 3rem);
+  padding-block-start: clamp(0.75rem, 1.5vh, 1.25rem);
+  border-block-start: var(--np-rule) solid rgb(250 249 246 / 28%);
+}
+
+/* The slab CTA of the paper sections, inverted for ink: paper plate, ink type,
+   still resolving to red on hover so the whole page reads one button. */
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-block-size: 3.15rem;
+  padding-inline: 1.15rem;
+  border: var(--np-rule) solid var(--np-paper);
+  background: var(--np-paper);
+  font-family: var(--np-font-display);
+  font-size: clamp(1rem, 1.3vw, 1.25rem);
+  font-weight: 900;
+  color: var(--np-ink);
+  text-decoration: none;
+  transition:
+    gap 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
+}
+
+.cta:hover,
+.cta:focus-visible {
+  gap: 1.5rem;
+  border-color: var(--np-red);
+  background: var(--np-red);
+  color: var(--np-paper);
+}
+
+.footnote {
+  max-inline-size: 46ch;
+  margin: 0;
+  font-family: var(--np-font-body);
+  font-size: clamp(0.95rem, 1.1vw, 1.1rem);
+  line-height: 1.45;
+  color: rgb(250 249 246 / 72%);
+}
+
+@media (max-width: 800px) {
+  .section {
+    min-block-size: auto;
+    padding-block: clamp(2.5rem, 6vh, 4rem);
+  }
+
+  .editionLine span:last-child {
+    display: none;
+  }
+
+  .statement {
+    max-inline-size: 16ch;
+    font-size: clamp(1.9rem, 9vw, 3.2rem);
+    line-height: 1.06;
+  }
+
+  .foot {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .cta {
+    min-block-size: 2.9rem;
+    font-size: clamp(0.9rem, 4vw, 1.05rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta {
+    transition: none;
+  }
+}
