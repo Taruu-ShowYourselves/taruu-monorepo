@@ -1826,6 +1826,8 @@ export interface Database {
           accuracy_m: number | null;
           location_consent_at: string | null;
           consent_version: string | null;
+          claimed_municipality_id: string | null;
+          gps_municipality_id: string | null;
           resolved_municipality_id: string | null;
           resolution: 'gps' | 'manual' | 'profile' | 'none';
           ref_code: string | null;
@@ -1841,6 +1843,8 @@ export interface Database {
           accuracy_m?: number | null;
           location_consent_at?: string | null;
           consent_version?: string | null;
+          claimed_municipality_id?: string | null;
+          gps_municipality_id?: string | null;
           resolved_municipality_id?: string | null;
           resolution?: 'gps' | 'manual' | 'profile' | 'none';
           ref_code?: string | null;
@@ -1856,6 +1860,8 @@ export interface Database {
           accuracy_m?: number | null;
           location_consent_at?: string | null;
           consent_version?: string | null;
+          claimed_municipality_id?: string | null;
+          gps_municipality_id?: string | null;
           resolved_municipality_id?: string | null;
           resolution?: 'gps' | 'manual' | 'profile' | 'none';
           ref_code?: string | null;

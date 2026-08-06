@@ -34,7 +34,7 @@ CREATE TABLE public.pilot_municipalities (
 
 -- Rank is unique among live cohort rows only; completed pilots free their slot.
 CREATE UNIQUE INDEX uq_pilot_rank ON public.pilot_municipalities (rank)
-  WHERE status IN ('selected','active');
+  WHERE status IN ('selected','active','paused');
 
 COMMENT ON COLUMN public.pilot_municipalities.status IS
   'selected = curated, gate off. active = participate gate enforces residency. paused = gate off without losing the row. completed = pilot ended, rank slot freed.';
@@ -171,6 +171,10 @@ CREATE TABLE public.pilot_registrations (
   -- Pins the exact consent copy the user saw (e.g. 'pilot-gps-v1'), because the
   -- pilot flow — unlike GeoGate — sends coordinates to the server.
   consent_version TEXT,
+  claimed_municipality_id TEXT
+    REFERENCES public.municipalities(code) ON DELETE RESTRICT,
+  gps_municipality_id TEXT
+    REFERENCES public.municipalities(code) ON DELETE RESTRICT,
   resolved_municipality_id TEXT
     REFERENCES public.municipalities(code) ON DELETE RESTRICT,
   resolution TEXT NOT NULL DEFAULT 'none'
@@ -190,6 +194,9 @@ CREATE INDEX idx_pilot_reg_ref
 
 COMMENT ON COLUMN public.pilot_registrations.ref_code IS
   'Attribution is exactly one hop: /l/{code} sets the taruu_ref cookie, registration stamps it here. Deliberately no column on users — attribution is pilot-scoped and dies with this table.';
+
+COMMENT ON COLUMN public.pilot_registrations.resolved_municipality_id IS
+  'The municipality the resident confirmed and the site uses. claimed_municipality_id wins over gps_municipality_id because adjacent-city centroid resolution is advisory during the pilot; both facts remain separately auditable.';
 
 -- ============================================
 -- APPEND-ONLY AUDIT LOG
@@ -278,27 +285,32 @@ RETURNS TABLE (
   score NUMERIC
 )
 LANGUAGE sql STABLE AS $$
+  WITH source_engagement AS (
+    SELECT
+      vs.vote_id,
+      vs.post_count,
+      vs.comments_count,
+      coalesce(reaction_totals.total, 0)::bigint AS reactions_count
+    FROM public.vote_sources vs
+    LEFT JOIN LATERAL (
+      SELECT sum(value::bigint) AS total
+      FROM jsonb_each_text(coalesce(vs.reactions, '{}'::jsonb))
+      WHERE value ~ '^[0-9]+$'
+    ) reaction_totals ON true
+  )
   SELECT
     v.municipality_id,
     count(DISTINCT v.id)::bigint AS vote_count,
-    coalesce(sum(vs.post_count), 0)::bigint AS post_count,
-    coalesce(sum(vs.comments_count), 0)::bigint AS comments_count,
-    coalesce(sum((
-      SELECT coalesce(sum(value::int), 0)
-      FROM jsonb_each_text(coalesce(vs.reactions, '{}'::jsonb))
-      WHERE value ~ '^[0-9]+$'
-    )), 0)::bigint AS reactions_count,
+    coalesce(sum(se.post_count), 0)::bigint AS post_count,
+    coalesce(sum(se.comments_count), 0)::bigint AS comments_count,
+    coalesce(sum(se.reactions_count), 0)::bigint AS reactions_count,
     (
-      coalesce(sum(vs.post_count), 0) * 5
-      + coalesce(sum(vs.comments_count), 0) * 3
-      + coalesce(sum((
-          SELECT coalesce(sum(value::int), 0)
-          FROM jsonb_each_text(coalesce(vs.reactions, '{}'::jsonb))
-          WHERE value ~ '^[0-9]+$'
-        )), 0)
+      coalesce(sum(se.post_count), 0) * 5
+      + coalesce(sum(se.comments_count), 0) * 3
+      + coalesce(sum(se.reactions_count), 0)
     )::numeric AS score
   FROM public.votes v
-  JOIN public.vote_sources vs ON vs.vote_id = v.id
+  JOIN source_engagement se ON se.vote_id = v.id
   WHERE v.municipality_id IS NOT NULL
     AND v.municipality_id <> 'כנסת ישראל'
   GROUP BY v.municipality_id

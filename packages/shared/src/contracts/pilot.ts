@@ -80,6 +80,9 @@ export const PilotResolutionSchema = z.enum(['gps', 'manual', 'profile', 'none']
 export const PilotRegisterResponseSchema = z.object({
   role: PilotRoleSchema,
   resolvedMunicipality: z.string().nullable(),
+  claimedMunicipality: z.string().nullable(),
+  gpsMunicipality: z.string().nullable(),
+  locationMismatch: z.boolean(),
   resolution: PilotResolutionSchema,
   isPilotMunicipality: z.boolean(),
 });
