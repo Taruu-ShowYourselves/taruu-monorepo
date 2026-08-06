@@ -112,6 +112,9 @@ interface IntroCopy {
   /** Brand. */
   brandName: string;
   socialsAria: string;
+  /** Label of the *other* locale, shown on the language switch. */
+  localeSwitchLabel: string;
+  localeSwitchAria: string;
   sectionAria: string;
   /** Question scene, split to preserve the animated inline markup. */
   q1pre: string;
@@ -179,6 +182,8 @@ const COPY: Record<Locale, IntroCopy> = {
     briefAdvance: "הסעיף מבקש לקדם את {subject}.",
     brandName: "תַּרְאוּ",
     socialsAria: "תַּרְאוּ ברשתות החברתיות",
+    localeSwitchLabel: "EN",
+    localeSwitchAria: "Switch to English",
     sectionAria: "מרעש ציבורי לסדר יום משותף",
     q1pre: "אם ",
     q1mark: "מיליון אנשים",
@@ -241,6 +246,8 @@ const COPY: Record<Locale, IntroCopy> = {
     briefAdvance: "The item seeks to advance {subject}.",
     brandName: "Taruu",
     socialsAria: "Taruu on social networks",
+    localeSwitchLabel: "עברית",
+    localeSwitchAria: "מעבר לעברית",
     sectionAria: "From public noise to a shared agenda",
     q1pre: "If ",
     q1mark: "a million people",
@@ -640,6 +647,7 @@ interface CinematicIntroProps {
 
 export function CinematicIntro({ locale = "he" }: CinematicIntroProps) {
   const t = COPY[locale];
+  const otherLocale: Locale = locale === "he" ? "en" : "he";
   const rootRef = useRef<HTMLElement>(null);
   const shouldReduceMotion = useReducedMotion();
   const [signals, setSignals] = useState<SignalVote[]>([]);
@@ -921,6 +929,14 @@ export function CinematicIntro({ locale = "he" }: CinematicIntroProps) {
         ease: "outExpo",
       });
 
+      animate("[data-intro-locale]", {
+        translateY: [-12, 0],
+        opacity: [0, 1],
+        delay: 240,
+        duration: 780,
+        ease: "outExpo",
+      });
+
       animate("[data-intro-social]", {
         translateY: [8, 0],
         opacity: [0, 1],
@@ -1032,6 +1048,15 @@ export function CinematicIntro({ locale = "he" }: CinematicIntroProps) {
               xPercent: 145,
               yPercent: 24,
               duration: 0.62,
+            },
+            0.7,
+          )
+          .to(
+            "[data-intro-locale]",
+            {
+              yPercent: -220,
+              opacity: 0,
+              duration: 0.5,
             },
             0.7,
           )
@@ -1284,6 +1309,17 @@ export function CinematicIntro({ locale = "he" }: CinematicIntroProps) {
               ))}
             </svg>
           </div>
+
+          <Link
+            className={styles.localeSwitch}
+            href={localePath(otherLocale)}
+            hrefLang={otherLocale}
+            lang={otherLocale}
+            aria-label={t.localeSwitchAria}
+            data-intro-locale
+          >
+            {t.localeSwitchLabel}
+          </Link>
 
           <div className={styles.introBrand} data-intro-logo>
             <div className={styles.introLogo} aria-label={t.brandName}>
