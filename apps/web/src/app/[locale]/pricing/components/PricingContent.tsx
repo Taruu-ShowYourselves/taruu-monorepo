@@ -120,14 +120,15 @@ export function PricingContent({ locale = 'he' }: PricingContentProps) {
   const reduced = useReducedMotion();
   const t = COPY[locale];
 
-  const stamp = reduced
-    ? {}
-    : {
-        initial: { clipPath: 'inset(0 100% 0 0)' },
-        whileInView: { clipPath: 'inset(0 0 0 0)' },
-        viewport: { once: true, margin: '-80px' },
-        transition: { duration: 0.35, ease: [0.2, 0, 0, 1] as const },
-      };
+  /* The revealed state stays unconditional: `useReducedMotion` flips after
+     mount, and dropping the whole prop bag would leave the stamp clipped to
+     nothing for readers who asked for less motion. */
+  const stamp = {
+    initial: reduced ? false : { clipPath: 'inset(0 100% 0 0)' },
+    whileInView: { clipPath: 'inset(0 0 0 0)' },
+    viewport: { once: true, margin: '-80px' },
+    transition: { duration: reduced ? 0 : 0.35, ease: [0.2, 0, 0, 1] as const },
+  };
 
   return (
     <main className={`np-page ${styles.page}`} dir={localeDirections[locale]}>
