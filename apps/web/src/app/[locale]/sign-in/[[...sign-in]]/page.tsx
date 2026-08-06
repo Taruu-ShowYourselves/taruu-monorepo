@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
 import { safeRedirect } from '@/lib/safeRedirect';
 import { PressAtmosphere } from '@/components/press/PressAtmosphere';
+import type { Locale } from '@/lib/i18n';
+import { localePath, localePrefix } from '@/lib/i18n';
 import styles from './page.module.css';
 
 // Google "G" mark - monochrome, inherits the button text colour (brutalist
@@ -21,9 +23,128 @@ function GoogleIcon() {
   );
 }
 
+interface SignInCopy {
+  wordmark: string;
+  kicker: string;
+  titleLead: string;
+  titleRed: string;
+  standfirst: string;
+  errors: {
+    authFailed: string;
+    stateMismatch: string;
+    callbackFailed: string;
+    accessDenied: string;
+    generic: string;
+  };
+  googleCta: string;
+  googleCtaLoading: string;
+  freeNote: string;
+  termsPrefix: string;
+  termsLink: string;
+  termsJoin: string;
+  privacyLink: string;
+  dividerPrompt: string;
+  switchCta: string;
+  features: { scope: string; oneVoice: string; openResults: string };
+  trust: string;
+  brand: {
+    wordmark: string;
+    line: string;
+    lineRed: string;
+    sub: string;
+    city: string;
+    knesset: string;
+    government: string;
+  };
+}
+
+const COPY: Record<Locale, SignInCopy> = {
+  he: {
+    wordmark: 'תַּרְאוּ',
+    kicker: 'דלפק המשתתפים · כניסה',
+    titleLead: 'חוזרים',
+    titleRed: 'לסדר היום.',
+    standfirst:
+      'היכנסו ללוח שלכם. ראו מה עומד להצבעה בעיר, אילו נושאים מקודמים בכנסת ומה קורה בממשלה, והוסיפו את הקול שלכם למניין.',
+    errors: {
+      authFailed: 'ההתחברות נכשלה. נסו שוב.',
+      stateMismatch: 'שגיאת אבטחה. נסו שוב.',
+      callbackFailed: 'שגיאה בתהליך ההתחברות.',
+      accessDenied: 'הגישה נדחתה.',
+      generic: 'לא הצלחנו להשלים את הכניסה. נסו שוב בעוד רגע.',
+    },
+    googleCta: 'כניסה עם Google',
+    googleCtaLoading: 'נכנסים…',
+    freeNote: 'לאחר הכניסה תחזרו ללוח שלכם.',
+    termsPrefix: 'בכניסה אתם מסכימים',
+    termsLink: 'לתנאי השימוש',
+    termsJoin: 'ול',
+    privacyLink: 'מדיניות הפרטיות',
+    dividerPrompt: 'עוד אין לכם חשבון?',
+    switchCta: 'פתחו חשבון בחינם ←',
+    features: {
+      scope: 'עיר · כנסת · ממשלה',
+      oneVoice: 'קול אחד בכל הצבעה',
+      openResults: 'תוצאות גלויות',
+    },
+    trust: 'בין בחירות לבחירות, הקול שלכם עדיין יכול להיספר.',
+    brand: {
+      wordmark: 'תַּרְאוּ',
+      line: 'העיר זזה. הכנסת מצביעה. הממשלה פועלת.',
+      lineRed: 'איפה אתם עומדים?',
+      sub: 'חזרו לראות מה פתוח, מה השתנה ואיפה נדרשת עכשיו עמדה ציבורית.',
+      city: 'נושאים עירוניים',
+      knesset: 'סדר היום בכנסת',
+      government: 'פעולות הממשלה',
+    },
+  },
+  en: {
+    wordmark: 'Taruu',
+    kicker: 'Participants’ desk · Sign in',
+    titleLead: 'Back to',
+    titleRed: 'the agenda.',
+    standfirst:
+      'Sign in to your board. See what is up for a vote in your city, which items are moving in the Knesset and what the government is doing, and add your voice to the count.',
+    errors: {
+      authFailed: 'Sign-in failed. Try again.',
+      stateMismatch: 'Security error. Try again.',
+      callbackFailed: 'An error occurred during sign-in.',
+      accessDenied: 'Access denied.',
+      generic: 'We could not complete the sign-in. Try again in a moment.',
+    },
+    googleCta: 'Sign in with Google',
+    googleCtaLoading: 'Signing in…',
+    freeNote: 'After signing in you will return to your board.',
+    termsPrefix: 'By signing in you agree to the',
+    termsLink: 'Terms of Use',
+    termsJoin: 'and the ',
+    privacyLink: 'Privacy Policy',
+    dividerPrompt: 'No account yet?',
+    switchCta: 'Create a free account →',
+    features: {
+      scope: 'City · Knesset · Government',
+      oneVoice: 'One voice in every vote',
+      openResults: 'Results in the open',
+    },
+    trust: 'Between elections, your voice can still be counted.',
+    brand: {
+      wordmark: 'Taruu',
+      line: 'The city moves. The Knesset votes. The government acts.',
+      lineRed: 'Where do you stand?',
+      sub: 'Come back to see what is open, what has changed and where a public position is needed now.',
+      city: 'Municipal affairs',
+      knesset: 'The Knesset agenda',
+      government: 'Government action',
+    },
+  },
+};
+
 export default function SignInPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { locale: rawLocale } = useParams<{ locale: string }>();
+  const locale: Locale = rawLocale === 'en' ? 'en' : 'he';
+  const t = COPY[locale];
   const { signInWithGoogle, isAuthenticated, isLoading } = useAuth();
   const [error, setError] = useState<string | null>(null);
 
@@ -41,17 +162,14 @@ export default function SignInPage() {
     const errorParam = searchParams.get('error');
     if (errorParam) {
       const errorMessages: Record<string, string> = {
-        auth_failed: 'ההתחברות נכשלה. נסו שוב.',
-        state_mismatch: 'שגיאת אבטחה. נסו שוב.',
-        callback_failed: 'שגיאה בתהליך ההתחברות.',
-        access_denied: 'הגישה נדחתה.',
+        auth_failed: t.errors.authFailed,
+        state_mismatch: t.errors.stateMismatch,
+        callback_failed: t.errors.callbackFailed,
+        access_denied: t.errors.accessDenied,
       };
-      setError(
-        errorMessages[errorParam] ||
-          'לא הצלחנו להשלים את הכניסה. נסו שוב בעוד רגע.'
-      );
+      setError(errorMessages[errorParam] || t.errors.generic);
     }
-  }, [searchParams]);
+  }, [searchParams, t]);
 
   const handleGoogleSignIn = () => {
     setError(null);
@@ -62,22 +180,19 @@ export default function SignInPage() {
     <div className={styles.field}>
       <PressAtmosphere />
       <div className={styles.desk}>
-        <Link href="/" className={styles.wordmark}>
-          תַּרְאוּ
+        <Link href={localePath(locale)} className={styles.wordmark}>
+          {t.wordmark}
         </Link>
 
         <span className={styles.kicker}>
           <span aria-hidden className={styles.kickerTick} />
-          דלפק המשתתפים · כניסה
+          {t.kicker}
         </span>
 
         <h1 className={styles.title}>
-          חוזרים <span className={styles.red}>לסדר היום.</span>
+          {t.titleLead} <span className={styles.red}>{t.titleRed}</span>
         </h1>
-        <p className={styles.standfirst}>
-          היכנסו ללוח שלכם. ראו מה עומד להצבעה בעיר, אילו נושאים מקודמים בכנסת
-          ומה קורה בממשלה, והוסיפו את הקול שלכם למניין.
-        </p>
+        <p className={styles.standfirst}>{t.standfirst}</p>
 
         <div className={styles.rule} aria-hidden />
 
@@ -98,29 +213,29 @@ export default function SignInPage() {
             <GoogleIcon />
           </span>
           <span className={styles.googleLabel}>
-            {isLoading ? 'נכנסים…' : 'כניסה עם Google'}
+            {isLoading ? t.googleCtaLoading : t.googleCta}
           </span>
         </button>
 
-        <p className={styles.freeNote}>לאחר הכניסה תחזרו ללוח שלכם.</p>
+        <p className={styles.freeNote}>{t.freeNote}</p>
 
         <p className={styles.terms}>
-          בכניסה אתם מסכימים{' '}
-          <Link href="/terms" className={styles.link}>
-            לתנאי השימוש
+          {t.termsPrefix}{' '}
+          <Link href={`${localePrefix(locale)}/terms`} className={styles.link}>
+            {t.termsLink}
           </Link>{' '}
-          ול
-          <Link href="/privacy" className={styles.link}>
-            מדיניות הפרטיות
+          {t.termsJoin}
+          <Link href={`${localePrefix(locale)}/privacy`} className={styles.link}>
+            {t.privacyLink}
           </Link>
         </p>
 
         <div className={styles.divider}>
-          <span>עוד אין לכם חשבון?</span>
+          <span>{t.dividerPrompt}</span>
         </div>
 
-        <Link href="/sign-up" className={styles.switchLink}>
-          פתחו חשבון בחינם ←
+        <Link href={`${localePrefix(locale)}/sign-up`} className={styles.switchLink}>
+          {t.switchCta}
         </Link>
 
         <ul className={styles.features}>
@@ -128,45 +243,42 @@ export default function SignInPage() {
             <span aria-hidden className={styles.featGlyph}>
               ●
             </span>
-            <span>עיר · כנסת · ממשלה</span>
+            <span>{t.features.scope}</span>
           </li>
           <li className={styles.feature}>
             <span aria-hidden className={styles.featGlyph}>
               ■
             </span>
-            <span>קול אחד בכל הצבעה</span>
+            <span>{t.features.oneVoice}</span>
           </li>
           <li className={styles.feature}>
             <span aria-hidden className={styles.featGlyph}>
               ▍
             </span>
-            <span>תוצאות גלויות</span>
+            <span>{t.features.openResults}</span>
           </li>
         </ul>
 
-        <p className={styles.trust}>
-          בין בחירות לבחירות, הקול שלכם עדיין יכול להיספר.
-        </p>
+        <p className={styles.trust}>{t.trust}</p>
       </div>
 
       <aside className={styles.brand} aria-hidden>
-        <span className={styles.brandWordmark}>תַּרְאוּ</span>
+        <span className={styles.brandWordmark}>{t.brand.wordmark}</span>
         <p className={styles.brandLine}>
-          העיר זזה. הכנסת מצביעה. הממשלה פועלת.{' '}
-          <span className={styles.brandRed}>איפה אתם עומדים?</span>
+          {t.brand.line}{' '}
+          <span className={styles.brandRed}>{t.brand.lineRed}</span>
         </p>
-        <p className={styles.brandSub}>
-          חזרו לראות מה פתוח, מה השתנה ואיפה נדרשת עכשיו עמדה ציבורית.
-        </p>
+        <p className={styles.brandSub}>{t.brand.sub}</p>
         <ul className={styles.brandTrust}>
           <li>
-            <span className={styles.brandTrustGlyph}>●</span> נושאים עירוניים
+            <span className={styles.brandTrustGlyph}>●</span> {t.brand.city}
           </li>
           <li>
-            <span className={styles.brandTrustGlyph}>■</span> סדר היום בכנסת
+            <span className={styles.brandTrustGlyph}>■</span> {t.brand.knesset}
           </li>
           <li>
-            <span className={styles.brandTrustGlyph}>▍</span> פעולות הממשלה
+            <span className={styles.brandTrustGlyph}>▍</span>{' '}
+            {t.brand.government}
           </li>
         </ul>
       </aside>

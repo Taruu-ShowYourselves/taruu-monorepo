@@ -6,9 +6,11 @@
  * include glob, so logic living inside the `.tsx` component cannot be tested
  * at all. `fetch` is injected for the same reason.
  *
- * Server messages are never surfaced verbatim - the caller gets a Hebrew,
+ * Server messages are never surfaced verbatim - the caller gets a localized,
  * user-facing string chosen from the status and the machine code.
  */
+
+import type { Locale } from '@/lib/i18n';
 
 export interface RecordedBallot {
   readonly id: string;
@@ -65,6 +67,26 @@ export const PARTICIPATION_MESSAGES: Record<ParticipationRejectionCode, string> 
   NETWORK_ERROR: 'הקול לא נרשם. בדקו את החיבור ונסו שוב.',
 };
 
+/** English counterparts, same codes - civic-press register, no verbatim server text. */
+const PARTICIPATION_MESSAGES_EN: Record<ParticipationRejectionCode, string> = {
+  UNAUTHENTICATED: 'You need to sign in to vote.',
+  RESIDENCY_NOT_VERIFIED: 'You need to verify residency before voting.',
+  IDENTITY_NOT_VERIFIED: 'You need to verify your identity before voting.',
+  PILOT_MUNICIPALITY_ONLY: 'This vote is open to residents of the participating municipality only.',
+  RATE_LIMITED: 'Too many requests. Try again in a minute.',
+  VOTE_ENDED: 'The vote has closed and your vote was not recorded. You can view the results.',
+  VOTE_NOT_OPEN: 'The vote has not opened yet.',
+  INVALID: 'This vote could not be recorded. Refresh the page and try again.',
+  NOT_FOUND: 'The vote was not found.',
+  SERVER_ERROR: 'Your vote was not recorded. Try again in a moment.',
+  NETWORK_ERROR: 'Your vote was not recorded. Check your connection and try again.',
+};
+
+const MESSAGES_BY_LOCALE: Record<Locale, Record<ParticipationRejectionCode, string>> = {
+  he: PARTICIPATION_MESSAGES,
+  en: PARTICIPATION_MESSAGES_EN,
+};
+
 interface ParticipationPayload {
   readonly participation?: {
     readonly id?: unknown;
@@ -87,14 +109,27 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0;
 }
 
-function rejected(code: ParticipationRejectionCode): ParticipationSubmission {
-  return { status: 'rejected', code, message: PARTICIPATION_MESSAGES[code] };
+function rejected(
+  code: ParticipationRejectionCode,
+  locale: Locale = 'he'
+): ParticipationSubmission {
+  return {
+    status: 'rejected',
+    code,
+    message: (MESSAGES_BY_LOCALE[locale] ?? PARTICIPATION_MESSAGES)[code],
+  };
 }
 
 export async function submitParticipation(
-  input: { readonly voteId: string; readonly optionId: string },
+  input: {
+    readonly voteId: string;
+    readonly optionId: string;
+    /** UI locale for the user-facing message; defaults to Hebrew. */
+    readonly locale?: Locale;
+  },
   fetchImpl: typeof fetch = fetch
 ): Promise<ParticipationSubmission> {
+  const locale: Locale = input.locale ?? 'he';
   let response: Response;
   try {
     response = await fetchImpl(`/api/votes/${input.voteId}/participate`, {
@@ -104,7 +139,7 @@ export async function submitParticipation(
       body: JSON.stringify({ optionId: input.optionId }),
     });
   } catch {
-    return rejected('NETWORK_ERROR');
+    return rejected('NETWORK_ERROR', locale);
   }
 
   const payload: unknown = await response.json().catch(() => null);
@@ -127,7 +162,7 @@ export async function submitParticipation(
       };
     }
     // Never trust a malformed 200 - a missing ballot id is not a recorded vote.
-    return rejected('SERVER_ERROR');
+    return rejected('SERVER_ERROR', locale);
   }
 
   const errorCode = isParticipationPayload(payload) && typeof payload.code === 'string'
@@ -136,21 +171,26 @@ export async function submitParticipation(
 
   switch (response.status) {
     case 401:
-      return rejected('UNAUTHENTICATED');
+      return rejected('UNAUTHENTICATED', locale);
     case 403:
-      if (errorCode === 'PILOT_MUNICIPALITY_ONLY') return rejected('PILOT_MUNICIPALITY_ONLY');
-      return rejected(errorCode === 'IDENTITY_NOT_VERIFIED' ? 'IDENTITY_NOT_VERIFIED' : 'RESIDENCY_NOT_VERIFIED');
+      if (errorCode === 'PILOT_MUNICIPALITY_ONLY') {
+        return rejected('PILOT_MUNICIPALITY_ONLY', locale);
+      }
+      return rejected(
+        errorCode === 'IDENTITY_NOT_VERIFIED' ? 'IDENTITY_NOT_VERIFIED' : 'RESIDENCY_NOT_VERIFIED',
+        locale
+      );
     case 429:
-      return rejected('RATE_LIMITED');
+      return rejected('RATE_LIMITED', locale);
     case 400:
       // 400 covers five distinct server conditions. Only the ones the resident
       // can act on differently are split out; the rest stay generic.
-      if (errorCode === 'VOTE_ENDED') return rejected('VOTE_ENDED');
-      if (errorCode === 'VOTE_NOT_OPEN') return rejected('VOTE_NOT_OPEN');
-      return rejected('INVALID');
+      if (errorCode === 'VOTE_ENDED') return rejected('VOTE_ENDED', locale);
+      if (errorCode === 'VOTE_NOT_OPEN') return rejected('VOTE_NOT_OPEN', locale);
+      return rejected('INVALID', locale);
     case 404:
-      return rejected('NOT_FOUND');
+      return rejected('NOT_FOUND', locale);
     default:
-      return rejected('SERVER_ERROR');
+      return rejected('SERVER_ERROR', locale);
   }
 }

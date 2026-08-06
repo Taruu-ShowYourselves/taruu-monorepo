@@ -353,6 +353,12 @@
   --np-red-dark: #B0220F;
   --np-red-ink: #7A1607;
   --np-paper-edge: rgba(25, 24, 22, 0.12);
+  /* Desk: one shade below paper. Workspace surfaces lay a paper sheet on it
+     (see .np-desk / .np-sheet in globals.css) so the working page reads as an
+     object rather than as the background itself. Elevation on top of it uses
+     the existing --np-shadow-float / --np-shadow-soft pair below: float puts
+     the sheet on the desk, soft puts a box on the sheet. */
+  --np-desk: #EDEBE5;
 
   /* Type - three sans voices, zero monospace.
      Display: Heebo 900 (unchanged). Body: Assistant - soft, highly readable

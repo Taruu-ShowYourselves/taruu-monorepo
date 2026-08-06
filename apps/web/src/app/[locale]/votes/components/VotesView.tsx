@@ -6,8 +6,13 @@ import { isMunicipality } from '@/components/uikit/municipality-link';
 import { VotesHero } from './VotesHero';
 import { VotesList } from './VotesList';
 import type { VoteFilter } from './types';
+import type { Locale } from '@/lib/i18n';
 
-export function VotesView() {
+interface VotesViewProps {
+  locale?: Locale;
+}
+
+export function VotesView({ locale = 'he' }: VotesViewProps) {
   const [activeFilter, setActiveFilter] = useState<VoteFilter>('all');
   // null = nationwide edition; a name = that municipality's desk.
   const [scope, setScope] = useState<string | null>(null);
@@ -39,8 +44,9 @@ export function VotesView() {
         scope={scope}
         homeMunicipality={homeMunicipality}
         onScopeChange={handleScopeChange}
+        locale={locale}
       />
-      <VotesList filter={activeFilter} municipality={scope} />
+      <VotesList filter={activeFilter} municipality={scope} locale={locale} />
     </>
   );
 }

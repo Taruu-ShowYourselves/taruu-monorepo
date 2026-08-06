@@ -130,6 +130,41 @@ export interface Database {
         };
         Relationships: [];
       };
+      newsletter_subscribers: {
+        Row: {
+          id: string;
+          email: string;
+          status: 'active' | 'unsubscribed';
+          source: string | null;
+          source_page: string | null;
+          locale: 'he' | 'en' | null;
+          subscribed_at: string;
+          unsubscribed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          /** Must already be lowercased and trimmed - the table CHECKs it. */
+          email: string;
+          status?: 'active' | 'unsubscribed';
+          source?: string | null;
+          source_page?: string | null;
+          locale?: 'he' | 'en' | null;
+          subscribed_at?: string;
+          unsubscribed_at?: string | null;
+        };
+        Update: {
+          status?: 'active' | 'unsubscribed';
+          source?: string | null;
+          source_page?: string | null;
+          locale?: 'he' | 'en' | null;
+          subscribed_at?: string;
+          unsubscribed_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       push_tokens: {
         Row: {
           id: string;

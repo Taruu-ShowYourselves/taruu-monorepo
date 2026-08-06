@@ -3,7 +3,12 @@
 import React, { useCallback, useEffect, useId, useRef, useState, useTransition } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import clsx from 'clsx';
-import type { Decision, ProposalDetail, ProposalSummary } from '@sync/shared/contracts';
+import type {
+  Decision,
+  ProposalDetail,
+  ProposalStatus,
+  ProposalSummary,
+} from '@sync/shared/contracts';
 import { NewsButton } from '@/components/press/NewsButton';
 import {
   ClampedText,
@@ -23,6 +28,7 @@ import {
   PROPOSAL_STATUS_LABELS_HE,
   proposalChipTone,
 } from '@/components/space-admin/proposalStatusLabels';
+import type { Locale } from '@/lib/i18n';
 import {
   DEFAULT_PROPOSAL_FILTER,
   PROPOSAL_FILTERS,

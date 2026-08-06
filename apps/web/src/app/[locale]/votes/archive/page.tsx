@@ -5,14 +5,28 @@ import { ArchiveHero } from './components/ArchiveHero';
 import { ArchiveList } from './components/ArchiveList';
 import type { Locale } from '@/lib/i18n';
 
-export const metadata: Metadata = {
-  title: 'קיר הניצחון | ארכיון הצבעות',
-  description:
-    'ארכיון ההצבעות שהסתיימו - צפו בתוצאות, NFTs שהונפקו ובהשפעת התומכים החיצוניים.',
+const METADATA: Record<Locale, Metadata> = {
+  he: {
+    title: 'קיר הניצחון | ארכיון הצבעות',
+    description:
+      'ארכיון ההצבעות שהסתיימו - צפו בתוצאות, NFTs שהונפקו ובהשפעת התומכים החיצוניים.',
+  },
+  en: {
+    title: 'Victory Wall | Vote Archive',
+    description:
+      'The archive of concluded votes - see the results, the NFTs minted, and the impact of outside supporters.',
+  },
 };
 
 interface ArchivePageProps {
   params: Promise<{ locale: Locale }>;
+}
+
+export async function generateMetadata({
+  params,
+}: ArchivePageProps): Promise<Metadata> {
+  const { locale } = await params;
+  return METADATA[locale];
 }
 
 export default async function ArchivePage({ params }: ArchivePageProps) {
@@ -22,8 +36,8 @@ export default async function ArchivePage({ params }: ArchivePageProps) {
     <>
       <Header locale={locale} />
       <main>
-        <ArchiveHero />
-        <ArchiveList />
+        <ArchiveHero locale={locale} />
+        <ArchiveList locale={locale} />
       </main>
       <Footer locale={locale} />
     </>

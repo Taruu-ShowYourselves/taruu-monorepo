@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { animate, stagger } from 'animejs';
 import { NewsButton } from '@/components/press/NewsButton';
 import { pressShake } from '@/components/press/PressForm/PressForm';
+import type { Locale } from '@/lib/i18n';
 import styles from './SubscribeForm.module.css';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -22,12 +23,51 @@ const prefersReducedMotion = () =>
   typeof window !== 'undefined' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+interface SubscribeFormProps {
+  locale?: Locale;
+}
+
+interface SubscribeFormCopy {
+  invalidEmail: string;
+  successFallback: string;
+  failFallback: string;
+  networkFail: string;
+  fieldKicker: string;
+  emailLabel: string;
+  sending: string;
+  submit: string;
+}
+
+const COPY: Record<Locale, SubscribeFormCopy> = {
+  he: {
+    invalidEmail: 'כתובת האימייל לא נראית תקינה. בדקו ונסו שוב.',
+    successFallback: 'אתם בפנים. נעדכן אתכם ברגע שההצבעה תיפתח.',
+    failFallback: 'משהו השתבש. נסו שוב.',
+    networkFail: 'משהו השתבש אצלנו, לא אצלכם. נסו שוב בעוד רגע.',
+    fieldKicker: 'האימייל שלכם · FIELD 01',
+    emailLabel: 'כתובת אימייל',
+    sending: 'שולח',
+    submit: 'הירשמו',
+  },
+  en: {
+    invalidEmail: 'That email address does not look right. Check it and try again.',
+    successFallback: 'You’re in. We’ll let you know the moment the vote opens.',
+    failFallback: 'Something went wrong. Try again.',
+    networkFail: 'Something went wrong on our end, not yours. Try again in a moment.',
+    fieldKicker: 'Your email · FIELD 01',
+    emailLabel: 'Email address',
+    sending: 'Sending',
+    submit: 'Subscribe',
+  },
+};
+
 /**
  * Colophon subscribe form. Placeholder types itself through real-looking
  * addresses, fields rise in on first view, rejection shakes, success lands
  * as a rotated press stamp.
  */
-export function SubscribeForm() {
+export function SubscribeForm({ locale = 'he' }: SubscribeFormProps) {
+  const t = COPY[locale];
   const [email, setEmail] = useState('');
   const [state, setState] = useState<'idle' | 'loading' | 'ok' | 'err'>('idle');
   const [msg, setMsg] = useState('');
@@ -135,7 +175,7 @@ export function SubscribeForm() {
     e.preventDefault();
     const v = email.trim();
     if (!EMAIL_RE.test(v)) {
-      fail('כתובת האימייל לא נראית תקינה. בדקו ונסו שוב.');
+      fail(t.invalidEmail);
       return;
     }
     setState('loading');
@@ -143,18 +183,18 @@ export function SubscribeForm() {
       const r = await fetch('/api/newsletter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: v, source: 'homepage_cta' }),
+        body: JSON.stringify({ email: v, source: 'homepage_cta', locale }),
       });
       const d = await r.json();
       if (d.success) {
         setState('ok');
-        setMsg(d.message || 'אתם בפנים. נעדכן אתכם ברגע שההצבעה תיפתח.');
+        setMsg(d.message || t.successFallback);
         setEmail('');
       } else {
-        fail(d.message || 'משהו השתבש. נסו שוב.');
+        fail(d.message || t.failFallback);
       }
     } catch {
-      fail('משהו השתבש אצלנו, לא אצלכם. נסו שוב בעוד רגע.');
+      fail(t.networkFail);
     }
   };
 
@@ -174,7 +214,7 @@ export function SubscribeForm() {
             <div className={styles.fieldMast}>
               <span className={styles.fieldKicker}>
                 <span aria-hidden className={styles.cursor} />
-                האימייל שלכם · FIELD 01
+                {t.fieldKicker}
               </span>
               <span className={styles.validity} data-on={valid || undefined} aria-hidden>
                 OK
@@ -195,14 +235,14 @@ export function SubscribeForm() {
                 onFocus={() => { pausedRef.current = true; }}
                 onBlur={() => { pausedRef.current = email.length > 0; }}
                 disabled={state === 'loading'}
-                aria-label="כתובת אימייל"
+                aria-label={t.emailLabel}
               />
               <span aria-hidden className={styles.bar} />
             </div>
           </div>
           <div className={styles.action} data-rise>
             <NewsButton type="submit" variant="red" size="lg" disabled={state === 'loading'}>
-              {state === 'loading' ? <span className={styles.sending}>שולח</span> : 'הירשמו'}
+              {state === 'loading' ? <span className={styles.sending}>{t.sending}</span> : t.submit}
             </NewsButton>
           </div>
         </form>

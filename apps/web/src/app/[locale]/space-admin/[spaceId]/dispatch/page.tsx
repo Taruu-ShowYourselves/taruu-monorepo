@@ -10,9 +10,10 @@ import { listSentCampaigns } from '@/server/app/space-admin/send-notification';
 import { getSessionFromCookies } from '@/services/auth/session';
 import { DispatchClient } from './DispatchClient';
 import styles from './page.module.css';
+import { localePrefix } from '@/lib/i18n';
 
 /**
- * Surface 5 — `/he/space-admin/{spaceId}/dispatch`.
+ * Surface 5 — `/space-admin/{spaceId}/dispatch`.
  *
  * This page resolves its own authorization on every request, through the same
  * use-case the API routes call. `listSentCampaigns` is gated on
@@ -28,10 +29,42 @@ import styles from './page.module.css';
 
 const HEADING_ID = 'space-admin-dispatch-heading';
 
-const STANDFIRST =
-  'ההתראה נשלחת לאפליקציה ולמכשירים של הנמענים. מי שביטל הסכמה לא יקבל אותה — גם אם הוא בקהל שבחרתם.';
+interface DispatchPageCopy {
+  kicker: string;
+  heading: string;
+  standfirst: string;
+  historyHeading: string;
+  historyEmpty: string;
+  recipientsLabel: string;
+  suppressedLabel: string;
+  /** BCP 47 tag for the sent-at timestamp on each history row. */
+  dateLocale: string;
+}
 
-const HISTORY_EMPTY = 'עוד לא נשלחה התראה מהמרחב הזה.';
+const COPY: Record<Locale, DispatchPageCopy> = {
+  he: {
+    kicker: 'משגר · DISPATCH',
+    heading: 'שליחת התראה לתושבי המרחב',
+    standfirst:
+      'ההתראה נשלחת לאפליקציה ולמכשירים של הנמענים. מי שביטל הסכמה לא יקבל אותה — גם אם הוא בקהל שבחרתם.',
+    historyHeading: 'התראות שנשלחו',
+    historyEmpty: 'עוד לא נשלחה התראה מהמרחב הזה.',
+    recipientsLabel: 'נמענים',
+    suppressedLabel: 'הוחרגו',
+    dateLocale: 'he-IL',
+  },
+  en: {
+    kicker: 'Dispatch desk · DISPATCH',
+    heading: "Send a notification to this space's residents",
+    standfirst:
+      "The notification goes to recipients' app and devices. Anyone who has withdrawn consent will not receive it — even if they are in the audience you selected.",
+    historyHeading: 'Notifications sent',
+    historyEmpty: 'No notification has been sent from this space yet.',
+    recipientsLabel: 'recipients',
+    suppressedLabel: 'suppressed',
+    dateLocale: 'en-GB',
+  },
+};
 
 interface DispatchPageProps {
   params: Promise<{ locale: Locale; spaceId: string }>;
@@ -39,9 +72,10 @@ interface DispatchPageProps {
 
 export default async function SpaceDispatchPage({ params }: DispatchPageProps) {
   const { locale, spaceId } = await params;
+  const t = COPY[locale];
 
   const session = await getSessionFromCookies();
-  if (!session) redirect(`/${locale}/sign-in`);
+  if (!session) redirect(`${localePrefix(locale)}/sign-in`);
 
   // Shell identity and the capability set. A membership that does not resolve
   // is the same opaque refusal as a space that does not exist, and the space
@@ -82,12 +116,12 @@ export default async function SpaceDispatchPage({ params }: DispatchPageProps) {
         <span aria-hidden className={kicker.tick}>
           ■
         </span>
-        משגר · DISPATCH
+        {t.kicker}
       </span>
       <h2 id={HEADING_ID} className={styles.heading}>
-        שליחת התראה לתושבי המרחב
+        {t.heading}
       </h2>
-      <p className={styles.standfirst}>{STANDFIRST}</p>
+      <p className={styles.standfirst}>{t.standfirst}</p>
     </>
   );
 
@@ -116,20 +150,21 @@ export default async function SpaceDispatchPage({ params }: DispatchPageProps) {
       <DispatchClient spaceId={space.id} quota={quota} />
 
       <div className={styles.history}>
-        <h3 className={styles.historyHeading}>התראות שנשלחו</h3>
+        <h3 className={styles.historyHeading}>{t.historyHeading}</h3>
         {campaigns.length === 0 ? (
-          <p className={styles.historyEmpty}>{HISTORY_EMPTY}</p>
+          <p className={styles.historyEmpty}>{t.historyEmpty}</p>
         ) : (
           <ul className={styles.historyList}>
             {campaigns.map((campaign) => (
               <li key={campaign.id} className={styles.historyRow}>
                 <span className={styles.historyTitle}>{campaign.title}</span>
                 <span className={styles.historyMeta}>
-                  {new Date(campaign.sentAt).toLocaleString('he-IL', {
+                  {new Date(campaign.sentAt).toLocaleString(t.dateLocale, {
                     dateStyle: 'short',
                     timeStyle: 'short',
                   })}{' '}
-                  · {campaign.recipients} נמענים · {campaign.suppressed} הוחרגו
+                  · {campaign.recipients} {t.recipientsLabel} · {campaign.suppressed}{' '}
+                  {t.suppressedLabel}
                 </span>
               </li>
             ))}

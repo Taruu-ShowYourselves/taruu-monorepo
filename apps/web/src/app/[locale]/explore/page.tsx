@@ -18,24 +18,71 @@ import styles from './page.module.css';
 // zero Supabase load per request.
 export const revalidate = 300;
 
-export const metadata: Metadata = {
-  title: 'סדר היום המלא',
-  description:
-    'מפת המערכת של תַּרְאוּ: כל ההצבעות החיות בכל הרשויות, סדר היום בכנסת, ' +
-    'הקרן האזרחית ושוק ה-BAGS - אינדקס אחד, שקוף ופתוח לכולם.',
+const METADATA: Record<Locale, Metadata> = {
+  he: {
+    title: 'סדר היום המלא',
+    description:
+      'מפת המערכת של תַּרְאוּ: כל ההצבעות החיות בכל הרשויות, סדר היום בכנסת, ' +
+      'הקרן האזרחית ושוק ה-BAGS - אינדקס אחד, שקוף ופתוח לכולם.',
+  },
+  en: {
+    title: 'The Full Agenda',
+    description:
+      'The system map of Taruu: every live vote in every municipality, the Knesset agenda, ' +
+      'the civic fund and the BAGS market - one index, transparent and open to all.',
+  },
 };
 
-const RAIL_ITEMS = [
-  { id: 'now-deciding', label: 'חי' },
-  { id: 'muni-index', label: 'רשויות' },
-  { id: 'knesset-strip', label: 'כנסת' },
-  { id: 'money-desk', label: 'הכסף' },
-  { id: 'mechanism', label: 'המנגנון' },
-  { id: 'act-now', label: 'הצטרפות' },
-];
+interface ExplorePageCopy {
+  kicker: string;
+  headline: string;
+  headlineRed: string;
+  standfirst: string;
+  railItems: { id: string; label: string }[];
+}
+
+const COPY: Record<Locale, ExplorePageCopy> = {
+  he: {
+    kicker: 'המפתח · THE FULL INDEX',
+    headline: 'סדר היום',
+    headlineRed: 'המלא.',
+    standfirst:
+      'כל מה שמודפס במערכת - כל הצבעה חיה, כל דסק מקומי, כל שקל בקרן - בעמוד אחד. מסודר לפי מה שאתם מחפשים, לא לפי מבנה האתר.',
+    railItems: [
+      { id: 'now-deciding', label: 'חי' },
+      { id: 'muni-index', label: 'רשויות' },
+      { id: 'knesset-strip', label: 'כנסת' },
+      { id: 'money-desk', label: 'הכסף' },
+      { id: 'mechanism', label: 'המנגנון' },
+      { id: 'act-now', label: 'הצטרפות' },
+    ],
+  },
+  en: {
+    kicker: 'The key · THE FULL INDEX',
+    headline: 'The agenda,',
+    headlineRed: 'in full.',
+    standfirst:
+      'Everything the desk prints - every live vote, every local desk, every shekel in the fund - on one page. Ordered by what you are looking for, not by the site structure.',
+    railItems: [
+      { id: 'now-deciding', label: 'Live' },
+      { id: 'muni-index', label: 'Municipalities' },
+      { id: 'knesset-strip', label: 'Knesset' },
+      { id: 'money-desk', label: 'The money' },
+      { id: 'mechanism', label: 'The mechanism' },
+      { id: 'act-now', label: 'Join' },
+    ],
+  },
+};
 
 interface ExplorePageProps {
   params: Promise<{ locale: Locale }>;
+}
+
+export async function generateMetadata({
+  params,
+}: ExplorePageProps): Promise<Metadata> {
+  const { locale } = await params;
+  return METADATA[locale];
 }
 
 /**
@@ -58,11 +105,12 @@ export default async function ExplorePage({ params }: ExplorePageProps) {
   ]);
 
   const edition = buildExploreEdition(votes);
+  const t = COPY[locale];
 
   return (
     <div className="np-page">
       <Masthead locale={locale} />
-      <Ticker />
+      <Ticker locale={locale} />
 
       <main className={styles.page}>
         {/* S1 - title + standing index rail */}
@@ -70,19 +118,18 @@ export default async function ExplorePage({ params }: ExplorePageProps) {
           <div className={styles.heroInner}>
             <span className={styles.kicker}>
               <span aria-hidden className={styles.kickerTick} />
-              המפתח · THE FULL INDEX
+              {t.kicker}
             </span>
             <h1 id="explore-headline" className={styles.headline}>
-              סדר היום <span className={styles.red}>המלא.</span>
+              {t.headline} <span className={styles.red}>{t.headlineRed}</span>
             </h1>
             <p className={styles.standfirst}>
-              כל מה שמודפס במערכת - כל הצבעה חיה, כל דסק מקומי, כל שקל בקרן -
-              בעמוד אחד. מסודר לפי מה שאתם מחפשים, לא לפי מבנה האתר.
+              {t.standfirst}
             </p>
           </div>
         </header>
 
-        <ExploreRail items={RAIL_ITEMS} />
+        <ExploreRail items={t.railItems} locale={locale} />
 
         {/* S2 - הדופק */}
         <PulseStrip
@@ -98,7 +145,7 @@ export default async function ExplorePage({ params }: ExplorePageProps) {
         <NowDecidingDesk locale={locale} topics={edition.nowDeciding} />
 
         {/* S4 - דסקי הרשויות */}
-        <MuniIndex rows={edition.muniRows} hasData={edition.hasVotes} />
+        <MuniIndex locale={locale} rows={edition.muniRows} hasData={edition.hasVotes} />
 
         {/* S5 - על סדר היום בכנסת */}
         <KnessetStrip locale={locale} topics={edition.knessetTop} />

@@ -10,7 +10,8 @@ import {
 import Link from "next/link";
 import { animate, createScope, stagger } from "animejs";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { i18n } from "@/lib/i18n/config";
+import { localePath, localePrefix } from "@/lib/i18n/config";
+import type { Locale } from "@/lib/i18n";
 import { topReactions } from "@/components/press/reactions";
 import {
   interleaveByCity,
@@ -78,6 +79,212 @@ interface PlacedSignal {
   point: MapPoint;
 }
 
+interface IntroCopy {
+  /** Thesis ledger (CivicSignalMap). */
+  metricMunicipalities: string;
+  metricKnessetTopics: string;
+  metricMunicipalTopics: string;
+  metricFacebookGroups: string;
+  metricFacebookPosts: string;
+  metricPeopleInvolved: string;
+  metricBestCity: string;
+  metricPressingKnesset: string;
+  ledgerAria: string;
+  ledgerHeader: string;
+  measuringNow: string;
+  /** Shared measures. */
+  voted: string;
+  postsWord: string;
+  /** Municipal dispatch card. */
+  heatTitle: string;
+  scanned: string;
+  onePost: string;
+  inGroupOf: string;
+  measuredOn: string;
+  facebookSourceLink: string;
+  activeVoteCta: string;
+  /** Direction-semantic "continue" glyph: Hebrew ←, English →. */
+  backGlyph: string;
+  /** Proposal briefs; `{subject}` is replaced with the live title. */
+  briefRegulate: string;
+  briefAffirm: string;
+  briefAdvance: string;
+  /** Brand. */
+  brandName: string;
+  socialsAria: string;
+  /** Label of the *other* locale, shown on the language switch. */
+  localeSwitchLabel: string;
+  localeSwitchAria: string;
+  sectionAria: string;
+  /** Question scene, split to preserve the animated inline markup. */
+  q1pre: string;
+  q1mark: string;
+  q1mid: string;
+  q1em: string;
+  q1end: string;
+  q2pre: string;
+  q2mark: string;
+  q2mid: string;
+  q2strong: string;
+  participantCountLabel: string;
+  municipalDecisionsLabel: string;
+  nationalDecisionsLabel: string;
+  primaryCta: string;
+  secondaryCta: string;
+  scrollCue: string;
+  /** Comparison scene. */
+  muniPanelTitle: string;
+  mapAria: string;
+  legendActive: string;
+  legendAreas: string;
+  knessetPanelTitle: string;
+  knessetLede: string;
+  relevanceLabel: string;
+  coverageLabel: string;
+  knessetVoteCta: string;
+  officialDocLink: string;
+  mediaSourceLink: string;
+  connecting: string;
+  fullAgendaCta: string;
+  /** Thesis scene. */
+  thesisKicker: string;
+  thesisA: string;
+  thesisB: string;
+  thesisC: string;
+  thesisLede: string;
+}
+
+const COPY: Record<Locale, IntroCopy> = {
+  he: {
+    metricMunicipalities: "רשויות במסד הנתונים",
+    metricKnessetTopics: "נושאי כנסת",
+    metricMunicipalTopics: "נושאים עירוניים",
+    metricFacebookGroups: "קבוצות פייסבוק שהתגלו",
+    metricFacebookPosts: "פוסטים שנצפו",
+    metricPeopleInvolved: "אזרחים מעורבים",
+    metricBestCity: "העיר המובילה במעורבות אזרחית",
+    metricPressingKnesset: "הצבעת הכנסת הבוערת",
+    ledgerAria: "שדה הנתונים האזרחי של תראו",
+    ledgerHeader: "תַּרְאוּ מודדת עכשיו",
+    measuringNow: "נמדד עכשיו",
+    voted: "הצביעו",
+    postsWord: "פוסטים",
+    heatTitle: "חום ציבורי - ריאקציות ותגובות במקור",
+    scanned: "סרקנו",
+    onePost: "פוסט אחד",
+    inGroupOf: "בקבוצת הפייסבוק של",
+    measuredOn: "נמדד",
+    facebookSourceLink: "למקור בפייסבוק ↗",
+    activeVoteCta: "להצבעה הפעילה",
+    backGlyph: "←",
+    briefRegulate: "ההצעה מבקשת להסדיר בחקיקה את {subject}.",
+    briefAffirm: "הסעיף מבקש לאשר את {subject}.",
+    briefAdvance: "הסעיף מבקש לקדם את {subject}.",
+    brandName: "תַּרְאוּ",
+    socialsAria: "תַּרְאוּ ברשתות החברתיות",
+    localeSwitchLabel: "EN",
+    localeSwitchAria: "Switch to English",
+    sectionAria: "מרעש ציבורי לסדר יום משותף",
+    q1pre: "אם ",
+    q1mark: "מיליון אנשים",
+    q1mid: " מתלוננים ",
+    q1em: "בפייסבוק",
+    q1end: ",",
+    q2pre: "למה ",
+    q2mark: "אף אחד",
+    q2mid: " לא ",
+    q2strong: "שומע אותם?",
+    participantCountLabel: "אזרחים משתתפים",
+    municipalDecisionsLabel: "החלטות אזרחיות (בתהליך) בעניינים אזרחיים",
+    nationalDecisionsLabel: "החלטות אזרחיות (בתהליך) בעניינים מדיניים",
+    primaryCta: "להשתתפות במשאלי העם",
+    secondaryCta: "לסדר היום הציבורי",
+    scrollCue: "גללו",
+    muniPanelTitle: "מוקדי עניין עירוניים",
+    mapAria: "מפת ישראל עם מוקדי שיח ציבורי",
+    legendActive: "מוקד פעיל",
+    legendAreas: "אזורים באוויר",
+    knessetPanelTitle: "סדר היום בכנסת",
+    knessetLede: "הנושאים הארציים שמצטברים עכשיו לקול ציבורי מדיד.",
+    relevanceLabel: "רלוונטיות",
+    coverageLabel: "סיקור",
+    knessetVoteCta: "להצבעה הפעילה ←",
+    officialDocLink: "למסמך הרשמי ↗",
+    mediaSourceLink: "מקור תקשורתי ↗",
+    connecting: "מתחבר למסד הנתונים…",
+    fullAgendaCta: "לכל סדר היום הציבורי",
+    thesisKicker: "עד עכשיו",
+    thesisA: "עד היום, כל אחד",
+    thesisB: "צעק לבד.",
+    thesisC: "תַּרְאוּ.",
+    thesisLede: "לראשונה הציבור מקבל מבנה לכוחו.",
+  },
+  en: {
+    metricMunicipalities: "Municipalities in the database",
+    metricKnessetTopics: "Knesset topics",
+    metricMunicipalTopics: "Municipal topics",
+    metricFacebookGroups: "Facebook groups discovered",
+    metricFacebookPosts: "Posts observed",
+    metricPeopleInvolved: "Citizens involved",
+    metricBestCity: "Leading city in civic engagement",
+    metricPressingKnesset: "The most pressing Knesset vote",
+    ledgerAria: "Taruu's civic data field",
+    ledgerHeader: "Taruu is measuring now",
+    measuringNow: "Measuring now",
+    voted: "voted",
+    postsWord: "posts",
+    heatTitle: "Public heat - reactions and comments at the source",
+    scanned: "We scanned",
+    onePost: "one post",
+    inGroupOf: "in the Facebook group of",
+    measuredOn: "Measured",
+    facebookSourceLink: "Source on Facebook ↗",
+    activeVoteCta: "To the active vote",
+    backGlyph: "→",
+    briefRegulate: "The bill seeks to anchor {subject} in legislation.",
+    briefAffirm: "The item seeks to approve {subject}.",
+    briefAdvance: "The item seeks to advance {subject}.",
+    brandName: "Taruu",
+    socialsAria: "Taruu on social networks",
+    localeSwitchLabel: "עברית",
+    localeSwitchAria: "מעבר לעברית",
+    sectionAria: "From public noise to a shared agenda",
+    q1pre: "If ",
+    q1mark: "a million people",
+    q1mid: " are complaining on ",
+    q1em: "Facebook",
+    q1end: ",",
+    q2pre: "why does ",
+    q2mark: "no one",
+    q2mid: " ",
+    q2strong: "hear them?",
+    participantCountLabel: "Participating citizens",
+    municipalDecisionsLabel: "Civic decisions in progress on local issues",
+    nationalDecisionsLabel: "Civic decisions in progress on national issues",
+    primaryCta: "To the live topic map",
+    secondaryCta: "To the public agenda",
+    scrollCue: "Scroll",
+    muniPanelTitle: "Municipal focal points",
+    mapAria: "Map of Israel with centers of public discussion",
+    legendActive: "Active hotspot",
+    legendAreas: "areas on air",
+    knessetPanelTitle: "The Knesset agenda",
+    knessetLede: "The national topics now accumulating into a measurable public voice.",
+    relevanceLabel: "Relevance",
+    coverageLabel: "Coverage",
+    knessetVoteCta: "To the active vote →",
+    officialDocLink: "Official document ↗",
+    mediaSourceLink: "Media source ↗",
+    connecting: "Connecting to the database…",
+    fullAgendaCta: "The full public agenda",
+    thesisKicker: "Until now",
+    thesisA: "Until today, everyone",
+    thesisB: "shouted alone.",
+    thesisC: "Taruu.",
+    thesisLede: "For the first time, the public has structure for its power.",
+  },
+};
+
 const KNESSET_SCOPE = /כנסת|ארצי|ישראל/;
 
 /**
@@ -133,7 +340,7 @@ function holdHandlers(setPaused: (paused: boolean) => void) {
   };
 }
 
-const voteHref = (id: string) => `/${i18n.defaultLocale}/votes/${id}`;
+const voteHref = (id: string, locale: Locale) => `${localePrefix(locale)}/votes/${id}`;
 
 const heatOf = (signal: SignalVote) => signal.source?.hotness ?? 0;
 
@@ -148,6 +355,7 @@ interface CivicSignalMapProps {
   mapSignals: PlacedSignal[];
   bestCity: string | null;
   pressingKnesset: string | null;
+  t: IntroCopy;
 }
 
 function CivicSignalMap({
@@ -155,28 +363,29 @@ function CivicSignalMap({
   mapSignals,
   bestCity,
   pressingKnesset,
+  t,
 }: CivicSignalMapProps) {
   // depth: how close the mark floats to the reader. Drives scale, blur,
   // opacity and scroll parallax; the loudest numbers sit nearest.
   const metrics = [
-    { label: "רשויות במסד הנתונים", value: stats.municipalities, depth: 0.6 },
-    { label: "נושאי כנסת", value: stats.knessetTopics, depth: 0.92 },
-    { label: "נושאים עירוניים", value: stats.municipalTopics, depth: 0.75 },
+    { label: t.metricMunicipalities, value: stats.municipalities, depth: 0.6 },
+    { label: t.metricKnessetTopics, value: stats.knessetTopics, depth: 0.92 },
+    { label: t.metricMunicipalTopics, value: stats.municipalTopics, depth: 0.75 },
     {
-      label: "קבוצות פייסבוק שהתגלו",
+      label: t.metricFacebookGroups,
       value: stats.facebookGroups,
       depth: 0.35,
     },
-    { label: "פוסטים שנצפו", value: stats.facebookPosts, depth: 1 },
-    { label: "אזרחים מעורבים", value: stats.peopleInvolved, depth: 0.45 },
+    { label: t.metricFacebookPosts, value: stats.facebookPosts, depth: 1 },
+    { label: t.metricPeopleInvolved, value: stats.peopleInvolved, depth: 0.45 },
     {
-      label: "העיר המובילה במעורבות אזרחית",
+      label: t.metricBestCity,
       value: bestCity,
       feature: true,
       depth: 0.7,
     },
     {
-      label: "הצבעת הכנסת הבוערת",
+      label: t.metricPressingKnesset,
       value: pressingKnesset,
       feature: true,
       depth: 0.55,
@@ -187,11 +396,11 @@ function CivicSignalMap({
     <aside
       className={styles.thesisLedger}
       data-thesis-ledger
-      aria-label="שדה הנתונים האזרחי של תראו"
+      aria-label={t.ledgerAria}
       aria-live="polite"
     >
       <header className={styles.ledgerHeader}>
-        <span>תַּרְאוּ מודדת עכשיו</span>
+        <span>{t.ledgerHeader}</span>
       </header>
 
       <div className={styles.ledgerDust} aria-hidden>
@@ -234,7 +443,7 @@ function CivicSignalMap({
             <dt>{metric.label}</dt>
             <dd>
               {metric.value === null
-                ? "נמדד עכשיו"
+                ? t.measuringNow
                 : typeof metric.value === "number"
                   ? he(metric.value)
                   : metric.value}
@@ -250,7 +459,7 @@ function CivicSignalMap({
  * The counted evidence behind a TOC: the loudest reactions and the comment
  * volume as measured at the source, then how many people already voted here.
  */
-function SignalMetrics({ signal }: { signal: SignalVote }) {
+function SignalMetrics({ signal, t }: { signal: SignalVote; t: IntroCopy }) {
   const source = signal.source;
   const reactions = source ? topReactions(source.reactions, 6) : [];
 
@@ -270,7 +479,7 @@ function SignalMetrics({ signal }: { signal: SignalVote }) {
       )}
       {signal.participantCount > 0 && (
         <span className={styles.tocParticipants}>
-          {he(signal.participantCount)} הצביעו
+          {he(signal.participantCount)} {t.voted}
         </span>
       )}
     </div>
@@ -297,7 +506,11 @@ function officialDate(value: string): string {
 }
 
 /** A compact statement of what an agenda item seeks to advance. */
-function proposalBrief(signal: SignalVote, evidence?: KnessetEvidence): string {
+function proposalBrief(
+  signal: SignalVote,
+  t: IntroCopy,
+  evidence?: KnessetEvidence,
+): string {
   const generated = (
     evidence?.official?.summary ?? evidence?.ranking?.rationale
   )
@@ -315,12 +528,12 @@ function proposalBrief(signal: SignalVote, evidence?: KnessetEvidence): string {
       .replace(/^הצעת חוק\s*/, "")
       .replace(/,?\s*התשפ[^,]*$/u, "")
       .trim();
-    return `ההצעה מבקשת להסדיר בחקיקה את ${subject}.`;
+    return t.briefRegulate.replace("{subject}", () => subject);
   }
   if (title.startsWith("הצהרת אמונים")) {
-    return `הסעיף מבקש לאשר את ${title}.`;
+    return t.briefAffirm.replace("{subject}", () => title);
   }
-  return `הסעיף מבקש לקדם את ${title}.`;
+  return t.briefAdvance.replace("{subject}", () => title);
 }
 
 /**
@@ -340,9 +553,13 @@ function dispatchPosition(point: MapPoint): CSSProperties {
 function MunicipalDispatchContent({
   signal,
   paused,
+  t,
+  locale,
 }: {
   signal: SignalVote;
   paused: boolean;
+  t: IntroCopy;
+  locale: Locale;
 }) {
   return (
     <>
@@ -351,7 +568,7 @@ function MunicipalDispatchContent({
         {signal.source && (
           <b
             className={styles.tocHeat}
-            title="חום ציבורי - ריאקציות ותגובות במקור"
+            title={t.heatTitle}
           >
             🔥 {signal.source.hotness}°
           </b>
@@ -366,33 +583,35 @@ function MunicipalDispatchContent({
             <i aria-hidden /> FACEBOOK GROUP SCAN
           </span>
           <p>
-            סרקנו{" "}
+            {t.scanned}{" "}
             {signal.source.postCount === 1
-              ? "פוסט אחד"
-              : `${he(signal.source.postCount)} פוסטים`}{" "}
-            בקבוצת הפייסבוק של <strong>{signal.municipality}</strong>.
+              ? t.onePost
+              : `${he(signal.source.postCount)} ${t.postsWord}`}{" "}
+            {t.inGroupOf} <strong>{signal.municipality}</strong>.
           </p>
           <div className={styles.tocSourceMeta}>
-            <span>נמדד {sourceDate(signal.source.fetchedAt)}</span>
+            <span>
+              {t.measuredOn} {sourceDate(signal.source.fetchedAt)}
+            </span>
             {signal.source.url && (
               <a
                 href={signal.source.url}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                למקור בפייסבוק ↗
+                {t.facebookSourceLink}
               </a>
             )}
           </div>
         </div>
       )}
 
-      <SignalMetrics signal={signal} />
+      <SignalMetrics signal={signal} t={t} />
 
       <div className={styles.tocFoot}>
-        <Link className={styles.tocCta} href={voteHref(signal.id)}>
-          להצבעה הפעילה
-          <i aria-hidden>←</i>
+        <Link className={styles.tocCta} href={voteHref(signal.id, locale)}>
+          {t.activeVoteCta}
+          <i aria-hidden>{t.backGlyph}</i>
         </Link>
         <span
           className={styles.tocProgress}
@@ -422,14 +641,13 @@ const INTRO_SOCIALS = [
   },
 ] as const;
 
-const INTRO_NAV = [
-  { number: "01", label: "הצבעות", href: "votes" },
-  { number: "02", label: "סדר היום", href: "explore" },
-  { number: "03", label: "כנסת ישראל", href: "knesset" },
-  { number: "04", label: "מהי תַּרְאוּ?", href: "#what-is-taruu" },
-] as const;
+interface CinematicIntroProps {
+  locale?: Locale;
+}
 
-export function CinematicIntro() {
+export function CinematicIntro({ locale = "he" }: CinematicIntroProps) {
+  const t = COPY[locale];
+  const otherLocale: Locale = locale === "he" ? "en" : "he";
   const rootRef = useRef<HTMLElement>(null);
   const shouldReduceMotion = useReducedMotion();
   const [signals, setSignals] = useState<SignalVote[]>([]);
@@ -657,8 +875,9 @@ export function CinematicIntro() {
     return structureKnessetTitle(
       signal.title,
       knessetEvidence[signal.id]?.official?.itemType,
+      locale,
     ).headline;
-  }, [knessetSignals, knessetEvidence]);
+  }, [knessetSignals, knessetEvidence, locale]);
 
   const municipalWindow = Math.min(placedMunicipalSignals.length, 10);
   const knessetWindow = Math.min(knessetSignals.length, 6);
@@ -710,18 +929,18 @@ export function CinematicIntro() {
         ease: "outExpo",
       });
 
+      animate("[data-intro-locale]", {
+        translateY: [-12, 0],
+        opacity: [0, 1],
+        delay: 240,
+        duration: 780,
+        ease: "outExpo",
+      });
+
       animate("[data-intro-social]", {
         translateY: [8, 0],
         opacity: [0, 1],
         delay: stagger(80, { start: 540 }),
-        duration: 650,
-        ease: "outExpo",
-      });
-
-      animate("[data-intro-nav]", {
-        translateY: [8, 0],
-        opacity: [0, 1],
-        delay: stagger(70, { start: 720 }),
         duration: 650,
         ease: "outExpo",
       });
@@ -829,6 +1048,15 @@ export function CinematicIntro() {
               xPercent: 145,
               yPercent: 24,
               duration: 0.62,
+            },
+            0.7,
+          )
+          .to(
+            "[data-intro-locale]",
+            {
+              yPercent: -220,
+              opacity: 0,
+              duration: 0.5,
             },
             0.7,
           )
@@ -1050,7 +1278,7 @@ export function CinematicIntro() {
     <section
       ref={rootRef}
       className={`${styles.cinematic} ${shouldReduceMotion ? styles.reduced : ""}`}
-      aria-label="מרעש ציבורי לסדר יום משותף"
+      aria-label={t.sectionAria}
     >
       <div className={styles.stage} data-cinematic-stage>
         <div className={styles.paperTexture} aria-hidden />
@@ -1082,13 +1310,24 @@ export function CinematicIntro() {
             </svg>
           </div>
 
+          <Link
+            className={styles.localeSwitch}
+            href={localePath(otherLocale)}
+            hrefLang={otherLocale}
+            lang={otherLocale}
+            aria-label={t.localeSwitchAria}
+            data-intro-locale
+          >
+            {t.localeSwitchLabel}
+          </Link>
+
           <div className={styles.introBrand} data-intro-logo>
-            <div className={styles.introLogo} aria-label="תַּרְאוּ">
-              תַּרְאוּ<span>.</span>
+            <div className={styles.introLogo} aria-label={t.brandName}>
+              {t.brandName}<span>.</span>
             </div>
             <nav
               className={styles.introSocials}
-              aria-label="תַּרְאוּ ברשתות החברתיות"
+              aria-label={t.socialsAria}
             >
               {INTRO_SOCIALS.map((social) => (
                 <a
@@ -1135,63 +1374,63 @@ export function CinematicIntro() {
               ))}
             </nav>
 
-            <nav className={styles.introQuickNav} aria-label="קישורים מרכזיים">
-              {INTRO_NAV.map((item) => (
-                <Link
-                  key={item.number}
-                  data-intro-nav
-                  href={
-                    item.href.startsWith("#")
-                      ? `/${i18n.defaultLocale}${item.href}`
-                      : `/${i18n.defaultLocale}/${item.href}`
-                  }
-                >
-                  <span>{item.number}</span>
-                  {item.label}
-                  <i aria-hidden>←</i>
-                </Link>
-              ))}
-            </nav>
           </div>
 
           <div className={styles.questionCopy} data-question-copy>
-            <h1 className={styles.question}>
-              <span
-                className={`${styles.questionSentence} ${styles.questionTopRight}`}
-                data-question-sentence="top"
-              >
-                <i data-question-line>
-                  אם <mark>מיליון אנשים</mark> מתלוננים <em>בפייסבוק</em>,
-                </i>
-              </span>
-              <span
-                className={`${styles.questionSentence} ${styles.questionBottomLeft}`}
-                data-question-sentence="bottom"
-              >
-                <i data-question-line>
-                  למה <mark>אף אחד</mark> לא <strong>שומע אותם?</strong>
-                </i>
-              </span>
-            </h1>
+            <div className={styles.questionLead}>
+              <h1 className={styles.question}>
+                <span
+                  className={`${styles.questionSentence} ${styles.questionTopRight}`}
+                  data-question-sentence="top"
+                >
+                  <i data-question-line>
+                    {t.q1pre}<mark>{t.q1mark}</mark>{t.q1mid}<em>{t.q1em}</em>{t.q1end}
+                  </i>
+                </span>
+                <span
+                  className={`${styles.questionSentence} ${styles.questionBottomLeft}`}
+                  data-question-sentence="bottom"
+                >
+                  <i data-question-line>
+                    {t.q2pre}<mark>{t.q2mark}</mark>{t.q2mid}<strong>{t.q2strong}</strong>
+                  </i>
+                </span>
+              </h1>
 
-            <div className={styles.questionActions} data-question-actions>
-              <button
-                type="button"
-                className={styles.questionPrimary}
-                data-question-action
-                onClick={advanceToLiveMap}
-              >
-                למפת הנושאים החיה
-                <span aria-hidden>↓</span>
-              </button>
-              <Link
-                href={`/${i18n.defaultLocale}/explore`}
-                className={styles.questionSecondary}
-                data-question-action
-              >
-                לסדר היום הציבורי <span aria-hidden>←</span>
-              </Link>
+              <div className={styles.questionActions} data-question-actions>
+                <button
+                  type="button"
+                  className={styles.questionPrimary}
+                  data-question-action
+                  onClick={advanceToLiveMap}
+                >
+                  {t.primaryCta}
+                  <span aria-hidden>↓</span>
+                </button>
+                <Link
+                  href={`${localePrefix(locale)}/explore`}
+                  className={styles.questionSecondary}
+                  data-question-action
+                >
+                  {t.secondaryCta} <span aria-hidden>{t.backGlyph}</span>
+                </Link>
+              </div>
             </div>
+
+            <dl className={styles.questionStats} aria-live="polite">
+              {[
+                [t.participantCountLabel, publicLedger.peopleInvolved],
+                [t.municipalDecisionsLabel, publicLedger.municipalTopics],
+                [t.nationalDecisionsLabel, publicLedger.knessetTopics],
+              ].map(([label, value]) => (
+                <div key={label as string}>
+                  <dt>{label}</dt>
+                  <dd>
+                    {typeof value === "number" ? he(value) : t.measuringNow}
+                  </dd>
+                </div>
+              ))}
+            </dl>
 
             <div className={styles.scrollCue} data-scroll-cue aria-hidden>
               <motion.span
@@ -1202,7 +1441,7 @@ export function CinematicIntro() {
                   ease: "easeInOut",
                 }}
               >
-                גללו
+                {t.scrollCue}
               </motion.span>
               <i data-cursor />
             </div>
@@ -1218,7 +1457,7 @@ export function CinematicIntro() {
               <header className={styles.panelHeader}>
                 <div>
                   <span>MUNICIPAL TOCS / LIVE MAP</span>
-                  <h2>מוקדי עניין עירוניים</h2>
+                  <h2>{t.muniPanelTitle}</h2>
                 </div>
                 <b className={styles.scanning}>
                   LIVE {municipalSignals.length}
@@ -1233,7 +1472,7 @@ export function CinematicIntro() {
                     viewBox={MAP_VIEWBOX}
                     preserveAspectRatio="xMidYMid meet"
                     role="img"
-                    aria-label="מפת ישראל עם מוקדי שיח ציבורי"
+                    aria-label={t.mapAria}
                   >
                     <path className={styles.mapOutline} d={ISRAEL_MAP_PATH} />
 
@@ -1313,8 +1552,10 @@ export function CinematicIntro() {
                         aria-live="polite"
                       >
                         <MunicipalDispatchContent
+                          locale={locale}
                           signal={activeMunicipalSignal}
                           paused={muniPaused}
+                          t={t}
                         />
                       </motion.aside>
                     )}
@@ -1333,8 +1574,10 @@ export function CinematicIntro() {
                       aria-live="polite"
                     >
                       <MunicipalDispatchContent
+                        locale={locale}
                         signal={activeMunicipalSignal}
                         paused={muniPaused}
+                        t={t}
                       />
                     </motion.aside>
                   )}
@@ -1343,9 +1586,11 @@ export function CinematicIntro() {
                 <div className={styles.mapLegend}>
                   <span>
                     <i />
-                    מוקד פעיל
+                    {t.legendActive}
                   </span>
-                  <span>{mapSignals.length} אזורים באוויר</span>
+                  <span>
+                    {mapSignals.length} {t.legendAreas}
+                  </span>
                 </div>
               </div>
             </section>
@@ -1354,14 +1599,12 @@ export function CinematicIntro() {
               <header className={styles.panelHeader}>
                 <div>
                   <span>KNESSET TOCS / LIVE FEED</span>
-                  <h2>סדר היום בכנסת</h2>
+                  <h2>{t.knessetPanelTitle}</h2>
                 </div>
                 <b>{knessetSignals.length.toLocaleString("he-IL")}</b>
               </header>
 
-              <p className={styles.signalLede}>
-                הנושאים הארציים שמצטברים עכשיו לקול ציבורי מדיד.
-              </p>
+              <p className={styles.signalLede}>{t.knessetLede}</p>
 
               <ol
                 className={styles.signalList}
@@ -1375,6 +1618,7 @@ export function CinematicIntro() {
                   const displayTitle = structureKnessetTitle(
                     signal.title,
                     official?.itemType,
+                    locale,
                   );
 
                   return (
@@ -1397,7 +1641,7 @@ export function CinematicIntro() {
                           </div>
                           <b className={styles.signalTitle}>
                             <Link
-                              href={voteHref(signal.id)}
+                              href={voteHref(signal.id, locale)}
                               title={signal.title}
                               aria-label={signal.title}
                             >
@@ -1419,7 +1663,9 @@ export function CinematicIntro() {
                                 ),
                               )}
                               <span>💬 {he(signal.source.commentsCount)}</span>
-                              <span>{he(signal.source.postCount)} פוסטים</span>
+                              <span>
+                                {he(signal.source.postCount)} {t.postsWord}
+                              </span>
                             </>
                           ) : (
                             <>
@@ -1429,10 +1675,14 @@ export function CinematicIntro() {
                                 </b>
                               )}
                               {ranking?.relevance != null && (
-                                <span>רלוונטיות {ranking.relevance}</span>
+                                <span>
+                                  {t.relevanceLabel} {ranking.relevance}
+                                </span>
                               )}
                               {ranking?.media != null && (
-                                <span>סיקור {ranking.media}</span>
+                                <span>
+                                  {t.coverageLabel} {ranking.media}
+                                </span>
                               )}
                               {official?.sessionDate && (
                                 <span>
@@ -1442,12 +1692,14 @@ export function CinematicIntro() {
                             </>
                           )}
                           {signal.participantCount > 0 && (
-                            <span>{he(signal.participantCount)} הצביעו</span>
+                            <span>
+                              {he(signal.participantCount)} {t.voted}
+                            </span>
                           )}
                         </em>
 
                         <p className={styles.signalSummary}>
-                          {proposalBrief(signal, evidence)}
+                          {proposalBrief(signal, t, evidence)}
                         </p>
 
                         {official?.summary && ranking?.rationale && (
@@ -1457,8 +1709,8 @@ export function CinematicIntro() {
                         )}
 
                         <div className={styles.signalLinks}>
-                          <Link href={voteHref(signal.id)}>
-                            להצבעה הפעילה ←
+                          <Link href={voteHref(signal.id, locale)}>
+                            {t.knessetVoteCta}
                           </Link>
                           {official?.docUrl && (
                             <a
@@ -1466,7 +1718,7 @@ export function CinematicIntro() {
                               target="_blank"
                               rel="noopener noreferrer"
                             >
-                              למסמך הרשמי ↗
+                              {t.officialDocLink}
                             </a>
                           )}
                           {ranking?.mediaRefs[0] && (
@@ -1475,7 +1727,7 @@ export function CinematicIntro() {
                               target="_blank"
                               rel="noopener noreferrer"
                             >
-                              מקור תקשורתי ↗
+                              {t.mediaSourceLink}
                             </a>
                           )}
                         </div>
@@ -1485,16 +1737,16 @@ export function CinematicIntro() {
                   );
                 })}
                 {knessetSignals.length === 0 && (
-                  <li className={styles.signalEmpty}>מתחבר למסד הנתונים…</li>
+                  <li className={styles.signalEmpty}>{t.connecting}</li>
                 )}
               </ol>
 
               <Link
                 className={styles.signalCta}
-                href={`/${i18n.defaultLocale}/explore`}
+                href={`${localePrefix(locale)}/explore`}
               >
-                לכל סדר היום הציבורי
-                <i aria-hidden>←</i>
+                {t.fullAgendaCta}
+                <i aria-hidden>{t.backGlyph}</i>
               </Link>
 
               <footer className={styles.scanFooter}>
@@ -1523,14 +1775,14 @@ export function CinematicIntro() {
           data-scene="thesis"
         >
           <div className={styles.thesisCopy} data-thesis-copy>
-            <span className={styles.thesisKicker}>עד עכשיו</span>
+            <span className={styles.thesisKicker}>{t.thesisKicker}</span>
             <h2 className={styles.thesisTitle}>
-              עד היום, כל אחד
-              <span>צעק לבד.</span>
-              <em>תַּרְאוּ.</em>
+              {t.thesisA}
+              <span>{t.thesisB}</span>
+              <em>{t.thesisC}</em>
             </h2>
             <span className={styles.thesisRule} data-thesis-rule aria-hidden />
-            <p className={styles.thesisLede}>לראשונה הציבור מקבל מבנה לכוחו.</p>
+            <p className={styles.thesisLede}>{t.thesisLede}</p>
           </div>
 
           <CivicSignalMap
@@ -1538,6 +1790,7 @@ export function CinematicIntro() {
             mapSignals={mapSignals}
             bestCity={bestCivicCity}
             pressingKnesset={pressingKnesset}
+            t={t}
           />
         </article>
       </div>

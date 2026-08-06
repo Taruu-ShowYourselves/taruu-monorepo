@@ -29,6 +29,40 @@ import {
 } from '@/lib/supabase/db';
 import { buildUserProfile } from '@/services/user/profile';
 
+/**
+ * Origin the exchange's `redirect_uri` is built on.
+ *
+ * The authorize request is issued by the browser against its own origin
+ * (`window.location.origin + GOOGLE_REDIRECT_PATH`), so on localhost the
+ * configured app URL is the wrong string and Google answers the exchange with
+ * `redirect_uri_mismatch`. Trust the request's own origin, but only when it is
+ * one we recognise - an attacker-supplied origin would otherwise be echoed
+ * into the token call.
+ */
+function resolveOrigin(request: Request): string {
+  const configured = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '');
+  // Same-origin POSTs carry an Origin header in every current browser; the URL
+  // fallback covers the ones that omit it.
+  const sent = (
+    request.headers.get('origin') ?? new URL(request.url).origin
+  ).replace(/\/$/, '');
+  if (sent === configured) return configured;
+
+  // Local development serves the same app from a loopback origin; Google has
+  // that URI registered alongside the production one.
+  try {
+    const { hostname, protocol } = new URL(sent);
+    const loopback = hostname === 'localhost' || hostname === '127.0.0.1';
+    if (loopback && protocol === 'http:' && process.env.NODE_ENV !== 'production') {
+      return sent;
+    }
+  } catch {
+    // Unparseable Origin header - fall through to the configured URL.
+  }
+
+  return configured;
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -43,7 +77,7 @@ export async function POST(request: Request) {
 
     // Exchange code for tokens. The redirect_uri must byte-match the one the
     // authorize request used - the sign-in page, never this API route.
-    const redirectUri = `${(process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '')}${GOOGLE_REDIRECT_PATH}`;
+    const redirectUri = `${resolveOrigin(request)}${GOOGLE_REDIRECT_PATH}`;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
     if (!clientSecret) {

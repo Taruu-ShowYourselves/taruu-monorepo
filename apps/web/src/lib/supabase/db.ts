@@ -33,6 +33,7 @@ import {
   type PublicVoteStatus,
 } from '@/server/domain/votes/vote';
 import { REVIEW_VOTE_STATUSES } from '@/server/domain/space/review';
+import { UniqueViolationError } from './errors';
 
 // ============================================
 // USER OPERATIONS
@@ -846,11 +847,17 @@ export async function getVotesByMunicipality(
 export async function getActiveVotesWithOptions(
   municipalityId?: string
 ): Promise<(Vote & { options: VoteOption[]; source: VoteSource | null })[]> {
+  // Source engagement rides along as an embedded to-one relation rather than
+  // a follow-up `.in('vote_id', ids)` query, which could only be issued once
+  // the vote ids were known and so cost a second serial round-trip on every
+  // render. A vote with no source row embeds as null, which is the same
+  // "no metrics, never an empty desk" degradation the separate query gave.
   let query = supabaseAdmin
     .from('votes')
     .select(`
       *,
-      vote_options (*)
+      vote_options (*),
+      vote_sources (*)
     `)
     .eq('status', 'active')
     .order('created_at', { ascending: false });
@@ -866,31 +873,19 @@ export async function getActiveVotesWithOptions(
     return [];
   }
 
-  const votes = data || [];
-
-  // Source engagement is fetched separately so a missing/errored
-  // vote_sources table degrades to "no metrics", never to an empty desk.
-  const sourceByVote = new Map<string, VoteSource>();
-  if (votes.length > 0) {
-    const { data: sources, error: sourcesError } = await supabaseAdmin
-      .from('vote_sources')
-      .select('*')
-      .in('vote_id', votes.map((v: any) => v.id));
-
-    if (sourcesError) {
-      console.error('Failed to get vote sources (continuing without):', sourcesError);
-    } else {
-      for (const s of (sources || []) as VoteSource[]) {
-        sourceByVote.set(s.vote_id, s);
-      }
-    }
-  }
-
-  return votes.map((vote: any) => ({
-    ...vote,
-    options: vote.vote_options || [],
-    source: sourceByVote.get(vote.id) ?? null,
-  }));
+  return (data || []).map((row: any) => {
+    // Destructured out of the spread on purpose: keeping them would ship the
+    // option rows twice - once under the raw relation name and again under
+    // `options` - through the RSC payload of every surface that renders a desk.
+    const { vote_options, vote_sources, ...vote } = row;
+    return {
+      ...vote,
+      options: vote_options || [],
+      // Defensive: PostgREST embeds this as an object today (unique vote_id),
+      // but an array here would silently become a truthy non-VoteSource.
+      source: (Array.isArray(vote_sources) ? vote_sources[0] : vote_sources) ?? null,
+    };
+  });
 }
 
 /**
@@ -900,6 +895,14 @@ export async function getActiveVotesWithOptions(
  * stopping POST /api/ingest/topics from creating a second copy of a topic that
  * is already sitting in the review queue, unpublished and therefore invisible
  * to a `pending`/`active`-only lookup.
+ *
+ * Throws rather than degrading to null, unlike most readers in this file. Here
+ * `null` is not "no answer" but "no such vote", and the only caller acts on it
+ * by inserting one. A database that answered with an error has not said the
+ * topic is absent, and treating it as if it had is how a single unapplied
+ * migration turned every ingest run into a fresh copy of the whole batch: the
+ * status window named enum labels the deployed database did not have yet, every
+ * lookup came back 22P02, and 184 duplicate votes accumulated behind it.
  */
 export async function findVoteByMunicipalityAndTitle(
   municipalityId: string,
@@ -916,7 +919,7 @@ export async function findVoteByMunicipalityAndTitle(
 
   if (error) {
     console.error('Failed to find vote by title:', error);
-    return null;
+    throw new Error(`vote lookup failed for "${title}": ${error.message}`);
   }
   return data;
 }
@@ -1085,6 +1088,15 @@ export async function createVote(
     .select()
     .single();
 
+  if (error?.code === '23505') {
+    // `ux_votes_live_topic`: this municipality already has an open ballot under
+    // this exact title. Typed so the ingest path can answer it by re-reading
+    // the winner instead of failing the run.
+    throw new UniqueViolationError(
+      error.details ?? undefined,
+      `Vote already exists for ${voteData.municipality_id}: ${voteData.title}`
+    );
+  }
   if (error) throw new Error(`Failed to create vote: ${error.message}`);
   return data;
 }

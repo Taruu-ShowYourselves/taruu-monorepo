@@ -216,7 +216,8 @@ a.topicMuni:hover { background: var(--np-red); }
 .topicCardLead .topicMeta,
 .topicCardLead .noBallots,
 .topicCardLead .fetchedAt,
-.topicCardLead .sourceLine {
+.topicCardLead .sourceLine,
+.topicCardLead .postCount {
   color: color-mix(in srgb, var(--np-paper) 58%, var(--np-ink));
 }
 .topicCardLead .sourceLink { color: var(--np-paper); }
@@ -495,6 +496,12 @@ a.topicMuni:hover { background: var(--np-red); }
 }
 
 .topicLink {
+  padding: 0;
+  background: none;
+  border: 0;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
   color: var(--np-ink);
   text-decoration: none;
 }
@@ -502,6 +509,25 @@ a.topicMuni:hover { background: var(--np-red); }
   color: var(--np-red);
   text-decoration: underline;
   text-decoration-thickness: 0.08em;
+}
+
+/* The headline button is the tile's door, and the door is the whole tile:
+   its hit area is stretched over the card so a reader opens the topic by
+   clicking anywhere on it. Still one focusable control, not an overlay -
+   the keyboard path is unchanged. The tile's own links (edition chip,
+   source, ballot CTA) sit above that sheet and keep their targets. */
+.topicLink::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.topicMuni,
+.sourceLink,
+.leadCta {
+  position: relative;
+  z-index: 2;
 }
 
 .topicDesc,
@@ -634,6 +660,29 @@ a.topicMuni:hover { background: var(--np-red); }
   align-items: center;
   gap: 2px;
   font-variant-numeric: tabular-nums;
+  position: relative;
+  cursor: help;
+}
+
+.reaction:hover::after {
+  content: attr(title);
+  position: absolute;
+  z-index: 1;
+  inset-block-end: calc(100% + 6px);
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  inline-size: max-content;
+  max-inline-size: min(280px, 80vw);
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: var(--np-ink);
+  color: var(--np-paper);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: center;
+  white-space: normal;
+  pointer-events: none;
 }
 
 .reactionsSum {
@@ -771,6 +820,8 @@ a.topicMuni:hover { background: var(--np-red); }
   font-size: var(--text-sm);
   font-weight: 800;
   letter-spacing: 0.04em;
+  border: 0;
+  cursor: pointer;
   text-decoration: none;
   transition:
     background-color var(--np-dur-snap) var(--np-ease),

@@ -1,7 +1,8 @@
 /**
  * Card-art generator — one duotone background plate per active vote.
  *
- * Pipeline: pull active votes (all desks) that have no fresh plate → a Claude
+ * Pipeline: select plate-worthy active votes — every Knesset item plus each
+ * municipality's top-2 by engagement heat (see selectCandidates) → a Claude
  * agent turns each Hebrew title+description into one concrete English scene
  * line (objects only, no typography) → the scene is wrapped in the house
  * style — two-colour risograph, black ink + pillarbox red on newsprint cream,
@@ -71,12 +72,69 @@ interface CliOptions {
   model?: string;
   /** Higgsfield image model (job_set_type). */
   imageModel: string;
+  /** Plates per municipality (Knesset always gets all). */
+  municipalTop: number;
 }
 
 interface ArtableVote {
   id: string;
   title: string;
   description: string;
+}
+
+const KNESSET_SCOPE = 'כנסת ישראל';
+
+interface CandidateVote extends ArtableVote {
+  municipalityId: string;
+  hotness: number;
+}
+
+/**
+ * Engagement hotness — copy of @sync/shared `hotnessOf` (packages/shared/
+ * src/utils/hotness.ts). Copied, not imported: the box installs this package
+ * with plain `npm install`, which cannot resolve a workspace dependency.
+ * Keep in sync with the source of truth.
+ */
+export function hotnessOf(commentsCount: number, reactionsTotal: number): number {
+  const engagement = commentsCount * 3 + reactionsTotal;
+  if (engagement <= 0) return 0;
+  return Math.min(100, Math.round((100 * engagement) / (engagement + 400)));
+}
+
+/**
+ * Which active votes deserve a plate.
+ *
+ * Every Knesset item gets one — the national desk prints them all. Municipal
+ * desks print far more topics than a reader ever scrolls (a synced group can
+ * carry a hundred open votes), so each municipality plates only its top
+ * `municipalTop` by the same engagement heat the desk itself orders by —
+ * the tiles a visitor actually sees. Municipal candidates queue first: the
+ * national desk is usually already plated, and --limit must not starve the
+ * cities behind 58 already-settled Knesset rows.
+ */
+export function selectCandidates(
+  votes: CandidateVote[],
+  municipalTop: number
+): CandidateVote[] {
+  const knesset = votes.filter((v) => v.municipalityId === KNESSET_SCOPE);
+
+  const byMunicipality = new Map<string, CandidateVote[]>();
+  for (const vote of votes) {
+    if (vote.municipalityId === KNESSET_SCOPE) continue;
+    const bucket = byMunicipality.get(vote.municipalityId);
+    if (bucket) bucket.push(vote);
+    else byMunicipality.set(vote.municipalityId, [vote]);
+  }
+
+  const municipal: CandidateVote[] = [];
+  for (const bucket of byMunicipality.values()) {
+    bucket.sort((a, b) => b.hotness - a.hotness);
+    municipal.push(...bucket.slice(0, municipalTop));
+  }
+  // Hottest cities first, so a tight --limit spends where the heat is.
+  municipal.sort((a, b) => b.hotness - a.hotness);
+
+  return [...municipal, ...knesset];
 }
 
 function parseArgs(argv: string[]): CliOptions {
@@ -86,6 +144,7 @@ function parseArgs(argv: string[]): CliOptions {
     dryRun: false,
     model: process.env.RANKER_MODEL,
     imageModel: DEFAULT_IMAGE_MODEL,
+    municipalTop: 2,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -96,6 +155,8 @@ function parseArgs(argv: string[]): CliOptions {
     else if (arg === '--model') options.model = argv[++i] || options.model;
     else if (arg === '--image-model')
       options.imageModel = argv[++i] || options.imageModel;
+    else if (arg === '--municipal-top')
+      options.municipalTop = numberArg(argv[++i], options.municipalTop);
   }
   return options;
 }
@@ -275,11 +336,56 @@ async function main(): Promise<void> {
 
   if (!options.dryRun) await assertHiggsfieldReady();
 
-  const { data: votes, error: votesError } = await supabase
-    .from('votes')
-    .select('id, title, description')
-    .eq('status', 'active');
-  if (votesError) throw new Error(`votes query failed: ${votesError.message}`);
+  // Sources carry the engagement counts the desks order themselves by; the
+  // synced groups can hold hundreds of open votes, so page past PostgREST's
+  // per-request row cap rather than silently plating whatever fits one page.
+  const PAGE = 1000;
+  type VoteRow = {
+    id: string;
+    title: string;
+    description: string | null;
+    municipality_id: string;
+    vote_sources: { comments_count: number | null; reactions: unknown }[] | null;
+  };
+  const voteRows: VoteRow[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from('votes')
+      .select(
+        'id, title, description, municipality_id, vote_sources(comments_count, reactions)'
+      )
+      .eq('status', 'active')
+      .range(from, from + PAGE - 1);
+    if (error) throw new Error(`votes query failed: ${error.message}`);
+    voteRows.push(...((data ?? []) as VoteRow[]));
+    if (!data || data.length < PAGE) break;
+  }
+
+  const reactionsTotalOf = (reactions: unknown): number =>
+    reactions && typeof reactions === 'object'
+      ? Object.values(reactions as Record<string, unknown>).reduce<number>(
+          (sum, n) => sum + (typeof n === 'number' && Number.isFinite(n) ? n : 0),
+          0
+        )
+      : 0;
+
+  const candidates = selectCandidates(
+    voteRows.map((v) => {
+      const source = Array.isArray(v.vote_sources)
+        ? v.vote_sources[0]
+        : v.vote_sources;
+      return {
+        id: v.id,
+        title: v.title,
+        description: v.description ?? '',
+        municipalityId: v.municipality_id,
+        hotness: source
+          ? hotnessOf(source.comments_count ?? 0, reactionsTotalOf(source.reactions))
+          : 0,
+      };
+    }),
+    options.municipalTop
+  );
 
   const { data: art, error: artError } = await supabase
     .from('vote_card_art')
@@ -298,17 +404,13 @@ async function main(): Promise<void> {
       .map((row) => row.vote_id as string)
   );
 
-  const artable: ArtableVote[] = (votes ?? [])
-    .filter((v) => !settled.has(v.id as string))
+  const artable: ArtableVote[] = candidates
+    .filter((v) => !settled.has(v.id))
     .slice(0, options.limit)
-    .map((v) => ({
-      id: v.id as string,
-      title: v.title as string,
-      description: (v.description as string | null) ?? '',
-    }));
+    .map(({ id, title, description }) => ({ id, title, description }));
 
   console.log(
-    `card-art: ${votes?.length ?? 0} active votes, ${artable.length} to plate (retry-hours=${options.retryHours}, limit=${options.limit}, model=${options.imageModel})`
+    `card-art: ${voteRows.length} active votes, ${candidates.length} candidates (knesset + top-${options.municipalTop}/municipality), ${artable.length} to plate (retry-hours=${options.retryHours}, limit=${options.limit}, model=${options.imageModel})`
   );
   if (artable.length === 0) return;
 

@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { buildPlatePrompt, findImageUrl, parseScenes } from './art.js';
+import {
+  buildPlatePrompt,
+  findImageUrl,
+  parseScenes,
+  selectCandidates,
+} from './art.js';
 
 const batch = [
   { id: 'v1', title: 'שבילי אופניים', description: 'הפרדה פיזית' },
@@ -34,6 +39,42 @@ describe('parseScenes', () => {
       () => parseScenes('Not logged in', batch),
       /no JSON array/
     );
+  });
+});
+
+describe('selectCandidates', () => {
+  const KNESSET = 'כנסת ישראל';
+  const cv = (id: string, municipalityId: string, hotness: number) => ({
+    id,
+    title: id,
+    description: '',
+    municipalityId,
+    hotness,
+  });
+
+  it('keeps every Knesset item and only the municipal top-N', () => {
+    const picked = selectCandidates(
+      [
+        cv('k1', KNESSET, 0),
+        cv('k2', KNESSET, 0),
+        cv('a1', 'עכו', 80),
+        cv('a2', 'עכו', 50),
+        cv('a3', 'עכו', 90),
+        cv('b1', 'לוד', 10),
+      ],
+      2
+    );
+    const ids = picked.map((v) => v.id);
+    assert.deepEqual(new Set(ids), new Set(['k1', 'k2', 'a3', 'a1', 'b1']));
+    assert.ok(!ids.includes('a2'));
+  });
+
+  it('queues municipal plates before Knesset ones, hottest first', () => {
+    const ids = selectCandidates(
+      [cv('k1', KNESSET, 0), cv('b1', 'לוד', 10), cv('a1', 'עכו', 80)],
+      2
+    ).map((v) => v.id);
+    assert.deepEqual(ids, ['a1', 'b1', 'k1']);
   });
 });
 

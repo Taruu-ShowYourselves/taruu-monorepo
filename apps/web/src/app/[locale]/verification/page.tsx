@@ -368,8 +368,9 @@ function VerificationView() {
   return (
     <div className="np-page">
       <Header />
-      <main className={styles.main}>
+      <main className={`${styles.main} np-desk`}>
         <div className={styles.container}>
+          <div className={`${styles.sheet} np-sheet`}>
           {/* Dateline + masthead-ear meta */}
           <div className={styles.dateline}>
             <span className={styles.datelineTick} aria-hidden />
@@ -637,6 +638,7 @@ function VerificationView() {
                 </p>
               </div>
             </aside>
+          </div>
           </div>
         </div>
       </main>

@@ -10,6 +10,7 @@
 
 import { formatBillTitle } from '@/lib/knesset/billTitle';
 import { KNESSET_SCOPE } from '@sync/shared';
+import type { Locale } from '@/lib/i18n';
 import type { KnessetItem, KnessetRanking } from '@/lib/supabase/types';
 import {
   toDeskTopic,
@@ -83,10 +84,10 @@ function toDeskRanking(row: KnessetRanking): DeskRanking {
   };
 }
 
-function toFeedAgenda(item: KnessetItem): FeedAgenda {
+function toFeedAgenda(item: KnessetItem, locale: Locale): FeedAgenda {
   return {
     date: formatAgendaDate(item.session_date),
-    weekday: weekdayOf(item.session_date),
+    weekday: weekdayOf(item.session_date, locale),
     ordinal: item.ordinal,
     itemType: item.item_type,
     knessetNum: item.knesset_num,
@@ -112,7 +113,10 @@ function toFeedDocument(item: KnessetItem): FeedDocument | null {
 export function buildFeedItems(
   votes: readonly VoteWithRelations[],
   knessetItems: readonly KnessetItem[],
-  rankings: ReadonlyMap<string, KnessetRanking>
+  rankings: ReadonlyMap<string, KnessetRanking>,
+  locale: Locale = 'he',
+  /** voteId → plate URL. Omitted, every card simply prints without art. */
+  art: ReadonlyMap<string, string> = new Map()
 ): FeedTopicItem[] {
   const agendaByVote = new Map(knessetItems.map((item) => [item.vote_id, item]));
 
@@ -120,7 +124,7 @@ export function buildFeedItems(
     const rankingRow = rankings.get(vote.id) ?? null;
     const agendaRow = agendaByVote.get(vote.id) ?? null;
     const isNational = vote.municipality_id === KNESSET_SCOPE;
-    const base = toDeskTopic(vote);
+    const base = toDeskTopic(vote, art.get(vote.id) ?? null);
     // National titles arrive as legal citations; split them so the feed sets
     // the same headline the Knesset desk does.
     const topic: DeskTopic = isNational
@@ -134,7 +138,7 @@ export function buildFeedItems(
       heat: rankingRow?.hotness ?? topic.source?.hotness ?? 0,
       topic,
       ranking: rankingRow ? toDeskRanking(rankingRow) : null,
-      agenda: agendaRow ? toFeedAgenda(agendaRow) : null,
+      agenda: agendaRow ? toFeedAgenda(agendaRow, locale) : null,
       document: agendaRow ? toFeedDocument(agendaRow) : null,
     };
   });

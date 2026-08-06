@@ -11,13 +11,27 @@ const SuspenseWrapper = Suspense as unknown as (props: {
   children?: React.ReactNode;
 }) => React.JSX.Element;
 
-export const metadata: Metadata = {
-  title: 'ההזמנה התקבלה | חנות המערכת',
-  description: 'אישור הזמנה: שילוח תוך 7–14 ימי עסקים וחשבונית מס במייל.',
+const METADATA: Record<Locale, Metadata> = {
+  he: {
+    title: 'ההזמנה התקבלה | חנות המערכת',
+    description: 'אישור הזמנה: שילוח תוך 7–14 ימי עסקים וחשבונית מס במייל.',
+  },
+  en: {
+    title: 'Order Received | The Store',
+    description:
+      'Order confirmation: shipping within 7–14 business days and a tax invoice by email.',
+  },
 };
 
 interface ThankYouPageProps {
   params: Promise<{ locale: Locale }>;
+}
+
+export async function generateMetadata({
+  params,
+}: ThankYouPageProps): Promise<Metadata> {
+  const { locale } = await params;
+  return METADATA[locale];
 }
 
 export default async function ThankYouPage({ params }: ThankYouPageProps) {

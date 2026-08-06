@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { NewsButton } from '@/components/press/NewsButton';
 import { Stepper, Receipt } from '@/components/press';
-import { useReducedMotion } from '@/hooks';
+import { useReducedMotion, useVotingGate } from '@/hooks';
 import { useAuthStore } from '@/stores/authStore';
 import {
   submitParticipation,
@@ -14,6 +15,8 @@ import {
   type RecordedBallot,
 } from './submitParticipation';
 import styles from './ParticipationFlow.module.css';
+import { localePrefix } from '@/lib/i18n';
+import type { Locale } from '@/lib/i18n';
 
 /* ------------------------------------------------------------------ */
 /* Types                                                              */
@@ -37,11 +40,10 @@ interface ParticipationFlowProps {
 
 type Stage = 'choice' | 'confirm' | 'receipt';
 
-const STEPS = [
-  { label: 'בחירה' },
-  { label: 'אישור' },
-  { label: 'רישום' },
-] as const;
+const STEPS: Record<Locale, { label: string }[]> = {
+  he: [{ label: 'בחירה' }, { label: 'אישור' }, { label: 'רישום' }],
+  en: [{ label: 'Choice' }, { label: 'Confirm' }, { label: 'Record' }],
+};
 
 const STAGE_INDEX: Record<Stage, number> = {
   choice: 0,
@@ -51,6 +53,139 @@ const STAGE_INDEX: Record<Stage, number> = {
 
 /** sessionStorage key for restoring a choice across an auth/verify round-trip. */
 const PENDING_KEY = 'taruu-pending-vote';
+
+interface FlowCopy {
+  choiceAria: string;
+  choiceKicker: string;
+  choiceTitle: string;
+  votesUnit: string;
+  choiceTrust: string;
+  continueCta: string;
+  /** CTA arrow is direction-semantic: forward points left in RTL, right in LTR. */
+  ctaGlyph: string;
+  confirmAria: string;
+  confirmKicker: string;
+  confirmTitle: string;
+  confirmLead: string;
+  ballotKicker: string;
+  positionLabel: string;
+  /** Receipt footer prefix: `${votePrefix} ${voteId}`. */
+  votePrefix: string;
+  confirmTrust: string;
+  gateNote: string;
+  /** Score gate composes `${scoreGatePrefix}${have}${scoreGateMid}${need}${scoreGateSuffix}`. */
+  scoreGatePrefix: string;
+  scoreGateMid: string;
+  scoreGateSuffix: string;
+  scoreGateResidency: string;
+  scoreGateCta: string;
+  ctaClosed: string;
+  ctaSignIn: string;
+  ctaSubmitting: string;
+  ctaConfirm: string;
+  /** Includes its leading back glyph - mirrored between RTL and LTR. */
+  backToChoice: string;
+  receiptAria: string;
+  receiptKicker: string;
+  recordedTitleLead: string;
+  recordedTitleMark: string;
+  alreadyLead: string;
+  freshLead: string;
+  receiptCardKicker: string;
+  receiptCardTitle: string;
+  statusLabel: string;
+  statusRecorded: string;
+  recordNumberLabel: string;
+  receiptTrust: string;
+  resultsCta: string;
+}
+
+const COPY: Record<Locale, FlowCopy> = {
+  he: {
+    choiceAria: 'בחירת עמדה',
+    choiceKicker: 'שלב 01 · בחירה',
+    choiceTitle: 'בחרו את עמדתכם',
+    votesUnit: 'קולות',
+    choiceTrust: 'הקול שלכם נרשם פעם אחת ומשויך לתושב מאומת. אי אפשר לשנות אותו בדיעבד.',
+    continueCta: 'המשיכו · אישור',
+    ctaGlyph: '←',
+    confirmAria: 'אישור הקול',
+    confirmKicker: 'שלב 02 · אישור',
+    confirmTitle: 'אשרו את הקול שלכם',
+    confirmLead:
+      'נדרש אימות זהות ותושבוּת חד-פעמי, כדי שכל קול ישויך לתושב אמיתי אחד. הקול נרשם פעם אחת ואי אפשר לשנות אותו.',
+    ballotKicker: 'פתק הצבעה · BALLOT',
+    positionLabel: 'עמדה',
+    votePrefix: 'הצבעה',
+    confirmTrust: 'מאומת זהות ותושבוּת · נרשם פעם אחת.',
+    gateNote: 'צריך חשבון כדי להשלים. נשמור את הבחירה שלכם ונחזיר אתכם לכאן.',
+    scoreGatePrefix: 'הקול לא יירשם עדיין: יש לכם ',
+    scoreGateMid: ' מתוך ',
+    scoreGateSuffix: ' נקודות האימות הדרושות להצבעה.',
+    scoreGateResidency: 'אימות התושבוּת שווה 40 נקודות - הצ׳ק-אין הראשון פותח את הקלפי.',
+    scoreGateCta: 'להשלמת האימות ←',
+    ctaClosed: 'ההצבעה סגורה',
+    ctaSignIn: 'התחברו והשלימו',
+    ctaSubmitting: 'רושמים את הקול…',
+    ctaConfirm: 'אשרו והצביעו',
+    backToChoice: '↳ חזרה לבחירה',
+    receiptAria: 'קבלה ורישום',
+    receiptKicker: 'שלב 03 · רישום',
+    recordedTitleLead: 'הקול שלכם ',
+    recordedTitleMark: 'נרשם.',
+    alreadyLead: 'כבר הצבעתם בהצבעה הזו. זה הרישום הקיים שלכם: ',
+    freshLead: 'הרישום הושלם. בחרתם: ',
+    receiptCardKicker: 'קבלה · RECEIPT',
+    receiptCardTitle: 'רישום השתתפות',
+    statusLabel: 'סטטוס',
+    statusRecorded: 'נרשם',
+    recordNumberLabel: 'מספר רישום',
+    receiptTrust: 'הרישום נשמר בשרת ומשויך לתושב מאומת אחד.',
+    resultsCta: 'צפו בתוצאות',
+  },
+  en: {
+    choiceAria: 'Choosing a position',
+    choiceKicker: 'Step 01 · Choice',
+    choiceTitle: 'Choose your position',
+    votesUnit: 'votes',
+    choiceTrust: 'Your vote is recorded once and linked to a verified resident. It cannot be changed afterwards.',
+    continueCta: 'Continue · Confirm',
+    ctaGlyph: '→',
+    confirmAria: 'Confirming the vote',
+    confirmKicker: 'Step 02 · Confirm',
+    confirmTitle: 'Confirm your vote',
+    confirmLead:
+      'A one-time identity and residency verification is required, so that every vote is linked to one real resident. The vote is recorded once and cannot be changed.',
+    ballotKicker: 'BALLOT',
+    positionLabel: 'Position',
+    votePrefix: 'Vote',
+    confirmTrust: 'Identity and residency verified · recorded once.',
+    gateNote: 'An account is required to complete this step. Your choice will be saved and you will be returned here.',
+    scoreGatePrefix: 'Your vote cannot be recorded yet: you hold ',
+    scoreGateMid: ' of the ',
+    scoreGateSuffix: ' verification points a ballot requires.',
+    scoreGateResidency: 'The residency check is worth 40 points — the first check-in opens the ballot.',
+    scoreGateCta: 'Finish verification →',
+    ctaClosed: 'Voting is closed',
+    ctaSignIn: 'Sign in to complete',
+    ctaSubmitting: 'Recording your vote…',
+    ctaConfirm: 'Confirm and vote',
+    backToChoice: '↲ Back to choice',
+    receiptAria: 'Receipt and record',
+    receiptKicker: 'Step 03 · Record',
+    recordedTitleLead: 'Your vote is ',
+    recordedTitleMark: 'recorded.',
+    alreadyLead: 'You have already voted in this vote. This is your existing record: ',
+    freshLead: 'The record is complete. You chose: ',
+    receiptCardKicker: 'RECEIPT',
+    receiptCardTitle: 'Participation record',
+    statusLabel: 'Status',
+    statusRecorded: 'Recorded',
+    recordNumberLabel: 'Record number',
+    receiptTrust: 'The record is stored on the server and linked to one verified resident.',
+    resultsCta: 'View results',
+  },
+};
 
 /**
  * ParticipationFlow - the press ballot, reshaped (UX flow J2). Choice →
@@ -80,8 +215,9 @@ export function ParticipationFlow({
   // Locale-less detour targets get a 307 from the locale middleware, and the
   // redirect back here is dropped with the query string - so build them
   // already localised.
-  const params = useParams<{ locale?: string }>();
+  const params = useParams<{ locale?: Locale }>();
   const locale = params?.locale ?? 'he';
+  const t = COPY[locale];
 
   const [stage, setStage] = useState<Stage>('choice');
   const [selectedOption, setSelectedOption] = useState<string | null>(initialOptionId);
@@ -93,6 +229,46 @@ export function ParticipationFlow({
 
   /** A rejection retrying cannot fix - the confirm button stops offering one. */
   const isBlocked = submitErrorCode !== null && isTerminalRejection(submitErrorCode);
+
+  /**
+   * The score gate, told to the reader the moment they open a ballot rather
+   * than after they have chosen a position and pressed confirm.
+   *
+   * Read from the server (`useVotingGate`), never inferred here: residency is
+   * 40 of the 80 points and its signal is not on this screen, which is exactly
+   * the guess that once turned eligible residents away. Null - loading, or a
+   * guest - prints nothing, and the notice never disables the ballot. It
+   * informs; the server still decides, and still routes a 403 to /verification
+   * with the choice preserved.
+   */
+  const gate = useVotingGate(isAuthenticated);
+  const scoreGate =
+    gate && !gate.canVote ? (
+      <div className={styles.scoreGate} role="status">
+        <p className={styles.scoreGateLine}>
+          <span aria-hidden>■ </span>
+          {t.scoreGatePrefix}
+          <strong>{gate.total}</strong>
+          {t.scoreGateMid}
+          <strong>{gate.required}</strong>
+          {t.scoreGateSuffix}
+        </p>
+        {!gate.residencyVerified && (
+          <p className={styles.scoreGateMeta}>{t.scoreGateResidency}</p>
+        )}
+        <Link
+          href={`${localePrefix(locale)}/verification?redirect=${encodeURIComponent(
+            `${localePrefix(locale)}/votes/${voteId}`
+          )}`}
+          className={styles.scoreGateCta}
+          // Wrapped, not passed: `persistPending` is declared further down and
+          // this element is built during render, before that binding exists.
+          onClick={() => persistPending()}
+        >
+          {t.scoreGateCta}
+        </Link>
+      </div>
+    ) : null;
 
   const selectedText = useMemo(
     () => options.find((o) => o.id === selectedOption)?.text ?? '',
@@ -152,13 +328,17 @@ export function ParticipationFlow({
     }
   }, [voteId, selectedOption]);
 
-  const stepAnim = reduced
-    ? {}
-    : {
-        initial: { opacity: 0, clipPath: 'inset(0 0 100% 0)' },
-        animate: { opacity: 1, clipPath: 'inset(0 0 0% 0)' },
-        transition: { duration: 0.22, ease: [0.2, 0, 0, 1] as const },
-      };
+  /* Motion props must never remove themselves. `useReducedMotion` starts false
+     and flips in an effect, so a `reduced ? {} : {…}` ternary paints the hidden
+     `initial` state on the first frame and then drops the `animate` that would
+     have revealed it - the ballot stayed at `opacity: 0` forever for every
+     reader who asked for less motion. The end state is unconditional; only the
+     entrance is optional. */
+  const stepAnim = {
+    initial: reduced ? false : { opacity: 0, clipPath: 'inset(0 0 100% 0)' },
+    animate: { opacity: 1, clipPath: 'inset(0 0 0% 0)' },
+    transition: { duration: reduced ? 0 : 0.22, ease: [0.2, 0, 0, 1] as const },
+  };
 
   /* ---- Step 1: choice (open to guests) ---- */
   const handleConfirmChoice = useCallback(() => {
@@ -181,14 +361,14 @@ export function ParticipationFlow({
       if (result.code === 'RESIDENCY_NOT_VERIFIED' || result.code === 'IDENTITY_NOT_VERIFIED') {
         persistPending();
         router.push(
-          `/${locale}/verification?redirect=${encodeURIComponent(`/${locale}/votes/${voteId}`)}`
+          `${localePrefix(locale)}/verification?redirect=${encodeURIComponent(`${localePrefix(locale)}/votes/${voteId}`)}`
         );
         return;
       }
       if (result.code === 'UNAUTHENTICATED') {
         persistPending();
         router.push(
-          `/${locale}/sign-in?redirect=${encodeURIComponent(`/${locale}/votes/${voteId}`)}`
+          `${localePrefix(locale)}/sign-in?redirect=${encodeURIComponent(`${localePrefix(locale)}/votes/${voteId}`)}`
         );
         return;
       }
@@ -204,7 +384,7 @@ export function ParticipationFlow({
   const handleConfirm = useCallback(async () => {
     if (!selectedOption) return;
 
-    const back = encodeURIComponent(`/${locale}/votes/${voteId}`);
+    const back = encodeURIComponent(`${localePrefix(locale)}/votes/${voteId}`);
     // Sign-in is gated client-side because the answer is unambiguous here: no
     // session means no request worth making.
     //
@@ -218,7 +398,7 @@ export function ParticipationFlow({
     // the server's 403 routes them, so there is exactly one eligibility rule.
     if (!isAuthenticated) {
       persistPending();
-      router.push(`/${locale}/sign-in?redirect=${back}`);
+      router.push(`${localePrefix(locale)}/sign-in?redirect=${back}`);
       return;
     }
 
@@ -228,17 +408,17 @@ export function ParticipationFlow({
   /* ------------------------------------------------------------------ */
   return (
     <div className={styles.flow}>
-      <Stepper steps={STEPS as unknown as { label: string }[]} current={STAGE_INDEX[stage]} />
+      <Stepper steps={STEPS[locale]} current={STAGE_INDEX[stage]} />
 
       <motion.div key={stage} className={styles.stage} {...stepAnim}>
         {/* ---- STEP 1 - בחירה ---- */}
         {stage === 'choice' && (
-          <section className={styles.panel} aria-label="בחירת עמדה">
+          <section className={styles.panel} aria-label={t.choiceAria}>
             <span className={styles.kicker}>
               <span aria-hidden className={styles.kickerTick} />
-              שלב 01 · בחירה
+              {t.choiceKicker}
             </span>
-            <h2 className={styles.panelTitle}>בחרו את עמדתכם</h2>
+            <h2 className={styles.panelTitle}>{t.choiceTitle}</h2>
 
             <ul className={styles.options}>
               {options.map((o) => {
@@ -268,7 +448,7 @@ export function ParticipationFlow({
                         />
                       </span>
                       <span className={styles.optionCount}>
-                        {o.votes.toLocaleString('he-IL')} קולות
+                        {o.votes.toLocaleString('he-IL')} {t.votesUnit}
                       </span>
                     </button>
                   </li>
@@ -276,8 +456,10 @@ export function ParticipationFlow({
               })}
             </ul>
 
+            {scoreGate}
+
             <p className={styles.trust}>
-              הקול שלכם נרשם פעם אחת ומשויך לתושב מאומת. אי אפשר לשנות אותו בדיעבד.
+              {t.choiceTrust}
             </p>
 
             <div className={styles.actions}>
@@ -287,9 +469,9 @@ export function ParticipationFlow({
                 className={styles.cta}
                 onClick={handleConfirmChoice}
                 disabled={!selectedOption}
-                trailing={<span aria-hidden>←</span>}
+                trailing={<span aria-hidden>{t.ctaGlyph}</span>}
               >
-                המשיכו · אישור
+                {t.continueCta}
               </NewsButton>
             </div>
           </section>
@@ -297,26 +479,25 @@ export function ParticipationFlow({
 
         {/* ---- STEP 2 - אישור ---- */}
         {stage === 'confirm' && (
-          <section className={styles.panel} aria-label="אישור הקול">
+          <section className={styles.panel} aria-label={t.confirmAria}>
             <span className={styles.kicker}>
               <span aria-hidden className={styles.kickerTick} />
-              שלב 02 · אישור
+              {t.confirmKicker}
             </span>
-            <h2 className={styles.panelTitle}>אשרו את הקול שלכם</h2>
+            <h2 className={styles.panelTitle}>{t.confirmTitle}</h2>
 
             <p className={styles.lead}>
-              נדרש אימות זהות ותושבוּת חד-פעמי, כדי שכל קול ישויך לתושב אמיתי אחד.
-              הקול נרשם פעם אחת ואי אפשר לשנות אותו.
+              {t.confirmLead}
             </p>
 
             <Receipt
               className={styles.receipt}
-              kicker="פתק הצבעה · BALLOT"
-              rows={[{ label: 'עמדה', value: selectedText || '-', strong: true }]}
-              footer={`הצבעה ${voteId}`}
+              kicker={t.ballotKicker}
+              rows={[{ label: t.positionLabel, value: selectedText || '-', strong: true }]}
+              footer={`${t.votePrefix} ${voteId}`}
             />
 
-            <p className={styles.trust}>מאומת זהות ותושבוּת · נרשם פעם אחת.</p>
+            <p className={styles.trust}>{t.confirmTrust}</p>
 
             {/* Gate notice - only for the one gate this screen can answer.
                 Residency is decided by the server; guessing it here would
@@ -326,9 +507,11 @@ export function ParticipationFlow({
             {!isAuthenticated && (
               <p className={styles.gateNote}>
                 <span aria-hidden>■ </span>
-                צריך חשבון כדי להשלים. נשמור את הבחירה שלכם ונחזיר אתכם לכאן.
+                {t.gateNote}
               </p>
             )}
+
+            {scoreGate}
 
             {submitError && (
               <p className={styles.errorNote} role="alert">
@@ -344,15 +527,15 @@ export function ParticipationFlow({
                 className={styles.cta}
                 onClick={handleConfirm}
                 disabled={submitting || isBlocked}
-                trailing={isBlocked ? undefined : <span aria-hidden>←</span>}
+                trailing={isBlocked ? undefined : <span aria-hidden>{t.ctaGlyph}</span>}
               >
                 {isBlocked
-                  ? 'ההצבעה סגורה'
+                  ? t.ctaClosed
                   : !isAuthenticated
-                    ? 'התחברו והשלימו'
+                    ? t.ctaSignIn
                     : submitting
-                      ? 'רושמים את הקול…'
-                      : 'אשרו והצביעו'}
+                      ? t.ctaSubmitting
+                      : t.ctaConfirm}
               </NewsButton>
               <button
                 type="button"
@@ -360,7 +543,7 @@ export function ParticipationFlow({
                 onClick={() => setStage('choice')}
                 disabled={submitting}
               >
-                ↳ חזרה לבחירה
+                {t.backToChoice}
               </button>
             </div>
           </section>
@@ -368,39 +551,39 @@ export function ParticipationFlow({
 
         {/* ---- STEP 3 - רישום ---- */}
         {stage === 'receipt' && ballot && (
-          <section className={styles.panel} aria-label="קבלה ורישום">
+          <section className={styles.panel} aria-label={t.receiptAria}>
             <span className={styles.kicker}>
               <span aria-hidden className={styles.kickerTick} />
-              שלב 03 · רישום
+              {t.receiptKicker}
             </span>
             <h2 className={styles.panelTitle}>
-              הקול שלכם <span className={styles.red}>נרשם.</span>
+              {t.recordedTitleLead}<span className={styles.red}>{t.recordedTitleMark}</span>
             </h2>
             <p className={styles.lead}>
               {alreadyRecorded ? (
                 <>
-                  כבר הצבעתם בהצבעה הזו. זה הרישום הקיים שלכם: <strong>{recordedText}</strong>.
+                  {t.alreadyLead}<strong>{recordedText}</strong>.
                 </>
               ) : (
                 <>
-                  הרישום הושלם. בחרתם: <strong>{recordedText}</strong>.
+                  {t.freshLead}<strong>{recordedText}</strong>.
                 </>
               )}
             </p>
 
             <Receipt
               className={styles.receipt}
-              kicker="קבלה · RECEIPT"
-              title="רישום השתתפות"
+              kicker={t.receiptCardKicker}
+              title={t.receiptCardTitle}
               rows={[
-                { label: 'עמדה', value: recordedText || '-' },
-                { label: 'סטטוס', value: 'נרשם', strong: true },
-                { label: 'מספר רישום', value: ballot.id },
+                { label: t.positionLabel, value: recordedText || '-' },
+                { label: t.statusLabel, value: t.statusRecorded, strong: true },
+                { label: t.recordNumberLabel, value: ballot.id },
               ]}
-              footer={`הצבעה ${voteId} · ${recordedAt}`}
+              footer={`${t.votePrefix} ${voteId} · ${recordedAt}`}
             />
 
-            <p className={styles.trust}>הרישום נשמר בשרת ומשויך לתושב מאומת אחד.</p>
+            <p className={styles.trust}>{t.receiptTrust}</p>
 
             <div className={styles.actions}>
               <NewsButton
@@ -408,9 +591,9 @@ export function ParticipationFlow({
                 size="lg"
                 className={styles.cta}
                 onClick={() => onComplete(ballot.optionId)}
-                trailing={<span aria-hidden>←</span>}
+                trailing={<span aria-hidden>{t.ctaGlyph}</span>}
               >
-                צפו בתוצאות
+                {t.resultsCta}
               </NewsButton>
             </div>
           </section>

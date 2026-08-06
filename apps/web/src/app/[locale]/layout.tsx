@@ -5,7 +5,7 @@ import { Secular_One, Heebo } from 'next/font/google';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { LenisProvider } from '@/providers/LenisProvider';
 import { GeoGate } from '@/components/press/GeoGate/GeoGate';
-import { i18n, localeDirections, getDictionary } from '@/lib/i18n';
+import { i18n, localeDirections, localePath, getDictionary } from '@/lib/i18n';
 import type { Locale } from '@/lib/i18n';
 import '@/styles/globals.css';
 import { WHATSAPP_FOUNDERS_LINK } from '@sync/shared';
@@ -32,6 +32,18 @@ export async function generateStaticParams() {
   return i18n.locales.map((locale) => ({ locale }));
 }
 
+/**
+ * Only the locales above may fill this segment.
+ *
+ * `[locale]` otherwise matches any first path segment, including a filename:
+ * a request for an asset the app does not serve (/sitemap.xml) rendered the
+ * homepage with `locale = 'sitemap.xml'`, and every surface that indexes a
+ * `Record<Locale, Copy>` deck threw before this layout's `notFound()` could
+ * land — a 500 where a 404 belongs. Refusing the param upstream keeps the
+ * pages out of it entirely.
+ */
+export const dynamicParams = false;
+
 export async function generateMetadata({
   params,
 }: {
@@ -45,7 +57,7 @@ export async function generateMetadata({
   return {
     title: {
       default: dict.meta.title,
-      template: `%s | ${locale === 'he' ? 'תַּרְאוּ' : 'Taro'}`,
+      template: `%s | ${locale === 'he' ? 'תַּרְאוּ' : 'Taruu'}`,
     },
     description: dict.meta.description,
     keywords: [
@@ -62,14 +74,17 @@ export async function generateMetadata({
       'civic tech',
       'e-democracy',
     ],
-    authors: [{ name: 'Taro', url: SITE_URL }],
-    creator: 'Taro',
-    publisher: 'Taro',
+    authors: [{ name: 'Taruu', url: SITE_URL }],
+    creator: 'Taruu',
+    publisher: 'Taruu',
     metadataBase: new URL(SITE_URL),
     alternates: {
-      canonical: `${SITE_URL}/he`,
+      // Hebrew lives unprefixed at the root; English keeps its /en prefix.
+      canonical: `${SITE_URL}${localePath(locale)}`,
       languages: {
-        'he': `${SITE_URL}/he`,
+        'he': SITE_URL,
+        'en': `${SITE_URL}/en`,
+        'x-default': SITE_URL,
       },
     },
     robots: {
@@ -87,8 +102,8 @@ export async function generateMetadata({
       type: 'website',
       locale: locale === 'he' ? 'he_IL' : 'en_US',
       alternateLocale: locale === 'he' ? 'en_US' : 'he_IL',
-      url: `${SITE_URL}/${locale}`,
-      siteName: locale === 'he' ? 'תַּרְאוּ' : 'Taro',
+      url: `${SITE_URL}${localePath(locale)}`,
+      siteName: locale === 'he' ? 'תַּרְאוּ' : 'Taruu',
       title: dict.meta.title,
       description: dict.meta.description,
       images: [
@@ -133,7 +148,7 @@ function generateStructuredData(locale: Locale) {
   const organization = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: isHebrew ? 'תַּרְאוּ' : 'Taro',
+    name: isHebrew ? 'תַּרְאוּ' : 'Taruu',
     url: SITE_URL,
     logo: `${SITE_URL}/logo600.png`,
     description: isHebrew
@@ -157,7 +172,7 @@ function generateStructuredData(locale: Locale) {
   const website = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: isHebrew ? 'תַּרְאוּ' : 'Taro',
+    name: isHebrew ? 'תַּרְאוּ' : 'Taruu',
     url: SITE_URL,
     description: isHebrew
       ? 'פלטפורמת הצבעות קהילתיות מקומיות בישראל'
@@ -174,7 +189,7 @@ function generateStructuredData(locale: Locale) {
   const softwareApp = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
-    name: isHebrew ? 'תַּרְאוּ' : 'Taro',
+    name: isHebrew ? 'תַּרְאוּ' : 'Taruu',
     operatingSystem: 'iOS, Android',
     applicationCategory: 'UtilitiesApplication',
     description: isHebrew
@@ -198,12 +213,12 @@ function generateStructuredData(locale: Locale) {
     mainEntity: [
       {
         '@type': 'Question',
-        name: isHebrew ? 'מהי תַּרְאוּ?' : 'What is Taro?',
+        name: isHebrew ? 'מהי תַּרְאוּ?' : 'What is Taruu?',
         acceptedAnswer: {
           '@type': 'Answer',
           text: isHebrew
             ? 'תַּרְאוּ היא פלטפורמה להצבעות קהילתיות מקומיות בישראל. היא מאפשרת לתושבים להצביע על נושאים מקומיים עם אימות GPS ותוצאות שקופות לכולם.'
-            : 'Taro is a platform for local community voting in Israel. It enables residents to vote on local issues with GPS verification and transparent results for everyone.',
+            : 'Taruu is a platform for local community voting in Israel. It enables residents to vote on local issues with GPS verification and transparent results for everyone.',
         },
       },
       {
@@ -243,7 +258,7 @@ function generateStructuredData(locale: Locale) {
   const localBusiness = {
     '@context': 'https://schema.org',
     '@type': 'LocalBusiness',
-    name: isHebrew ? 'תַּרְאוּ - ישראל' : 'Taro - Israel',
+    name: isHebrew ? 'תַּרְאוּ - ישראל' : 'Taruu - Israel',
     description: isHebrew
       ? 'פלטפורמת הצבעות קהילתיות לתושבי כל הרשויות בישראל'
       : 'Community voting platform for residents of every Israeli municipality',
@@ -252,7 +267,7 @@ function generateStructuredData(locale: Locale) {
       '@type': 'Country',
       name: 'Israel',
     },
-    priceRange: 'חינם',
+    priceRange: isHebrew ? 'חינם' : 'Free',
   };
 
   return [organization, website, softwareApp, faq, localBusiness];
@@ -268,7 +283,7 @@ export default async function LocaleLayout({
   const { locale: rawLocale } = await params;
   const locale = rawLocale as Locale;
 
-  // Validate locale (Hebrew-only - anything else 404s; middleware already redirects)
+  // Validate locale (he unprefixed via middleware rewrite, en prefixed; anything else 404s)
   if (!(i18n.locales as readonly string[]).includes(locale)) {
     notFound();
   }
@@ -310,7 +325,7 @@ export default async function LocaleLayout({
             <script defer src="https://clever-swan-577.convex.site/beacon.js" data-slug="taro" />
             {children}
           </LenisProvider>
-          <GeoGate />
+          <GeoGate locale={locale} />
         </AuthProvider>
       </body>
     </html>

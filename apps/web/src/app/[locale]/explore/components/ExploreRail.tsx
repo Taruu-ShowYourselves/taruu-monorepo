@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
+import type { Locale } from '@/lib/i18n';
 import styles from './ExploreRail.module.css';
 
 export interface RailItem {
@@ -9,6 +10,19 @@ export interface RailItem {
   id: string;
   label: string;
 }
+
+interface ExploreRailCopy {
+  navAriaLabel: string;
+}
+
+const COPY: Record<Locale, ExploreRailCopy> = {
+  he: {
+    navAriaLabel: 'מפתח מדורי העמוד',
+  },
+  en: {
+    navAriaLabel: 'Index of the page sections',
+  },
+};
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' &&
@@ -20,7 +34,14 @@ const prefersReducedMotion = () =>
  * recipe (M4: backdrop-filter + shadow fade, CSS-only, 200ms). Scrollspy
  * underlines the active chip; on mobile the strip scrolls horizontally.
  */
-export function ExploreRail({ items }: { items: RailItem[] }) {
+export function ExploreRail({
+  items,
+  locale = 'he',
+}: {
+  items: RailItem[];
+  locale?: Locale;
+}) {
+  const t = COPY[locale];
   const [active, setActive] = useState<string>(items[0]?.id ?? '');
   const [pinned, setPinned] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -73,7 +94,7 @@ export function ExploreRail({ items }: { items: RailItem[] }) {
       <div ref={sentinelRef} aria-hidden />
       <nav
         className={clsx(styles.rail, pinned && styles.pinned)}
-        aria-label="מפתח מדורי העמוד"
+        aria-label={t.navAriaLabel}
       >
         <ul className={styles.list}>
           {items.map((item) => (

@@ -6,7 +6,9 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  background: var(--np-paper);
+  /* Desk: the panel below is already floated; on paper it had nothing to
+     float above. */
+  background: var(--np-desk);
   padding: var(--space-8) var(--space-4) var(--space-16);
 }
 

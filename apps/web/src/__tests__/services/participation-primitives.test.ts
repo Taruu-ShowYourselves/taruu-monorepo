@@ -180,7 +180,7 @@ describe('voter eligibility', () => {
   });
 
   describe('decideVoterEligibility', () => {
-    it('returns IDENTITY_NOT_VERIFIED when identity_score is below 40, checked before residency', () => {
+    it('returns IDENTITY_NOT_VERIFIED when residency is in hand but the points still fall short', () => {
       const result = decideVoterEligibility(
         { verification_status: 'verified', identity_score: 39 },
         null
@@ -192,7 +192,7 @@ describe('voter eligibility', () => {
       });
     });
 
-    it('returns RESIDENCY_NOT_VERIFIED when identity passes but residency does not', () => {
+    it('returns RESIDENCY_NOT_VERIFIED when residency is the missing half', () => {
       const result = decideVoterEligibility(
         { verification_status: 'none', identity_score: 40 },
         null
@@ -204,12 +204,30 @@ describe('voter eligibility', () => {
       });
     });
 
-    it('returns eligible: true when both identity and residency pass', () => {
+    it('names residency first when both are missing - it is the larger and the likelier gap', () => {
+      const result = decideVoterEligibility(
+        { verification_status: 'none', identity_score: 0 },
+        null
+      );
+      expect(result).toMatchObject({ code: 'RESIDENCY_NOT_VERIFIED' });
+    });
+
+    it('returns eligible: true at exactly the threshold - sign-in plus residency', () => {
       const result = decideVoterEligibility(
         { verification_status: 'verified', identity_score: 40 },
         null
       );
       expect(result).toEqual({ eligible: true });
+    });
+
+    it('refuses every arrangement of accounts that skips the residency check', () => {
+      // Google 40 + Facebook 10 + Instagram 10 = 60, the ceiling without GPS.
+      // If this ever passes, the gate has stopped meaning "a real resident".
+      const result = decideVoterEligibility(
+        { verification_status: 'none', identity_score: 60 },
+        { completed_check_ins: 0 }
+      );
+      expect(result).toMatchObject({ eligible: false });
     });
   });
 
@@ -239,19 +257,49 @@ describe('voter eligibility', () => {
       expect(getActiveVerificationRun).toHaveBeenCalledWith('user-1');
     });
 
-    it('short-circuits on identity_score below 40 without calling getActiveVerificationRun', async () => {
+    it('reads the run even for a low identity score - residency is worth 40 of the 80', async () => {
+      // There is no short-circuit to make: a resident sitting at 40 points is
+      // one check-in away from the threshold, and the run is the only place
+      // that check-in is recorded. Deciding without reading it would refuse
+      // exactly the residents the programme exists to admit.
+      vi.mocked(getActiveVerificationRun).mockResolvedValue({
+        id: 'run-1',
+        user_id: 'user-1',
+        municipality_id: 'tel-aviv',
+        status: 'active',
+        started_at: '2026-07-01T00:00:00Z',
+        completed_at: null,
+        total_check_ins: 21,
+        completed_check_ins: 1,
+        failed_check_ins: 0,
+        created_at: '2026-07-01T00:00:00Z',
+        updated_at: '2026-07-02T00:00:00Z',
+      });
+
       const result = await checkVoterEligibility({
         id: 'user-1',
-        verification_status: 'verified',
-        identity_score: 0,
+        verification_status: 'pending',
+        identity_score: 40,
+      });
+
+      expect(result).toEqual({ eligible: true });
+      expect(getActiveVerificationRun).toHaveBeenCalledWith('user-1');
+    });
+
+    it('refuses a signed-in resident who has not started the residency programme', async () => {
+      vi.mocked(getActiveVerificationRun).mockResolvedValue(null);
+
+      const result = await checkVoterEligibility({
+        id: 'user-1',
+        verification_status: 'none',
+        identity_score: 60, // Google + both socials: the ceiling without GPS.
       });
 
       expect(result).toEqual({
         eligible: false,
-        code: 'IDENTITY_NOT_VERIFIED',
-        message: expect.any(String),
+        code: 'RESIDENCY_NOT_VERIFIED',
+        message: expect.stringContaining('60'),
       });
-      expect(getActiveVerificationRun).not.toHaveBeenCalled();
     });
   });
 });

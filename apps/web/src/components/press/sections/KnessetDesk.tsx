@@ -1,21 +1,63 @@
 import Link from 'next/link';
 import { KNESSET_SCOPE } from '@sync/shared';
 import {
-  getActiveVotesWithOptions,
   getCardArtByVoteIds,
   getKnessetRankingsByVoteIds,
 } from '@/lib/supabase/db';
+import { activeVotesWithOptions } from '@/server/read/active-votes';
 import { NewsButton } from '@/components/press/NewsButton';
 import type { Locale } from '@/lib/i18n';
 import { formatBillTitle } from '@/lib/knesset/billTitle';
-import { DeskTopicRow, slotVariant } from './DeskTopicRow';
-import { DeskCarousel } from './DeskCarousel';
+import { DeskStream } from './DeskStream';
 import { toDeskTopic } from './deskData';
 import styles from './ConsensusDesk.module.css';
+import { localePrefix } from '@/lib/i18n';
 
 interface KnessetDeskProps {
   locale?: Locale;
 }
+
+interface KnessetDeskCopy {
+  kicker: string;
+  headlineLead: string;
+  headlineAccent: string;
+  standfirst: string;
+  emptyLede: string;
+  emptyNote: string;
+  emptyCta: string;
+  arrow: string;
+  carouselLabel: string;
+  footerLink: string;
+}
+
+const COPY: Record<Locale, KnessetDeskCopy> = {
+  he: {
+    kicker: 'המהדורה הארצית · THE KNESSET DESK',
+    headlineLead: 'על סדר היום',
+    headlineAccent: 'בכנסת.',
+    standfirst:
+      'עמדת הרוב האזרחי על הנושאים שעל שולחן הכנסת: אותו מנגנון אימות, אותה ספירה שקופה, בקנה מידה ארצי.',
+    emptyLede: 'הדסק הארצי בהכנה. הנושאים הראשונים בדרך לדפוס.',
+    emptyNote: 'מתחילים ברשויות המקומיות; משם עולים לירושלים.',
+    emptyCta: 'על הדסק הארצי',
+    arrow: '←',
+    carouselLabel: 'נושאים על סדר יום הכנסת',
+    footerLink: 'לדסק הארצי המלא ←',
+  },
+  en: {
+    kicker: 'THE NATIONAL EDITION · THE KNESSET DESK',
+    headlineLead: 'On the agenda',
+    headlineAccent: 'in the Knesset.',
+    standfirst:
+      "The civic majority's position on the issues before the Knesset: the same verification mechanism, the same transparent count, at national scale.",
+    emptyLede: 'The national desk is in preparation. The first topics are on their way to print.',
+    emptyNote: 'It begins in the municipalities; from there, on to Jerusalem.',
+    emptyCta: 'About the national desk',
+    arrow: '→',
+    carouselLabel: 'Topics on the Knesset agenda',
+    footerLink: 'To the full national desk →',
+  },
+};
 
 /**
  * Distinct verified outlets behind a ranking's media score, from the
@@ -35,10 +77,16 @@ function outletsCountedOf(evidence: unknown): number | null {
  * as the municipal desk. Server component; shares the desk furniture.
  */
 export async function KnessetDesk({ locale = 'he' }: KnessetDeskProps) {
+  const t = COPY[locale];
   // Degrade to the empty-state desk when the DB is unreachable - notably at
   // build-time prerender in CI, where the service-role key deliberately does
   // not exist (#39); ISR refills real data at runtime on the Worker.
-  const votes = await getActiveVotesWithOptions(KNESSET_SCOPE).catch(() => []);
+  // Filtered out of the shared request-scoped ledger rather than fetched
+  // again: the civic desk already pulls every active vote and discards the
+  // national ones, so a second scoped query was buying nothing.
+  const votes = (await activeVotesWithOptions()).filter(
+    (vote) => vote.municipality_id === KNESSET_SCOPE
+  );
   // Editorial hotness from the ranker agent orders the desk; social-source
   // engagement is the fallback signal for unranked items. Card art is the
   // art job's faded tile plates. (Both helpers degrade to an empty map on
@@ -92,61 +140,48 @@ export async function KnessetDesk({ locale = 'he' }: KnessetDeskProps) {
         <header className={styles.header}>
           <span className={styles.kicker}>
             <span aria-hidden className={styles.kickerTick} />
-            המהדורה הארצית · THE KNESSET DESK
+            {t.kicker}
           </span>
 
           <h2 id="knesset-desk-headline" className={styles.headline}>
-            על סדר היום <span className={styles.red}>בכנסת.</span>
+            {t.headlineLead} <span className={styles.red}>{t.headlineAccent}</span>
           </h2>
 
-          <p className={styles.standfirst}>
-            עמדת הרוב האזרחי על הנושאים שעל שולחן הכנסת: אותו מנגנון אימות,
-            אותה ספירה שקופה, בקנה מידה ארצי.
-          </p>
+          <p className={styles.standfirst}>{t.standfirst}</p>
         </header>
 
         <div className={styles.ruleHeavy} aria-hidden />
 
         {topics.length === 0 ? (
           <div className={styles.emptyState}>
-            <p className={styles.emptyLede}>
-              הדסק הארצי בהכנה. הנושאים הראשונים בדרך לדפוס.
-            </p>
-            <p className={styles.emptyNote}>
-              מתחילים ברשויות המקומיות; משם עולים לירושלים.
-            </p>
+            <p className={styles.emptyLede}>{t.emptyLede}</p>
+            <p className={styles.emptyNote}>{t.emptyNote}</p>
             <NewsButton
-              href={`/${locale}/knesset`}
+              href={`${localePrefix(locale)}/knesset`}
               variant="outline"
               size="md"
-              trailing={<span aria-hidden>←</span>}
+              trailing={<span aria-hidden>{t.arrow}</span>}
             >
-              על הדסק הארצי
+              {t.emptyCta}
             </NewsButton>
           </div>
         ) : (
           <>
-            <DeskCarousel label="נושאים על סדר יום הכנסת">
-              {topics.map((topic, i) => (
-                <DeskTopicRow
-                  key={topic.id}
-                  topic={topic}
-                  municipality={KNESSET_SCOPE}
-                  index={i}
-                  ranking={deskRankingOf(topic.id)}
-                  heatRank={
-                    rankings.has(topic.id)
-                      ? rankedIds.indexOf(topic.id) + 1
-                      : undefined
-                  }
-                  variant={slotVariant(i)}
-                  locale={locale}
-                />
-              ))}
-            </DeskCarousel>
+            <DeskStream
+              label={t.carouselLabel}
+              locale={locale}
+              entries={topics.map((topic) => ({
+                topic,
+                municipality: KNESSET_SCOPE,
+                ranking: deskRankingOf(topic.id),
+                heatRank: rankings.has(topic.id)
+                  ? rankedIds.indexOf(topic.id) + 1
+                  : undefined,
+              }))}
+            />
             <div className={styles.deskFooter}>
-              <Link href={`/${locale}/knesset`} className={styles.sourceLink}>
-                לדסק הארצי המלא ←
+              <Link href={`${localePrefix(locale)}/knesset`} className={styles.sourceLink}>
+                {t.footerLink}
               </Link>
             </div>
           </>

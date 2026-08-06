@@ -10,6 +10,7 @@ import {
   paymentService,
   getPaymentAmounts,
 } from '@/services/payments/greenInvoice';
+import { GPS_SCORE_WEIGHT, MINIMUM_VOTING_SCORE } from '@sync/shared';
 
 interface CreatePaymentRequest {
   type: 'vote_participation' | 'vote_creation';
@@ -57,10 +58,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Check identity score for voting
-    if (type === 'vote_participation' && user.identity_score < 40) {
+    // Check identity score for voting. The residency check below is what
+    // carries the remaining 40 points, so this reads the stored score alone.
+    if (
+      type === 'vote_participation' &&
+      user.identity_score + GPS_SCORE_WEIGHT < MINIMUM_VOTING_SCORE
+    ) {
       return NextResponse.json(
-        { error: 'Insufficient identity score to vote. Minimum 40 required.' },
+        {
+          error: `Insufficient identity score to vote. Minimum ${MINIMUM_VOTING_SCORE} required.`,
+        },
         { status: 403 }
       );
     }

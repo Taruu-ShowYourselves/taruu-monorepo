@@ -1,27 +1,141 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { NewsButton } from '@/components/press/NewsButton';
 import { useAuth } from '@/providers/AuthProvider';
 import { getIdentityLevelLabel } from '@sync/shared';
 import { PressLoader } from '@/components/press/PressMachine';
+import type { Locale } from '@/lib/i18n';
+import { localePrefix } from '@/lib/i18n';
 import styles from './page.module.css';
+
+interface ConnectSocialCopy {
+  loading: string;
+  kicker: string;
+  titleLead: string;
+  titleRed: string;
+  standfirst: string;
+  scoreLabel: string;
+  levelLabel: string;
+  errors: { facebook: string; instagram: string; dismissLabel: string };
+  status: { connected: string; connect: string; connecting: string };
+  document: {
+    title: string;
+    meta: string;
+    ready: string;
+    pending: string;
+    rejected: string;
+    scan: string;
+  };
+  points: { google: string; social: string; socialMeta: string };
+  privacyNote: string;
+  continueApp: string;
+  continueWithout: string;
+  continueArrow: string;
+  skip: string;
+}
+
+const COPY: Record<Locale, ConnectSocialCopy> = {
+  he: {
+    loading: 'טוען…',
+    kicker: 'אימות זהות · IDENTITY',
+    titleLead: 'שפרו את',
+    titleRed: 'ציון הזהות.',
+    standfirst: 'חברו עוד רשתות חברתיות לאימות זהות מלא ולגישה לכל ההצבעות.',
+    scoreLabel: 'הציון הנוכחי שלכם',
+    levelLabel: 'רמה',
+    errors: {
+      facebook: 'שגיאה בהתחברות לפייסבוק',
+      instagram: 'שגיאה בהתחברות לאינסטגרם',
+      dismissLabel: 'סגור',
+    },
+    status: {
+      connected: 'מחובר',
+      connect: 'חברו',
+      connecting: 'מתחבר…',
+    },
+    document: {
+      title: 'סריקת תעודת זהות',
+      meta: 'אימות תעודה מלא, בעיבוד על המכשיר בלבד',
+      ready: 'מאומת',
+      pending: 'ממתין לבדיקה',
+      rejected: 'נדרשת סריקה מחדש',
+      scan: 'סרקו תעודה',
+    },
+    points: {
+      google: '+40 נקודות',
+      social: '+30 נקודות',
+      socialMeta: '+30 נקודות לציון',
+    },
+    privacyNote:
+      'אנחנו לא מפרסמים בשמכם ולא משתפים מידע. החיבור משמש לאימות זהות בלבד.',
+    continueApp: 'המשך לאפליקציה',
+    continueWithout: 'המשך בלי לחבר',
+    continueArrow: '←',
+    skip: 'אפשר לחבר גם אחר כך בהגדרות',
+  },
+  en: {
+    loading: 'Loading…',
+    kicker: 'Identity verification · IDENTITY',
+    titleLead: 'Raise your',
+    titleRed: 'identity score.',
+    standfirst:
+      'Connect additional social networks for full identity verification and access to every vote.',
+    scoreLabel: 'Your current score',
+    levelLabel: 'Level',
+    errors: {
+      facebook: 'Facebook connection failed',
+      instagram: 'Instagram connection failed',
+      dismissLabel: 'Close',
+    },
+    status: {
+      connected: 'Connected',
+      connect: 'Connect',
+      connecting: 'Connecting…',
+    },
+    document: {
+      title: 'ID scan',
+      meta: 'Full document verification, processed only on your device',
+      ready: 'Verified',
+      pending: 'Pending review',
+      rejected: 'Rescan required',
+      scan: 'Scan ID',
+    },
+    points: {
+      google: '+40 points',
+      social: '+30 points',
+      socialMeta: '+30 points toward your score',
+    },
+    privacyNote:
+      'We never post on your behalf and never share your information. The connection is used for identity verification only.',
+    continueApp: 'Continue to the app',
+    continueWithout: 'Continue without connecting',
+    continueArrow: '→',
+    skip: 'You can also connect later in Settings',
+  },
+};
 
 export default function ConnectSocialPage() {
   const router = useRouter();
+  const { locale: rawLocale } = useParams<{ locale: string }>();
+  const locale: Locale = rawLocale === 'en' ? 'en' : 'he';
+  const t = COPY[locale];
   const { user, isAuthenticated, isLoading } = useAuth();
   const [connecting, setConnecting] = useState<string | null>(null);
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [documentStatus, setDocumentStatus] = useState<
+    'none' | 'verified' | 'pending_review' | 'rejected'
+  >('none');
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push('/sign-in');
+      router.push(`${localePrefix(locale)}/sign-in`);
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, router, locale]);
 
   const handleConnectFacebook = async () => {
     setConnecting('facebook');
@@ -31,7 +145,7 @@ export default function ConnectSocialPage() {
       window.location.href = '/api/social/connect/facebook';
     } catch (error) {
       console.error('Facebook connect error:', error);
-      setConnectionError('שגיאה בהתחברות לפייסבוק');
+      setConnectionError(t.errors.facebook);
       setConnecting(null);
     }
   };
@@ -44,17 +158,17 @@ export default function ConnectSocialPage() {
       window.location.href = '/api/social/connect/instagram';
     } catch (error) {
       console.error('Instagram connect error:', error);
-      setConnectionError('שגיאה בהתחברות לאינסטגרם');
+      setConnectionError(t.errors.instagram);
       setConnecting(null);
     }
   };
 
   const handleContinue = () => {
-    router.push('/dashboard');
+    router.push(`${localePrefix(locale)}/dashboard`);
   };
 
   const handleSkip = () => {
-    router.push('/dashboard');
+    router.push(`${localePrefix(locale)}/dashboard`);
   };
 
   // Check for successful/failed connection from URL params
@@ -69,14 +183,14 @@ export default function ConnectSocialPage() {
         prev.includes(connected) ? prev : [...prev, connected]
       );
       // Clean up URL
-      router.replace('/sign-up/connect-social');
+      router.replace(`${localePrefix(locale)}/sign-up/connect-social`);
     }
 
     if (error) {
       setConnectionError(decodeURIComponent(error));
-      router.replace('/sign-up/connect-social');
+      router.replace(`${localePrefix(locale)}/sign-up/connect-social`);
     }
-  }, [router]);
+  }, [router, locale]);
 
   // Load existing social proofs from user profile
   useEffect(() => {
@@ -88,11 +202,19 @@ export default function ConnectSocialPage() {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    fetch('/api/verification/document', { credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setDocumentStatus(data?.document?.status ?? 'none'))
+      .catch(() => undefined);
+  }, [isAuthenticated]);
+
   if (isLoading) {
     return (
       <div className={styles.loadingContainer}>
         <PressLoader />
-        <p>טוען…</p>
+        <p>{t.loading}</p>
       </div>
     );
   }
@@ -101,6 +223,14 @@ export default function ConnectSocialPage() {
   const currentLevel = getIdentityLevelLabel(user?.identityScore?.level || 'basic');
   const facebookConnected = connectedPlatforms.includes('facebook');
   const instagramConnected = connectedPlatforms.includes('instagram');
+  const documentLabel =
+    documentStatus === 'verified'
+      ? t.document.ready
+      : documentStatus === 'pending_review'
+        ? t.document.pending
+        : documentStatus === 'rejected'
+          ? t.document.rejected
+          : null;
 
   return (
     <>
@@ -110,20 +240,18 @@ export default function ConnectSocialPage() {
           <header className={styles.head}>
             <span className={styles.kicker}>
               <span aria-hidden className={styles.kickerTick} />
-              אימות זהות · IDENTITY
+              {t.kicker}
             </span>
             <h1 className={styles.title}>
-              שפרו את <span className={styles.red}>ציון הזהות.</span>
+              {t.titleLead} <span className={styles.red}>{t.titleRed}</span>
             </h1>
-            <p className={styles.standfirst}>
-              חברו עוד רשתות חברתיות לאימות זהות מלא ולגישה לכל ההצבעות.
-            </p>
+            <p className={styles.standfirst}>{t.standfirst}</p>
           </header>
 
           {/* Current score */}
           <section className={styles.scoreCard}>
             <div className={styles.scoreHeader}>
-              <span className={styles.scoreLabel}>הציון הנוכחי שלכם</span>
+              <span className={styles.scoreLabel}>{t.scoreLabel}</span>
               <span className={styles.scoreBadge}>{currentScore}/100</span>
             </div>
             <div className={styles.progressBar}>
@@ -133,7 +261,7 @@ export default function ConnectSocialPage() {
                 aria-hidden
               />
             </div>
-            <span className={styles.levelText}>רמה · {currentLevel}</span>
+            <span className={styles.levelText}>{t.levelLabel} · {currentLevel}</span>
           </section>
 
           {/* Error */}
@@ -146,7 +274,7 @@ export default function ConnectSocialPage() {
               <button
                 className={styles.dismissError}
                 onClick={() => setConnectionError(null)}
-                aria-label="סגור"
+                aria-label={t.errors.dismissLabel}
               >
                 ✕
               </button>
@@ -155,6 +283,34 @@ export default function ConnectSocialPage() {
 
           {/* Social platforms */}
           <ul className={styles.platforms}>
+            <li className={`${styles.row} ${documentStatus === 'verified' ? styles.connected : ''}`}>
+              <div className={styles.rowInfo}>
+                <span className={styles.rowIcon} aria-hidden>{locale === 'he' ? 'ת״ז' : 'ID'}</span>
+                <div className={styles.rowText}>
+                  <h3>{t.document.title}</h3>
+                  <p className={styles.rowMeta}>
+                    {documentLabel ?? t.document.meta}
+                  </p>
+                </div>
+              </div>
+              <div className={styles.rowStatus}>
+                {documentStatus === 'verified' || documentStatus === 'pending_review' ? (
+                  <span className={styles.statusOn}>
+                    <span aria-hidden>{documentStatus === 'verified' ? '✓ ' : '⧗ '}</span>
+                    {documentLabel}
+                  </span>
+                ) : (
+                  <NewsButton
+                    variant="ink"
+                    size="sm"
+                    onClick={() => router.push(`${localePrefix(locale)}/verification`)}
+                  >
+                    {t.document.scan}
+                  </NewsButton>
+                )}
+              </div>
+            </li>
+
             {/* Google - already connected */}
             <li className={`${styles.row} ${styles.connected}`}>
               <div className={styles.rowInfo}>
@@ -163,14 +319,15 @@ export default function ConnectSocialPage() {
                 </span>
                 <div className={styles.rowText}>
                   <h3>Google</h3>
-                  <p className={styles.rowMeta}>מחובר</p>
+                  <p className={styles.rowMeta}>{t.status.connected}</p>
                 </div>
               </div>
               <div className={styles.rowStatus}>
                 <span className={styles.statusOn}>
-                  <span aria-hidden>✓ </span>מחובר
+                  <span aria-hidden>✓ </span>
+                  {t.status.connected}
                 </span>
-                <span className={styles.points}>+40 נקודות</span>
+                <span className={styles.points}>{t.points.google}</span>
               </div>
             </li>
 
@@ -183,7 +340,7 @@ export default function ConnectSocialPage() {
                 <div className={styles.rowText}>
                   <h3>Facebook</h3>
                   <p className={styles.rowMeta}>
-                    {facebookConnected ? 'מחובר' : '+30 נקודות לציון'}
+                    {facebookConnected ? t.status.connected : t.points.socialMeta}
                   </p>
                 </div>
               </div>
@@ -191,9 +348,10 @@ export default function ConnectSocialPage() {
                 {facebookConnected ? (
                   <>
                     <span className={styles.statusOn}>
-                      <span aria-hidden>✓ </span>מחובר
+                      <span aria-hidden>✓ </span>
+                      {t.status.connected}
                     </span>
-                    <span className={styles.points}>+30 נקודות</span>
+                    <span className={styles.points}>{t.points.social}</span>
                   </>
                 ) : (
                   <NewsButton
@@ -202,7 +360,7 @@ export default function ConnectSocialPage() {
                     onClick={handleConnectFacebook}
                     disabled={connecting === 'facebook'}
                   >
-                    {connecting === 'facebook' ? 'מתחבר…' : 'חברו'}
+                    {connecting === 'facebook' ? t.status.connecting : t.status.connect}
                   </NewsButton>
                 )}
               </div>
@@ -219,7 +377,7 @@ export default function ConnectSocialPage() {
                 <div className={styles.rowText}>
                   <h3>Instagram</h3>
                   <p className={styles.rowMeta}>
-                    {instagramConnected ? 'מחובר' : '+30 נקודות לציון'}
+                    {instagramConnected ? t.status.connected : t.points.socialMeta}
                   </p>
                 </div>
               </div>
@@ -227,9 +385,10 @@ export default function ConnectSocialPage() {
                 {instagramConnected ? (
                   <>
                     <span className={styles.statusOn}>
-                      <span aria-hidden>✓ </span>מחובר
+                      <span aria-hidden>✓ </span>
+                      {t.status.connected}
                     </span>
-                    <span className={styles.points}>+30 נקודות</span>
+                    <span className={styles.points}>{t.points.social}</span>
                   </>
                 ) : (
                   <NewsButton
@@ -238,7 +397,7 @@ export default function ConnectSocialPage() {
                     onClick={handleConnectInstagram}
                     disabled={connecting === 'instagram'}
                   >
-                    {connecting === 'instagram' ? 'מתחבר…' : 'חברו'}
+                    {connecting === 'instagram' ? t.status.connecting : t.status.connect}
                   </NewsButton>
                 )}
               </div>
@@ -250,10 +409,7 @@ export default function ConnectSocialPage() {
             <span aria-hidden className={styles.infoGlyph}>
               ■
             </span>
-            <p>
-              אנחנו לא מפרסמים בשמכם ולא משתפים מידע. החיבור משמש לאימות זהות
-              בלבד.
-            </p>
+            <p>{t.privacyNote}</p>
           </div>
 
           {/* Actions */}
@@ -263,13 +419,13 @@ export default function ConnectSocialPage() {
               size="lg"
               className={styles.primaryBtn}
               onClick={handleContinue}
-              trailing={<span aria-hidden>←</span>}
+              trailing={<span aria-hidden>{t.continueArrow}</span>}
             >
-              {connectedPlatforms.length > 0 ? 'המשך לאפליקציה' : 'המשך בלי לחבר'}
+              {connectedPlatforms.length > 0 ? t.continueApp : t.continueWithout}
             </NewsButton>
             {connectedPlatforms.length === 0 && (
               <button className={styles.skipButton} onClick={handleSkip}>
-                אפשר לחבר גם אחר כך בהגדרות
+                {t.skip}
               </button>
             )}
           </div>

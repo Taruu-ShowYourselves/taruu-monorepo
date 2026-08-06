@@ -11,24 +11,82 @@ import { SourceLine } from '@/components/press/sections/DeskTopicRow';
 import type { NowTopic } from '../data';
 import { ShareBar } from './ShareBar';
 import styles from './NowDecidingDesk.module.css';
+import { localePrefix } from '@/lib/i18n';
+
+interface NowDecidingDeskCopy {
+  closesToday: string;
+  daysLeftPrefix: string;
+  daysLeftSuffix: string;
+  muniProfileTitlePrefix: string;
+  noBallots: string;
+  votesWord: string;
+  participantsWord: string;
+  kicker: string;
+  headline: string;
+  headlineRed: string;
+  noticeStamp: string;
+  noticeLede: string;
+  noticeCta: string;
+  footerLink: string;
+  arrow: string;
+}
+
+const COPY: Record<Locale, NowDecidingDeskCopy> = {
+  he: {
+    closesToday: 'מסתיים היום',
+    daysLeftPrefix: 'נותרו ',
+    daysLeftSuffix: ' ימים',
+    muniProfileTitlePrefix: 'פרופיל רשות - ',
+    noBallots: 'עדיין אין קולות. הקול הראשון פתוח.',
+    votesWord: 'קולות',
+    participantsWord: 'משתתפים',
+    kicker: 'עכשיו בקלפי · NOW DECIDING',
+    headline: 'מכריעים',
+    headlineRed: 'עכשיו.',
+    noticeStamp: 'המהדורה הראשונה בדפוס · 04.08',
+    noticeLede: 'ההצבעות הראשונות יופיעו כאן ברגע שהקלפי נפתחת.',
+    noticeCta: 'הצטרפו למייסדים',
+    footerLink: 'לכל ההצבעות ←',
+    arrow: '←',
+  },
+  en: {
+    closesToday: 'Closes today',
+    daysLeftPrefix: '',
+    daysLeftSuffix: ' days left',
+    muniProfileTitlePrefix: 'Municipality profile - ',
+    noBallots: 'No ballots yet. The first vote is open.',
+    votesWord: 'votes',
+    participantsWord: 'participants',
+    kicker: 'At the ballot box · NOW DECIDING',
+    headline: 'Deciding',
+    headlineRed: 'now.',
+    noticeStamp: 'The first edition in print · 04.08',
+    noticeLede: 'The first votes will appear here the moment the ballot box opens.',
+    noticeCta: 'Join the founders',
+    footerLink: 'All votes →',
+    arrow: '→',
+  },
+};
 
 function daysRemaining(endDate: string): number {
   const ms = new Date(endDate).getTime() - Date.now();
   return Math.max(0, Math.ceil(ms / 86_400_000));
 }
 
-function closingLabel(endDate: string): string {
+function closingLabel(endDate: string, locale: Locale = 'he'): string {
+  const t = COPY[locale];
   const days = daysRemaining(endDate);
-  return days === 0 ? 'מסתיים היום' : `נותרו ${days} ימים`;
+  return days === 0 ? t.closesToday : `${t.daysLeftPrefix}${days}${t.daysLeftSuffix}`;
 }
 
-function MuniKicker({ name }: { name: string }) {
+function MuniKicker({ name, locale = 'he' }: { name: string; locale?: Locale }) {
+  const t = COPY[locale];
   if (isMunicipality(name)) {
     return (
       <Link
         href={municipalityHref(name)}
         className={styles.muni}
-        title={`פרופיל רשות - ${name}`}
+        title={`${t.muniProfileTitlePrefix}${name}`}
       >
         {name}
       </Link>
@@ -40,18 +98,19 @@ function MuniKicker({ name }: { name: string }) {
 /** Lead row - headline + top-2 tally bars + mono meta (S3 anatomy). */
 function LeadRow({ entry, locale }: { entry: NowTopic; locale: Locale }) {
   const { topic, municipality } = entry;
+  const t = COPY[locale];
   const ballots = topic.options.reduce((sum, o) => sum + o.votes, 0);
   const top2 = topic.options.slice(0, 2);
 
   return (
     <li className={styles.row} data-animate>
       <p className={styles.rowKicker}>
-        <MuniKicker name={municipality} />
-        <span className={styles.closing}>{closingLabel(topic.endDate)}</span>
+        <MuniKicker name={municipality} locale={locale} />
+        <span className={styles.closing}>{closingLabel(topic.endDate, locale)}</span>
       </p>
 
       <h3 className={styles.rowTitle}>
-        <Link href={`/${locale}/votes/${topic.id}`} className={styles.rowLink}>
+        <Link href={`${localePrefix(locale)}/votes/${topic.id}`} className={styles.rowLink}>
           {topic.title}
         </Link>
       </h3>
@@ -67,14 +126,14 @@ function LeadRow({ entry, locale }: { entry: NowTopic; locale: Locale }) {
           ))}
         </ul>
       ) : (
-        <p className={styles.noBallots}>עדיין אין קולות. הקול הראשון פתוח.</p>
+        <p className={styles.noBallots}>{t.noBallots}</p>
       )}
 
       <p className={styles.rowMeta}>
-        {ballots.toLocaleString('he-IL')} קולות · {topic.participantCount.toLocaleString('he-IL')} משתתפים
+        {ballots.toLocaleString('he-IL')} {t.votesWord} · {topic.participantCount.toLocaleString('he-IL')} {t.participantsWord}
       </p>
 
-      {topic.source ? <SourceLine source={topic.source} /> : null}
+      {topic.source ? <SourceLine source={topic.source} locale={locale} /> : null}
     </li>
   );
 }
@@ -90,6 +149,7 @@ function CompactRow({
   locale: Locale;
 }) {
   const { topic, municipality } = entry;
+  const t = COPY[locale];
   const ballots = topic.options.reduce((sum, o) => sum + o.votes, 0);
 
   return (
@@ -99,16 +159,16 @@ function CompactRow({
       </span>
       <div className={styles.compactBody}>
         <h3 className={styles.compactTitle}>
-          <Link href={`/${locale}/votes/${topic.id}`} className={styles.rowLink}>
+          <Link href={`${localePrefix(locale)}/votes/${topic.id}`} className={styles.rowLink}>
             {topic.title}
           </Link>
         </h3>
         <p className={styles.compactMeta}>
-          <MuniKicker name={municipality} />
+          <MuniKicker name={municipality} locale={locale} />
           <span aria-hidden>·</span>
-          <span>{ballots.toLocaleString('he-IL')} קולות</span>
+          <span>{ballots.toLocaleString('he-IL')} {t.votesWord}</span>
         </p>
-        {topic.source ? <SourceLine source={topic.source} /> : null}
+        {topic.source ? <SourceLine source={topic.source} locale={locale} /> : null}
       </div>
     </li>
   );
@@ -126,6 +186,7 @@ interface NowDecidingDeskProps {
  * inline-end (VARIANCE 7); strict single column under 768px.
  */
 export function NowDecidingDesk({ locale, topics }: NowDecidingDeskProps) {
+  const t = COPY[locale];
   const leads = topics.slice(0, 4);
   const compacts = topics.slice(4, 8);
 
@@ -139,10 +200,10 @@ export function NowDecidingDesk({ locale, topics }: NowDecidingDeskProps) {
         <header className={styles.header}>
           <span className={styles.kicker}>
             <span aria-hidden className={styles.kickerTick} />
-            עכשיו בקלפי · NOW DECIDING
+            {t.kicker}
           </span>
           <h2 id="now-deciding-headline" className={styles.headline}>
-            מכריעים <span className={styles.red}>עכשיו.</span>
+            {t.headline} <span className={styles.red}>{t.headlineRed}</span>
           </h2>
         </header>
 
@@ -150,9 +211,9 @@ export function NowDecidingDesk({ locale, topics }: NowDecidingDeskProps) {
 
         {topics.length === 0 ? (
           <div className={styles.notice}>
-            <span className={styles.noticeStamp}>המהדורה הראשונה בדפוס · 04.08</span>
+            <span className={styles.noticeStamp}>{t.noticeStamp}</span>
             <p className={styles.noticeLede}>
-              ההצבעות הראשונות יופיעו כאן ברגע שהקלפי נפתחת.
+              {t.noticeLede}
             </p>
             <NewsButton
               href={WHATSAPP_FOUNDERS_LINK}
@@ -160,9 +221,9 @@ export function NowDecidingDesk({ locale, topics }: NowDecidingDeskProps) {
               rel="noopener noreferrer"
               variant="red"
               size="md"
-              trailing={<span aria-hidden>←</span>}
+              trailing={<span aria-hidden>{t.arrow}</span>}
             >
-              הצטרפו למייסדים
+              {t.noticeCta}
             </NewsButton>
           </div>
         ) : (
@@ -189,8 +250,8 @@ export function NowDecidingDesk({ locale, topics }: NowDecidingDeskProps) {
             </AnimateIn>
 
             <div className={styles.footer}>
-              <Link href={`/${locale}/votes`} className={styles.footerLink}>
-                לכל ההצבעות ←
+              <Link href={`${localePrefix(locale)}/votes`} className={styles.footerLink}>
+                {t.footerLink}
               </Link>
             </div>
           </>

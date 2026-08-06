@@ -1,10 +1,15 @@
 'use client';
 
 import { NewsButton } from '@/components/press';
+import type { Locale } from '@/lib/i18n';
 import styles from './DownloadHero.module.css';
 import { WHATSAPP_FOUNDERS_LINK } from '@sync/shared';
 
 const WHATSAPP_LINK = WHATSAPP_FOUNDERS_LINK;
+
+interface DownloadHeroProps {
+  locale?: Locale;
+}
 
 /** Hard-edged ink Apple glyph, no rounding. */
 function AppleGlyph() {
@@ -45,25 +50,74 @@ function WhatsappGlyph() {
 interface StoreBlock {
   name: string;
   glyph: React.ReactNode;
-  pre: string;
 }
 
 const STORES: StoreBlock[] = [
-  { name: 'App Store', glyph: <AppleGlyph />, pre: 'הורידו מ-' },
-  { name: 'Google Play', glyph: <PlayGlyph />, pre: 'הורידו מ-' },
+  { name: 'App Store', glyph: <AppleGlyph /> },
+  { name: 'Google Play', glyph: <PlayGlyph /> },
 ];
 
-export function DownloadHero() {
+interface DownloadHeroCopy {
+  kicker: string;
+  datelinePlace: string;
+  headline: string;
+  headlineRed: string;
+  body: string;
+  foundersCta: string;
+  featuresLink: string;
+  furnitureLabel: string;
+  storesAria: string;
+  storePre: string;
+  storeStamp: string;
+  furnitureNote: string;
+  arrow: string;
+}
+
+const COPY: Record<Locale, DownloadHeroCopy> = {
+  he: {
+    kicker: 'מברק מהמערכת · COMING SOON',
+    datelinePlace: 'תַּרְאוּ · MOBILE',
+    headline: 'תַּרְאוּ בכיס שלכם',
+    headlineRed: '- בקרוב.',
+    body: 'האפליקציה תהיה זמינה ב-App Store וב-Google Play לקראת ההצבעה הראשונה. בינתיים - הצטרפו לקבוצת המייסדים ותהיו הראשונים לדעת כשהיא יוצאת.',
+    foundersCta: 'קבוצת המייסדים',
+    featuresLink: 'מה יהיה באפליקציה ↓',
+    furnitureLabel: 'חנויות · STORES',
+    storesAria: 'חנויות אפליקציות - בקרוב',
+    storePre: 'הורידו מ-',
+    storeStamp: 'בקרוב',
+    furnitureNote: 'הקישורים ייפתחו עם השקת הגרסה הראשונה.',
+    arrow: '←',
+  },
+  en: {
+    kicker: 'A wire from the desk · COMING SOON',
+    datelinePlace: 'Taruu · MOBILE',
+    headline: 'Taruu in your pocket',
+    headlineRed: '— coming soon.',
+    body: 'The app will be available on the App Store and Google Play ahead of the first vote. Until then — join the founders’ group and be the first to know when it ships.',
+    foundersCta: 'The founders’ group',
+    featuresLink: 'What the app will hold ↓',
+    furnitureLabel: 'App stores · STORES',
+    storesAria: 'App stores — coming soon',
+    storePre: 'Download on',
+    storeStamp: 'Coming soon',
+    furnitureNote: 'The links will open when the first release ships.',
+    arrow: '→',
+  },
+};
+
+export function DownloadHero({ locale = 'he' }: DownloadHeroProps) {
+  const t = COPY[locale];
   return (
     <section className={styles.hero} aria-labelledby="download-headline">
       <div className={styles.inner}>
         {/* Dateline - top of the dispatch */}
         <div className={styles.dateline}>
           <span className={`np-kicker ${styles.kicker}`}>
-            מברק מהמערכת · COMING SOON
+            {t.kicker}
           </span>
           <span className={`np-mono ${styles.datelinePlace}`} aria-hidden>
-            תַּרְאוּ · MOBILE
+            {t.datelinePlace}
           </span>
         </div>
 
@@ -73,15 +127,13 @@ export function DownloadHero() {
           {/* Editorial column - headline + dispatch body */}
           <div className={styles.story}>
             <h1 id="download-headline" className={styles.headline}>
-              תַּרְאוּ בכיס שלכם
+              {t.headline}
               <br />
-              <span className={styles.red}>- בקרוב.</span>
+              <span className={styles.red}>{t.headlineRed}</span>
             </h1>
 
             <p className={`np-dropcap ${styles.body}`}>
-              האפליקציה תהיה זמינה ב-App Store וב-Google Play לקראת ההצבעה
-              הראשונה. בינתיים - הצטרפו לקבוצת המייסדים ותהיו הראשונים לדעת
-              כשהיא יוצאת.
+              {t.body}
             </p>
 
             <div className={styles.actions}>
@@ -91,15 +143,15 @@ export function DownloadHero() {
                 rel="noopener noreferrer"
                 variant="red"
                 size="lg"
-                trailing={<span aria-hidden>←</span>}
+                trailing={<span aria-hidden>{t.arrow}</span>}
               >
                 <span className={styles.primaryLabel}>
                   <WhatsappGlyph />
-                  קבוצת המייסדים
+                  {t.foundersCta}
                 </span>
               </NewsButton>
               <a href="#features" className={styles.textLink}>
-                מה יהיה באפליקציה ↓
+                {t.featuresLink}
               </a>
             </div>
           </div>
@@ -107,10 +159,10 @@ export function DownloadHero() {
           {/* Press furniture - store dispatch blocks marked "בקרוב" */}
           <aside className={styles.furniture}>
             <span className={`np-mono ${styles.furnitureLabel}`}>
-              חנויות · STORES
+              {t.furnitureLabel}
             </span>
 
-            <ul className={styles.stores} aria-label="חנויות אפליקציות - בקרוב">
+            <ul className={styles.stores} aria-label={t.storesAria}>
               {STORES.map((store) => (
                 <li
                   key={store.name}
@@ -121,17 +173,17 @@ export function DownloadHero() {
                     {store.glyph}
                   </span>
                   <span className={styles.storeText}>
-                    <span className={`np-mono ${styles.storePre}`}>{store.pre}</span>
+                    <span className={`np-mono ${styles.storePre}`}>{t.storePre}</span>
                     <span className={styles.storeName}>{store.name}</span>
                   </span>
-                  <span className={`np-mono ${styles.storeStamp}`}>בקרוב</span>
+                  <span className={`np-mono ${styles.storeStamp}`}>{t.storeStamp}</span>
                 </li>
               ))}
             </ul>
 
             <p className={`np-mono ${styles.furnitureNote}`}>
               <span aria-hidden className={styles.noteTick}>■</span>
-              הקישורים ייפתחו עם השקת הגרסה הראשונה.
+              {t.furnitureNote}
             </p>
           </aside>
         </div>

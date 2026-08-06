@@ -3,6 +3,7 @@
 import React from 'react';
 import clsx from 'clsx';
 import { NewsButton } from '@/components/press/NewsButton';
+import type { Locale } from '@/lib/i18n';
 import kicker from './kicker.module.css';
 import styles from './Panels.module.css';
 
@@ -46,30 +47,54 @@ export function EmptyPanel({
   );
 }
 
+interface ErrorPanelCopy {
+  kicker: string;
+  defaultBody: string;
+  retryLabel: string;
+}
+
+const ERROR_COPY: Record<Locale, ErrorPanelCopy> = {
+  he: {
+    kicker: 'שגיאה · ERROR',
+    defaultBody:
+      'לא הצלחנו לטעון את הנתונים. הנתונים עצמם לא נפגעו — נסו שוב; אם זה חוזר, פנו למנהל־על.',
+    retryLabel: 'נסו שוב',
+  },
+  en: {
+    kicker: 'SOMETHING WENT WRONG · ERROR',
+    defaultBody:
+      'We could not load the data. The data itself is intact — try again; if this recurs, contact a super-admin.',
+    retryLabel: 'Try again',
+  },
+};
+
 export interface ErrorPanelProps {
   /** Retry affordance. Omit to render the panel without a CTA. */
   onRetry?: () => void;
   /** Override for a surface with its own error sentence (e.g. the audit log). */
   body?: string;
   retryLabel?: string;
+  locale?: Locale;
   className?: string;
 }
 
 export function ErrorPanel({
   onRetry,
-  body = 'לא הצלחנו לטעון את הנתונים. הנתונים עצמם לא נפגעו — נסו שוב; אם זה חוזר, פנו למנהל־על.',
-  retryLabel = 'נסו שוב',
+  body,
+  retryLabel,
+  locale = 'he',
   className,
 }: ErrorPanelProps) {
+  const t = ERROR_COPY[locale];
   return (
     <div className={clsx(styles.panel, className)} role="alert">
       <span className={kicker.kicker}>
         <span aria-hidden className={kicker.tick}>
           ■
         </span>
-        שגיאה · ERROR
+        {t.kicker}
       </span>
-      <p className={styles.body}>{body}</p>
+      <p className={styles.body}>{body ?? t.defaultBody}</p>
       {onRetry ? (
         <div className={styles.actions}>
           <NewsButton variant="outline" onClick={onRetry}>

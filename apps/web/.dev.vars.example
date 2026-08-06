@@ -67,9 +67,8 @@ SMS_API_URL=
 SMS_API_KEY=
 SMS_FROM=
 
-# Beehiiv (newsletter)
-BEEHIIV_API_KEY=
-BEEHIIV_PUBLICATION_ID=
+# Newsletter: no vendor keys. The list lives in Supabase
+# (newsletter_subscribers), reached with SUPABASE_SERVICE_ROLE_KEY above.
 
 # Expo push
 EXPO_ACCESS_TOKEN=

@@ -29,14 +29,19 @@
  * deck's own filter list, not an omission here. Worth knowing when reading the
  * log: a suspension is a `member` row, so it does NOT appear under `הרשאות`,
  * which selects grant rows alone.
+ *
+ * `labels` is keyed by `Locale`; the client picks `labels[locale]` at render
+ * time. The server never reads a label — it filters on `value`/`objectType`
+ * alone — which is why the bilingual copy can live here without this module
+ * gaining a locale parameter.
  */
 export const AUDIT_FILTERS = [
-  { value: 'all', label: 'הכול', objectType: undefined },
-  { value: 'vote', label: 'הצעות', objectType: 'vote' },
-  { value: 'grant', label: 'הרשאות', objectType: 'grant' },
+  { value: 'all', labels: { he: 'הכול', en: 'All' }, objectType: undefined },
+  { value: 'vote', labels: { he: 'הצעות', en: 'Proposals' }, objectType: 'vote' },
+  { value: 'grant', labels: { he: 'הרשאות', en: 'Capabilities' }, objectType: 'grant' },
   {
     value: 'notification_campaign',
-    label: 'התראות',
+    labels: { he: 'התראות', en: 'Notifications' },
     objectType: 'notification_campaign',
   },
 ] as const;

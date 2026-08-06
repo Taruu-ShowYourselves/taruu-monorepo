@@ -55,8 +55,10 @@ export default async function SpaceAdminLayout({
   return (
     <div className="np-page">
       <Masthead locale={locale} />
-      <main className={styles.main}>
-        <div className={styles.container}>{children}</div>
+      <main className={`${styles.main} np-desk`}>
+        <div className={styles.container}>
+          <div className={`${styles.sheet} np-sheet`}>{children}</div>
+        </div>
       </main>
       <Colophon locale={locale} />
     </div>

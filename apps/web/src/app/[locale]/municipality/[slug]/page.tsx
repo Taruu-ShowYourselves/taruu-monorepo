@@ -22,6 +22,7 @@ import { MetricBar } from '@/components/uikit/metric-bar';
 import { Progress } from '@/components/uikit/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/uikit/tabs';
 import type { Locale } from '@/lib/i18n';
+import { localePrefix } from '@/lib/i18n';
 
 // Aggregations are heavy-ish; refresh every 5 minutes like the homepage desks.
 export const revalidate = 300;
@@ -35,34 +36,172 @@ function resolveMunicipality(slug: string): string | null {
   return (MUNICIPALITIES as readonly string[]).includes(name) ? name : null;
 }
 
+interface MunicipalityCopy {
+  notFoundTitle: string;
+  /** Metadata title and description, given the resolved town. */
+  metaTitle: (name: string) => string;
+  metaDescription: (name: string) => string;
+  /** BCP 47 tag for dates and grouped figures. */
+  dateLocale: string;
+  minutes: (n: number) => string;
+  hours: (n: number) => string;
+  days: (n: number) => string;
+  decided: string;
+  statusClosed: string;
+  statusOpen: string;
+  noOptions: string;
+  verifiedBallots: string;
+  opened: string;
+  closed: string;
+  closes: string;
+  noVotesYet: string;
+  voteFirst: string;
+  kicker: string;
+  registeredResidents: string;
+  voters: string;
+  openVotesLabel: string;
+  metricsAria: string;
+  engagementLabel: string;
+  engagementCaption: (participants: string, residents: string) => string;
+  noVoteData: string;
+  timeLabel: string;
+  timeCaption: string;
+  satisfactionLabel: string;
+  satisfactionCaption: (count: string) => string;
+  noRatings: string;
+  votesAria: string;
+  tabLive: string;
+  tabTopics: string;
+  tabClosed: string;
+  emptyLive: (name: string) => string;
+  emptyTopics: (name: string) => string;
+  emptyClosed: (name: string) => string;
+  /** Direction-semantic arrow: Hebrew ←, English →. */
+  arrow: string;
+}
+
+const COPY: Record<Locale, MunicipalityCopy> = {
+  he: {
+    notFoundTitle: 'רשות לא נמצאה | תַּרְאוּ',
+    metaTitle: (name) => `${name} · פרופיל רשות | תַּרְאוּ`,
+    metaDescription: (name) =>
+      `שביעות רצון, מעורבות אזרחית וכל ההצבעות הפתוחות והסגורות ב${name}. נתונים מאומתים, שקופים לכולם.`,
+    dateLocale: 'he-IL',
+    minutes: (n) => `${n} דק׳`,
+    hours: (n) => `${n} שע׳`,
+    days: (n) => `${n} ימים`,
+    decided: 'הוכרע',
+    statusClosed: 'סגורה',
+    statusOpen: 'פתוחה · LIVE',
+    noOptions: 'אין אפשרויות הצבעה.',
+    verifiedBallots: 'קולות מאומתים',
+    opened: 'נפתחה',
+    closed: 'נסגרה',
+    closes: 'נסגרת',
+    noVotesYet: 'עדיין בלי קולות',
+    voteFirst: 'הצביעו ראשונים',
+    kicker: 'פרופיל רשות · MUNICIPALITY',
+    registeredResidents: 'תושבים רשומים',
+    voters: 'מצביעים',
+    openVotesLabel: 'הצבעות פתוחות',
+    metricsAria: 'מדדי הרשות',
+    engagementLabel: 'מעורבות אזרחית',
+    engagementCaption: (participants, residents) =>
+      `${participants} מצביעים מתוך ${residents} תושבים רשומים`,
+    noVoteData: 'אין עדיין נתוני הצבעה',
+    timeLabel: 'זמן עד הצבעה',
+    timeCaption: 'ממוצע מפתיחת הצבעה ועד מתן הקול',
+    satisfactionLabel: 'שביעות רצון התושבים',
+    satisfactionCaption: (count) => `${count} תושבים דירגו`,
+    noRatings: 'אין עדיין דירוגים. הדירוג נאסף בהרשמה',
+    votesAria: 'הצבעות',
+    tabLive: 'הצבעות חיות',
+    tabTopics: 'נושאים על השולחן',
+    tabClosed: 'סגורות',
+    emptyLive: (name) =>
+      `עדיין לא נקלטו קולות ב${name}. הנושאים הפתוחים מחכים בלשונית «נושאים על השולחן».`,
+    emptyTopics: (name) => `אין כרגע נושאים פתוחים ב${name}.`,
+    emptyClosed: (name) =>
+      `עוד לא נסגרו הצבעות ב${name}. התוצאות יופיעו כאן, שקופות לכולם.`,
+    arrow: '←',
+  },
+  en: {
+    notFoundTitle: 'Municipality not found | Taruu',
+    metaTitle: (name) => `${name} · municipality profile | Taruu`,
+    metaDescription: (name) =>
+      `Satisfaction, civic engagement and every open and closed vote in ${name}. Verified figures, transparent to everyone.`,
+    dateLocale: 'en-GB',
+    minutes: (n) => `${n} min`,
+    hours: (n) => `${n} hr`,
+    days: (n) => `${n} days`,
+    decided: 'Decided',
+    statusClosed: 'Closed',
+    statusOpen: 'Open · LIVE',
+    noOptions: 'No ballot options.',
+    verifiedBallots: 'verified ballots',
+    opened: 'Opened',
+    closed: 'Closed',
+    closes: 'Closes',
+    noVotesYet: 'No ballots yet',
+    voteFirst: 'Be the first to vote',
+    kicker: 'MUNICIPALITY PROFILE',
+    registeredResidents: 'registered residents',
+    voters: 'voters',
+    openVotesLabel: 'open votes',
+    metricsAria: 'Municipality metrics',
+    engagementLabel: 'Civic engagement',
+    engagementCaption: (participants, residents) =>
+      `${participants} voters out of ${residents} registered residents`,
+    noVoteData: 'No voting data yet',
+    timeLabel: 'Time to vote',
+    timeCaption: 'Average from a vote opening to a ballot cast',
+    satisfactionLabel: 'Resident satisfaction',
+    satisfactionCaption: (count) => `${count} residents rated`,
+    noRatings: 'No ratings yet. Ratings are collected at sign-up',
+    votesAria: 'Votes',
+    tabLive: 'Live votes',
+    tabTopics: 'Topics on the table',
+    tabClosed: 'Closed',
+    emptyLive: (name) =>
+      `No ballots have been cast in ${name} yet. The open topics are waiting under "Topics on the table".`,
+    emptyTopics: (name) => `There are no open topics in ${name} right now.`,
+    emptyClosed: (name) =>
+      `No vote has closed in ${name} yet. The results will appear here, transparent to everyone.`,
+    arrow: '→',
+  },
+};
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = await params;
+  const { locale, slug } = await params;
+  const t = COPY[locale];
   const name = resolveMunicipality(slug);
-  if (!name) return { title: 'רשות לא נמצאה | תַּרְאוּ' };
+  if (!name) return { title: t.notFoundTitle };
   return {
-    title: `${name} · פרופיל רשות | תַּרְאוּ`,
-    description: `שביעות רצון, מעורבות אזרחית וכל ההצבעות הפתוחות והסגורות ב${name}. נתונים מאומתים, שקופים לכולם.`,
+    title: t.metaTitle(name),
+    description: t.metaDescription(name),
   };
 }
 
-const dateFmt = new Intl.DateTimeFormat('he-IL', {
-  day: '2-digit',
-  month: '2-digit',
-  year: '2-digit',
-  timeZone: 'Asia/Jerusalem',
-});
-
-function formatDate(iso: string | null): string {
-  return iso ? dateFmt.format(new Date(iso)) : '-';
+function dateFormatter(t: MunicipalityCopy) {
+  return new Intl.DateTimeFormat(t.dateLocale, {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+    timeZone: 'Asia/Jerusalem',
+  });
 }
 
-function formatHours(hours: number): string {
-  if (hours < 1) return `${Math.round(hours * 60)} דק׳`;
-  if (hours < 48) return `${Math.round(hours)} שע׳`;
-  return `${Math.round(hours / 24)} ימים`;
+function formatDate(t: MunicipalityCopy, iso: string | null): string {
+  return iso ? dateFormatter(t).format(new Date(iso)) : '-';
 }
 
-function VoteCard({ vote }: { vote: MunicipalityVoteSummary }) {
+function formatHours(t: MunicipalityCopy, hours: number): string {
+  if (hours < 1) return t.minutes(Math.round(hours * 60));
+  if (hours < 48) return t.hours(Math.round(hours));
+  return t.days(Math.round(hours / 24));
+}
+
+function VoteCard({ vote, t }: { vote: MunicipalityVoteSummary; t: MunicipalityCopy }) {
   const closed = vote.status === 'ended';
   return (
     <Card className="flex h-full flex-col">
@@ -70,10 +209,12 @@ function VoteCard({ vote }: { vote: MunicipalityVoteSummary }) {
         <CardTitle className="min-w-0 flex-1">{vote.title}</CardTitle>
         <div className="flex shrink-0 items-center gap-2">
           {closed && vote.winningOption ? (
-            <Badge variant="red">הוכרע: {vote.winningOption}</Badge>
+            <Badge variant="red">
+              {t.decided}: {vote.winningOption}
+            </Badge>
           ) : null}
           <Badge variant={closed ? 'default' : 'red'}>
-            {closed ? 'סגורה' : 'פתוחה · LIVE'}
+            {closed ? t.statusClosed : t.statusOpen}
           </Badge>
         </div>
       </CardHeader>
@@ -90,21 +231,27 @@ function VoteCard({ vote }: { vote: MunicipalityVoteSummary }) {
               <div className="flex items-baseline justify-between gap-3">
                 <span className="font-mono text-sm font-bold">{option.text}</span>
                 <span className="font-mono text-sm tabular-nums text-ink-soft">
-                  {option.pct}% · {option.votes.toLocaleString('he-IL')}
+                  {option.pct}% · {option.votes.toLocaleString(t.dateLocale)}
                 </span>
               </div>
               <Progress value={option.pct} className="h-2" aria-label={option.text} />
             </div>
           ))}
           {vote.options.length === 0 ? (
-            <p className="font-mono text-xs text-ink-faint">אין אפשרויות הצבעה.</p>
+            <p className="font-mono text-xs text-ink-faint">{t.noOptions}</p>
           ) : null}
         </div>
       </CardContent>
       <CardFooter className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs text-ink-faint">
-        <span>{vote.totalBallots.toLocaleString('he-IL')} קולות מאומתים</span>
-        <span>נפתחה {formatDate(vote.startDate)}</span>
-        <span>{closed ? 'נסגרה' : 'נסגרת'} {formatDate(vote.endDate)}</span>
+        <span>
+          {vote.totalBallots.toLocaleString(t.dateLocale)} {t.verifiedBallots}
+        </span>
+        <span>
+          {t.opened} {formatDate(t, vote.startDate)}
+        </span>
+        <span>
+          {closed ? t.closed : t.closes} {formatDate(t, vote.endDate)}
+        </span>
       </CardFooter>
     </Card>
   );
@@ -114,13 +261,21 @@ function VoteCard({ vote }: { vote: MunicipalityVoteSummary }) {
  * Open topic nobody voted on yet - on the table, waiting for a first voice.
  * "Claiming" it is simply being the first to vote.
  */
-function TopicCard({ vote, locale }: { vote: MunicipalityVoteSummary; locale: Locale }) {
+function TopicCard({
+  vote,
+  locale,
+  t,
+}: {
+  vote: MunicipalityVoteSummary;
+  locale: Locale;
+  t: MunicipalityCopy;
+}) {
   return (
     <Card className="flex h-full flex-col">
       <CardHeader className="flex-row flex-wrap items-start justify-between gap-2">
         <CardTitle className="min-w-0 flex-1">{vote.title}</CardTitle>
         <Badge variant="soft" className="shrink-0 border-dashed">
-          עדיין בלי קולות
+          {t.noVotesYet}
         </Badge>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
@@ -143,15 +298,15 @@ function TopicCard({ vote, locale }: { vote: MunicipalityVoteSummary; locale: Lo
       </CardContent>
       <CardFooter className="flex flex-wrap items-center justify-between gap-3">
         <NewsButton
-          href={`/${locale}/votes/${vote.id}`}
+          href={`${localePrefix(locale)}/votes/${vote.id}`}
           variant="red"
           size="sm"
-          trailing={<span aria-hidden>←</span>}
+          trailing={<span aria-hidden>{t.arrow}</span>}
         >
-          הצביעו ראשונים
+          {t.voteFirst}
         </NewsButton>
         <span className="font-mono text-xs text-ink-faint">
-          נסגרת {formatDate(vote.endDate)}
+          {t.closes} {formatDate(t, vote.endDate)}
         </span>
       </CardFooter>
     </Card>
@@ -173,6 +328,7 @@ const EMPTY_PROFILE: MunicipalityProfile = {
 
 export default async function MunicipalityProfilePage({ params }: PageProps) {
   const { locale, slug } = await params;
+  const t = COPY[locale];
   const name = resolveMunicipality(slug);
   if (!name) notFound();
 
@@ -213,7 +369,7 @@ export default async function MunicipalityProfilePage({ params }: PageProps) {
         <header className="flex flex-col gap-4">
           <span className="flex items-center gap-2 font-mono text-sm font-extrabold uppercase tracking-widest text-red">
             <span aria-hidden className="inline-block size-[0.7em] bg-red" />
-            פרופיל רשות · MUNICIPALITY
+            {t.kicker}
           </span>
           <h1 className="font-display text-6xl font-black leading-none tracking-tighter md:text-8xl">
             {name}
@@ -221,40 +377,43 @@ export default async function MunicipalityProfilePage({ params }: PageProps) {
           <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2 border-y border-ink/40 py-2 font-mono text-xs font-bold uppercase tracking-widest text-ink-soft">
             <span className="flex items-baseline gap-2">
               <b className="font-display text-lg font-black tabular-nums text-ink">
-                {metrics.residents.toLocaleString('he-IL')}
+                {metrics.residents.toLocaleString(t.dateLocale)}
               </b>
-              תושבים רשומים
+              {t.registeredResidents}
             </span>
             <span className="flex items-baseline gap-2">
               <b className="font-display text-lg font-black tabular-nums text-ink">
-                {metrics.participants.toLocaleString('he-IL')}
+                {metrics.participants.toLocaleString(t.dateLocale)}
               </b>
-              מצביעים
+              {t.voters}
             </span>
             <span className="flex items-baseline gap-2">
               <b className="font-display text-lg font-black tabular-nums text-red">
                 {openVotes.length}
               </b>
-              הצבעות פתוחות
+              {t.openVotesLabel}
             </span>
           </div>
         </header>
 
         {/* Civic metrics - ruled index band, no boxes */}
-        <section aria-label="מדדי הרשות">
+        <section aria-label={t.metricsAria}>
           <AnimateIn className="grid grid-cols-1 border-y-2 border-ink md:grid-cols-3">
             <div
               data-animate
               className="border-ink py-6 md:border-s-2 md:px-8 md:first:border-s-0 md:first:ps-0 md:last:pe-0"
             >
               <MetricBar
-                label="מעורבות אזרחית"
+                label={t.engagementLabel}
                 value={engagementPct ?? 0}
                 display={engagementPct !== null ? `${engagementPct}%` : '-'}
                 caption={
                   engagementPct !== null
-                    ? `${metrics.participants.toLocaleString('he-IL')} מצביעים מתוך ${metrics.residents.toLocaleString('he-IL')} תושבים רשומים`
-                    : 'אין עדיין נתוני הצבעה'
+                    ? t.engagementCaption(
+                        metrics.participants.toLocaleString(t.dateLocale),
+                        metrics.residents.toLocaleString(t.dateLocale)
+                      )
+                    : t.noVoteData
                 }
               />
             </div>
@@ -263,17 +422,17 @@ export default async function MunicipalityProfilePage({ params }: PageProps) {
               className="border-t-2 border-ink py-6 md:border-s-2 md:border-t-0 md:px-8"
             >
               <MetricBar
-                label="זמן עד הצבעה"
+                label={t.timeLabel}
                 value={timeBarValue ?? 0}
                 display={
                   metrics.avgTimeToEngageHours !== null
-                    ? formatHours(metrics.avgTimeToEngageHours)
+                    ? formatHours(t, metrics.avgTimeToEngageHours)
                     : '-'
                 }
                 caption={
                   metrics.avgTimeToEngageHours !== null
-                    ? 'ממוצע מפתיחת הצבעה ועד מתן הקול'
-                    : 'אין עדיין נתוני הצבעה'
+                    ? t.timeCaption
+                    : t.noVoteData
                 }
               />
             </div>
@@ -282,7 +441,7 @@ export default async function MunicipalityProfilePage({ params }: PageProps) {
               className="border-t-2 border-ink py-6 md:border-s-2 md:border-t-0 md:px-8 md:pe-0"
             >
               <MetricBar
-                label="שביעות רצון התושבים"
+                label={t.satisfactionLabel}
                 value={satisfactionPct ?? 0}
                 display={
                   metrics.satisfactionAvg !== null
@@ -291,8 +450,10 @@ export default async function MunicipalityProfilePage({ params }: PageProps) {
                 }
                 caption={
                   metrics.satisfactionCount > 0
-                    ? `${metrics.satisfactionCount.toLocaleString('he-IL')} תושבים דירגו`
-                    : 'אין עדיין דירוגים. הדירוג נאסף בהרשמה'
+                    ? t.satisfactionCaption(
+                        metrics.satisfactionCount.toLocaleString(t.dateLocale)
+                      )
+                    : t.noRatings
                 }
               />
             </div>
@@ -300,23 +461,26 @@ export default async function MunicipalityProfilePage({ params }: PageProps) {
         </section>
 
         {/* Votes */}
-        <section aria-label="הצבעות">
-          <Tabs defaultValue={liveVotes.length > 0 ? 'live' : 'topics'} dir="rtl">
+        <section aria-label={t.votesAria}>
+          <Tabs
+            defaultValue={liveVotes.length > 0 ? 'live' : 'topics'}
+            dir={locale === 'he' ? 'rtl' : 'ltr'}
+          >
             <TabsList>
               <TabsTrigger value="live">
-                הצבעות חיות
+                {t.tabLive}
                 <span className="ms-2 tabular-nums text-red group-data-[state=active]:text-paper">
                   {liveVotes.length}
                 </span>
               </TabsTrigger>
               <TabsTrigger value="topics">
-                נושאים על השולחן
+                {t.tabTopics}
                 <span className="ms-2 tabular-nums text-red group-data-[state=active]:text-paper">
                   {openTopics.length}
                 </span>
               </TabsTrigger>
               <TabsTrigger value="closed">
-                סגורות
+                {t.tabClosed}
                 <span className="ms-2 tabular-nums text-red group-data-[state=active]:text-paper">
                   {closedVotes.length}
                 </span>
@@ -327,14 +491,13 @@ export default async function MunicipalityProfilePage({ params }: PageProps) {
               <AnimateIn className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 {liveVotes.map((vote) => (
                   <div key={vote.id} data-animate>
-                    <VoteCard vote={vote} />
+                    <VoteCard vote={vote} t={t} />
                   </div>
                 ))}
               </AnimateIn>
               {liveVotes.length === 0 ? (
                 <p className="border-2 border-dashed border-ink-soft p-6 font-mono text-sm text-ink-soft">
-                  עדיין לא נקלטו קולות ב{name}. הנושאים הפתוחים מחכים בלשונית
-                  «נושאים על השולחן».
+                  {t.emptyLive(name)}
                 </p>
               ) : null}
             </TabsContent>
@@ -343,13 +506,13 @@ export default async function MunicipalityProfilePage({ params }: PageProps) {
               <AnimateIn className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 {openTopics.map((vote) => (
                   <div key={vote.id} data-animate>
-                    <TopicCard vote={vote} locale={locale} />
+                    <TopicCard vote={vote} locale={locale} t={t} />
                   </div>
                 ))}
               </AnimateIn>
               {openTopics.length === 0 ? (
                 <p className="border-2 border-dashed border-ink-soft p-6 font-mono text-sm text-ink-soft">
-                  אין כרגע נושאים פתוחים ב{name}.
+                  {t.emptyTopics(name)}
                 </p>
               ) : null}
             </TabsContent>
@@ -358,13 +521,13 @@ export default async function MunicipalityProfilePage({ params }: PageProps) {
               <AnimateIn className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 {closedVotes.map((vote) => (
                   <div key={vote.id} data-animate>
-                    <VoteCard vote={vote} />
+                    <VoteCard vote={vote} t={t} />
                   </div>
                 ))}
               </AnimateIn>
               {closedVotes.length === 0 ? (
                 <p className="border-2 border-dashed border-ink-soft p-6 font-mono text-sm text-ink-soft">
-                  עוד לא נסגרו הצבעות ב{name}. התוצאות יופיעו כאן, שקופות לכולם.
+                  {t.emptyClosed(name)}
                 </p>
               ) : null}
             </TabsContent>

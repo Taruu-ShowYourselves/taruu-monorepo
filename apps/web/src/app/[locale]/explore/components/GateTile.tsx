@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/providers/AuthProvider';
 import type { Locale } from '@/lib/i18n';
 import styles from './JoinSlotRow.module.css';
+import { localePrefix } from '@/lib/i18n';
 
 /** Hard-edged padlock glyph - SVG primitive, stroke inherits currentColor. */
 function LockGlyph() {
@@ -25,6 +26,22 @@ function LockGlyph() {
   );
 }
 
+interface GateTileCopy {
+  title: string;
+  caption: string;
+}
+
+const COPY: Record<Locale, GateTileCopy> = {
+  he: {
+    title: 'פתיחת נושא · ₪50',
+    caption: 'דורש חשבון מאומת',
+  },
+  en: {
+    title: 'Open an issue · ₪50',
+    caption: 'Requires a verified account',
+  },
+};
+
 interface GateTileProps {
   locale: Locale;
 }
@@ -37,6 +54,7 @@ interface GateTileProps {
  * matching the Masthead hydration pattern.
  */
 export function GateTile({ locale }: GateTileProps) {
+  const t = COPY[locale];
   const { isAuthenticated } = useAuth();
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -45,16 +63,16 @@ export function GateTile({ locale }: GateTileProps) {
 
   const href =
     mounted && isAuthenticated
-      ? `/${locale}/votes/create`
-      : `/${locale}/sign-in?redirect=/votes/create`;
+      ? `${localePrefix(locale)}/votes/create`
+      : `${localePrefix(locale)}/sign-in?redirect=/votes/create`;
 
   return (
     <Link href={href} className={styles.slotTile}>
       <span className={styles.slotTitle}>
         <LockGlyph />
-        פתיחת נושא · ₪50
+        {t.title}
       </span>
-      <span className={styles.slotCaption}>דורש חשבון מאומת</span>
+      <span className={styles.slotCaption}>{t.caption}</span>
     </Link>
   );
 }

@@ -42,15 +42,25 @@ export async function GET(request: NextRequest) {
     const municipalityWithheld =
       municipalityCount !== null && municipalityCount < MUNICIPALITY_MIN_COHORT;
 
-    return NextResponse.json({
-      stats: {
-        registeredTotal,
-        municipality,
-        registeredInMunicipality: municipalityWithheld ? null : municipalityCount,
-        municipalityWithheld,
-        updatedAt: new Date().toISOString(),
+    // Public aggregate, no per-caller data: cacheable in a shared edge cache.
+    // Cloudflare keys on the full URL, so each ?municipality= variant caches
+    // separately. Only the success path - an error must never be cached.
+    return NextResponse.json(
+      {
+        stats: {
+          registeredTotal,
+          municipality,
+          registeredInMunicipality: municipalityWithheld ? null : municipalityCount,
+          municipalityWithheld,
+          updatedAt: new Date().toISOString(),
+        },
       },
-    });
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        },
+      }
+    );
   } catch (error) {
     console.error('Error fetching registration stats:', error);
     return NextResponse.json(
