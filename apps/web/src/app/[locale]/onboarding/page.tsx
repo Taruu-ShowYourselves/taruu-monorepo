@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { safeRedirect } from '@/lib/safeRedirect';
 import { useAuth } from '@/providers/AuthProvider';
 import { NewsButton } from '@/components/press/NewsButton';
 import { PressInput } from '@/components/press/PressInput/PressInput';
@@ -64,7 +65,12 @@ export default function OnboardingPage() {
         throw new Error('Failed to save profile');
       }
 
-      router.push('/dashboard');
+      const postAuth = safeRedirect(
+        sessionStorage.getItem('taruu.post_auth_redirect'),
+        '/dashboard'
+      );
+      sessionStorage.removeItem('taruu.post_auth_redirect');
+      router.push(postAuth);
     } catch (error) {
       console.error('Error saving profile:', error);
     } finally {
