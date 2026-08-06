@@ -33,7 +33,8 @@
       "Read(//Users/saharbarak/.supabase/**)",
       "Bash(supabase projects *)",
       "Bash(awk '$1+$2 > 100 {print $1\"\\\\t\"$2\"\\\\t\"$3}')",
-      "Bash(sort -k1 -rn)"
+      "Bash(sort -k1 -rn)",
+      "Bash(pnpm add *)"
     ]
   },
   "enableAllProjectMcpServers": true,
