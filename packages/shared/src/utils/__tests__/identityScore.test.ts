@@ -29,6 +29,7 @@ import {
   IDENTITY_SCORE_WEIGHTS,
   GPS_SCORE_WEIGHT,
   MINIMUM_VOTING_SCORE,
+  votingGate,
   VERIFIED_THRESHOLD,
   TRUSTED_THRESHOLD,
 } from '../identityScore';
@@ -353,7 +354,7 @@ describe('Constants', () => {
   });
 
   it('should have correct thresholds per auth-flow.md v77', () => {
-    expect(MINIMUM_VOTING_SCORE).toBe(40); // Google required
+    expect(MINIMUM_VOTING_SCORE).toBe(80); // Google + the GPS residency check
     expect(VERIFIED_THRESHOLD).toBe(60); // Google + both socials OR partial GPS combo
     expect(TRUSTED_THRESHOLD).toBe(80); // Google + GPS
   });
