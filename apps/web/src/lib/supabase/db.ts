@@ -33,6 +33,7 @@ import {
   type PublicVoteStatus,
 } from '@/server/domain/votes/vote';
 import { REVIEW_VOTE_STATUSES } from '@/server/domain/space/review';
+import { UniqueViolationError } from './errors';
 
 // ============================================
 // USER OPERATIONS
@@ -1087,6 +1088,15 @@ export async function createVote(
     .select()
     .single();
 
+  if (error?.code === '23505') {
+    // `ux_votes_live_topic`: this municipality already has an open ballot under
+    // this exact title. Typed so the ingest path can answer it by re-reading
+    // the winner instead of failing the run.
+    throw new UniqueViolationError(
+      error.details ?? undefined,
+      `Vote already exists for ${voteData.municipality_id}: ${voteData.title}`
+    );
+  }
   if (error) throw new Error(`Failed to create vote: ${error.message}`);
   return data;
 }
