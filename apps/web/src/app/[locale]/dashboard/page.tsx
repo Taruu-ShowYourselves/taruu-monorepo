@@ -14,7 +14,10 @@ import { CertificateCard, type Certificate } from '@/components/certificate/Cert
 import {
   getIdentityLevelLabel,
   getIdentityLevelDescription,
+  GPS_SCORE_WEIGHT,
+  IDENTITY_SCORE_WEIGHTS,
 } from '@sync/shared';
+import { voterGate } from '@/lib/verification';
 import { PressLoader } from '@/components/press/PressMachine';
 import type { Locale } from '@/lib/i18n';
 import { localePrefix } from '@/lib/i18n';
@@ -72,6 +75,23 @@ interface DashboardCopy {
   identityKicker: string;
   /** Includes its trailing glyph - direction-semantic, mirrored between RTL and LTR. */
   improveScore: string;
+  /** The scored steps to a ballot, printed in running order like desk tiles. */
+  stepsKicker: string;
+  stepGoogle: string;
+  stepGoogleMeta: string;
+  stepResidency: string;
+  stepResidencyMeta: string;
+  stepSocial: string;
+  stepSocialMeta: string;
+  stepPointsSuffix: string;
+  stepDone: string;
+  stepOpen: string;
+  /** Gate line composes `${gateHavePrefix}${total}${gateNeedMid}${required}${gateNeedSuffix}`. */
+  gateHavePrefix: string;
+  gateNeedMid: string;
+  gateNeedSuffix: string;
+  gateClearedLine: string;
+  gateCta: string;
   totalVotesLabel: string;
   activeVotesLabel: string;
   createdVotesLabel: string;
@@ -155,6 +175,21 @@ const COPY: Record<Locale, DashboardCopy> = {
     verifyStatusCta: 'צפו בסטטוס',
     identityKicker: 'ציון זהות',
     improveScore: 'הוסיפו חשבונות לשיפור הציון ←',
+    stepsKicker: 'הדרך לקלפי · THE ROUTE TO A BALLOT',
+    stepGoogle: 'חשבון Google',
+    stepGoogleMeta: 'האימות הראשוני, נרשם בהתחברות',
+    stepResidency: 'אימות תושבוּת GPS',
+    stepResidencyMeta: 'הצ׳ק-אין הראשון פותח את הקלפי',
+    stepSocial: 'פייסבוק ואינסטגרם',
+    stepSocialMeta: '10 נקודות לכל חשבון מקושר',
+    stepPointsSuffix: ' נק׳',
+    stepDone: 'הושלם',
+    stepOpen: 'פתוח',
+    gateHavePrefix: 'יש לכם ',
+    gateNeedMid: ' מתוך ',
+    gateNeedSuffix: ' הנקודות הדרושות להצבעה.',
+    gateClearedLine: 'הגעתם לסף. אתם רשאים להצביע.',
+    gateCta: 'להשלמת האימות ←',
     totalVotesLabel: 'סה״כ הצבעות',
     activeVotesLabel: 'פעילות',
     createdVotesLabel: 'שיצרתם',
@@ -232,6 +267,21 @@ const COPY: Record<Locale, DashboardCopy> = {
     verifyStatusCta: 'View status',
     identityKicker: 'Identity score',
     improveScore: 'Add accounts to improve the score →',
+    stepsKicker: 'The route to a ballot',
+    stepGoogle: 'Google account',
+    stepGoogleMeta: 'The first proof, recorded at sign-in',
+    stepResidency: 'GPS residency check',
+    stepResidencyMeta: 'The first check-in opens the ballot',
+    stepSocial: 'Facebook and Instagram',
+    stepSocialMeta: '10 points per linked account',
+    stepPointsSuffix: ' pts',
+    stepDone: 'Done',
+    stepOpen: 'Open',
+    gateHavePrefix: 'You hold ',
+    gateNeedMid: ' of the ',
+    gateNeedSuffix: ' points a ballot requires.',
+    gateClearedLine: 'You have cleared the threshold. You may vote.',
+    gateCta: 'Finish verification →',
     totalVotesLabel: 'Total votes',
     activeVotesLabel: 'Active',
     createdVotesLabel: 'Created by you',
@@ -490,6 +540,37 @@ export default function DashboardPage() {
   const identityTotal = user?.identityScore?.total || 0;
   const verificationPhase = user?.verificationStatus?.phase || 'not_started';
   const isVerified = verificationPhase === 'completed';
+
+  // The ballot gate, scored the way the server scores it: identity points plus
+  // residency. Advisory here - the server is still the only authority - but the
+  // reader is owed the arithmetic rather than a verdict.
+  const gate = voterGate(user);
+  const breakdown = user?.identityScore?.breakdown;
+  const socialEarned =
+    (breakdown?.facebook ?? 0) + (breakdown?.instagram ?? 0);
+  const verificationSteps = [
+    {
+      label: t.stepGoogle,
+      meta: t.stepGoogleMeta,
+      worth: IDENTITY_SCORE_WEIGHTS.google,
+      earned: breakdown?.google ?? 0,
+      done: (breakdown?.google ?? 0) > 0,
+    },
+    {
+      label: t.stepResidency,
+      meta: t.stepResidencyMeta,
+      worth: GPS_SCORE_WEIGHT,
+      earned: gate.residencyPoints,
+      done: gate.residencyPoints > 0,
+    },
+    {
+      label: t.stepSocial,
+      meta: t.stepSocialMeta,
+      worth: IDENTITY_SCORE_WEIGHTS.facebook + IDENTITY_SCORE_WEIGHTS.instagram,
+      earned: socialEarned,
+      done: socialEarned > 0,
+    },
+  ];
   const locationState = resolveLocationState(user?.municipality, isVerified);
 
   // Real newspaper issue number: days since the paper's epoch - same for
@@ -510,8 +591,10 @@ export default function DashboardPage() {
   return (
     <>
       <Header />
-      <main className={styles.main}>
+      <main className={`${styles.main} np-desk`}>
         <div className={styles.container}>
+          {/* The whole ledger sits on one lifted sheet; the main is the desk. */}
+          <div className={`${styles.sheet} np-sheet`}>
           {/* ===== Masthead: personal edition ===== */}
           <motion.header className={styles.masthead} {...reveal(0)}>
             <span className={styles.kicker}>
@@ -618,6 +701,54 @@ export default function DashboardPage() {
                 <TallyBar pct={Math.min(100, Math.max(0, identityTotal))} />
               </div>
               <p className={styles.boxBody}>{getIdentityLevelDescription(identityLevel)}</p>
+
+              {/* The route to a ballot, as a numbered running order: which
+                  step, what it is worth, whether it is done. Printed because
+                  "ציון זהות 40" alone never said what 40 was short of. */}
+              <div className={styles.stepsBlock}>
+                <span className={styles.boxKicker}>
+                  <span aria-hidden className={styles.kickerTick} />
+                  {t.stepsKicker}
+                </span>
+                <ol className={styles.stepsList}>
+                  {verificationSteps.map((step, i) => (
+                    <li
+                      key={step.label}
+                      className={step.done ? styles.stepDone : styles.step}
+                    >
+                      <span aria-hidden className={styles.stepNum}>
+                        {String(i + 1).padStart(2, '0')}
+                      </span>
+                      <span className={styles.stepText}>
+                        <span className={styles.stepLabel}>{step.label}</span>
+                        <span className={styles.stepMeta}>{step.meta}</span>
+                      </span>
+                      <span className={styles.stepPoints}>
+                        {step.earned}/{step.worth}
+                        {t.stepPointsSuffix}
+                      </span>
+                      <span className={styles.stepState}>
+                        {step.done ? t.stepDone : t.stepOpen}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                <p className={gate.canVote ? styles.gateCleared : styles.gateShort}>
+                  {gate.canVote
+                    ? t.gateClearedLine
+                    : `${t.gateHavePrefix}${gate.total}${t.gateNeedMid}${gate.required}${t.gateNeedSuffix}`}
+                </p>
+              </div>
+
+              {!gate.canVote && (
+                <button
+                  type="button"
+                  className={styles.inlineLink}
+                  onClick={() => router.push(`${prefix}/verification`)}
+                >
+                  {t.gateCta}
+                </button>
+              )}
               {identityTotal < 100 && (
                 <button
                   type="button"
@@ -932,7 +1063,7 @@ export default function DashboardPage() {
               </div>
             )}
           </motion.section>
-
+          </div>
         </div>
       </main>
       <Footer />

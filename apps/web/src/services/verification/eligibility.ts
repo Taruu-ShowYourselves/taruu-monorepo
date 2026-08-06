@@ -4,16 +4,21 @@
  * `apps/web/src/lib/verification.ts` (`isEligibleToVote`) is what the CLIENT
  * shows: residency is met by a completed program OR at least one successful
  * check-in. A client-side gate is not a gate, so the server applies the same
- * rule from database state, plus the pre-existing `identity_score >= 40`
- * check, which every Google-authenticated user satisfies by construction
- * (auth/callback sets 40) and which is therefore kept rather than relaxed.
+ * rule from database state, and scores it: residency is worth 40 points, and a
+ * ballot needs 80.
+ *
+ * Which makes residency load-bearing rather than advisory. Sign-in scores 40
+ * and both social proofs together add 20, so no arrangement of accounts reaches
+ * 80 without the GPS programme - one ballot per real resident of the
+ * municipality, with the residency check evidencing the second half of that.
  */
 
+import { MINIMUM_VOTING_SCORE, votingGate } from '@sync/shared';
 import type { User, VerificationRun } from '@/lib/supabase/types';
 import { getActiveVerificationRun } from '@/lib/supabase/db';
 
-/** Minimum identity score to cast a ballot. Google sign-in alone scores 40. */
-export const MIN_IDENTITY_SCORE = 40;
+/** Minimum score to cast a ballot, residency points included. */
+export const MIN_IDENTITY_SCORE = MINIMUM_VOTING_SCORE;
 
 export type VoterIneligibilityCode = 'IDENTITY_NOT_VERIFIED' | 'RESIDENCY_NOT_VERIFIED';
 
@@ -38,35 +43,47 @@ export function hasVerifiedResidency(
   return (activeRun?.completed_check_ins ?? 0) >= 1;
 }
 
-/** Pure decision, given everything already loaded. */
+/**
+ * Pure decision, given everything already loaded.
+ *
+ * Residency is judged before identity now, because it is the larger and the
+ * likelier gap: a resident who has only signed in holds 40 of the 80 points,
+ * and the residency programme is the whole of what they are missing. Telling
+ * them to "verify identity" instead would send them to the social-connections
+ * page, which cannot get them past 60.
+ */
 export function decideVoterEligibility(
   user: Pick<User, 'verification_status' | 'identity_score'>,
   activeRun: Pick<VerificationRun, 'completed_check_ins'> | null
 ): VoterEligibility {
-  if ((user.identity_score ?? 0) < MIN_IDENTITY_SCORE) {
-    return {
-      eligible: false,
-      code: 'IDENTITY_NOT_VERIFIED',
-      message: 'נדרש אימות זהות לפני ההצבעה.',
-    };
-  }
-  if (!hasVerifiedResidency(user, activeRun)) {
+  const residencyVerified = hasVerifiedResidency(user, activeRun);
+  const gate = votingGate({
+    identityPoints: user.identity_score ?? 0,
+    residencyVerified,
+  });
+
+  if (gate.canVote) return { eligible: true };
+
+  if (!residencyVerified) {
     return {
       eligible: false,
       code: 'RESIDENCY_NOT_VERIFIED',
-      message: 'נדרש אימות תושבוּת לפני ההצבעה.',
+      message: `נדרש אימות תושבוּת לפני ההצבעה. יש לכם ${gate.total} מתוך ${gate.required} נקודות.`,
     };
   }
-  return { eligible: true };
+  return {
+    eligible: false,
+    code: 'IDENTITY_NOT_VERIFIED',
+    message: `נדרשות ${gate.required} נקודות אימות כדי להצביע. יש לכם ${gate.total}.`,
+  };
 }
 
 /** Async shell: loads the active run, then defers to the pure decision. */
 export async function checkVoterEligibility(
   user: Pick<User, 'id' | 'verification_status' | 'identity_score'>
 ): Promise<VoterEligibility> {
-  if ((user.identity_score ?? 0) < MIN_IDENTITY_SCORE) {
-    return decideVoterEligibility(user, null);
-  }
+  // No short-circuit on the score alone: residency is worth 40 points, so a
+  // user under the threshold on paper can still clear it once the run is read.
   const activeRun = await getActiveVerificationRun(user.id);
   return decideVoterEligibility(user, activeRun);
 }

@@ -148,15 +148,45 @@ describe('canVote', () => {
     expect(canVote(score)).toBe(false);
   });
 
-  it('should return true when score equals minimum (Google only)', () => {
+  it('should return false for Google alone - half the threshold', () => {
     const score = calculateIdentityScore([createMockProof('google')]);
+    expect(score.total).toBe(40);
+    expect(canVote(score)).toBe(false);
+  });
+
+  it('should return true for Google plus the GPS residency check', () => {
+    const score = calculateIdentityScore([createMockProof('google')], true);
     expect(score.total).toBe(MINIMUM_VOTING_SCORE);
     expect(canVote(score)).toBe(true);
   });
+});
 
-  it('should return true when score is above minimum', () => {
-    const score = calculateIdentityScore([createMockProof('google')], true);
-    expect(canVote(score)).toBe(true);
+describe('votingGate', () => {
+  it('adds the residency points to the stored identity score', () => {
+    expect(votingGate({ identityPoints: 40, residencyVerified: true })).toEqual({
+      total: 80,
+      required: 80,
+      missing: 0,
+      residencyPoints: 40,
+      canVote: true,
+    });
+  });
+
+  it('leaves a signed-in resident 40 short until they check in', () => {
+    const gate = votingGate({ identityPoints: 40, residencyVerified: false });
+    expect(gate).toMatchObject({ total: 40, missing: 40, canVote: false });
+  });
+
+  it('cannot be reached by stacking social accounts alone', () => {
+    // Google 40 + Facebook 10 + Instagram 10. The residency check is the only
+    // way to 80, which is the whole point of the threshold.
+    expect(votingGate({ identityPoints: 60, residencyVerified: false }).canVote).toBe(false);
+  });
+
+  it('caps at 100 and never reports negative points owed', () => {
+    const gate = votingGate({ identityPoints: 100, residencyVerified: true });
+    expect(gate.total).toBe(100);
+    expect(gate.missing).toBe(0);
   });
 });
 
