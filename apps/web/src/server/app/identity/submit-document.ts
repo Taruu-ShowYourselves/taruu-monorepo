@@ -3,9 +3,10 @@
  *
  * The client sends extracted fields only - the document image never leaves
  * the device. This use-case re-runs every check the server can perform
- * (checksum, dates, age), dedups the ID number across accounts via HMAC,
- * persists the document row + audit event, and flips the user's cheap
- * eligibility flag when the document auto-verifies.
+ * (checksum, dates, age), dedups the ID number across accounts via HMAC, and
+ * persists the document row + audit event. It never verifies: submissions
+ * queue for the PR-10 operator-approval flow, the sole future writer of a
+ * non-null users.identity_verified_at (F-1, issue #71).
  */
 
 import { errAsync, okAsync, type ResultAsync } from 'neverthrow';
@@ -18,7 +19,6 @@ import { hmacIdentifier } from '@/server/infra/crypto/hmac';
 import {
   idHashClaimedByOther,
   insertDocumentEvent,
-  setUserIdentityVerifiedAt,
   upsertDocument,
 } from '@/server/infra/supabase/identity.repo';
 import { conflict, validation, type AppError } from '@/server/http/errors';
@@ -40,7 +40,14 @@ export function submitIdentityDocument(
   }
 
   const status = decision.outcome;
-  const verifiedAt = status === 'verified' ? now.toISOString() : null;
+  // F-1 (issue #71): this client-controlled flow does not touch
+  // users.identity_verified_at AT ALL - it neither sets it (no client-asserted
+  // evidence may earn the +40) nor clears it (a re-submission must not erase a
+  // legitimate operator approval). The ONLY writer of that column is the
+  // PR-10 server-controlled operator approval/revocation flow. `verifiedAt`
+  // below is the identity_documents row's own timestamp, null while the new
+  // submission awaits operator review.
+  const verifiedAt = null;
 
   return hmacIdentifier(submission.idNumber)
     .andThen((idNumberHash) =>
@@ -91,7 +98,6 @@ export function submitIdentityDocument(
           decision.outcome === 'pending_review' ? { reasons: decision.reasons } : null,
       })
     )
-    .andThen(() => setUserIdentityVerifiedAt(userId, verifiedAt))
     .map(() => ({
       status,
       documentType: submission.documentType,

@@ -177,7 +177,16 @@ export function transformToProfile(
       (user.notification_settings as NotificationSettings | null) ?? undefined,
     verificationStatus: mapVerificationStatus(user.verification_status),
     socialProofs: transformedProofs,
-    identityScore: calculateIdentityScore(transformedProofs),
+    identityScore: calculateIdentityScore(
+      transformedProofs,
+      user.verification_status === 'verified',
+      {
+        phoneVerified: user.phone_verified === true,
+        // != null: a row missing the column (older fixtures/partial selects)
+        // must score 0, exactly like an explicit NULL.
+        idDocumentApproved: user.identity_verified_at != null,
+      }
+    ),
     syncTokenBalance: tokenBalance,
     createdAt: user.created_at,
     updatedAt: user.updated_at,

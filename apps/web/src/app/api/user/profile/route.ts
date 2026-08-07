@@ -6,11 +6,10 @@ import {
   updateUser,
   getSocialProofsByUserId,
   createSocialProof,
-  updateUserIdentityScore,
 } from '@/lib/supabase/db';
 import { qubikService } from '@/services/qubik';
 import { emailService } from '@/services/email';
-import { IDENTITY_SCORE_WEIGHTS, MUNICIPALITIES } from '@sync/shared';
+import { MUNICIPALITIES } from '@sync/shared';
 import { transformToProfile, getTokenBalanceSafe } from '@/services/user/profile';
 import { listActiveCohortIds } from '@/server/infra/supabase/pilot.repo';
 
@@ -104,7 +103,8 @@ export async function POST(request: NextRequest) {
       email: session.email,
       phone: phone || null,
       municipality_id: municipality,
-      identity_score: IDENTITY_SCORE_WEIGHTS.google, // Initial score from Google
+      // identity_score is database-owned: the social_proofs trigger sets it
+      // to the Google weight when the proof row lands below.
       verification_status: 'none',
     });
 

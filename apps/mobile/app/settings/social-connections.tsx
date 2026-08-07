@@ -18,7 +18,11 @@ import {
   disconnectSocialPlatform,
   getSocialProofs,
 } from '@/lib/auth';
-import { getIdentityLevelLabel, getIdentityLevelDescription } from '@sync/shared';
+import {
+  getIdentityLevelLabel,
+  getIdentityLevelDescription,
+  IDENTITY_SCORE_MAX,
+} from '@sync/shared';
 import type { SocialProof, IdentityScore } from '@sync/shared';
 
 export default function SocialConnectionsScreen() {
@@ -204,11 +208,11 @@ export default function SocialConnectionsScreen() {
             <View className="flex-1 h-3 bg-neutral-200 rounded-full overflow-hidden ml-3">
               <View
                 className="h-full bg-gradient-to-l from-primary-500 to-secondary-500 rounded-full"
-                style={{ width: `${score?.total || 0}%` }}
+                style={{ width: `${((score?.total || 0) / IDENTITY_SCORE_MAX) * 100}%` }}
               />
             </View>
             <Text className="font-heebo font-bold text-neutral-900">
-              {score?.total || 0}/100
+              {score?.total || 0}/{IDENTITY_SCORE_MAX}
             </Text>
           </View>
 

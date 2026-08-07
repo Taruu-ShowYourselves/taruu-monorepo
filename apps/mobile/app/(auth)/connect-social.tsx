@@ -10,6 +10,7 @@ import {
   getIdentityLevelLabel,
   calculateIdentityScore,
   IDENTITY_SCORE_WEIGHTS,
+  IDENTITY_SCORE_MAX,
   type SocialProof,
 } from '@sync/shared';
 
@@ -160,14 +161,14 @@ export default function ConnectSocialScreen() {
             </Text>
             <View className="bg-primary-600 px-3 py-1 rounded-full">
               <Text className="text-white font-heebo font-semibold">
-                {currentScore}/100
+                {currentScore}/{IDENTITY_SCORE_MAX}
               </Text>
             </View>
           </View>
           <View className="h-3 bg-neutral-200 rounded-full overflow-hidden mb-2">
             <View
               className="h-full bg-primary-600 rounded-full"
-              style={{ width: `${currentScore}%` }}
+              style={{ width: `${(currentScore / IDENTITY_SCORE_MAX) * 100}%` }}
             />
           </View>
           <Text className="text-sm font-assistant text-neutral-600 text-right">

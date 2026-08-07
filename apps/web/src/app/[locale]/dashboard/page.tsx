@@ -394,8 +394,8 @@ export default function DashboardPage() {
   const [tab, setTab] = useState<DashboardTab>('history');
   // Server truth for the ballot gate. The session profile carries the identity
   // points but not the residency evidence (a check-in lives in
-  // `verification_runs`), so computing it here would print "40/80" at a
-  // resident who has already checked in and may vote.
+  // `verification_runs`), so computing it here would tell a resident who has
+  // already checked in that residency is still missing.
   const serverGate = useVotingGate(isAuthenticated);
 
   useEffect(() => {
@@ -566,8 +566,10 @@ export default function DashboardPage() {
       label: t.stepResidency,
       meta: t.stepResidencyMeta,
       worth: GPS_SCORE_WEIGHT,
-      earned: gate.residencyPoints,
-      done: gate.residencyPoints > 0,
+      // The GPS points live inside the stored score now (issue #71); the gate
+      // reports residency as a hard boolean requirement instead of points.
+      earned: breakdown?.gps ?? 0,
+      done: gate.residencyVerified,
     },
     {
       label: t.stepSocial,
