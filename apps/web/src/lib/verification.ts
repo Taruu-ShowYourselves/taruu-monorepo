@@ -19,9 +19,10 @@ type MaybeUser = Pick<UserProfile, 'verificationStatus'> | null | undefined;
  * completed, OR at least one successful check-in has been logged (the first
  * check-in counts; further check-ins never block).
  *
- * Named for what it establishes rather than what it permits: since the ballot
- * threshold rose to {@link MINIMUM_VOTING_SCORE}, residency is 40 of the 80
- * points rather than the whole gate. `voterGate` is the question the UI asks.
+ * Named for what it establishes rather than what it permits: residency is an
+ * explicit hard requirement of the ballot (issue #71 ruling) - its points
+ * already live inside the stored identity score, and no other evidence can
+ * substitute for it. `voterGate` is the question the UI asks.
  */
 export function hasVerifiedResidency(user: MaybeUser): boolean {
   const status = user?.verificationStatus;

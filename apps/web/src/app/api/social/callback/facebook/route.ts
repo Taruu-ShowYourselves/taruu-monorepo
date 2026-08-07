@@ -5,15 +5,8 @@ import {
   getLongLivedToken,
 } from '@/services/auth/facebook';
 import { getSessionFromRequest } from '@/services/auth/session';
-import { calculateIdentityScore } from '@sync/shared';
-import type { SocialProof } from '@sync/shared';
 import { verifyOAuthState, verifyOAuthStatePlatform } from '@/lib/oauth-state';
-import {
-  getUserByGoogleId,
-  getSocialProofsByUserId,
-  upsertSocialProof,
-  updateUser,
-} from '@/lib/supabase/db';
+import { getUserByGoogleId, upsertSocialProof } from '@/lib/supabase/db';
 
 /**
  * GET /api/social/callback/facebook
@@ -99,27 +92,8 @@ export async function GET(request: NextRequest) {
       connected_at: new Date().toISOString(),
     });
 
-    // Get all social proofs to calculate identity score
-    const dbProofs = await getSocialProofsByUserId(user.id);
-
-    // Convert to SocialProof format for identity score calculation
-    const socialProofs: SocialProof[] = dbProofs.map((p) => ({
-      platform: p.provider as 'google' | 'facebook' | 'instagram',
-      providerId: p.provider_id,
-      displayName: p.provider_name || p.provider_id, // Fallback to ID if no name
-      email: p.provider_email || undefined,
-      profileUrl: `https://${p.provider}.com/${p.provider_id}`,
-      connectedAt: new Date(p.connected_at),
-      stampWeight: p.provider === 'google' ? 40 : 30,
-    }));
-
-    // Recalculate identity score
-    const newIdentityScore = calculateIdentityScore(socialProofs);
-
-    // Update user identity score
-    await updateUser(user.id, {
-      identity_score: newIdentityScore.total,
-    });
+    // identity_score is database-owned: the trigger on social_proofs
+    // recomputed it when the proof row landed above.
 
     // Redirect to success
     return NextResponse.redirect(

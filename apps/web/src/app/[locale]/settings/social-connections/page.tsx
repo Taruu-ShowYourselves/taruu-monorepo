@@ -10,7 +10,11 @@ import {
   redirectToFacebookAuth,
   redirectToInstagramAuth,
 } from '@/services/auth';
-import { getIdentityLevelLabel, getIdentityLevelDescription } from '@sync/shared';
+import {
+  getIdentityLevelLabel,
+  getIdentityLevelDescription,
+  IDENTITY_SCORE_MAX,
+} from '@sync/shared';
 import type { SocialProof, IdentityScore } from '@sync/shared';
 import { PressLoader } from '@/components/press/PressMachine';
 import styles from './page.module.css';
@@ -185,12 +189,14 @@ function SocialConnectionsContent() {
               <div className={styles.progressBar}>
                 <div
                   className={styles.progressFill}
-                  style={{ inlineSize: `${identityScore?.total || 0}%` }}
+                  style={{
+                    inlineSize: `${((identityScore?.total || 0) / IDENTITY_SCORE_MAX) * 100}%`,
+                  }}
                   aria-hidden
                 />
               </div>
               <span className={styles.scoreValue}>
-                {identityScore?.total || 0}/100
+                {identityScore?.total || 0}/{IDENTITY_SCORE_MAX}
               </span>
             </div>
 

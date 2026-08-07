@@ -3,9 +3,9 @@
  *
  * This is where the desk and the ballot screen learn what to SAY about
  * eligibility, and the reason they ask instead of working it out: residency is
- * 40 of the 80 points and its evidence lives in `verification_runs`, which no
- * client screen loads. A screen that guessed it once told eligible residents to
- * go verify something they already had.
+ * a hard requirement of the ballot (issue #71) and its evidence lives in
+ * `verification_runs`, which no client screen loads. A screen that guessed it
+ * once told eligible residents to go verify something they already had.
  *
  * So the contract worth pinning is that the endpoint reads the run, scores it
  * the way `decideVoterEligibility` scores it, and never reports a resident
@@ -53,30 +53,52 @@ beforeEach(() => {
 });
 
 describe('GET /api/user/voting-gate', () => {
-  it('reports a signed-in resident 40 points short of the ballot', async () => {
+  it('reports a signed-in non-resident as blocked on residency, not points', async () => {
     const data = await (await GET(request())).json();
 
     expect(data).toMatchObject({
       total: 40,
-      required: 80,
-      missing: 40,
+      required: 40,
+      missing: 0,
       canVote: false,
       residencyVerified: false,
       checkInsCompleted: 0,
     });
   });
 
-  it('counts a single check-in as residency, exactly as the ballot does', async () => {
+  it('counts a single check-in as residency and opens the ballot at the Google baseline', async () => {
     (getActiveVerificationRun as Mock).mockResolvedValue({ completed_check_ins: 1 });
 
     const data = await (await GET(request())).json();
 
+    // Residency is a boolean requirement, never points: the first check-in
+    // satisfies it (PR #108 semantics preserved) and the 40-point Google
+    // baseline satisfies the floor, so the ballot opens - the stored score's
+    // +20 arrives later, when the run completes, and changes nothing here.
     expect(data).toMatchObject({
-      total: 80,
+      total: 40,
       missing: 0,
       canVote: true,
       residencyVerified: true,
       checkInsCompleted: 1,
+    });
+  });
+
+  it('stays open for a fully backfilled verified resident (score 60)', async () => {
+    (getUserById as Mock).mockResolvedValue({
+      id: 'user-123',
+      identity_score: 60,
+      verification_status: 'verified',
+    });
+
+    const data = await (await GET(request())).json();
+
+    expect(data).toMatchObject({
+      total: 60,
+      required: 40,
+      missing: 0,
+      canVote: true,
+      residencyVerified: true,
     });
   });
 

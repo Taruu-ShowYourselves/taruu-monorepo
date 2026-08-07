@@ -131,16 +131,6 @@ export async function updateUser(
   return data;
 }
 
-export async function updateUserIdentityScore(
-  userId: string,
-  score: number
-): Promise<void> {
-  await supabaseAdmin
-    .from('users')
-    .update({ identity_score: score })
-    .eq('id', userId);
-}
-
 /**
  * Get users of a municipality for notifications (id, email, first name).
  * Capped to protect the request path - broadcast batches stay bounded.
