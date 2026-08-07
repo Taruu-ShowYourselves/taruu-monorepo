@@ -119,20 +119,55 @@ describe('POST /api/verification/document', () => {
     expect(res.status).toBe(429);
   });
 
-  it('auto-verifies a clean submission and flips the user flag', async () => {
+  it('queues a clean submission for operator approval - never auto-verifies (F-1)', async () => {
     const res = await POST(post(VALID_BODY));
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.status).toBe('verified');
+    expect(body.status).toBe('pending_review');
     expect(body.idNumberMasked).toBe('•••••••82');
-    expect(body.verifiedAt).toBeTruthy();
+    expect(body.verifiedAt).toBeNull();
 
     const upserted = (upsertDocument as Mock).mock.calls[0][0];
     expect(upserted.id_number_hash).toMatch(/^[0-9a-f]{64}$/);
     expect(upserted.id_number_last2).toBe('82');
+    expect(upserted.status).toBe('pending_review');
+    expect(upserted.verified_at).toBeNull();
     // Cleartext ID number must never reach the repo layer.
     expect(JSON.stringify(upserted)).not.toContain('123456782');
-    expect((setUserIdentityVerifiedAt as Mock).mock.calls[0][1]).toBeTruthy();
+    // users.identity_verified_at is NEVER touched by a client submission -
+    // neither set nor cleared. Only the PR-10 operator flow writes it.
+    expect(setUserIdentityVerifiedAt).not.toHaveBeenCalled();
+    expect((insertDocumentEvent as Mock).mock.calls[0][0].event).toBe('queued_review');
+  });
+
+  it('an existing operator-approved identity_verified_at survives a re-submission', async () => {
+    // PR-10 will have approved this user out-of-band; the client then submits
+    // a new document. The submission may create a pending_review row but must
+    // not revoke the operator's approval - proven here by the flow never
+    // invoking the only users.identity_verified_at writer at all.
+    const res = await POST(post(VALID_BODY));
+    expect(res.status).toBe(200);
+    expect((await res.json()).status).toBe('pending_review');
+    expect(setUserIdentityVerifiedAt).not.toHaveBeenCalled();
+  });
+
+  it('a submission with maximal client-asserted signals still cannot verify (F-1)', async () => {
+    const res = await POST(
+      post({
+        ...VALID_BODY,
+        ocr: { idNumberMatched: true, confidence: 100, fieldsEdited: false },
+        face: {
+          checked: true,
+          docFaceFound: true,
+          matchScore: 100,
+          livenessPassed: true,
+          antispoofScore: 100,
+        },
+      })
+    );
+    expect(res.status).toBe(200);
+    expect((await res.json()).status).toBe('pending_review');
+    expect(setUserIdentityVerifiedAt).not.toHaveBeenCalled();
   });
 
   it('queues hand-edited submissions for review without verifying the user', async () => {
@@ -146,7 +181,7 @@ describe('POST /api/verification/document', () => {
     const body = await res.json();
     expect(body.status).toBe('pending_review');
     expect(body.verifiedAt).toBeNull();
-    expect((setUserIdentityVerifiedAt as Mock).mock.calls[0][1]).toBeNull();
+    expect(setUserIdentityVerifiedAt).not.toHaveBeenCalled();
     expect((insertDocumentEvent as Mock).mock.calls[0][0].event).toBe('queued_review');
   });
 

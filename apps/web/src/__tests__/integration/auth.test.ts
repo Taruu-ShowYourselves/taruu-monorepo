@@ -199,11 +199,11 @@ describe('Auth Flow Integration', () => {
   });
 
   describe('Identity Score', () => {
-    it('should calculate correct identity score per auth-flow.md v77', async () => {
+    it('should calculate correct identity score per the issue #71 final model', async () => {
       const { calculateIdentityScore, IDENTITY_SCORE_WEIGHTS, GPS_SCORE_WEIGHT } = await import('@sync/shared');
 
-      // Verify weights match spec: GPS=40, Google=40, Facebook=10, Instagram=10
-      expect(GPS_SCORE_WEIGHT).toBe(40);
+      // Verify weights match the final model: GPS=20, Google=40, Facebook=10, Instagram=10
+      expect(GPS_SCORE_WEIGHT).toBe(20);
       expect(IDENTITY_SCORE_WEIGHTS.google).toBe(40);
       expect(IDENTITY_SCORE_WEIGHTS.facebook).toBe(10);
       expect(IDENTITY_SCORE_WEIGHTS.instagram).toBe(10);
@@ -223,30 +223,41 @@ describe('Auth Flow Integration', () => {
       expect(withFacebook.total).toBe(50);
       expect(withFacebook.level).toBe('basic');
 
-      // All social platforms (no GPS) = 60 points (verified)
+      // All social platforms (no GPS) = 60 points (still basic: 60 < 80)
       const allSocial = calculateIdentityScore([
         { platform: 'google', providerId: '123', displayName: 'Test', connectedAt: new Date(), stampWeight: 40 },
         { platform: 'facebook', providerId: '456', displayName: 'Test', connectedAt: new Date(), stampWeight: 10 },
         { platform: 'instagram', providerId: '789', displayName: 'Test', connectedAt: new Date(), stampWeight: 10 },
       ]);
       expect(allSocial.total).toBe(60);
-      expect(allSocial.level).toBe('verified');
+      expect(allSocial.level).toBe('basic');
 
-      // Google + GPS = 80 points (trusted) - GPS is the key differentiator
+      // Google + GPS = 60 points (basic)
       const googlePlusGps = calculateIdentityScore([
         { platform: 'google', providerId: '123', displayName: 'Test', connectedAt: new Date(), stampWeight: 40 },
       ], true);
-      expect(googlePlusGps.total).toBe(80);
-      expect(googlePlusGps.level).toBe('trusted');
+      expect(googlePlusGps.total).toBe(60);
+      expect(googlePlusGps.level).toBe('basic');
 
-      // All verifications = 100 points (max trusted)
+      // All social + GPS = 80 points (verified)
       const allVerified = calculateIdentityScore([
         { platform: 'google', providerId: '123', displayName: 'Test', connectedAt: new Date(), stampWeight: 40 },
         { platform: 'facebook', providerId: '456', displayName: 'Test', connectedAt: new Date(), stampWeight: 10 },
         { platform: 'instagram', providerId: '789', displayName: 'Test', connectedAt: new Date(), stampWeight: 10 },
       ], true);
-      expect(allVerified.total).toBe(100);
-      expect(allVerified.level).toBe('trusted');
+      expect(allVerified.total).toBe(80);
+      expect(allVerified.level).toBe('verified');
+
+      // Everything the client models (all social + GPS + phone + approved
+      // document) = 130 (trusted); the DB-side dormant X arm supplies the
+      // final 10 up to the 140 cap after PR-X.
+      const fullHouse = calculateIdentityScore([
+        { platform: 'google', providerId: '123', displayName: 'Test', connectedAt: new Date(), stampWeight: 40 },
+        { platform: 'facebook', providerId: '456', displayName: 'Test', connectedAt: new Date(), stampWeight: 10 },
+        { platform: 'instagram', providerId: '789', displayName: 'Test', connectedAt: new Date(), stampWeight: 10 },
+      ], true, { phoneVerified: true, idDocumentApproved: true });
+      expect(fullHouse.total).toBe(130);
+      expect(fullHouse.level).toBe('trusted');
     });
   });
 });

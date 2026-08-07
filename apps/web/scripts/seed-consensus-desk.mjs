@@ -70,7 +70,8 @@ await upsert('users', [{
   first_name: 'שולחן',
   last_name: 'המערכת',
   municipality_id: 'תל אביב-יפו',
-  identity_score: 0,
+  // identity_score is database-owned (PR-A); merge-duplicates upsert must not
+  // clobber a recomputed score on re-run.
   verification_status: 'none',
 }], 'id');
 

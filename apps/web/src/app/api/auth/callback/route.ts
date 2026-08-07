@@ -118,7 +118,8 @@ export async function POST(request: Request) {
         did: didData.did,
         did_public_key: JSON.stringify(didData.publicKey),
         did_encrypted_private_key: didData.encryptedPrivateKey,
-        identity_score: 40, // Google = 40 points
+        // identity_score is database-owned: the social_proofs trigger sets it
+        // to the Google weight when the proof row lands below.
         verification_status: 'none',
       });
 

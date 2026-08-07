@@ -23,14 +23,16 @@ export interface SocialProof {
 }
 
 export interface IdentityScore {
-  total: number; // 0-100
+  total: number; // 0-140 (issue #71 final model)
   breakdown: {
-    gps: number; // 40 points (location proof, highest weight with Google)
+    gps: number; // 20 points (21-day location proof)
     google: number; // 40 points (primary auth, required)
     facebook: number; // 10 points (social proof)
     instagram: number; // 10 points (social proof)
+    phone: number; // 10 points (server-verified SMS OTP)
+    idDocument: number; // 40 points (operator-approved identity document; inert until PR-10)
   };
-  level: 'basic' | 'verified' | 'trusted'; // basic: 40-59, verified: 60-79, trusted: 80-100
+  level: 'basic' | 'verified' | 'trusted'; // basic: 40-79, verified: 80-119, trusted: 120-140
   lastCalculated?: Date; // When the score was last calculated
 }
 

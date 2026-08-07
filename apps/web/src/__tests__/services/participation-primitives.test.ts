@@ -5,8 +5,8 @@
  *   survives a duplicate submit by keying off SQLSTATE 23505 and reading the
  *   existing ballot back instead of throwing.
  * - the voter-eligibility truth table (apps/web/src/services/verification/eligibility.ts)
- *   - a pure mirror of the client's `isEligibleToVote` plus the pre-existing
- *   `identity_score >= 40` server gate.
+ *   - the issue #71 ballot rule: identity_score >= 60 AND explicitly verified
+ *   residency, with no evidence substituting for residency.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -212,7 +212,7 @@ describe('voter eligibility', () => {
       expect(result).toMatchObject({ code: 'RESIDENCY_NOT_VERIFIED' });
     });
 
-    it('returns eligible: true at exactly the threshold - sign-in plus residency', () => {
+    it('returns eligible: true at exactly the floor - sign-in plus residency', () => {
       const result = decideVoterEligibility(
         { verification_status: 'verified', identity_score: 40 },
         null
@@ -220,15 +220,48 @@ describe('voter eligibility', () => {
       expect(result).toEqual({ eligible: true });
     });
 
+    it('a verified resident stays eligible during the app-first migration window', () => {
+      // The app deploys before the migration backfills the GPS +20 into the
+      // stored score, so a verified google-only resident still carries 40.
+      // Residency is the boolean requirement, not the points: 40 >= floor
+      // AND residency verified -> eligible. The gate never tops up points.
+      const preBackfill = decideVoterEligibility(
+        { verification_status: 'verified', identity_score: 40 },
+        null
+      );
+      const postBackfill = decideVoterEligibility(
+        { verification_status: 'verified', identity_score: 60 },
+        null
+      );
+      expect(preBackfill).toEqual({ eligible: true });
+      expect(postBackfill).toEqual({ eligible: true });
+    });
+
     it('refuses every arrangement of accounts that skips the residency check', () => {
-      // Google 40 + Facebook 10 + Instagram 10 = 60, the ceiling without GPS.
-      // If this ever passes, the gate has stopped meaning "a real resident".
+      // Google 40 + Facebook 10 + Instagram 10 = 60 clears the points floor,
+      // but without residency the ballot stays shut. If this ever passes, the
+      // gate has stopped meaning "a real resident".
       const result = decideVoterEligibility(
         { verification_status: 'none', identity_score: 60 },
         { completed_check_ins: 0 }
       );
-      expect(result).toMatchObject({ eligible: false });
+      expect(result).toMatchObject({ eligible: false, code: 'RESIDENCY_NOT_VERIFIED' });
     });
+
+    it.each([
+      [80, 'google + approved identity document'],
+      [90, 'google + document + phone'],
+      [140, 'every non-residency evidence the model has'],
+    ])(
+      'no score substitutes for residency: %i points (%s) without GPS stays ineligible',
+      (identity_score) => {
+        const result = decideVoterEligibility(
+          { verification_status: 'none', identity_score },
+          null
+        );
+        expect(result).toMatchObject({ eligible: false, code: 'RESIDENCY_NOT_VERIFIED' });
+      }
+    );
   });
 
   describe('checkVoterEligibility', () => {
@@ -247,6 +280,9 @@ describe('voter eligibility', () => {
         updated_at: '2026-07-02T00:00:00Z',
       });
 
+      // Google-only resident mid-programme: the first check-in supplies the
+      // residency requirement (PR #108 semantics preserved) and the Google
+      // baseline satisfies the 40-point floor.
       const result = await checkVoterEligibility({
         id: 'user-1',
         verification_status: 'pending',
@@ -257,11 +293,11 @@ describe('voter eligibility', () => {
       expect(getActiveVerificationRun).toHaveBeenCalledWith('user-1');
     });
 
-    it('reads the run even for a low identity score - residency is worth 40 of the 80', async () => {
-      // There is no short-circuit to make: a resident sitting at 40 points is
-      // one check-in away from the threshold, and the run is the only place
-      // that check-in is recorded. Deciding without reading it would refuse
-      // exactly the residents the programme exists to admit.
+    it('reads the run even when the stored score alone would refuse - it holds the residency evidence', async () => {
+      // Without the run, this user's residency reads false and the ballot is
+      // refused; the run's single check-in is what admits them. Deciding
+      // without reading it would refuse exactly the residents the programme
+      // exists to admit.
       vi.mocked(getActiveVerificationRun).mockResolvedValue({
         id: 'run-1',
         user_id: 'user-1',

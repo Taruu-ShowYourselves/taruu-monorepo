@@ -31,8 +31,11 @@ function submission(
 }
 
 describe('decideDocument', () => {
-  it('auto-verifies a clean, matched, confident scan', () => {
-    expect(decideDocument(submission(), NOW)).toEqual({ outcome: 'verified' });
+  it('never auto-verifies: a clean, matched, confident scan queues for operator approval (F-1)', () => {
+    expect(decideDocument(submission(), NOW)).toEqual({
+      outcome: 'pending_review',
+      reasons: ['operator_approval_required'],
+    });
   });
 
   it('rejects a failed checksum', () => {
@@ -86,9 +89,12 @@ describe('decideDocument', () => {
     });
   });
 
-  it('allows a 17-year-old (municipal voting age)', () => {
+  it('allows a 17-year-old (municipal voting age) - queued, not rejected', () => {
     const decision = decideDocument(submission({ dateOfBirth: '2009-01-01' }), NOW);
-    expect(decision).toEqual({ outcome: 'verified' });
+    expect(decision).toEqual({
+      outcome: 'pending_review',
+      reasons: ['operator_approval_required'],
+    });
   });
 
   it('queues for review when the face pipeline never ran', () => {
@@ -132,10 +138,21 @@ describe('decideDocument', () => {
     expect(decision.outcome).toBe('rejected');
   });
 
-  it('null antispoof score is not a review signal', () => {
+  it('null antispoof score is not a review flag of its own', () => {
     expect(decideDocument(submission({}, {}, { antispoofScore: null }), NOW)).toEqual({
-      outcome: 'verified',
+      outcome: 'pending_review',
+      reasons: ['operator_approval_required'],
     });
+  });
+
+  it("the 'verified' outcome is unreachable from any client submission (F-1)", () => {
+    // Maximal client-controlled signals: perfect confidence, perfect face
+    // match, liveness and antispoof asserted true. Still pending_review.
+    const decision = decideDocument(
+      submission({}, { confidence: 100 }, { matchScore: 100, antispoofScore: 100 }),
+      NOW
+    );
+    expect(decision.outcome).toBe('pending_review');
   });
 });
 

@@ -1,15 +1,18 @@
 /**
  * Identity-document domain - pure functions only. No IO, no framework.
  *
- * Decides what happens to a submitted document: auto-verify, queue for
- * manual review, or reject. The caller has already zod-validated shape;
- * this layer owns the business rules.
+ * Decides what happens to a submitted document: queue for operator review or
+ * reject. The caller has already zod-validated shape; this layer owns the
+ * business rules. Auto-verification is disabled (F-1, issue #71): the OCR and
+ * face signals are client-asserted, so they can flag a submission for extra
+ * scrutiny but can never verify one.
  */
 
 import { isDocumentDateValid, isValidIsraeliId } from '@sync/shared';
 import type { SubmitIdentityDocumentRequest } from '@sync/shared/contracts';
 
 export type DocumentDecision =
+  /** Reserved for the PR-10 operator-approval flow; decideDocument never returns it (F-1). */
   | { outcome: 'verified' }
   | { outcome: 'pending_review'; reasons: string[] }
   | { outcome: 'rejected'; reasons: string[] };
@@ -88,11 +91,16 @@ export function decideDocument(
     }
   }
 
-  if (reviewReasons.length > 0) {
-    return { outcome: 'pending_review', reasons: reviewReasons };
+  // F-1 (issue #71): every OCR/face/liveness/antispoof signal above is
+  // client-asserted, and the document image never reaches the server, so a
+  // clean submission is necessary but NOT sufficient for verification. Until
+  // the PR-10 operator flow provides a non-client-controllable approval,
+  // nothing on this path may auto-verify: a clean scan queues for operator
+  // approval instead. The 'verified' outcome is reserved for that flow.
+  if (reviewReasons.length === 0) {
+    reviewReasons.push('operator_approval_required');
   }
-
-  return { outcome: 'verified' };
+  return { outcome: 'pending_review', reasons: reviewReasons };
 }
 
 /** Mask an ID number for UI display: keep only the last 2 digits. */

@@ -24,7 +24,6 @@ vi.mock('@/lib/supabase/db', () => ({
   updateUser: vi.fn(),
   getSocialProofsByUserId: vi.fn(),
   createSocialProof: vi.fn(),
-  updateUserIdentityScore: vi.fn(),
 }));
 
 // Mock external services
@@ -161,7 +160,8 @@ describe('User Profile API Routes', () => {
       expect(data.profile.verificationStatus.checkInsTotal).toBeUndefined();
 
       expect(typeof data.profile.identityScore).toBe('object');
-      expect(data.profile.identityScore.total).toBe(40); // google only
+      // google 40 + GPS 20 (verification_status='verified')
+      expect(data.profile.identityScore.total).toBe(60);
       expect(data.profile.identityScore.level).toBe('basic');
       expect(data.profile.socialProofs[0].platform).toBe('google');
     });

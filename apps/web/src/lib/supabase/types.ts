@@ -35,6 +35,8 @@ export interface Database {
           identity_score: number;
           verification_status: 'none' | 'pending' | 'verified' | 'failed';
           qubik_wallet_address: string | null;
+          phone_verified: boolean | null;
+          phone_verified_at: string | null;
           identity_verified_at: string | null;
           /**
            * Bootstrap marker for cross-space grant management and grant
@@ -63,6 +65,8 @@ export interface Database {
           identity_score?: number;
           verification_status?: 'none' | 'pending' | 'verified' | 'failed';
           qubik_wallet_address?: string | null;
+          phone_verified?: boolean | null;
+          phone_verified_at?: string | null;
           identity_verified_at?: string | null;
           is_platform_admin?: boolean;
           created_at?: string;
@@ -87,6 +91,8 @@ export interface Database {
           identity_score?: number;
           verification_status?: 'none' | 'pending' | 'verified' | 'failed';
           qubik_wallet_address?: string | null;
+          phone_verified?: boolean | null;
+          phone_verified_at?: string | null;
           identity_verified_at?: string | null;
           is_platform_admin?: boolean;
           created_at?: string;

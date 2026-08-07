@@ -14,7 +14,7 @@ export const SessionUserSchema = z.object({
   firstName: z.string().nullable(),
   lastName: z.string().nullable(),
   avatarUrl: z.string().url().nullable().optional(),
-  identityScore: z.number().min(0).max(100),
+  identityScore: z.number().min(0).max(140),
   verificationStatus: z.enum(['none', 'pending', 'verified', 'failed']),
   municipality: z.string().nullable(),
   socialProofs: z.array(z.enum(['google', 'facebook', 'instagram'])),
