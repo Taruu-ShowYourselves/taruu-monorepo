@@ -20,7 +20,12 @@ enabled = false  # We use custom Google OAuth, not Supabase Auth
 site_url = "http://localhost:3000"
 
 [storage]
-enabled = false  # Not using Supabase Storage currently
+# On, because the migrations require it: 20260805000002_vote_card_art inserts
+# the public `vote-art` bucket into storage.buckets, and with storage off that
+# schema never exists, so a local `supabase start` dies partway through the
+# replay and leaves the database half-built. The old "not using Storage"
+# comment predates the vote plates.
+enabled = true
 
 [realtime]
 enabled = false  # Not using realtime subscriptions currently

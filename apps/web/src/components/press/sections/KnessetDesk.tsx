@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { KNESSET_SCOPE } from '@sync/shared';
 import {
   getCardArtByVoteIds,
@@ -27,7 +26,6 @@ interface KnessetDeskCopy {
   emptyCta: string;
   arrow: string;
   carouselLabel: string;
-  footerLink: string;
 }
 
 const COPY: Record<Locale, KnessetDeskCopy> = {
@@ -42,7 +40,6 @@ const COPY: Record<Locale, KnessetDeskCopy> = {
     emptyCta: 'על הדסק הארצי',
     arrow: '←',
     carouselLabel: 'נושאים על סדר יום הכנסת',
-    footerLink: 'לדסק הארצי המלא ←',
   },
   en: {
     kicker: 'THE NATIONAL EDITION · THE KNESSET DESK',
@@ -55,7 +52,6 @@ const COPY: Record<Locale, KnessetDeskCopy> = {
     emptyCta: 'About the national desk',
     arrow: '→',
     carouselLabel: 'Topics on the Knesset agenda',
-    footerLink: 'To the full national desk →',
   },
 };
 
@@ -179,11 +175,6 @@ export async function KnessetDesk({ locale = 'he' }: KnessetDeskProps) {
                   : undefined,
               }))}
             />
-            <div className={styles.deskFooter}>
-              <Link href={`${localePrefix(locale)}/knesset`} className={styles.sourceLink}>
-                {t.footerLink}
-              </Link>
-            </div>
           </>
         )}
       </div>

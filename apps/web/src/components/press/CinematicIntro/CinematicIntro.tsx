@@ -641,12 +641,32 @@ const INTRO_SOCIALS = [
   },
 ] as const;
 
+/**
+ * How much of the three-act intro to run.
+ *
+ * `full` is the original story: the question ("if a million people are
+ * complaining on Facebook..."), the live map/agenda comparison, then the
+ * thesis. It argues the case before showing anything, which is what an
+ * investor edition wants and what a resident does not - they arrive to find
+ * out what is open in their town, and four screens of argument stand between
+ * them and it.
+ *
+ * `thesis` opens on the last act alone: the wordmark, the line, and the live
+ * ledger behind it. The homepage runs this; /pitchdeck keeps `full`.
+ */
+export type IntroStory = "full" | "thesis";
+
 interface CinematicIntroProps {
   locale?: Locale;
+  story?: IntroStory;
 }
 
-export function CinematicIntro({ locale = "he" }: CinematicIntroProps) {
+export function CinematicIntro({
+  locale = "he",
+  story: storyVariant = "full",
+}: CinematicIntroProps) {
   const t = COPY[locale];
+  const thesisOnly = storyVariant === "thesis";
   const otherLocale: Locale = locale === "he" ? "en" : "he";
   const rootRef = useRef<HTMLElement>(null);
   const shouldReduceMotion = useReducedMotion();
@@ -921,7 +941,11 @@ export function CinematicIntro({ locale = "he" }: CinematicIntroProps) {
     let cancelled = false;
     let revertGsap = () => {};
 
+    // Every target below lives in the question scene, which the thesis-only
+    // intro does not render.
     const animeScope = createScope({ root }).add(() => {
+      if (thesisOnly) return;
+
       animate("[data-intro-logo]", {
         translateY: [-18, 0],
         opacity: [0, 1],
@@ -987,6 +1011,97 @@ export function CinematicIntro({ locale = "he" }: CinematicIntroProps) {
         const question = '[data-scene="question"]';
         const comparison = '[data-scene="comparison"]';
         const thesis = '[data-scene="thesis"]';
+
+        // Depth parallax: the closer a mark floats, the further it travels
+        // under continued scroll, so the field reads as a camera move rather
+        // than a flat layout. Desktop only - below 1100px the metrics
+        // collapse into a static grid that must not shear.
+        const addLedgerDrift = (timeline: gsap.core.Timeline, at: number) => {
+          if (!window.matchMedia("(min-width: 1101px)").matches) return;
+          timeline.to(
+            "[data-thesis-metric], [data-thesis-dust]",
+            {
+              y: (_index: number, target: Element) =>
+                -78 * Number((target as HTMLElement).dataset.depth ?? "0.5"),
+              duration: 0.85,
+              ease: "none",
+            },
+            at,
+          );
+        };
+
+        // One act, so there is nothing to slide off first: the thesis is
+        // already on stage and the scroll only plays its own reveal. The
+        // runway shrinks to match (see .thesisOnly in the stylesheet) -
+        // 480svh of scrub for a single scene would read as a stuck page.
+        if (thesisOnly) {
+          gsap.set(thesis, {
+            visibility: "visible",
+            yPercent: 0,
+            pointerEvents: "auto",
+          });
+          gsap.set("[data-thesis-ledger]", { yPercent: 34, opacity: 0 });
+
+          const soloStory = gsap
+            .timeline({
+              defaults: { ease: "power3.inOut" },
+              scrollTrigger: {
+                trigger: scopeRoot,
+                start: "top top",
+                end: "70% bottom",
+                scrub: 0.45,
+                invalidateOnRefresh: true,
+              },
+            })
+            .fromTo(
+              "[data-thesis-metric]",
+              { y: -22, opacity: 0 },
+              {
+                y: 0,
+                opacity: (_index: number, target: Element) =>
+                  0.38 +
+                  0.62 * Number((target as HTMLElement).dataset.depth ?? "0.5"),
+                stagger: 0.07,
+                duration: 0.5,
+                ease: "power3.out",
+              },
+              0,
+            )
+            .to(
+              "[data-thesis-rule]",
+              {
+                scaleX: 1,
+                duration: 0.58,
+                ease: "power3.inOut",
+              },
+              0.08,
+            )
+            .to(
+              "[data-thesis-ledger]",
+              {
+                yPercent: 0,
+                opacity: 1,
+                duration: 0.76,
+                ease: "power3.out",
+              },
+              0.08,
+            )
+            .to(
+              "[data-paper-wash]",
+              {
+                opacity: 1,
+                duration: 0.5,
+              },
+              0.95,
+            );
+
+          // After the last staggered entrance settles, so the two never fight
+          // over the same transform.
+          addLedgerDrift(soloStory, 1.15);
+
+          ScrollTrigger.refresh();
+          return;
+        }
 
         gsap.set(question, { visibility: "visible" });
         gsap.set(comparison, {
@@ -1240,24 +1355,9 @@ export function CinematicIntro({ locale = "he" }: CinematicIntroProps) {
             4.12,
           );
 
-        // Depth parallax: the closer a mark floats, the further it travels
-        // under continued scroll, so the field reads as a camera move rather
-        // than a flat layout. Desktop only - below 1100px the metrics
-        // collapse into a static grid that must not shear.
-        if (window.matchMedia("(min-width: 1101px)").matches) {
-          story.to(
-            "[data-thesis-metric], [data-thesis-dust]",
-            {
-              y: (_index: number, target: Element) =>
-                -78 * Number((target as HTMLElement).dataset.depth ?? "0.5"),
-              duration: 0.85,
-              ease: "none",
-            },
-            // After the last staggered entrance settles (3.3 + stagger + 0.5)
-            // so the two never fight over the same transform.
-            4.35,
-          );
-        }
+        // After the last staggered entrance settles (3.3 + stagger + 0.5) so
+        // the two never fight over the same transform.
+        addLedgerDrift(story, 4.35);
 
         ScrollTrigger.refresh();
       }, scopeRoot);
@@ -1272,18 +1372,24 @@ export function CinematicIntro({ locale = "he" }: CinematicIntroProps) {
       animeScope.revert();
       revertGsap();
     };
-  }, [shouldReduceMotion]);
+  }, [shouldReduceMotion, thesisOnly]);
 
   return (
     <section
       ref={rootRef}
-      className={`${styles.cinematic} ${shouldReduceMotion ? styles.reduced : ""}`}
+      className={`${styles.cinematic} ${shouldReduceMotion ? styles.reduced : ""} ${
+        thesisOnly ? styles.thesisOnly : ""
+      }`}
       aria-label={t.sectionAria}
     >
       <div className={styles.stage} data-cinematic-stage>
         <div className={styles.paperTexture} aria-hidden />
         <div className={styles.paperWash} data-paper-wash aria-hidden />
 
+        {/* The two acts that argue the case before showing the evidence. The
+            homepage skips straight to the thesis; see IntroStory. */}
+        {!thesisOnly && (
+          <>
         <article
           className={`${styles.scene} ${styles.questionScene}`}
           data-scene="question"
@@ -1769,6 +1875,8 @@ export function CinematicIntro({ locale = "he" }: CinematicIntroProps) {
             </section>
           </div>
         </article>
+          </>
+        )}
 
         <article
           className={`${styles.scene} ${styles.thesisScene}`}

@@ -3,7 +3,10 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import type { Locale } from '@/lib/i18n';
-import { CinematicIntro } from '@/components/press/CinematicIntro/CinematicIntro';
+import {
+  CinematicIntro,
+  type IntroStory,
+} from '@/components/press/CinematicIntro/CinematicIntro';
 import styles from './HomepageExperience.module.css';
 
 interface HomepageCopy {
@@ -29,12 +32,15 @@ interface HomepageExperienceProps {
   children: ReactNode;
   liveDashboard?: ReactNode;
   locale?: Locale;
+  /** How much of the cinematic intro to run before the site layer docks. */
+  introStory?: IntroStory;
 }
 
 export function HomepageExperience({
   children,
   liveDashboard,
   locale = 'he',
+  introStory = 'full',
 }: HomepageExperienceProps) {
   const t = COPY[locale];
   const rootRef = useRef<HTMLDivElement>(null);
@@ -121,7 +127,7 @@ export function HomepageExperience({
       ref={rootRef}
       className={`${styles.experience} ${shouldReduceMotion ? styles.reduced : ''}`}
     >
-      <CinematicIntro locale={locale} />
+      <CinematicIntro locale={locale} story={introStory} />
       <div className={styles.siteDock} data-site-dock>
         <div className={styles.siteLayer} data-site-layer>
           {children}

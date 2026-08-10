@@ -5,7 +5,7 @@
 'use client';
 
 import { useState } from 'react';
-import { DeskCarousel } from './DeskCarousel';
+import { DeskCarousel, type DeskCarouselControls } from './DeskCarousel';
 import { DeskTopicRow, type DeskTopic } from './DeskTopicRow';
 import { TopicDialog, type DeskEntry } from './TopicDialog';
 import { slotVariant } from './deskBento';
@@ -19,22 +19,41 @@ interface DeskStreamProps {
   /** Announced label for the carousel region. */
   label: string;
   locale: Locale;
+  /** Index of the entry at the head of the viewport - the dock names it. */
+  onActiveIndexChange?: (index: number) => void;
+  /** Handle for controls outside the track (the municipality dial). */
+  controlsRef?: React.MutableRefObject<DeskCarouselControls | null>;
 }
 
 /** One desk's stream of tiles, with the topic dialog they open into. */
-export function DeskStream({ entries, label, locale }: DeskStreamProps) {
+export function DeskStream({
+  entries,
+  label,
+  locale,
+  onActiveIndexChange,
+  controlsRef,
+}: DeskStreamProps) {
   const [open, setOpen] = useState<DeskEntry | null>(null);
+  /** The side a swipe carried in, if the dialog was opened by pushing a tile. */
+  const [intent, setIntent] = useState<string | null>(null);
 
   // Opening by id rather than holding the clicked object keeps the dialog on
   // the freshest copy of the record when the desk re-orders under it.
-  const openTopic = (topic: DeskTopic) => {
+  const openTopic = (topic: DeskTopic, optionId?: string) => {
     const entry = entries.find((e) => e.topic.id === topic.id);
-    if (entry) setOpen(entry);
+    if (!entry) return;
+    setIntent(optionId ?? null);
+    setOpen(entry);
   };
 
   return (
     <>
-      <DeskCarousel label={label} locale={locale}>
+      <DeskCarousel
+        label={label}
+        locale={locale}
+        onActiveIndexChange={onActiveIndexChange}
+        controlsRef={controlsRef}
+      >
         {entries.map(({ topic, municipality, heatRank, ranking }, i) => (
           <DeskTopicRow
             key={topic.id}
@@ -50,7 +69,15 @@ export function DeskStream({ entries, label, locale }: DeskStreamProps) {
         ))}
       </DeskCarousel>
 
-      <TopicDialog entry={open} onClose={() => setOpen(null)} locale={locale} />
+      <TopicDialog
+        entry={open}
+        intentOptionId={intent}
+        onClose={() => {
+          setOpen(null);
+          setIntent(null);
+        }}
+        locale={locale}
+      />
     </>
   );
 }

@@ -28,10 +28,10 @@ const COPY: Record<Locale, MechanismCopy> = {
     headlineAccent: 'עובד.',
     tiles: [
       {
-        slug: '/how-it-works',
+        slug: '/what-is-taruu',
         no: '01',
-        title: 'איך זה עובד',
-        note: 'מאימות ועד קלפי: כל המנגנון, צעד אחר צעד.',
+        title: 'מהי תַּרְאוּ?',
+        note: 'שלוש רשויות, ומי שהן עובדות עבורו: המנגנון במלואו.',
       },
       {
         slug: '/pricing',
@@ -62,10 +62,10 @@ const COPY: Record<Locale, MechanismCopy> = {
     headlineAccent: 'works.',
     tiles: [
       {
-        slug: '/how-it-works',
+        slug: '/what-is-taruu',
         no: '01',
-        title: 'How it works',
-        note: 'From verification to ballot: the whole mechanism, step by step.',
+        title: 'What is Taruu?',
+        note: 'Three branches, and who they work for: the whole mechanism.',
       },
       {
         slug: '/pricing',

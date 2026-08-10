@@ -5,6 +5,8 @@
 
 import { supabaseAdmin } from './server';
 import type { TreasuryTransactionType } from '@sync/shared';
+import { LOCAL_AUTHORITY_KINDS } from '@sync/shared/contracts';
+import type { LocalAuthorityKind, MunicipalityCivicStats } from '@sync/shared/contracts';
 import type {
   Json,
   User,
@@ -2578,4 +2580,65 @@ export async function getMunicipalityProfile(
     openVotes,
     closedVotes,
   };
+}
+
+/** Raw shape of one `municipality_civic_stats()` row. */
+interface CivicStatsRow {
+  municipality_code: string;
+  kind: string | null;
+  residents: number | null;
+  platform_users: number | null;
+  active_participants: number | null;
+  open_topics: number | null;
+  engagement_score: number | null;
+  cooperation_score: number | null;
+  satisfaction_score: number | null;
+  overall_score: number | null;
+}
+
+/** A score is either measured or it is not; 0 is a measurement, not a gap. */
+const asScore = (value: number | null | undefined): number | null =>
+  value === null || value === undefined ? null : Number(value);
+
+/**
+ * The row's authority kind, falling back to the column's own default.
+ *
+ * Unlike a score, an absent kind is not a gap worth printing: `municipalities.
+ * kind` is NOT NULL DEFAULT 'municipality', so the only way to read one is
+ * against a deployment whose `municipality_civic_stats()` predates the column
+ * - exactly the deployment where every row it returned *was* a municipality.
+ */
+const asAuthorityKind = (value: string | null | undefined): LocalAuthorityKind =>
+  (LOCAL_AUTHORITY_KINDS as readonly string[]).includes(value ?? '')
+    ? (value as LocalAuthorityKind)
+    : 'municipality';
+
+/**
+ * Every municipality's civic stats in one round-trip - size, platform
+ * footprint, open topics, and the four -100..+100 scores.
+ *
+ * The dial prints all of them at once, so this is deliberately unscoped: one
+ * RPC for the whole list rather than `getMunicipalityProfile` per city.
+ */
+export async function getMunicipalityCivicStats(): Promise<
+  MunicipalityCivicStats[]
+> {
+  const { data, error } = await supabaseAdmin.rpc('municipality_civic_stats');
+
+  if (error) {
+    throw new Error(`municipality_civic_stats failed: ${error.message}`);
+  }
+
+  return ((data ?? []) as unknown as CivicStatsRow[]).map((row) => ({
+    municipality: row.municipality_code,
+    kind: asAuthorityKind(row.kind),
+    residents: row.residents === null ? null : Number(row.residents),
+    platformUsers: Number(row.platform_users ?? 0),
+    activeParticipants: Number(row.active_participants ?? 0),
+    openTopics: Number(row.open_topics ?? 0),
+    engagementScore: asScore(row.engagement_score),
+    cooperationScore: asScore(row.cooperation_score),
+    satisfactionScore: asScore(row.satisfaction_score),
+    overallScore: asScore(row.overall_score),
+  }));
 }

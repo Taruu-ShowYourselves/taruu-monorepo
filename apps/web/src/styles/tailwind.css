@@ -4,7 +4,10 @@
  * clobber them. Utilities are additive and only used by src/components/ui
  * and the newer pages built on them.
  */
-@layer theme, utilities;
+/* Layer order, and it is load-bearing: globals.css puts the element resets in
+   @layer base, so `base` has to be declared BEFORE `utilities` here or the
+   reset - declared later in the file - would outrank every utility. */
+@layer theme, base, utilities;
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities);
 

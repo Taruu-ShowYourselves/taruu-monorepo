@@ -1,13 +1,16 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MUNICIPALITY_GEO, distanceKm } from '@sync/shared';
+import type { MunicipalityCivicStats } from '@sync/shared/contracts';
 import { NewsButton } from '@/components/press/NewsButton';
 import { getStoredMunicipality, LOCALITY_EVENT } from '@/lib/locality';
 import type { DeskTopic } from './DeskTopicRow';
+import type { DeskCarouselControls } from './DeskCarousel';
 import { DeskStream } from './DeskStream';
+import { MunicipalityDock } from './MunicipalityDock';
 import styles from './ConsensusDesk.module.css';
-import { localePrefix, type Locale } from '@/lib/i18n';
+import type { Locale } from '@/lib/i18n';
 
 export interface MunicipalityDesk {
   municipality: string;
@@ -19,13 +22,10 @@ interface DeskCopy {
   headlineLead: string;
   headlineAccent: string;
   standfirst: string;
-  homeChip: (home: string) => string;
-  nationalChip: string;
   emptyLede: string;
   emptyNote: string;
   proposeCta: string;
   carouselLabel: string;
-  allTopicsCta: string;
   /** Direction-semantic CTA glyph: mirrored between RTL and LTR. */
   ctaArrow: string;
 }
@@ -37,13 +37,10 @@ const COPY: Record<Locale, DeskCopy> = {
     headlineAccent: 'רשות אחר רשות.',
     standfirst:
       'מה עומד להצבעה עכשיו בעיר שלכם. הנושאים נספרים בזמן אמת מתוך קבוצות הפייסבוק המקומיות.',
-    homeChip: (home) => `המהדורה שלכם: ${home} והסביבה`,
-    nationalChip: 'מהדורה ארצית - לפי חום',
     emptyLede: 'המערכת פתוחה. עדיין אין נושאים פעילים על השולחן.',
     emptyNote: 'היו הראשונים להעלות נושא לרשות שלכם.',
     proposeCta: 'הציעו נושא',
     carouselLabel: 'נושאי הקונצנזוס לפי רשות',
-    allTopicsCta: 'לכל הנושאים',
     ctaArrow: '←',
   },
   en: {
@@ -52,19 +49,18 @@ const COPY: Record<Locale, DeskCopy> = {
     headlineAccent: 'municipality by municipality.',
     standfirst:
       'What your city is voting on right now. Topics are counted in real time from the local Facebook groups.',
-    homeChip: (home) => `Your edition: ${home} and the surrounding area`,
-    nationalChip: 'National edition - by heat',
     emptyLede: 'The desk is open. No active topics are on the table yet.',
     emptyNote: 'Be the first to raise a topic for your municipality.',
     proposeCta: 'Propose a topic',
     carouselLabel: 'Consensus topics by municipality',
-    allTopicsCta: 'All topics',
     ctaArrow: '→',
   },
 };
 
 interface ConsensusDeskClientProps {
   desks: MunicipalityDesk[];
+  /** Civic stats for every municipality - what the dock's dial reads. */
+  stats: MunicipalityCivicStats[];
   locale: Locale;
 }
 
@@ -73,9 +69,13 @@ interface ConsensusDeskClientProps {
  * card names its municipality (chip → profile page). The reader's stored
  * locality (GeoGate) puts their own city's topics first.
  */
-export function ConsensusDeskClient({ desks, locale }: ConsensusDeskClientProps) {
+export function ConsensusDeskClient({ desks, stats, locale }: ConsensusDeskClientProps) {
   const t = COPY[locale];
   const [home, setHome] = useState<string | null>(null);
+  /* Which tile is at the head of the river. The dock names its municipality,
+     and the dial steers the river back through this same index. */
+  const [activeIndex, setActiveIndex] = useState(0);
+  const carousel = useRef<DeskCarouselControls | null>(null);
 
   useEffect(() => {
     const apply = () => setHome(getStoredMunicipality());
@@ -123,6 +123,46 @@ export function ConsensusDeskClient({ desks, locale }: ConsensusDeskClientProps)
       .map((e) => ({ ...e, heatRank: heatRank.get(e.topic.id) }));
   }, [desks, home]);
 
+  /* Every edition on the desk, in the order the river runs them - the dial
+     leads with these before it offers the municipalities with nothing open. */
+  const deskOrder = useMemo(
+    () => [...new Set(entries.map((entry) => entry.municipality))],
+    [entries]
+  );
+
+  /* What the desk can vouch for on its own, for municipalities the stats read
+     could not answer for. */
+  const deskTopicCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const { municipality } of entries) {
+      counts[municipality] = (counts[municipality] ?? 0) + 1;
+    }
+    return counts;
+  }, [entries]);
+
+  /* Re-ordering the river (the reader's locality arrives after mount) leaves
+     the old index pointing at an unrelated tile. Fall back to the head. */
+  const activeMunicipality =
+    entries[activeIndex]?.municipality ?? entries[0]?.municipality ?? '';
+
+  // Stable identity: DeskCarousel takes this into the dep array of the
+  // callback it subscribes to Embla with.
+  const handleActiveIndex = useCallback((index: number) => {
+    setActiveIndex(index);
+  }, []);
+
+  const travelTo = useCallback(
+    (municipality: string) => {
+      const index = entries.findIndex((e) => e.municipality === municipality);
+      if (index < 0) return;
+      // Move the readout with the reader's finger; Embla's own `select` will
+      // confirm the same index a frame later.
+      setActiveIndex(index);
+      carousel.current?.scrollTo(index);
+    },
+    [entries]
+  );
+
   return (
     <section
       id="consensus-desk"
@@ -142,11 +182,6 @@ export function ConsensusDeskClient({ desks, locale }: ConsensusDeskClientProps)
           </h2>
 
           <p className={styles.standfirst}>{t.standfirst}</p>
-
-          <span className={styles.homeChip}>
-            <span aria-hidden className={styles.homeChipDot} />
-            {home ? t.homeChip(home) : t.nationalChip}
-          </span>
         </header>
 
         <div className={styles.ruleHeavy} aria-hidden />
@@ -166,18 +201,23 @@ export function ConsensusDeskClient({ desks, locale }: ConsensusDeskClientProps)
           </div>
         ) : (
           <>
-            <DeskStream label={t.carouselLabel} locale={locale} entries={entries} />
+            <DeskStream
+              label={t.carouselLabel}
+              locale={locale}
+              entries={entries}
+              onActiveIndexChange={handleActiveIndex}
+              controlsRef={carousel}
+            />
 
-            <div className={styles.deskFooter}>
-              <NewsButton
-                href={`${localePrefix(locale)}/votes`}
-                variant="outline"
-                size="md"
-                trailing={<span aria-hidden>{t.ctaArrow}</span>}
-              >
-                {t.allTopicsCta}
-              </NewsButton>
-            </div>
+            <MunicipalityDock
+              active={activeMunicipality}
+              deskOrder={deskOrder}
+              deskTopicCounts={deskTopicCounts}
+              stats={stats}
+              home={home}
+              onSelect={travelTo}
+              locale={locale}
+            />
           </>
         )}
       </div>

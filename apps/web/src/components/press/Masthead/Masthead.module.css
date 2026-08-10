@@ -85,7 +85,9 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: clamp(var(--space-3), 2vw, var(--space-6));
-  min-block-size: clamp(3.75rem, 5vw, 4.5rem);
+  /* Sections that claim the whole viewport subtract this - keep the token
+     the single source of truth rather than repeating the clamp. */
+  min-block-size: var(--np-nav-h);
   max-inline-size: var(--np-container);
   margin-inline: auto;
 }
@@ -472,7 +474,9 @@
   .nav {
     grid-template-columns: auto minmax(0, 1fr) auto;
     gap: var(--space-2);
-    min-block-size: 3.5rem;
+    /* Token, not a literal: tokens.css drops --np-nav-h to 3.5rem at this
+       same breakpoint, and the two must not drift apart. */
+    min-block-size: var(--np-nav-h);
   }
   .navWordmark { font-size: var(--text-xl); }
   .navList {

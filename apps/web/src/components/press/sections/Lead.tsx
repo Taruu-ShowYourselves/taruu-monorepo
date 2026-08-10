@@ -25,7 +25,7 @@ interface LeadCopy {
   bylineRegion: string;
   bylineDate: string;
   foundersCta: string;
-  howItWorksLink: string;
+  whatIsTaruuLink: string;
   briefHead: string;
   briefs: { k: string; t: string }[];
   priceKicker: string;
@@ -48,7 +48,7 @@ const COPY: Record<Locale, LeadCopy> = {
     bylineRegion: 'כל הארץ',
     bylineDate: '04.08.26',
     foundersCta: 'קבוצת המייסדים',
-    howItWorksLink: 'איך זה עובד ←',
+    whatIsTaruuLink: 'מהי תַּרְאוּ? ←',
     briefHead: 'עוד בגיליון',
     briefs: [
       { k: 'מודדים', t: 'כמה באמת תומכים, כמה מתנגדים: מספר מדויק, לא תחושת בטן.' },
@@ -73,7 +73,7 @@ const COPY: Record<Locale, LeadCopy> = {
     bylineRegion: 'Nationwide',
     bylineDate: '04.08.26',
     foundersCta: 'The founders’ group',
-    howItWorksLink: 'How it works →',
+    whatIsTaruuLink: 'What is Taruu? →',
     briefHead: 'Also in this issue',
     briefs: [
       { k: 'We measure', t: 'How many truly support, how many oppose: an exact number, not a gut feeling.' },
@@ -140,7 +140,7 @@ export function Lead({ locale = 'he' }: LeadProps) {
             <NewsButton href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" variant="red" size="lg" trailing={<span aria-hidden>{t.arrow}</span>}>
               {t.foundersCta}
             </NewsButton>
-            <a href={`${localePrefix(locale)}/how-it-works`} className={styles.textLink}>{t.howItWorksLink}</a>
+            <a href={`${localePrefix(locale)}/what-is-taruu`} className={styles.textLink}>{t.whatIsTaruuLink}</a>
           </div>
         </div>
 
@@ -165,7 +165,7 @@ export function Lead({ locale = 'he' }: LeadProps) {
             <span className={styles.priceMeta}>{t.priceMeta}</span>
           </div>
 
-          <a href={`${localePrefix(locale)}/how-it-works`} className={styles.briefMore}>{t.briefMore}</a>
+          <a href={`${localePrefix(locale)}/what-is-taruu`} className={styles.briefMore}>{t.briefMore}</a>
         </aside>
       </div>
 
