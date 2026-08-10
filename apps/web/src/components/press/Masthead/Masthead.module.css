@@ -2,7 +2,12 @@
   background: var(--np-paper);
   color: var(--np-ink);
   padding-inline: var(--np-gutter);
-  padding-block-start: var(--space-2);
+  /* The status bar is not ours to print in. Installed to a home screen the
+     web view runs edge to edge, and with a flat --space-2 here the ears and
+     the wordmark drew straight under the clock and the Dynamic Island. `max`
+     rather than a sum: on a phone with no inset the ordinary 8px still
+     applies, and on one with an inset the strip already clears the rule. */
+  padding-block-start: max(var(--space-2), env(safe-area-inset-top, 0px));
 }
 
 .navDock {
@@ -10,6 +15,11 @@
   inset-block-start: 0;
   z-index: 75;
   padding-inline: var(--np-gutter);
+  /* Same reason as the masthead, and it matters more here: this one parks
+     against the top of the viewport, so without the inset it parks under the
+     clock rather than below it. The paper background extends into the strip,
+     which is what keeps the status bar legible over it. */
+  padding-block-start: env(safe-area-inset-top, 0px);
   background: color-mix(in srgb, var(--np-paper) 96%, transparent);
   border-block-end: var(--np-rule) solid var(--np-ink);
   box-shadow: 0 12px 30px color-mix(in srgb, var(--np-ink) 6%, transparent);
@@ -470,6 +480,16 @@
   .ears span:nth-child(3) { display: none; }
   .tagL, .tagR { display: none; }
   .brandRow { grid-template-columns: 1fr; }
+
+  /* The wordmark is the tallest thing above the fold, and sized on width
+     alone it takes no notice of how much height there is to take it from: a
+     phone held sideways is ~390px of viewport and 10vw of its 844px width set
+     the wordmark at 84px, which pushed the nav dock and the first tile clean
+     off the screen. `min` against svh caps it by the shorter dimension -
+     unchanged when held upright, a third smaller on its side. */
+  .wordmark {
+    font-size: clamp(var(--text-3xl), min(10vw, 9svh), var(--text-6xl));
+  }
   .navDock { padding-inline: var(--space-3); }
   .nav {
     grid-template-columns: auto minmax(0, 1fr) auto;
