@@ -15,6 +15,7 @@ export * from './nft';
 export * from './phone';
 export * from './municipality';
 export * from './council';
+export * from './authority';
 export * from './dashboard';
 export * from './spaceAdmin';
 export * from './pilot';
