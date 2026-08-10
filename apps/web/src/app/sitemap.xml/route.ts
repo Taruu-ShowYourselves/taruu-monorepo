@@ -46,7 +46,7 @@ const STATIC_PATHS: readonly Omit<SitemapEntry, 'lastModified'>[] = [
   { path: '/votes/archive', priority: 0.6, changeFrequency: 'weekly' },
   { path: '/coin', priority: 0.6, changeFrequency: 'daily' },
   { path: '/treasury', priority: 0.6, changeFrequency: 'weekly' },
-  { path: '/how-it-works', priority: 0.7, changeFrequency: 'monthly' },
+  { path: '/what-is-taruu', priority: 0.7, changeFrequency: 'monthly' },
   { path: '/pricing', priority: 0.7, changeFrequency: 'monthly' },
   { path: '/about', priority: 0.6, changeFrequency: 'monthly' },
   { path: '/faq', priority: 0.6, changeFrequency: 'monthly' },

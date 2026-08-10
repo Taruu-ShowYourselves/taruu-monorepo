@@ -71,8 +71,8 @@ const COPY: Record<Locale, MastheadCopy> = {
       {
         label: 'להבין',
         items: [
-          { label: 'מהי תַּרְאוּ?', href: '#what-is-taruu' },
-          { label: 'איך זה עובד', href: 'how-it-works' },
+          { label: 'מהי תַּרְאוּ?', href: 'what-is-taruu' },
+          { label: 'מצבת הכנסת', href: 'government' },
           { label: 'שאלות נפוצות', href: 'faq' },
         ],
       },
@@ -123,8 +123,8 @@ const COPY: Record<Locale, MastheadCopy> = {
       {
         label: 'Understand',
         items: [
-          { label: 'What is Taruu?', href: '#what-is-taruu' },
-          { label: 'How it works', href: 'how-it-works' },
+          { label: 'What is Taruu?', href: 'what-is-taruu' },
+          { label: 'The roster', href: 'government' },
           { label: 'FAQ', href: 'faq' },
         ],
       },
