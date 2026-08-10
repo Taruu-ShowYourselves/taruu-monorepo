@@ -61,8 +61,8 @@ const COPY: Record<Locale, DockCopy> = {
     regionLabel: 'הרשות הנצפית',
     nowReading: 'נצפה עכשיו',
     openTopics: (n) => (n === 1 ? 'נושא אחד פתוח' : `${n} נושאים פתוחים`),
-    expandHint: 'גללו למטה',
-    collapseHint: 'גללו למעלה',
+    expandHint: 'הקישו לפתיחה',
+    collapseHint: 'הקישו לסגירה',
     dialLabel: 'כל הרשויות',
     tunerLabel: 'כוונון רשות',
     tuneTo: (name) => `כוונון אל ${name}`,
@@ -87,8 +87,8 @@ const COPY: Record<Locale, DockCopy> = {
     regionLabel: 'The municipality in view',
     nowReading: 'Now reading',
     openTopics: (n) => (n === 1 ? '1 open topic' : `${n} open topics`),
-    expandHint: 'Scroll down',
-    collapseHint: 'Scroll up',
+    expandHint: 'Tap to open',
+    collapseHint: 'Tap to close',
     dialLabel: 'All municipalities',
     tunerLabel: 'Tune the edition',
     tuneTo: (name) => `Tune to ${name}`,
@@ -118,7 +118,16 @@ const FLICK_COMMIT_VELOCITY = 420;
 const WHEEL_COMMIT_PX = 34;
 /** Quiet period after a wheel-driven change, so inertia cannot re-toggle it. */
 const WHEEL_COOLDOWN_MS = 480;
-/** Sideways travel on the tuner before it is a tune rather than a sheet drag. */
+/**
+ * Upward page travel that folds an open sheet away.
+ *
+ * Accumulated rather than compared against a single frame: Lenis delivers
+ * smooth scroll in small increments, and a per-event threshold this size is
+ * never met by any one of them, so a slow pull back up would leave the panel
+ * standing over the desk indefinitely.
+ */
+const PAGE_FOLD_PX = 24;
+/** Sideways travel on the tuner before it is a tune rather than a page scroll. */
 const TUNE_AXIS_PX = 6;
 /**
  * How long the desk has to hold still before the needle follows it.
@@ -272,9 +281,14 @@ export function MunicipalityDock({
      Left to itself, framer takes a pointer capture on the dock the moment a
      pointer goes down anywhere inside it - including on the band - and every
      subsequent move is then retargeted to the dock. The band's own listeners
-     never fired, so the dial could not be spun at all. Starting the drag
-     ourselves means the band decides first: sideways is a tune, and only a
-     vertical drag is handed to the sheet. */
+     never fired, so the dial could not be spun at all.
+
+     It is now only ever started on an OPEN sheet, to pull it shut. Opening is
+     a tap and nothing else: a vertical pull anywhere on the shut bar used to
+     raise the whole panel, which meant a reader tuning the dial with a thumb
+     that wandered a few degrees off horizontal got the sheet over the desk
+     instead of the next edition. The dial is the bar's job; the panel is the
+     tap's. */
   const dragControls = useDragControls();
 
   const bandRef = useRef<HTMLDivElement>(null);
@@ -562,9 +576,9 @@ export function MunicipalityDock({
     active,
   };
 
-  /* Spinning the band. The dock above it is a framer drag surface for the
-     sheet, so this decides the axis first and only then takes the pointer -
-     a sideways pull is a tune, a vertical one is handed to the sheet. */
+  /* Spinning the band. The axis is still decided before the pointer is taken,
+     but only one axis belongs to the dial now: sideways is a tune, and a
+     vertical pull is let go entirely so the page scrolls under it. */
   useEffect(() => {
     const band = bandRef.current;
     if (!band) return;
@@ -612,8 +626,9 @@ export function MunicipalityDock({
             /* Capture is a convenience; the spin tracks without it. */
           }
         } else {
-          // Vertical from the band still belongs to the sheet.
-          live.current.dragControls.start(evt);
+          /* Vertical from the band is not the dock's gesture at all. It used
+             to raise the sheet; now it is abandoned, which leaves the page to
+             scroll normally under the reader's thumb. */
           pointerId = null;
           return;
         }
@@ -684,10 +699,14 @@ export function MunicipalityDock({
     []
   );
 
-  // ---- Scrolling into the panel -----------------------------------------
-  /* Scrolling down over the dock opens it, scrolling up from the top of the
-     readout shuts it again. The wheel is otherwise let through, so the sheet's
-     own overflow still scrolls normally once it is open and past its top. */
+  // ---- Scrolling out of the panel ---------------------------------------
+  /* Scrolling up from the top of the readout folds the sheet back down. The
+     wheel is otherwise let through, so the sheet's own overflow still scrolls
+     normally once it is open and past its top.
+     Scrolling DOWN no longer opens it. Reading the desk is a downward gesture
+     and so was asking for the panel, so the dock kept rising over the tiles a
+     reader was in the middle of - the panel is a tap now, and the wheel only
+     ever puts it away. */
   useEffect(() => {
     const dock = dockRef.current;
     if (!dock) return;
@@ -703,10 +722,9 @@ export function MunicipalityDock({
       }
 
       const panel = panelRef.current;
-      const opening = !expanded && evt.deltaY > 0;
       const closing =
         expanded && evt.deltaY < 0 && (panel ? panel.scrollTop <= 0 : true);
-      if (!opening && !closing) {
+      if (!closing) {
         travel = 0;
         return;
       }
@@ -721,20 +739,46 @@ export function MunicipalityDock({
       if (Math.abs(travel) < WHEEL_COMMIT_PX) return;
       travel = 0;
       until = now + WHEEL_COOLDOWN_MS;
-      setExpanded(opening);
+      setExpanded(false);
     };
 
     dock.addEventListener('wheel', wheel, { passive: false });
     return () => dock.removeEventListener('wheel', wheel);
   }, [expanded]);
 
+  /* Reading back up the page folds the sheet away with it.
+     The wheel handler above only sees gestures that land on the dock itself;
+     a reader who opens the panel and then scrolls back up over the desk was
+     leaving it standing there, covering the tiles they had gone back for. The
+     panel closes on its own spring, so this reads as the sheet following the
+     page rather than being dismissed. */
+  useEffect(() => {
+    if (!expanded) return;
+
+    let last = window.scrollY;
+    let climbed = 0;
+
+    const onScroll = () => {
+      const y = window.scrollY;
+      const delta = y - last;
+      last = y;
+      /* Any downward travel resets it: the fold is for going back, not for
+         the jitter at the end of a flick down. */
+      climbed = delta < 0 ? climbed - delta : 0;
+      if (climbed >= PAGE_FOLD_PX) setExpanded(false);
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [expanded]);
+
+  /* Only ever a way out. The drag is started on an open sheet alone, so an
+     upward flick has nothing left to open and is ignored rather than treated
+     as a request for a panel that is already up. */
   const onDragEnd = (_: unknown, info: PanInfo) => {
-    const flickedUp =
-      info.offset.y < -DRAG_COMMIT_PX || info.velocity.y < -FLICK_COMMIT_VELOCITY;
     const flickedDown =
       info.offset.y > DRAG_COMMIT_PX || info.velocity.y > FLICK_COMMIT_VELOCITY;
-    if (flickedUp) setExpanded(true);
-    else if (flickedDown) setExpanded(false);
+    if (flickedDown) setExpanded(false);
   };
 
   const panelId = 'municipality-dock-panel';
@@ -870,18 +914,34 @@ export function MunicipalityDock({
       <div
         className={styles.bar}
         ref={barRef}
-        /* Everywhere on the bar except the band drags the sheet. The band
-           runs its own axis check and starts the drag itself when the pull
-           turns out to be vertical. */
+        /* Only an OPEN sheet is draggable, and only from outside the band:
+           the drag is the way to pull it shut. While the dock is shut a
+           vertical pull here is nobody's gesture, so it falls through to the
+           page - which is what a reader dragging past the desk expects. */
         onPointerDown={(event) => {
+          if (!expanded) return;
           if (bandRef.current?.contains(event.target as Node)) return;
           dragControls.start(event);
+        }}
+        /* The whole bar is the tap target, not just the chevron - the readout
+           and the "now reading" kicker are the parts a thumb actually goes
+           for. Taps that started on the dial are the dial's: a station tunes
+           to itself, and the band's own click must not also raise the sheet. */
+        onClick={(event) => {
+          if (bandRef.current?.contains(event.target as Node)) return;
+          setExpanded((open) => !open);
         }}
       >
         <button
           type="button"
           className={styles.toggle}
-          onClick={() => setExpanded((open) => !open)}
+          /* The bar around it toggles too, so this stops here rather than
+             bubbling into it and undoing itself. The button stays for the
+             keyboard and for aria-expanded; the bar is the thumb's target. */
+          onClick={(event) => {
+            event.stopPropagation();
+            setExpanded((open) => !open);
+          }}
           aria-expanded={expanded}
           aria-controls={expanded ? panelId : undefined}
         >
