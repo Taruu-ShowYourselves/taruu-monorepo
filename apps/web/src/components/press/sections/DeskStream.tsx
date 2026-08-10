@@ -4,7 +4,7 @@
    (ConsensusDeskClient) hand it the same shape after ordering them. */
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { DeskCarousel, type DeskCarouselControls } from './DeskCarousel';
 import { DeskTopicRow, type DeskTopic } from './DeskTopicRow';
 import { TopicDialog, type DeskEntry } from './TopicDialog';
@@ -12,6 +12,15 @@ import { slotVariant } from './deskBento';
 import type { Locale } from '@/lib/i18n';
 
 export type { DeskEntry };
+
+/**
+ * That this reader has already been shown how a tile works.
+ *
+ * On their device, like the set-aside list: the lesson is about this browser's
+ * hands, not about the account, and a reader who has learnt the gesture on
+ * their phone should not be taught it again by every desk they open.
+ */
+const TUTOR_KEY = 'taruu:desk-swipe-taught';
 
 interface DeskStreamProps {
   /** Cards in running order - slot 0 of every stretch is the lead tile. */
@@ -36,6 +45,72 @@ export function DeskStream({
   const [open, setOpen] = useState<DeskEntry | null>(null);
   /** The side a swipe carried in, if the dialog was opened by pushing a tile. */
   const [intent, setIntent] = useState<string | null>(null);
+
+  /* ---- Who gets taught the gesture ------------------------------------
+     The edge cues only appear once a tile is already in hand, which teaches
+     nobody who does not know there is anything to take hold of. So exactly one
+     tile demonstrates it - and the tile it happens on has to be one the reader
+     can see, or the lesson plays somewhere off the side of the desk.
+
+     Rather than nominate an index and hope it is on screen, the tiles bid:
+     each watches itself, and the first to come properly into view claims the
+     lesson. Whichever tile the desk actually opened on is the one that
+     teaches, at any scroll position and on any screen. */
+  const [tutorIndex, setTutorIndex] = useState<number | null>(null);
+  /* Assume taught until storage says otherwise: the first render is the
+     server's, and a lesson that begins before the check would flash on a
+     reader who has already had it. */
+  const [taught, setTaught] = useState(true);
+  const claimed = useRef(false);
+
+  useEffect(() => {
+    try {
+      setTaught(window.localStorage.getItem(TUTOR_KEY) === '1');
+    } catch {
+      /* Private browsing, or storage refused. Skip the lesson rather than
+         teach it on every visit - the second showing is more annoying than
+         the first is useful. */
+      setTaught(true);
+    }
+  }, []);
+
+  /* Bids are collected for a beat rather than settled on the first one in.
+     Several tiles cross the threshold in the same frame when the desk scrolls
+     into view, and the observer fires them in DOM order only by accident of
+     layout - the first draft handed the lesson to whichever brief happened to
+     be fully on screen while the lead was still a few pixels short, and taught
+     the gesture on a 1x1 with barely room for the three pills.
+
+     The lowest index wins, which is the lead of the stretch: slot 0 is the
+     biggest tile on the desk, it carries the hint line without help, and it is
+     the one a reader is looking at anyway. */
+  const bids = useRef<number[]>([]);
+  const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const claimTutor = useCallback((index: number) => {
+    if (claimed.current) return;
+    bids.current.push(index);
+    if (settle.current) return;
+
+    settle.current = setTimeout(() => {
+      claimed.current = true;
+      setTutorIndex(Math.min(...bids.current));
+      try {
+        window.localStorage.setItem(TUTOR_KEY, '1');
+      } catch {
+        /* Nothing to do: it plays this once and is forgotten. */
+      }
+    }, 250);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (settle.current) clearTimeout(settle.current);
+    },
+    []
+  );
+
+  const lessonOpen = !taught && tutorIndex === null;
 
   // Opening by id rather than holding the clicked object keeps the dialog on
   // the freshest copy of the record when the desk re-orders under it.
@@ -64,6 +139,8 @@ export function DeskStream({
             ranking={ranking ?? null}
             variant={slotVariant(i)}
             onOpen={openTopic}
+            tutor={tutorIndex === i}
+            onTutorVisible={lessonOpen ? claimTutor : undefined}
             locale={locale}
           />
         ))}

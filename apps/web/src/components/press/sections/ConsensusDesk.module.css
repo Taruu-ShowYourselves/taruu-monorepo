@@ -1801,3 +1801,145 @@ a.topicMuni:hover { background: var(--np-red); }
     padding: var(--space-2) var(--space-3);
   }
 }
+
+/* ============================================================
+ * THE SWIPE LESSON - shown once, on one tile the reader can see.
+ *
+ * Everything above only appears once a tile is already in hand, which teaches
+ * nobody: a reader arriving at the desk has no way of knowing the tiles answer
+ * to being pushed at all. So one tile demonstrates it - which tile is decided
+ * in DeskStream by whichever is properly on screen, and it happens once per
+ * reader.
+ *
+ * The cues move, not the card. useVoteSwipe writes the push straight onto the
+ * element's inline `transform` and the desk's reveal animation leaves its own
+ * there too; a keyframe on the tile would win over both (animations outrank
+ * inline declarations) and the tile would jump out of whatever position the
+ * reveal had left it in. Lighting the three pills in turn says the same thing
+ * and touches nothing the gesture owns.
+ * ============================================================ */
+.topicCard[data-swipe-tutor] .swipeCues {
+  opacity: 1;
+}
+
+/* Each cue leans toward the edge it is pinned to, holds lit, and settles.
+   Separate keyframes per direction because each cue's resting transform is
+   its own centring - translateY(-50%) on the two sides, translateX(-50%)
+   underneath - and a shared one would knock them off their edges. */
+@keyframes np-teach-right {
+  0%, 12%, 84%, 100% {
+    transform: translateY(-50%) scale(1);
+    color: var(--np-ink-faint);
+    background: color-mix(in srgb, var(--np-paper) 82%, transparent);
+  }
+  22%, 74% {
+    transform: translateY(-50%) translateX(0.7rem) scale(1.12);
+    color: var(--np-paper);
+    background: var(--np-green);
+  }
+}
+
+@keyframes np-teach-left {
+  0%, 12%, 84%, 100% {
+    transform: translateY(-50%) scale(1);
+    color: var(--np-ink-faint);
+    background: color-mix(in srgb, var(--np-paper) 82%, transparent);
+  }
+  22%, 74% {
+    transform: translateY(-50%) translateX(-0.7rem) scale(1.12);
+    color: var(--np-paper);
+    background: color-mix(in srgb, var(--np-ink) 55%, var(--np-paper));
+  }
+}
+
+@keyframes np-teach-down {
+  0%, 12%, 84%, 100% {
+    transform: translateX(-50%) scale(1);
+    color: var(--np-ink-faint);
+    background: color-mix(in srgb, var(--np-paper) 82%, transparent);
+  }
+  22%, 74% {
+    transform: translateX(-50%) translateY(0.7rem) scale(1.12);
+    color: var(--np-paper);
+    background: var(--np-blue);
+  }
+}
+
+/* Right, then left, then down - one at a time, so the reader is told three
+   things in sequence rather than shown a tile flashing in three colours. The
+   Each runs 1.4s and stays lit for the middle ~770ms of it. That hold is the
+   point: at the 290ms the first draft gave it, a cue was lit for less time
+   than it takes to look at, and the lesson read as a flicker rather than as
+   three answers. The last cue starts at 3.2s and ends at 4.6s, inside the
+   5.2s TUTOR_MS in DeskTopicRow.tsx - change either and the other has to
+   follow, or the lesson is cut off mid-cue. */
+.topicCard[data-swipe-tutor] .swipeCue {
+  animation-duration: 1.4s;
+  animation-timing-function: var(--np-ease);
+  animation-fill-mode: both;
+}
+
+.topicCard[data-swipe-tutor] .swipeCue[data-cue='for'] {
+  animation-name: np-teach-right;
+  animation-delay: 0.4s;
+}
+
+.topicCard[data-swipe-tutor] .swipeCue[data-cue='against'] {
+  animation-name: np-teach-left;
+  animation-delay: 1.8s;
+}
+
+.topicCard[data-swipe-tutor] .swipeCue[data-cue='aside'] {
+  animation-name: np-teach-down;
+  animation-delay: 3.2s;
+}
+
+/* The sides swap with the writing direction - voteSwipe.ts sends בעד toward
+   the reader's leading edge - so the lesson has to swap with them. */
+:global([dir='ltr']) .topicCard[data-swipe-tutor] .swipeCue[data-cue='for'] {
+  animation-name: np-teach-left;
+}
+
+:global([dir='ltr']) .topicCard[data-swipe-tutor] .swipeCue[data-cue='against'] {
+  animation-name: np-teach-right;
+}
+
+/* A brief hides the hint line because it has no room over its own headline,
+   but during the lesson it is the only sentence that says what the pills are
+   for - so it prints, and the tile carries it for those few seconds. */
+.topicCard[data-swipe-tutor] .swipeHint {
+  display: block;
+  animation: np-teach-hint 5.2s var(--np-ease) both;
+}
+
+@keyframes np-teach-hint {
+  0% { opacity: 0; }
+  8%, 88% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Reduced motion is not no lesson - it is the same lesson without the travel.
+   All three cues light at once and hold, which still says "three directions,
+   these three answers" to a reader who cannot be shown the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .topicCard[data-swipe-tutor] .swipeCue {
+    animation: none;
+    color: var(--np-paper);
+  }
+
+  .topicCard[data-swipe-tutor] .swipeCue[data-cue='for'] {
+    background: var(--np-green);
+  }
+
+  .topicCard[data-swipe-tutor] .swipeCue[data-cue='against'] {
+    background: color-mix(in srgb, var(--np-ink) 55%, var(--np-paper));
+  }
+
+  .topicCard[data-swipe-tutor] .swipeCue[data-cue='aside'] {
+    background: var(--np-blue);
+  }
+
+  .topicCard[data-swipe-tutor] .swipeHint {
+    animation: none;
+  }
+}

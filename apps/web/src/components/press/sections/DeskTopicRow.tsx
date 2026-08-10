@@ -335,6 +335,16 @@ function Sentiment({ source, locale = 'he' }: { source: DeskSource; locale?: Loc
  * options must still print something honest, so the two heaviest options
  * become the two sides in order.
  */
+/**
+ * How long the swipe lesson runs.
+ *
+ * Long enough for all three cues to light in turn and be read - the CSS
+ * sequence in ConsensusDesk.module.css runs right, left, then down at roughly
+ * 1.2s apiece - and short enough that a reader who ignores it is not left with
+ * a tile flashing at them while they read the headline underneath.
+ */
+const TUTOR_MS = 5200;
+
 const FOR_TEXT = /^(בעד|for)$/i;
 const AGAINST_TEXT = /^(נגד|against)$/i;
 const ABSTAIN_TEXT = /^(נמנע|abstain)$/i;
@@ -734,6 +744,22 @@ interface DeskTopicRowProps {
    * is the choice, so asking for it again would make the gesture decorative.
    */
   onOpen?: (topic: DeskTopic, optionId?: string) => void;
+  /**
+   * Play the swipe lesson on this tile: the three edge cues, lit in turn.
+   *
+   * The gesture is otherwise undiscoverable - the cues only appear once a tile
+   * is already in hand, which is no use to a reader who does not know there is
+   * anything to take hold of. Exactly one tile is ever asked, once per reader;
+   * DeskStream picks which.
+   */
+  tutor?: boolean;
+  /**
+   * Called the first time this tile is substantially on screen, so the stream
+   * can hand the lesson to a tile the reader can actually see. Passed only
+   * while the lesson is unclaimed - its absence is what stops the tile
+   * watching itself for no reason.
+   */
+  onTutorVisible?: (index: number) => void;
   locale: Locale;
 }
 
@@ -746,6 +772,8 @@ export function DeskTopicRow({
   ranking = null,
   variant = 'brief',
   onOpen,
+  tutor = false,
+  onTutorVisible,
   locale,
 }: DeskTopicRowProps) {
   const t = COPY[locale];
@@ -813,6 +841,42 @@ export function DeskTopicRow({
     disabled: aside,
   });
 
+  /* ---- The swipe lesson ------------------------------------------------
+     Offered to the stream the first time this tile is properly on screen.
+     0.6 rather than any sliver: the lesson lights three cues pinned to three
+     edges, and a tile with one edge showing would teach a gesture pointing
+     off the side of the desk. The observer disconnects the moment it offers,
+     claimed or not - a tile scrolling in and out must not keep bidding. */
+  useEffect(() => {
+    const el = swipe.ref.current;
+    if (!onTutorVisible || !el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting || entry.intersectionRatio < 0.6) return;
+        observer.disconnect();
+        onTutorVisible(index);
+      },
+      { threshold: [0.6] }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [onTutorVisible, index, swipe.ref]);
+
+  /* The lesson is over when it has been read once, or the moment the reader
+     touches the tile - somebody already pushing it does not need telling. */
+  const [teaching, setTeaching] = useState(false);
+  useEffect(() => {
+    if (!tutor) return;
+    setTeaching(true);
+    const done = setTimeout(() => setTeaching(false), TUTOR_MS);
+    return () => clearTimeout(done);
+  }, [tutor]);
+
+  useEffect(() => {
+    if (swipe.phase !== 'idle') setTeaching(false);
+  }, [swipe.phase]);
+
   return (
     <li
       ref={swipe.ref}
@@ -826,6 +890,7 @@ export function DeskTopicRow({
               : styles.topicCardBrief
       }`}
       data-swipe={swipe.phase === 'idle' ? undefined : swipe.phase}
+      data-swipe-tutor={teaching || undefined}
       data-swipe-intent={swipe.intent ?? undefined}
       data-swipe-ready={(swipe.ready && swipe.intent) || undefined}
       data-aside={aside || undefined}
