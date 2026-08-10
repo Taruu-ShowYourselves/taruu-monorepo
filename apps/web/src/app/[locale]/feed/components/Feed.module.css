@@ -46,7 +46,6 @@
   text-decoration: none;
 }
 
-.barEdition,
 .barCount {
   font-family: var(--np-font-meta);
   font-size: var(--text-xs);
@@ -54,12 +53,6 @@
   letter-spacing: 0.08em;
   color: var(--np-ink-faint);
   font-variant-numeric: tabular-nums;
-}
-
-.barEdition {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .progress {
