@@ -89,9 +89,20 @@ export interface DeskRanking {
   rankedAt: string | null;
 }
 
+/**
+ * Days left on a topic, or -1 for one whose date has passed.
+ *
+ * The clamp used to be `Math.max(0, …)`, which turned every expired topic into
+ * a zero and printed "מסתיים היום" over a vote that had closed days ago. That
+ * is the desk telling a reader they still have until tonight to vote on
+ * something they can no longer vote on. A closed topic says it is closed.
+ */
 function daysRemaining(endDate: string): number {
-  const ms = new Date(endDate).getTime() - Date.now();
-  return Math.max(0, Math.ceil(ms / 86_400_000));
+  const at = new Date(endDate).getTime();
+  if (!Number.isFinite(at)) return -1;
+  const ms = at - Date.now();
+  if (ms <= 0) return -1;
+  return Math.ceil(ms / 86_400_000);
 }
 
 const he = (n: number) => n.toLocaleString('he-IL');
@@ -202,7 +213,8 @@ const COPY: Record<Locale, RowCopy> = {
       `עמדת הריבון: ${forPct}% בעד, ${againstPct}% נגד`,
     sovereignEmptyTitle: 'טרם נספרו קולות בנושא הזה',
     participants: (count) => `${count} משתתפים`,
-    daysLeft: (days) => (days === 0 ? 'מסתיים היום' : `נותרו ${days} ימים`),
+    daysLeft: (days) =>
+      days < 0 ? 'ההצבעה נסגרה' : days === 1 ? 'מסתיים היום' : `נותרו ${days} ימים`,
     leadCta: 'הצביעו · VOTE',
     ctaArrow: '←',
     swipeFor: 'בעד',
@@ -258,7 +270,8 @@ const COPY: Record<Locale, RowCopy> = {
       `The sovereign's standing: ${forPct}% for, ${againstPct}% against`,
     sovereignEmptyTitle: 'No voices counted on this topic yet',
     participants: (count) => `${count} participants`,
-    daysLeft: (days) => (days === 0 ? 'Ends today' : `${days} days left`),
+    daysLeft: (days) =>
+      days < 0 ? 'Voting closed' : days === 1 ? 'Ends today' : `${days} days left`,
     leadCta: 'Cast your ballot · VOTE',
     ctaArrow: '→',
     swipeFor: 'For',
