@@ -1,0 +1,964 @@
+/* ============================================================
+ * MUNICIPALITY PROFILE - the city's own edition
+ *
+ * The homepage desk is one river of tiles from twenty cities; this page is
+ * what happens when a reader stops at one of them. Same paper, same furniture
+ * - hairline rules, ink blocks, mono labels, red only as an accent - but set
+ * as a front page for a single municipality: masthead line, oversized name,
+ * an index band of figures, the civic index, then the open ballots.
+ *
+ * The rule that governs everything below: a figure the platform has not
+ * measured prints an em-dash and says so in words. A bare 0 reads as a
+ * measured floor ("nobody lives here"), which is a lie the paper cannot make.
+ * ============================================================ */
+
+.page {
+  padding-inline: var(--np-gutter);
+  padding-block: clamp(var(--space-6), 3vw, var(--space-12))
+    clamp(var(--space-12), 6vw, var(--space-24));
+}
+
+.inner {
+  max-inline-size: var(--np-container);
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(var(--space-8), 4vw, var(--space-16));
+}
+
+/* ============================================================
+ * SHARED FURNITURE
+ * ============================================================ */
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--np-red);
+}
+
+.kickerTick {
+  inline-size: 0.7em;
+  block-size: 0.7em;
+  background: var(--np-red);
+}
+
+.sectionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-6);
+  padding-block-end: var(--space-3);
+  border-block-end: var(--np-rule-heavy) solid var(--np-ink);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-family: var(--np-font-display);
+  font-size: clamp(var(--text-2xl), 2.6vw, var(--text-4xl));
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+}
+
+.sectionNote {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--np-ink-faint);
+  max-inline-size: 34rem;
+}
+
+/* ============================================================
+ * BREADCRUMB - where in the paper this page sits
+ * ============================================================ */
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--np-ink-faint);
+}
+
+.crumb {
+  color: var(--np-ink-soft);
+  text-decoration: none;
+  border-block-end: var(--np-rule-hair) solid transparent;
+}
+
+.crumb:hover {
+  color: var(--np-red);
+  border-block-end-color: var(--np-red);
+}
+
+.crumbSep {
+  opacity: 0.5;
+}
+
+/* ============================================================
+ * HERO - the name, the standfirst, and the score plate
+ * ============================================================ */
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.heroGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(17rem, 0.85fr);
+  align-items: end;
+  gap: clamp(var(--space-6), 3vw, var(--space-12));
+}
+
+.heroMain {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-inline-size: 0;
+}
+
+/* The city's name printed oversized behind its own headline, the way the
+   dock prints it behind its readout - the two surfaces are the same
+   instrument at different sizes. */
+.nameGhost {
+  position: absolute;
+  inset-block-start: -0.12em;
+  inset-inline-start: -0.04em;
+  z-index: -1;
+  font-family: var(--np-font-display);
+  font-size: clamp(6rem, 22vw, 16rem);
+  font-weight: 900;
+  line-height: 0.78;
+  letter-spacing: -0.06em;
+  color: var(--np-ink);
+  opacity: 0.05;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+.name {
+  margin: 0;
+  font-family: var(--np-font-display);
+  font-size: clamp(var(--text-5xl), 9vw, var(--text-8xl));
+  font-weight: 900;
+  line-height: 0.86;
+  letter-spacing: -0.05em;
+  overflow-wrap: break-word;
+}
+
+.standfirst {
+  margin: 0;
+  font-family: var(--np-font-body);
+  font-size: clamp(var(--text-base), 0.4vw + 0.95rem, var(--text-xl));
+  line-height: 1.45;
+  color: var(--np-ink-soft);
+  max-inline-size: 40rem;
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-block-start: var(--space-1);
+}
+
+.textLink {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--np-ink);
+  text-decoration: none;
+  border-block-end: var(--np-rule) solid var(--np-red);
+  padding-block-end: 0.15em;
+}
+
+.textLink:hover {
+  color: var(--np-red);
+}
+
+/* ---- The plate: overall civic score, set as an ink block ---- */
+.plate {
+  display: grid;
+  gap: var(--space-2);
+  padding: clamp(var(--space-4), 1.8vw, var(--space-6));
+  background: var(--np-ink);
+  color: var(--np-paper);
+  border-block-start: var(--np-rule-heavy) solid var(--np-red);
+}
+
+.plateLabel {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--np-paper) 62%, var(--np-ink));
+}
+
+.plateValue {
+  font-family: var(--np-font-display);
+  font-size: clamp(var(--text-5xl), 7vw, var(--text-7xl));
+  font-weight: 900;
+  line-height: 0.82;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+}
+
+.plate[data-band='up'] .plateValue { color: var(--np-red); }
+.plate[data-band='down'] .plateValue { color: var(--np-paper); }
+.plate[data-band='flat'] .plateValue { color: var(--np-paper); }
+.plate[data-band='none'] .plateValue {
+  color: color-mix(in srgb, var(--np-paper) 45%, var(--np-ink));
+}
+
+.plateRank {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--np-paper) 72%, var(--np-ink));
+}
+
+.plateScale {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: color-mix(in srgb, var(--np-paper) 48%, var(--np-ink));
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+ * INDEX BAND - the counts, ruled like a stock index strip
+ * ============================================================ */
+.rail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  border-block: var(--np-rule-heavy) solid var(--np-ink);
+}
+
+.railCell {
+  display: grid;
+  align-content: start;
+  gap: var(--space-1);
+  padding: clamp(var(--space-3), 1.4vw, var(--space-5))
+    clamp(var(--space-3), 1.4vw, var(--space-5));
+  border-inline-start: var(--np-rule-hair) solid var(--np-paper-edge);
+  transition: background-color var(--np-dur-snap) var(--np-ease);
+}
+
+.railCell:first-child {
+  border-inline-start: 0;
+  padding-inline-start: 0;
+}
+
+.railCell:hover {
+  background: var(--np-paper-box);
+}
+
+.railLabel {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--np-ink-faint);
+}
+
+.railValue {
+  font-family: var(--np-font-display);
+  font-size: clamp(var(--text-3xl), 3.4vw, var(--text-5xl));
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.railValue[data-accent='red'] { color: var(--np-red); }
+.railValue[data-accent='faint'] { color: var(--np-ink-faint); }
+
+.railNote {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--np-ink-faint);
+}
+
+/* ============================================================
+ * CIVIC INDEX - four signed scores on one -100..+100 scale
+ * ============================================================ */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(var(--space-4), 2vw, var(--space-8));
+}
+
+.scoreGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 0;
+  border-block-end: var(--np-rule) solid var(--np-ink);
+}
+
+.score {
+  display: grid;
+  gap: var(--space-2);
+  padding: clamp(var(--space-4), 1.8vw, var(--space-6));
+  border-inline-start: var(--np-rule-hair) solid var(--np-paper-edge);
+  border-block-start: var(--np-rule) solid var(--np-ink);
+}
+
+.score:first-child {
+  border-inline-start: 0;
+}
+
+.scoreHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.scoreLabel {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--np-ink-soft);
+}
+
+.scoreValue {
+  font-family: var(--np-font-display);
+  font-size: clamp(var(--text-3xl), 3vw, var(--text-4xl));
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.score[data-band='up'] .scoreValue { color: var(--np-red); }
+.score[data-band='down'] .scoreValue { color: var(--np-ink); }
+.score[data-band='flat'] .scoreValue { color: var(--np-ink-soft); }
+.score[data-band='none'] .scoreValue { color: var(--np-ink-faint); }
+
+/* ---- The track: a signed scale, so zero is drawn, not implied ---- */
+.track {
+  position: relative;
+  block-size: 0.9rem;
+  border: var(--np-rule) solid var(--np-ink);
+  background: var(--np-paper-2);
+  overflow: hidden;
+}
+
+/* The fill is anchored at zero and runs to the score, not from the end of
+   the scale: on a signed track a bar that starts at −100 makes every score
+   above zero look like a near-full bar. Deviation from nothing is the
+   quantity a reader is actually being shown. */
+.trackFill {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: var(--from, 50%);
+  inline-size: var(--span, 0%);
+  background: var(--np-red);
+}
+
+.score[data-band='down'] .trackFill { background: var(--np-ink); }
+.score[data-band='flat'] .trackFill { background: var(--np-ink-soft); }
+.score[data-band='none'] .trackFill { background: transparent; }
+
+.trackZero {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 50%;
+  inline-size: var(--np-rule);
+  translate: -50% 0;
+  background: var(--np-ink);
+  opacity: 0.45;
+}
+
+/* Where every other measured municipality sits, so a score reads as a
+   position in a field rather than a number floating on its own. */
+.trackMedian {
+  position: absolute;
+  inset-block: -0.2rem;
+  inset-inline-start: var(--at, 50%);
+  inline-size: var(--np-rule);
+  translate: -50% 0;
+  background: var(--np-ink);
+  outline: var(--np-rule-hair) solid var(--np-paper);
+}
+
+.scaleRow {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--np-ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.scoreNote {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--np-ink-faint);
+}
+
+.scoreMethod {
+  font-family: var(--np-font-body);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  color: var(--np-ink-soft);
+}
+
+/* ============================================================
+ * TEMPO BAND - the three operating figures with bars
+ * ============================================================ */
+.tempo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  border-block-start: var(--np-rule-heavy) solid var(--np-ink);
+}
+
+.tempoCell {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+  padding: clamp(var(--space-4), 1.8vw, var(--space-6));
+  border-inline-start: var(--np-rule-hair) solid var(--np-paper-edge);
+}
+
+.tempoCell:first-child {
+  border-inline-start: 0;
+  padding-inline-start: 0;
+}
+
+.tempoValue {
+  font-family: var(--np-font-display);
+  font-size: clamp(var(--text-4xl), 4vw, var(--text-6xl));
+  font-weight: 900;
+  line-height: 0.85;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.tempoValue[data-empty='true'] {
+  color: var(--np-ink-faint);
+}
+
+.tempoTrack {
+  position: relative;
+  block-size: 0.6rem;
+  border: var(--np-rule) solid var(--np-ink);
+  background: var(--np-paper-2);
+  overflow: hidden;
+}
+
+.tempoFill {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: var(--fill, 0%);
+  background: var(--np-red);
+}
+
+/* An unmeasured figure gets a hatched track rather than an empty box - the
+   difference between "zero" and "not yet" has to be visible at a glance. */
+.tempoTrack[data-empty='true'] {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--np-paper-2) 0 4px,
+    color-mix(in srgb, var(--np-ink) 26%, transparent) 4px 6px
+  );
+  border-color: var(--np-ink-faint);
+}
+
+/* ============================================================
+ * BALLOT TILES
+ * ============================================================ */
+.tabsBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.tileGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
+  gap: 0;
+  border-block-end: var(--np-rule) solid var(--np-ink);
+}
+
+.tile {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: clamp(var(--space-4), 1.6vw, var(--space-6));
+  border-block-start: var(--np-rule) solid var(--np-ink);
+  border-inline-start: var(--np-rule-hair) solid var(--np-paper-edge);
+  overflow: hidden;
+  transition: background-color var(--np-dur-snap) var(--np-ease);
+}
+
+.tile:hover {
+  background: var(--np-paper-box);
+}
+
+/* The first tile of a stretch leads it: heavy red rule, like the desk's own
+   lead tile, so the eye has an entry point instead of a uniform card wall. */
+.tile:first-child {
+  border-block-start: var(--np-rule-heavy) solid var(--np-red);
+}
+
+/* AI-generated duotone plate, printed as a ghost under the tile's type -
+   the same art job the desk tiles use. */
+.tileArt {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  opacity: 0.12;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  user-select: none;
+}
+
+.tileSlug {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.tileNo {
+  color: var(--np-red);
+  font-size: var(--text-lg);
+  font-variant-numeric: tabular-nums;
+}
+
+.tileHeat {
+  flex: 1 1 auto;
+  min-inline-size: var(--space-6);
+  block-size: 3px;
+  background: var(--np-paper-edge);
+}
+
+.tileHeatFill {
+  display: block;
+  block-size: 100%;
+  inline-size: var(--fill, 0%);
+  background: var(--np-red);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0.15em 0.6em;
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.chipLive {
+  background: var(--np-red);
+  color: var(--np-paper);
+}
+
+.chipClosed {
+  background: var(--np-ink);
+  color: var(--np-paper);
+}
+
+.chipOpen {
+  border: var(--np-rule-hair) dashed var(--np-ink-soft);
+  color: var(--np-ink-soft);
+}
+
+.chipDot {
+  inline-size: 0.5em;
+  block-size: 0.5em;
+  border-radius: 50%;
+  background: currentcolor;
+  animation: pulse 1.8s var(--np-ease) infinite;
+}
+
+@keyframes pulse {
+  50% { opacity: 0.25; }
+}
+
+.tileTitle {
+  margin: 0;
+  font-family: var(--np-font-display);
+  font-size: clamp(var(--text-xl), 1.8vw, var(--text-2xl));
+  font-weight: 900;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.tileLink {
+  color: inherit;
+  text-decoration: none;
+}
+
+.tileLink:hover {
+  color: var(--np-red);
+}
+
+.tileDesc {
+  margin: 0;
+  font-family: var(--np-font-body);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  color: var(--np-ink-soft);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+.tally {
+  display: grid;
+  gap: var(--space-2);
+  margin-block-start: auto;
+}
+
+.tallyRow {
+  display: grid;
+  gap: 0.3em;
+}
+
+.tallyHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 800;
+}
+
+.tallyCount {
+  color: var(--np-ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.tallyTrack {
+  block-size: 0.55rem;
+  border: var(--np-rule-hair) solid var(--np-ink);
+  background: var(--np-paper-2);
+  overflow: hidden;
+}
+
+.tallyFill {
+  display: block;
+  block-size: 100%;
+  inline-size: var(--fill, 0%);
+  background: var(--np-ink);
+}
+
+.tallyRow[data-lead='true'] .tallyFill {
+  background: var(--np-red);
+}
+
+/* An open topic has no tally to print, so its options stand as dashed
+   nomination chips - a ballot waiting to be marked, not an empty chart. */
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  margin-block-start: auto;
+}
+
+.optionChip {
+  padding: 0.25em 0.7em;
+  border: var(--np-rule-hair) dashed var(--np-ink-soft);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--np-ink-soft);
+}
+
+.tileFoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding-block-start: var(--space-3);
+  border-block-start: var(--np-rule-hair) solid var(--np-paper-edge);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--np-ink-faint);
+}
+
+.tileMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+ * EMPTY EDITION - what a tab prints when it has nothing
+ * ============================================================ */
+.empty {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  padding: clamp(var(--space-6), 3vw, var(--space-12));
+  border: var(--np-rule) dashed var(--np-ink-faint);
+  background: var(--np-paper-2);
+}
+
+/* A blank column in a newspaper is still set: it gets a standing head that
+   says it is deliberately empty. An oversized grey glyph would only read as
+   a rendering fault. */
+.emptyKicker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--np-red);
+}
+
+.emptyTitle {
+  margin: 0;
+  font-family: var(--np-font-display);
+  font-size: clamp(var(--text-lg), 2vw, var(--text-2xl));
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.emptyBody {
+  margin: 0;
+  font-family: var(--np-font-body);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--np-ink-soft);
+  max-inline-size: 38rem;
+}
+
+/* ============================================================
+ * OTHER EDITIONS - the strip out of this city
+ * ============================================================ */
+.strip {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  border-block: var(--np-rule) solid var(--np-ink);
+  /* The strip runs past the page edge, and nothing else on this surface
+     scrolls sideways - so the last card is faded out rather than cut, which
+     is the only cue that says "there is more this way". */
+  mask-image: linear-gradient(
+    to var(--np-strip-fade-to, left),
+    #000 calc(100% - 4rem),
+    transparent 100%
+  );
+}
+
+[dir='rtl'] .strip {
+  --np-strip-fade-to: left;
+}
+
+[dir='ltr'] .strip {
+  --np-strip-fade-to: right;
+}
+
+.strip::-webkit-scrollbar {
+  display: none;
+}
+
+.stripItem {
+  flex: 0 0 auto;
+  inline-size: 13rem;
+  display: grid;
+  align-content: start;
+  gap: var(--space-1);
+  scroll-snap-align: start;
+  padding: var(--space-4);
+  border-inline-start: var(--np-rule-hair) solid var(--np-paper-edge);
+  color: var(--np-ink);
+  text-decoration: none;
+  transition:
+    background-color var(--np-dur-snap) var(--np-ease),
+    color var(--np-dur-snap) var(--np-ease);
+}
+
+.stripItem:first-child {
+  border-inline-start: 0;
+}
+
+.stripItem:hover {
+  background: var(--np-ink);
+  color: var(--np-paper);
+}
+
+.stripItem[aria-current] {
+  background: var(--np-paper-box);
+  border-block-start: var(--np-rule-heavy) solid var(--np-red);
+}
+
+/* The kind, set above the name as an eyebrow: the strip mixes cities with
+   councils and settlements, so the name alone no longer says what a card is. */
+.stripKind {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--np-ink-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stripItem:hover .stripKind {
+  color: color-mix(in srgb, var(--np-paper) 55%, var(--np-ink));
+}
+
+.stripName {
+  font-family: var(--np-font-display);
+  font-size: var(--text-lg);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stripScore {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xl);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.stripScore[data-band='up'] { color: var(--np-red); }
+.stripScore[data-band='down'],
+.stripScore[data-band='flat'] { color: var(--np-ink-soft); }
+.stripScore[data-band='none'] { color: var(--np-ink-faint); }
+
+.stripItem:hover .stripScore[data-band='down'],
+.stripItem:hover .stripScore[data-band='flat'],
+.stripItem:hover .stripScore[data-band='none'],
+.stripItem:hover .stripTopics {
+  color: color-mix(in srgb, var(--np-paper) 70%, var(--np-ink));
+}
+
+.stripTopics {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--np-ink-soft);
+  white-space: nowrap;
+}
+
+/* ============================================================
+ * CLOSING BAND - the call, printed as an ink block
+ * ============================================================ */
+.closing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4) var(--space-8);
+  padding: clamp(var(--space-6), 3vw, var(--space-12));
+  background: var(--np-ink);
+  color: var(--np-paper);
+  border-block-start: var(--np-rule-masthead) solid var(--np-red);
+}
+
+.closingTitle {
+  margin: 0;
+  font-family: var(--np-font-display);
+  font-size: clamp(var(--text-2xl), 3.4vw, var(--text-5xl));
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  max-inline-size: 30rem;
+}
+
+.closingBody {
+  margin: var(--space-2) 0 0;
+  font-family: var(--np-font-body);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--np-paper) 72%, var(--np-ink));
+  max-inline-size: 32rem;
+}
+
+/* ============================================================
+ * NARROW
+ * ============================================================ */
+@media (max-width: 900px) {
+  .heroGrid {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .railCell:first-child,
+  .tempoCell:first-child {
+    padding-inline-start: clamp(var(--space-3), 1.4vw, var(--space-5));
+  }
+
+  .stripItem {
+    inline-size: 11rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chipDot {
+    animation: none;
+  }
+
+  .tile,
+  .railCell,
+  .stripItem {
+    transition: none;
+  }
+}
