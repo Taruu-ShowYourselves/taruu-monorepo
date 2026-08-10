@@ -1986,6 +1986,55 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      municipality_civic_stats: {
+        Args: Record<string, never>;
+        Returns: {
+          municipality_code: string;
+          /** Sourced population; NULL where no authoritative figure is loaded. */
+          residents: number | null;
+          platform_users: number;
+          active_participants: number;
+          open_topics: number;
+          /** All four scores run -100..+100; NULL means not measured. */
+          engagement_score: number | null;
+          cooperation_score: number | null;
+          satisfaction_score: number | null;
+          overall_score: number | null;
+        }[];
+      };
+      council_office_holders_public: {
+        Args: {
+          council_identifier: string;
+        };
+        Returns: {
+          holder_id: string;
+          council_code: string;
+          role: string;
+          full_name: string;
+          term_start: string | null;
+          term_end: string | null;
+          /** Never null - the table refuses an unsourced office holder. */
+          source_name: string;
+          source_url: string;
+          as_of: string;
+          review_count: number;
+          rating_average: number | null;
+        }[];
+      };
+      council_network_public: {
+        Args: {
+          council_identifier: string;
+        };
+        Returns: {
+          relation: string;
+          council_code: string;
+          name_he: string;
+          slug_he: string;
+          kind: string;
+          source_name: string | null;
+          source_url: string | null;
+        }[];
+      };
       set_claim: {
         Args: {
           claim: string;
