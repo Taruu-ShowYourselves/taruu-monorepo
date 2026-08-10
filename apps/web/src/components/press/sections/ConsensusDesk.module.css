@@ -184,16 +184,19 @@ a.topicMuni:hover { background: var(--np-red); }
   background: var(--np-ink);
 }
 
-/* The tall 1×2 column: a second story at brief typography, full standing. */
+/* The full-height 1×3 column: a second story at brief typography, full
+   standing. */
 .topicCardFeature {
-  grid-row: span 2;
+  grid-row: span 3;
   border-block-start-width: var(--np-rule-heavy);
 }
 
-/* `wide` claims no extra ground on the two-row desk - the stretch tiles as
-   5 columns only if it sits as a 1×1 here. It earns its second column on the
-   three-row phone bento; see the PHONE DESK block at the foot of this file. */
+/* A brief lying down. The second column is the whole point of the variant -
+   it is the shape that keeps a stretch from being a lead and a queue of
+   squares - and it applies at every measure now that the desk is three rows
+   wherever it prints. */
 .topicCardWide {
+  grid-column: span 2;
   border-block-start-width: var(--np-rule-heavy);
 }
 
@@ -1446,14 +1449,7 @@ a.topicMuni:hover { background: var(--np-red); }
  * these have to out-order the plain rules above to land.
  * ============================================================ */
 @media (max-width: 800px) {
-  /* ---- Shapes. The lead's 2x2 is already the file default. ---- */
-  .topicCardWide {
-    grid-column: span 2;
-  }
-
-  .topicCardFeature {
-    grid-row: span 3;
-  }
+  /* ---- Shapes are the file's defaults now; only the copy budget changes. --- */
 
   /* The track's grid column sets the width. */
   .topicCard {
@@ -1657,5 +1653,151 @@ a.topicMuni:hover { background: var(--np-red); }
 
   .topicCardWide .sovereignBar {
     block-size: 0.5rem;
+  }
+}
+
+
+/* ============================================================
+ * WIDE DESK - the copy budget of a three-row bento above 800px.
+ *
+ * The desk used to be two rows here, which gave a 1x1 brief half a screen -
+ * around 390px - and the desktop type above was written for that. At three
+ * rows the same tile is ~227px on a laptop and ~252px on a 1080p monitor,
+ * which is the PHONE's row height, so it needs the phone's budget rather than
+ * the desktop one: measured, every brief overflowed its cell by 57-87px and
+ * clipped its own count mid-glyph. The lead and the feature are unaffected -
+ * a 2x2 is still ~475px and the full-height column ~720px, and both measure
+ * zero overflow - so only the small shapes give anything up.
+ *
+ * Last block in the file, and it has to be: a media query carries no
+ * specificity, so an override written up beside the other desktop rules loses
+ * to the plain `.topicDesc` further down. That is the same trap the PHONE
+ * DESK block is parked here to avoid, and it caught this one first time round
+ * - the lead went on clipping with the five-line rule quietly winning.
+ * ============================================================ */
+@media (min-width: 801px) {
+  /* Three lines, not five: the 2x2 lost ~300px when the third row arrived. */
+  .topicCardLead .topicDescLead {
+    -webkit-line-clamp: 3;
+  }
+
+  /* Headline and count, which is the whole job of a tile this size. The
+     standfirst is what goes - a clipped one told the reader less than no
+     standfirst at all, because it ended mid-word under the meters. */
+  .topicCardBrief .topicDesc,
+  .topicCardWide .topicDesc {
+    display: none;
+  }
+
+  .topicCardBrief,
+  .topicCardWide {
+    gap: var(--space-2);
+    padding: var(--space-3);
+  }
+
+  .topicCardBrief .topicBody,
+  .topicCardWide .topicBody {
+    gap: var(--space-2);
+  }
+
+  /* The desktop font-size rule further up this file loses to the plain
+     `.topicTitle` below it - media queries carry no specificity - so the
+     headline was still setting at 2vw, ~30px, and running to three lines in a
+     tile with room for two. Restated here, where it wins. */
+  .topicCardBrief .topicTitle,
+  .topicCardWide .topicTitle {
+    font-size: var(--text-lg);
+    -webkit-line-clamp: 2;
+  }
+
+  /* The instrument and the meta line are what a 1x1 has left after the
+     headline, and measured they came to 136px of a 227px tile on their own.
+     The source credit is the one thing here a reader can get from the topic's
+     own page, so it is what goes; the count and the scale stay. */
+  .topicCardBrief .sourceLine,
+  .topicCardWide .sourceLine {
+    display: none;
+  }
+
+  .topicCardBrief .sovereign,
+  .topicCardWide .sovereign {
+    gap: var(--space-1);
+    margin-block-end: var(--space-1);
+  }
+}
+
+/* A short desktop - a laptop at 720, or a window sharing the screen with
+   something else - cuts the same three rows to ~168px each. Even the headline
+   and the count together do not fit, so the lead gives up another line and the
+   small tiles close up what is left. Keyed on height, because height is what
+   the row is cut from: the tiles are full width and comfortable at this
+   measure. */
+/* The lead's standfirst is capped by height rather than by line count, and
+   that is deliberate. `-webkit-line-clamp` is inert on these tiles - the
+   headline and the standfirst both compute to `display: flow-root` rather than
+   `-webkit-box`, so every clamp in this file is decorative on the desk and the
+   copy simply ran until the card clipped it mid-line. A max-block-size needs
+   no `-webkit-box` to work. Sized in `em` so it tracks the standfirst's own
+   type rather than a pixel guess: 3em is two lines at its 1.5 line-height. */
+@media (min-width: 801px) and (max-height: 1000px) {
+  .topicCardLead .topicDescLead {
+    max-block-size: 2.8em;
+    overflow: hidden;
+  }
+
+  /* The participants-and-days line goes before the standfirst does. It is the
+     one thing on the lead that is said twice - the instrument beside it
+     already carries the count - so dropping it costs the reader nothing and
+     buys back the ~26px the standfirst needs. */
+  .topicCardLead .topicMeta {
+    display: none;
+  }
+
+  /* The last few pixels come out of the box rather than the copy: four gaps
+     at 12px against four at 8px is the difference between a standfirst and
+     no standfirst, and nobody reads the white space. */
+  .topicCardLead {
+    gap: var(--space-2);
+  }
+}
+
+@media (min-width: 801px) and (max-height: 800px) {
+  /* A 2x2 is ~350px here. The headline, the count and the scale are the
+     story; the standfirst does not survive alongside them. */
+  .topicCardLead .topicDescLead {
+    display: none;
+  }
+
+  .topicCardLead .topicTitle {
+    font-size: var(--text-2xl);
+  }
+
+  .topicCardBrief .topicMeta,
+  .topicCardWide .topicMeta {
+    display: none;
+  }
+
+  .topicCardBrief,
+  .topicCardWide {
+    padding-block: var(--space-1);
+    gap: var(--space-1);
+  }
+
+  /* Last out of the lead, and only here: the discovery strip is the tile's
+     evidence, and a desk that prints a claim without it is worse than one
+     that prints fewer claims. At ~350px there is no room left to be right in. */
+  .topicCardLead .aiCallout {
+    display: none;
+  }
+
+  .topicCardBrief .topicTitle,
+  .topicCardWide .topicTitle {
+    font-size: var(--text-base);
+  }
+
+  .topicCardBrief,
+  .topicCardWide {
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-3);
   }
 }
