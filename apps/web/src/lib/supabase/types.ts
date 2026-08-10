@@ -165,6 +165,45 @@ export interface Database {
         };
         Relationships: [];
       };
+      /**
+       * The desk's "not a matter of consensus" signal. Never a ballot: no
+       * points, no tally, no chain. One row per reader per topic.
+       */
+      topic_set_aside: {
+        Row: {
+          id: string;
+          vote_id: string;
+          user_id: string;
+          reason:
+            | 'not_consensus'
+            | 'already_decided'
+            | 'unclear'
+            | 'not_my_authority';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          vote_id: string;
+          user_id: string;
+          reason:
+            | 'not_consensus'
+            | 'already_decided'
+            | 'unclear'
+            | 'not_my_authority';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          reason?:
+            | 'not_consensus'
+            | 'already_decided'
+            | 'unclear'
+            | 'not_my_authority';
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       push_tokens: {
         Row: {
           id: string;

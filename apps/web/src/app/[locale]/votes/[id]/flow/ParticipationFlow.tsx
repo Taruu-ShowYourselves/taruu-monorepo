@@ -34,6 +34,14 @@ interface ParticipationFlowProps {
   totalVotes: number;
   /** Pre-selected option (e.g. restored from a deep-link). */
   initialOptionId?: string | null;
+  /**
+   * Where the flow opens. `confirm` is for a caller that has already taken
+   * the reader's choice - a tile swiped toward its side - so the ballot does
+   * not ask the same question a second time. Nothing else changes: the
+   * confirm step still runs the whole gate, and `↳ back to choice` is still
+   * there for a reader who pushed the wrong way.
+   */
+  initialStage?: Extract<Stage, 'choice' | 'confirm'>;
   /** Fired when the receipt is dismissed, with the recorded option id, so the page can flip to results. */
   onComplete: (optionId: string) => void;
 }
@@ -207,6 +215,7 @@ export function ParticipationFlow({
   options,
   totalVotes,
   initialOptionId = null,
+  initialStage = 'choice',
   onComplete,
 }: ParticipationFlowProps) {
   const router = useRouter();
@@ -219,7 +228,11 @@ export function ParticipationFlow({
   const locale = params?.locale ?? 'he';
   const t = COPY[locale];
 
-  const [stage, setStage] = useState<Stage>('choice');
+  // Only honoured with a choice to confirm; a caller asking for `confirm`
+  // without one would open the ballot on an empty ticket.
+  const [stage, setStage] = useState<Stage>(
+    initialStage === 'confirm' && initialOptionId ? 'confirm' : 'choice'
+  );
   const [selectedOption, setSelectedOption] = useState<string | null>(initialOptionId);
   const [ballot, setBallot] = useState<RecordedBallot | null>(null);
   const [alreadyRecorded, setAlreadyRecorded] = useState(false);

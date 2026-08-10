@@ -54,6 +54,31 @@
   visibility: hidden;
 }
 
+/* Thesis-only intro (the homepage - see IntroStory).
+ *
+ * The 480svh runway above buys scrub room for three acts handing off to each
+ * other. With one act there is nothing to hand off: the scroll plays the
+ * ledger reveal and gets out of the way, so the runway is cut to match.
+ * Leaving it at 480svh printed four screens of a motionless wordmark before
+ * the desks came up.
+ *
+ * The scene also has to be visible before GSAP loads - it is the only one on
+ * stage, and the full story's first `gsap.set` (which reveals the question
+ * and leaves this hidden) never runs here. */
+/* 200svh is a floor, not a taste: HomepageExperience docks the site layer with
+   `margin-block-start: -100svh`, so the dock's top sits at `height - 100svh`.
+   Below 200svh that lands above the fold, the stage-handoff scrub is already
+   part-played at scroll 0, and the thesis opens with its headline dragged off
+   the top of the screen. The 30svh over the floor is the beat the wordmark
+   holds still before the page starts moving under it. */
+.cinematic.thesisOnly {
+  height: 230svh;
+}
+
+.thesisOnly .thesisScene {
+  visibility: visible;
+}
+
 .questionScene {
   overflow: hidden;
   padding: 0;

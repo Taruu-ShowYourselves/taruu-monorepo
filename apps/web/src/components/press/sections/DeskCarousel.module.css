@@ -17,7 +17,26 @@
   grid-auto-flow: column dense;
   grid-auto-columns: clamp(18rem, 22vw, 22rem);
   gap: clamp(var(--space-3), 1.2vw, var(--space-5));
-  block-size: clamp(42rem, 76svh, 50rem);
+  /* One screen, and a screen is what is left after the pinned chrome: the
+     nav dock floats over the desk rather than above it, and the municipality
+     dock sits at its foot. A plain 76svh printed its bottom row underneath
+     both. Floor and ceiling keep the tiles readable on a laptop and stop the
+     mosaic stretching on a tall monitor.
+     `--np-desk-dock-measured` is the dock's real height, published by
+     MunicipalityDock once it can measure itself; the token behind it is the
+     pre-hydration estimate. `--np-viewport-air` is `.viewport`'s own padding,
+     which sits outside this box and has to come out of the same screen -
+     measured, the river landed 8px under the dock without it. */
+  --np-viewport-air: calc(var(--space-1) * 2);
+  block-size: clamp(
+    32rem,
+    calc(
+      100svh - var(--np-nav-h) -
+        var(--np-desk-dock-measured, var(--np-desk-dock-h)) -
+        var(--np-viewport-air)
+    ),
+    50rem
+  );
   list-style: none;
   margin: 0;
   padding: 0;
@@ -39,57 +58,45 @@
    mosaic disagree with the running order: whichever topic happened to land on
    6n+4 got the tint while the hottest one could sit clipped at the edge. */
 
-.arrows {
-  display: flex;
-  gap: var(--space-2);
-  justify-content: flex-end;
-  margin-block-start: var(--space-4);
-  /* Carousel is full-bleed; pull the controls back into the page grid. */
-  padding-inline: var(--np-gutter);
-}
-
-.arrow {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  inline-size: 2.5rem;
-  block-size: 2.5rem;
-  background: var(--np-paper);
-  border: var(--np-rule) solid var(--np-ink);
-  border-radius: 0;
-  font-family: var(--np-font-mono);
-  font-size: var(--text-lg);
-  color: var(--np-ink);
-  cursor: pointer;
-  transition: background-color var(--np-dur-snap) var(--np-ease), color var(--np-dur-snap) var(--np-ease);
-}
-
-.arrow:hover:not(:disabled) {
-  background: var(--np-ink);
-  color: var(--np-paper);
-}
-
-.arrow:disabled {
-  opacity: 0.3;
-  cursor: default;
-}
-
 @media (max-width: 800px) {
-  .carousel {
-    /* Static mosaic sits in the page grid - no full-bleed river here. */
-    margin-inline: 0;
-  }
-
   .track {
-    /* Vertical bento: two broadsheet columns, rows sized by their own copy.
-       The lead claims the full measure (span set beside the tile variants);
-       everything else sets two-up. Embla is inactive at this width, so the
-       grid scrolls with the document instead of translating sideways. */
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-auto-flow: row dense;
-    grid-auto-rows: auto;
-    block-size: auto;
-    gap: var(--space-3);
+    /* Three rows at phone measure, which is where the mosaic gets to be a
+       mosaic: a stretch tiles as a 2x2 lead with a 2x1 lying under it, a
+       full-height 1x3 column beside them, then three 1x1 briefs stacked down
+       the next - four shapes rather than the two the desktop desk can afford.
+       Columns at 46vw put two across the viewport, so the lead reads as
+       full-bleed. See slotVariant() in deskBento.ts for why it never holes. */
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+    grid-auto-columns: min(46vw, 15rem);
+    /* Exactly one screen with the chrome counted in, not one screen plus the
+       chrome: the nav dock is pinned over the top of the desk and the
+       municipality dock rides its foot, so a flat 100svh here pushed the
+       bottom row of the bento under the dock and clipped it.
+
+       The floor exists because this calc is otherwise unbounded below: a
+       phone held sideways is ~400px of svh, which computes to a 266px track,
+       and the bento would print straight through its own tiles. 36rem makes
+       the desk overflow one screen there instead, which is the right way for
+       it to fail.
+
+       What 36rem is NOT is a promise about row height. Three rows carry two
+       `gap`s between them, so the rows get (576 - 2 * 8) / 3 = 186.7px, not
+       576 / 3 - measured at 740x400 as 186.656 / 186.672 / 186.672. Anyone
+       sizing tile copy off this number has to subtract the gaps first.
+
+       What keeps the copy fitting at that height is not this floor but the
+       height query at the foot of ConsensusDesk.module.css, which drops the
+       lead's standfirst and attribution below 620px of viewport. Raising the
+       floor to chase a row height would only push the desk further past one
+       screen; leave it here and let the tiles give ground. */
+    block-size: max(
+      36rem,
+      calc(
+        100svh - var(--np-nav-h) -
+          var(--np-desk-dock-measured, var(--np-desk-dock-h)) -
+          var(--np-viewport-air)
+      )
+    );
+    gap: var(--space-2);
   }
 }

@@ -225,6 +225,12 @@ function useTopicDetail(voteId: string | null): TopicDetail | null {
 interface TopicDialogProps {
   /** The open entry, or null when the dialog is shut. */
   entry: DeskEntry | null;
+  /**
+   * The side a tile was swiped toward. The reader has already chosen by the
+   * time the sheet opens, so the ballot opens on its confirmation step rather
+   * than asking the same question again.
+   */
+  intentOptionId?: string | null;
   onClose: () => void;
   locale: Locale;
 }
@@ -234,7 +240,12 @@ interface TopicDialogProps {
  * record the tile already holds, then filled out from `GET /api/votes/[id]`
  * as it lands, so the reader never waits on a blank sheet.
  */
-export function TopicDialog({ entry, onClose, locale }: TopicDialogProps) {
+export function TopicDialog({
+  entry,
+  intentOptionId = null,
+  onClose,
+  locale,
+}: TopicDialogProps) {
   const t = COPY[locale];
   const topic = entry?.topic ?? null;
   const detail = useTopicDetail(topic?.id ?? null);
@@ -265,6 +276,7 @@ export function TopicDialog({ entry, onClose, locale }: TopicDialogProps) {
               topic={topic}
               detail={detail}
               castOption={castOption}
+              intentOptionId={intentOptionId}
               onCast={setCastOption}
               locale={locale}
               t={t}
@@ -281,6 +293,7 @@ interface BodyProps {
   topic: DeskTopic;
   detail: TopicDetail | null;
   castOption: string | null;
+  intentOptionId: string | null;
   onCast: (optionId: string) => void;
   locale: Locale;
   t: DialogCopy;
@@ -291,6 +304,7 @@ function TopicDialogBody({
   topic,
   detail,
   castOption,
+  intentOptionId,
   onCast,
   locale,
   t,
@@ -514,6 +528,8 @@ function TopicDialogBody({
               voteTitle={headline}
               options={flowOptions}
               totalVotes={totalVotes}
+              initialOptionId={intentOptionId}
+              initialStage={intentOptionId ? 'confirm' : 'choice'}
               onComplete={onCast}
             />
           ) : (

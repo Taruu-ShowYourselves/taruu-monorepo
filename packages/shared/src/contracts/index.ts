@@ -16,6 +16,7 @@ export * from './phone';
 export * from './municipality';
 export * from './council';
 export * from './authority';
+export * from './topicFeedback';
 export * from './dashboard';
 export * from './spaceAdmin';
 export * from './pilot';

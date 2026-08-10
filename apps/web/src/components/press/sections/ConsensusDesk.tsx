@@ -1,6 +1,7 @@
 import { KNESSET_SCOPE } from '@sync/shared';
 import { getCardArtByVoteIds } from '@/lib/supabase/db';
 import { activeVotesWithOptions } from '@/server/read/active-votes';
+import { municipalityCivicStats } from '@/server/read/municipality-stats';
 import type { Locale } from '@/lib/i18n';
 import type { DeskTopic } from './DeskTopicRow';
 import { toDeskTopic } from './deskData';
@@ -21,7 +22,12 @@ export async function ConsensusDesk({ locale = 'he' }: ConsensusDeskProps) {
   // render, not one per desk. Degrades to the empty desk when the DB is
   // unreachable (build-time prerender in CI has no service-role key - #39);
   // ISR refills at runtime.
-  const votes = await activeVotesWithOptions();
+  // The stats feed the dock's dial and are independent of the ledger read -
+  // both are request-memoised, so issue them together rather than in series.
+  const [votes, stats] = await Promise.all([
+    activeVotesWithOptions(),
+    municipalityCivicStats(),
+  ]);
   // Faded tile plates from the art job; degrades to an empty map on failure.
   const art = await getCardArtByVoteIds(votes.map((v) => v.id));
 
@@ -48,5 +54,5 @@ export async function ConsensusDesk({ locale = 'he' }: ConsensusDeskProps) {
     .map(([municipality, topics]) => ({ municipality, topics }))
     .sort((a, b) => b.topics.length - a.topics.length);
 
-  return <ConsensusDeskClient desks={desks} locale={locale} />;
+  return <ConsensusDeskClient desks={desks} stats={stats} locale={locale} />;
 }

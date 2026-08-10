@@ -107,11 +107,18 @@
   background: var(--np-red);
 }
 
+/* The two-column editorial spread above needs a second column to be a spread.
+   At this width there is one, and the statement is the only thing on the
+   screen, so it sets as a centred plate: the measure narrows, the lines centre
+   on it, and the button stops stretching to the gutter. Left flush-right and
+   full-bleed, the ragged edge and the edge-to-edge black bar read as a form
+   that ran out of room rather than a statement given the page. */
 @media (max-width: 800px) {
   .section {
     block-size: 50svh;
     min-block-size: 23rem;
-    padding-block: clamp(1.75rem, 4vh, 2.5rem);
+    padding-block: clamp(2.5rem, 8vh, 4.5rem);
+    padding-inline: clamp(var(--space-6), 8vw, var(--space-12));
   }
 
   .inner {
@@ -120,20 +127,32 @@
       'headline'
       'action';
     align-items: start;
+    justify-items: center;
+    gap: clamp(var(--space-6), 6vh, var(--space-12));
   }
 
   .headline {
-    max-inline-size: 13ch;
+    /* Narrow enough that the ragged edges stay symmetrical: a 15ch line set
+       centre reads as a column, a 20ch one reads as a paragraph that happens
+       to be centred. */
+    max-inline-size: 15ch;
+    margin-inline: auto;
+    text-align: center;
     font-size: clamp(2.2rem, 10.5vw, 3.6rem);
     line-height: 0.98;
   }
 
   .action {
-    inline-size: 100%;
+    inline-size: auto;
   }
 
+  /* Sized to its own words rather than to the column - space-between has
+     nothing to distribute once the button stops being full width. */
   .cta {
-    min-block-size: 2.9rem;
+    justify-content: center;
+    gap: 0.85rem;
+    min-block-size: 3rem;
+    padding-inline: 1.6rem;
     font-size: clamp(0.9rem, 4vw, 1.05rem);
   }
 }
