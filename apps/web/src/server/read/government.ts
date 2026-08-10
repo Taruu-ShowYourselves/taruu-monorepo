@@ -23,6 +23,35 @@ import { supabaseAdmin } from '@/lib/supabase/server';
  * stats and all 120 members from one render.
  */
 
+/**
+ * Whether a service-role key exists to read with.
+ *
+ * `supabaseAdmin` is a Proxy that builds the real client on first property
+ * access, so a missing key throws at `supabaseAdmin.rpc` itself - before any
+ * query runs, and so outside the `error` channel every read below already
+ * handles. That is why the degrade documented above did not actually happen:
+ * a build-time prerender with no key (#39) failed the whole route instead of
+ * printing an unpublished roster, and took `next build` down with it.
+ *
+ * Only that one throw is absorbed. A network fault or a broken RPC still
+ * propagates - a government page quietly printing an empty house on a real
+ * failure is worse than a route that fails where someone will see it.
+ */
+function hasServiceRole(): boolean {
+  try {
+    void supabaseAdmin.rpc;
+    return true;
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.includes('SUPABASE_SERVICE_ROLE_KEY')
+    ) {
+      return false;
+    }
+    throw error;
+  }
+}
+
 const asScore = (value: number | null | undefined): number | null =>
   value === null || value === undefined ? null : Number(value);
 
@@ -49,6 +78,7 @@ function parsePositions(raw: unknown): GovPosition[] {
 }
 
 export const knessetRoster = cache(async (): Promise<KnessetMember[]> => {
+  if (!hasServiceRole()) return [];
   const { data, error } = await supabaseAdmin.rpc('knesset_roster_public');
   if (error || !data) return [];
 
@@ -89,6 +119,7 @@ export const knessetRoster = cache(async (): Promise<KnessetMember[]> => {
 
 export const governmentStats = cache(
   async (): Promise<GovernmentCivicStats | null> => {
+    if (!hasServiceRole()) return null;
     const { data, error } = await supabaseAdmin.rpc('government_civic_stats');
     const row = Array.isArray(data) ? data[0] : data;
     if (error || !row) return null;
@@ -115,6 +146,7 @@ export const governmentStats = cache(
 
 /** The term the roster is currently on; null before the first roster sync. */
 export const currentKnessetNum = cache(async (): Promise<number | null> => {
+  if (!hasServiceRole()) return null;
   const { data, error } = await supabaseAdmin
     .from('knesset_persons')
     .select('knesset_num')
@@ -143,6 +175,7 @@ const asStance = (value: string | null): GovStance | null =>
  */
 export const memberMatchedVotes = cache(
   async (personId: number): Promise<MatchedVote[]> => {
+    if (!hasServiceRole()) return [];
     const { data, error } = await supabaseAdmin.rpc(
       'knesset_member_votes_public',
       { p_person_id: personId }
@@ -174,6 +207,7 @@ export const memberMatchedVotes = cache(
  */
 export const houseMatchedVotes = cache(
   async (limit = 20): Promise<MatchedVote[]> => {
+    if (!hasServiceRole()) return [];
     const { data, error } = await supabaseAdmin.rpc('knesset_matched_votes_public', {
       p_limit: limit,
     });
@@ -215,6 +249,9 @@ export async function memberReviews(
   personId: number,
   viewerId: string | null
 ): Promise<MemberReviewsRead> {
+  if (!hasServiceRole()) {
+    return { reviewCount: 0, ratingAverage: null, reviews: [] };
+  }
   const { data, error } = await supabaseAdmin.rpc(
     'knesset_member_reviews_public',
     { p_person_id: personId, viewer: viewerId }
