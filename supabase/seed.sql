@@ -2,6 +2,25 @@
 -- Run with: supabase db seed
 
 -- ============================================
+-- MUNICIPALITIES
+-- ============================================
+-- Must come first: users, votes and treasury all carry a municipality_id FK
+-- to municipalities.code (20260728000001), and that migration only backfills
+-- codes it can find in pre-existing vote/treasury rows. On a fresh database
+-- there are none, so the table starts empty and every row below would fail
+-- the constraint. This is why `supabase start` could not seed a clean
+-- checkout.
+--
+-- `code` is the Hebrew authority name, matching production - not an English
+-- slug. The seed used to say 'תל אביב-יפו' and 'ירושלים', which are not codes
+-- any real row has ever carried.
+
+INSERT INTO municipalities (code, name_he, slug_he, kind) VALUES
+  ('תל אביב-יפו', 'תל אביב-יפו', 'תל-אביב-יפו', 'municipality'),
+  ('ירושלים', 'ירושלים', 'ירושלים', 'municipality')
+ON CONFLICT (code) DO NOTHING;
+
+-- ============================================
 -- TEST USER
 -- ============================================
 
@@ -22,7 +41,7 @@ INSERT INTO users (
   'Test',
   'User',
   '+972501234567',
-  'tel-aviv',
+  'תל אביב-יפו',
   'did:sync:test-user-did-hash',
   'google_test_123',
   40,
@@ -67,7 +86,7 @@ INSERT INTO votes (
   '11111111-1111-1111-1111-111111111111',
   'הקמת גן שעשועים חדש ברובע הצפוני',
   'הצעה להקמת גן שעשועים חדש ומודרני ברובע הצפוני של העיר. הגן יכלול מתקני משחק לגילאי 3-12, אזור ישיבה מוצל להורים, מזרקת מים לקיץ, משטחי בטיחות מגומי, ונגישות מלאה לבעלי מוגבלויות. התקציב המשוער: 2.5 מיליון ש"ח מתקציב הפיתוח העירוני.',
-  'tel-aviv',
+  'תל אביב-יפו',
   'active',
   NOW() - INTERVAL '7 days',
   NOW() + INTERVAL '7 days',
@@ -97,7 +116,7 @@ INSERT INTO votes (
   '11111111-1111-1111-1111-111111111111',
   'הרחבת שירות האוטובוסים בשכונת הגבעה הצרפתית',
   'הצעה להרחבת קווי האוטובוס בשכונה כדי לשפר את הנגישות לתושבים הוותיקים ולמשפחות ללא רכב.',
-  'jerusalem',
+  'ירושלים',
   'active',
   NOW() - INTERVAL '3 days',
   NOW() + INTERVAL '11 days',
@@ -127,7 +146,7 @@ INSERT INTO verification_runs (
 ) VALUES (
   '66666666-6666-6666-6666-666666666666',
   '11111111-1111-1111-1111-111111111111',
-  'tel-aviv',
+  'תל אביב-יפו',
   'verified',
   NOW() - INTERVAL '21 days',
   NOW(),

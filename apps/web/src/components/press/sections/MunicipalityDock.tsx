@@ -403,32 +403,22 @@ export function MunicipalityDock({
     [byCode, deskTopicCounts]
   );
 
-  /* A distinction that does not distinguish is not printed.
-     `municipalities.kind` ships with a `'municipality'` default and, until
-     something classifies the 259 authorities against a sourced list, every
-     row carries it. A dial that stamps עירייה under all of them is not
-     reporting a fact, it is reporting a column default - and asserting a
-     false one, since plenty of those places are מועצה מקומית. So the label
-     appears only once the band actually holds more than one kind, which is
-     the moment it starts carrying information. Nothing to switch on later:
-     real classification data turns it on by itself. */
-  const kindIsInformative = useMemo(() => {
-    const kinds = new Set<LocalAuthorityKind>();
-    for (const name of bandStations) {
-      const kind = byCode.get(name)?.kind;
-      if (kind) kinds.add(kind);
-      if (kinds.size > 1) return true;
-    }
-    return false;
-  }, [bandStations, byCode]);
-
-  /* Null, not a guessed 'municipality', for an authority with no stats row.
-     Printing a kind over a place the platform has never classified would be
-     the dial inventing a fact about somebody's home town. */
+  /* Only what is sourced gets printed.
+     `municipalities.kind` ships with a `'municipality'` default, and
+     20260811000003 classified exactly one tier against a named source: the 52
+     regional councils named in the Population Authority's locality register.
+     The rest still carry the default, and a good number of them are מועצה
+     מקומית rather than עירייה - so stamping עירייה under them would be the
+     dial publishing a column default as a fact about somebody's home town.
+     A station with nothing under it is a station the platform cannot classify,
+     which is the honest reading. When another tier gets a source, it joins the
+     list here and nothing else has to change. */
   const kindOf = useCallback(
-    (name: string): LocalAuthorityKind | null =>
-      kindIsInformative ? byCode.get(name)?.kind ?? null : null,
-    [byCode, kindIsInformative]
+    (name: string): LocalAuthorityKind | null => {
+      const kind = byCode.get(name)?.kind;
+      return kind === 'regional_council' ? kind : null;
+    },
+    [byCode]
   );
 
   const select = useCallback(
