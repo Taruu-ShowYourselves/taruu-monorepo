@@ -7,6 +7,7 @@ import {
   CinematicIntro,
   type IntroStory,
 } from '@/components/press/CinematicIntro/CinematicIntro';
+import { useSectionSnap } from './useSectionSnap';
 import styles from './HomepageExperience.module.css';
 
 interface HomepageCopy {
@@ -34,6 +35,10 @@ interface HomepageExperienceProps {
   locale?: Locale;
   /** How much of the cinematic intro to run before the site layer docks. */
   introStory?: IntroStory;
+  /** Server-rendered backdrop per thesis beat after the first. */
+  introBeatStages?: ReactNode[];
+  /** The live desk, for the intro's `tiles` backdrop. */
+  introDeskBackdrop?: ReactNode;
 }
 
 export function HomepageExperience({
@@ -41,10 +46,16 @@ export function HomepageExperience({
   liveDashboard,
   locale = 'he',
   introStory = 'full',
+  introBeatStages,
+  introDeskBackdrop,
 }: HomepageExperienceProps) {
   const t = COPY[locale];
   const rootRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
+
+  // One gesture, one desk: the page comes to rest on a section edge instead of
+  // carrying a flick three sections deep and cutting a headline in half.
+  useSectionSnap(rootRef, { enabled: !shouldReduceMotion });
 
   useEffect(() => {
     const root = rootRef.current;
@@ -127,7 +138,12 @@ export function HomepageExperience({
       ref={rootRef}
       className={`${styles.experience} ${shouldReduceMotion ? styles.reduced : ''}`}
     >
-      <CinematicIntro locale={locale} story={introStory} />
+      <CinematicIntro
+        locale={locale}
+        story={introStory}
+        beatStages={introBeatStages}
+        deskBackdrop={introDeskBackdrop}
+      />
       <div className={styles.siteDock} data-site-dock>
         <div className={styles.siteLayer} data-site-layer>
           {children}

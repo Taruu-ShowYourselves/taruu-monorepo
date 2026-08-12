@@ -44,22 +44,21 @@
   pointer-events: none;
 }
 
+/* A statement and the door it opens, stacked on the centre line: split across
+   the spread the sentence hung off one edge and its call-to-action off the
+   other, with the whole width of the page between them. */
 .inner {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(18rem, 0.5fr);
-  grid-template-areas: 'headline action';
-  /* Keep the call-to-action aligned to the visual centre of the statement,
-     rather than to its baseline at the bottom of this editorial spread. */
-  align-items: center;
-  gap: clamp(1.25rem, 3vw, 3.5rem);
+  justify-items: center;
+  gap: clamp(1.25rem, 3vh, 2.25rem);
   inline-size: 100%;
   max-inline-size: var(--np-container);
   margin-inline: auto;
+  text-align: center;
 }
 
 .headline {
-  grid-area: headline;
-  max-inline-size: 18ch;
+  max-inline-size: 20ch;
   margin: 0;
   font-family: var(--np-font-display);
   font-size: clamp(2.5rem, 4.2vw, 5rem);
@@ -75,9 +74,8 @@
 }
 
 .action {
-  grid-area: action;
   display: grid;
-  align-content: center;
+  justify-items: center;
 }
 
 .cta {
@@ -107,12 +105,9 @@
   background: var(--np-red);
 }
 
-/* The two-column editorial spread above needs a second column to be a spread.
-   At this width there is one, and the statement is the only thing on the
-   screen, so it sets as a centred plate: the measure narrows, the lines centre
-   on it, and the button stops stretching to the gutter. Left flush-right and
-   full-bleed, the ragged edge and the edge-to-edge black bar read as a form
-   that ran out of room rather than a statement given the page. */
+/* Narrower still: the measure tightens so the centred lines read as a column
+   rather than as a paragraph that happens to be centred, and the button stops
+   stretching to the gutter. */
 @media (max-width: 800px) {
   .section {
     block-size: 50svh;
@@ -122,12 +117,6 @@
   }
 
   .inner {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      'headline'
-      'action';
-    align-items: start;
-    justify-items: center;
     gap: clamp(var(--space-6), 6vh, var(--space-12));
   }
 

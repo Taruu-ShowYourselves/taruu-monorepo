@@ -39,7 +39,7 @@ export async function generateStaticParams() {
  * a request for an asset the app does not serve (/sitemap.xml) rendered the
  * homepage with `locale = 'sitemap.xml'`, and every surface that indexes a
  * `Record<Locale, Copy>` deck threw before this layout's `notFound()` could
- * land — a 500 where a 404 belongs. Refusing the param upstream keeps the
+ * land - a 500 where a 404 belongs. Refusing the param upstream keeps the
  * pages out of it entirely.
  */
 export const dynamicParams = false;
@@ -111,7 +111,7 @@ export async function generateMetadata({
           url: `${SITE_URL}/og-image.png`,
           width: 1200,
           height: 630,
-          alt: locale === 'he' ? 'תַּרְאוּ: הקול של האזרחים, במספרים' : 'Taruu: the citizens\' voice, in numbers',
+          alt: locale === 'he' ? 'תַּרְאוּ: המנדט הציבורי, נמדד' : 'Taruu: the public mandate, measured',
         },
       ],
     },

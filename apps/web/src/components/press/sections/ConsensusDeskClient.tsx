@@ -62,6 +62,17 @@ interface ConsensusDeskClientProps {
   /** Civic stats for every municipality - what the dock's dial reads. */
   stats: MunicipalityCivicStats[];
   locale: Locale;
+  /**
+   * This desk is scenery, not the desk.
+   *
+   * The intro's legitimacy beat hangs the real carousel behind its copy, which
+   * puts a second one in the document. The page's landmarks have to stay
+   * singular: `#consensus-desk` is what the Knesset page links back to, and
+   * `[data-nav-reveal]` is the element the masthead waits for before pinning
+   * its nav. A decorative copy that answered to either would take both, and it
+   * sits at the very top of the page.
+   */
+  decorative?: boolean;
 }
 
 /**
@@ -69,7 +80,12 @@ interface ConsensusDeskClientProps {
  * card names its municipality (chip → profile page). The reader's stored
  * locality (GeoGate) puts their own city's topics first.
  */
-export function ConsensusDeskClient({ desks, stats, locale }: ConsensusDeskClientProps) {
+export function ConsensusDeskClient({
+  desks,
+  stats,
+  locale,
+  decorative = false,
+}: ConsensusDeskClientProps) {
   const t = COPY[locale];
   const [home, setHome] = useState<string | null>(null);
   /* Which tile is at the head of the river. The dock names its municipality,
@@ -165,10 +181,10 @@ export function ConsensusDeskClient({ desks, stats, locale }: ConsensusDeskClien
 
   return (
     <section
-      id="consensus-desk"
-      data-nav-reveal
+      id={decorative ? undefined : 'consensus-desk'}
+      data-nav-reveal={decorative ? undefined : ''}
       className={styles.desk}
-      aria-labelledby="consensus-desk-headline"
+      aria-labelledby={decorative ? undefined : 'consensus-desk-headline'}
     >
       <div className={styles.inner}>
         <header className={styles.header}>
@@ -177,7 +193,10 @@ export function ConsensusDeskClient({ desks, stats, locale }: ConsensusDeskClien
             {t.kicker}
           </span>
 
-          <h2 id="consensus-desk-headline" className={styles.headline}>
+          <h2
+            id={decorative ? undefined : 'consensus-desk-headline'}
+            className={styles.headline}
+          >
             {t.headlineLead} <span className={styles.red}>{t.headlineAccent}</span>
           </h2>
 

@@ -68,7 +68,7 @@ const COPY: Record<Locale, GeoGateCopy> = {
   en: {
     kicker: 'Local first',
     headline: 'Where are you reading us from?',
-    why: 'Taruu is a local newspaper for Israel: every topic, every vote and every fund belongs to a single municipality, and voting is reserved for Israeli residents. To open your town’s board we need to know where you live. Your location stays on your device only — it is never sent to a server and never stored by us.',
+    why: 'Taruu is a local newspaper for Israel: every topic, every vote and every fund belongs to a single municipality, and voting is reserved for Israeli residents. To open your town’s board we need to know where you live. Your location stays on your device only - it is never sent to a server and never stored by us.',
     confirmLede: 'We placed you near:',
     confirmAsk: 'Is this your town?',
     confirmYes: 'Yes, open the board',
@@ -85,7 +85,7 @@ const COPY: Record<Locale, GeoGateCopy> = {
     errNoGeoSupport:
       'Your browser does not support location services. Type the name of your town instead.',
     errNoMatchNearby:
-      'We could not find a supported municipality near you. Taruu serves residents of Israeli municipalities — if you live in Israel, type the name of your town.',
+      'We could not find a supported municipality near you. Taruu serves residents of Israeli municipalities - if you live in Israel, type the name of your town.',
     errNoPermission:
       'Location permission was declined. Type the name of your town instead.',
     errNoTextMatch:
@@ -110,6 +110,11 @@ export function GeoGate({ locale = 'he' }: { locale?: Locale }) {
   useEffect(() => {
     if (isLoading || isAuthenticated) return;
     if (getStoredMunicipality() || isLocalityPromptDismissed()) return;
+    /* A page that asks the question in its own flow asks it better: it can
+       show what the answer changes, and it stays there to be changed again.
+       Where one is mounted (the homepage's LocalityDesk, between the desks)
+       this modal has nothing to add and would arrive on top of it. */
+    if (document.querySelector('[data-locality-gate]')) return;
     setState('open');
   }, [isLoading, isAuthenticated]);
 

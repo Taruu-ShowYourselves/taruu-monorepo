@@ -36,6 +36,9 @@
   html {
     /* Direction is set by layout.tsx based on locale */
     scroll-behavior: smooth;
+    /* No rubber band at either end: the page is a sequence of full screens and
+       a bounce past the last one reads as a broken layout, not as elasticity. */
+    overscroll-behavior-y: none;
     scrollbar-width: none;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -462,7 +465,7 @@
   padding-inline: var(--np-gutter);
 }
 
-/* Desk + sheet — WORKSPACE surfaces only (dashboard, settings, verification,
+/* Desk + sheet - WORKSPACE surfaces only (dashboard, settings, verification,
  * the create flow, space-admin). The editorial pages deliberately do NOT use
  * these: there the newspaper IS the page, and a sheet inside a masthead would
  * frame the frame.

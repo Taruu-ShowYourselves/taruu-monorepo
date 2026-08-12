@@ -72,11 +72,46 @@
    the top of the screen. The 30svh over the floor is the beat the wordmark
    holds still before the page starts moving under it. */
 .cinematic.thesisOnly {
-  height: 230svh;
+  /* ~85svh of runway per beat: enough scroll for a claim to arrive, hold, and
+     clear before the next one, without the page feeling stuck on any of them.
+     Five beats, so the floor described above is comfortably cleared. */
+  height: 430svh;
+}
+
+/* The opening holds one beat and hands straight over to the desks, so this is
+   the shortest runway that still works rather than a stage for an argument.
+   The floor is set by the handoff, not by the copy: HomepageExperience docks
+   the site layer at `height - 100svh` and scrubs it over the viewport before
+   that, so anything under 300svh starts sliding the masthead up over a
+   wordmark the reader has not finished reading. */
+.cinematic.openingRunway {
+  height: 300svh;
+}
+
+/* Four beats rather than five, and it opens mid-page with the reader already
+   moving - so it needs its claims' worth of runway and no more. */
+.cinematic.beatsRunway {
+  height: 340svh;
 }
 
 .thesisOnly .thesisScene {
   visibility: visible;
+}
+
+/* The opening's field is ground, not subject: the wordmark and the offer are
+   what the screen is for, and the survey stands behind them - far enough back
+   that no reading competes with the line, close enough that the claim about a
+   live country has something under it. */
+.openingRunway .thesisLedger {
+  opacity: 0.62;
+}
+
+.openingRunway .ledgerMetric {
+  filter: blur(calc((1 - var(--depth, 0.5)) * 2px + 0.4px));
+}
+
+.openingRunway .ledgerHeader {
+  display: none;
 }
 
 .questionScene {
@@ -521,10 +556,15 @@
   box-shadow: 0 0 0 3px rgba(224, 48, 30, 0.14);
 }
 
+/* The marks are placed as percentages of this box, so the box - not each of
+   the eight marks - is what keeps them clear of the pinned nav at the top and
+   the runway's own footer at the bottom. Measured against the full frame, the
+   two highest marks sat under the dock and the drift carried one of them off
+   the screen entirely by the last beat. */
 .thesisMetricMap {
   position: absolute;
   z-index: 2;
-  inset-block: 0;
+  inset-block: clamp(5rem, 11vh, 7.5rem) clamp(2.5rem, 7vh, 5rem);
   right: auto;
   left: 50%;
   inline-size: min(calc(100% - 4rem), 86rem);
@@ -655,6 +695,101 @@
     box-shadow: 0 0 0 0.75rem rgba(224, 48, 30, 0);
   }
 }
+
+/* ======================================================================
+   The opening beat's field: every figure drawn by its own instrument (see
+   ledgerMarks.tsx), over four motif plates - one per part of the argument
+   the beats make. Both layers ride the existing depth parallax.
+   ====================================================================== */
+
+.thesisLedgerMotif .ledgerMetric dd {
+  font-size: clamp(1.1rem, 1.75vw, 1.9rem);
+}
+
+/* The instrument, between the label and the reading. Sized so it reads as an
+   instrument face rather than an icon, and inked at the weight of the number
+   it explains. */
+.ledgerMarkGlyph {
+  display: block;
+  inline-size: min(9.5vw, 6.4rem);
+  block-size: auto;
+  margin-block-end: 0.42rem;
+  color: color-mix(in srgb, var(--intro-ink) 72%, transparent);
+  overflow: visible;
+}
+
+/* An uncounted figure: the same instrument, empty and quieter. */
+.ledgerMarkGlyph[data-empty] {
+  color: color-mix(in srgb, var(--intro-soft) 55%, transparent);
+}
+
+/* The plates. Each is a flat pattern rather than a picture: the field is a
+   survey, and a photograph in it would be the only lit thing on the page. */
+.ledgerMotifs {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+}
+
+.motifPlate {
+  position: absolute;
+  inset-block-start: var(--motif-y);
+  inset-inline-start: var(--motif-x);
+  inline-size: clamp(7rem, 13vw, 11.5rem);
+  block-size: clamp(5rem, 9vw, 8rem);
+  /* Behind the instruments, never level with them: the plates say what part of
+     the argument the field is standing in, and a plate that competes with a
+     figure has stopped being a backdrop. */
+  opacity: calc(0.05 + var(--depth) * 0.16);
+  filter: blur(calc((1 - var(--depth)) * 0.9px));
+  will-change: transform;
+}
+
+/* The map the topics are read off: plates of a survey sheet, cut unevenly. */
+.motifPlate[data-motif="map"] {
+  background-image:
+    linear-gradient(var(--intro-ink) 1.5px, transparent 1.5px),
+    linear-gradient(90deg, var(--intro-ink) 1.5px, transparent 1.5px);
+  background-size: 2.1rem 2.1rem;
+  clip-path: polygon(0 12%, 62% 0, 100% 24%, 88% 78%, 34% 100%, 6% 66%);
+}
+
+/* The ballot it turns into: marks made by hand, in no particular order. */
+.motifPlate[data-motif="ballot"] {
+  background-image:
+    linear-gradient(45deg, transparent 46%, var(--intro-ink) 46%, var(--intro-ink) 54%, transparent 54%),
+    linear-gradient(-45deg, transparent 46%, var(--intro-ink) 46%, var(--intro-ink) 54%, transparent 54%);
+  background-size: 2.6rem 2.6rem;
+  background-position: 0 0, 0 0;
+  mask-image: radial-gradient(ellipse at 40% 40%, #000 30%, transparent 74%);
+}
+
+/* The statute the mandate is enforced through: set lines of a printed act. */
+.motifPlate[data-motif="statute"] {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--intro-ink) 0 2px,
+    transparent 2px 0.72rem
+  );
+  mask-image: linear-gradient(
+    to left,
+    #000 0 42%,
+    rgba(0, 0, 0, 0.45) 42% 70%,
+    transparent 92%
+  );
+}
+
+/* The ledger the score accrues in: ruled columns. */
+.motifPlate[data-motif="ledger"] {
+  background-image:
+    repeating-linear-gradient(to right, var(--intro-ink) 0 2px, transparent 2px 3.1rem),
+    linear-gradient(var(--intro-ink) 2px, transparent 2px);
+  background-size: auto, 100% 100%;
+  background-repeat: repeat, no-repeat;
+}
+
+
 
 @keyframes question-highlight {
   from {
@@ -1576,63 +1711,194 @@
   text-align: center;
 }
 
+/* Only the thesis-only intro has a scrub free to hand the beats off one at a
+   time (see the solo timeline). The full story spends its runway on three acts
+   and arrives here at the end, so there the beats simply stack into a column
+   and are all present at once. */
 .thesisCopy {
   position: relative;
   z-index: 4;
   display: grid;
   justify-items: center;
-  inline-size: min(92vw, 65rem);
-  transform: translateY(clamp(-7rem, -10svh, -4rem));
+  row-gap: clamp(1.1rem, 2.4vw, 2rem);
+  inline-size: min(92vw, 44rem);
+  /* One fluid step, and every line in the scene is a fixed ratio of it.
+     Each size used to carry its own clamp on its own vw slope (6vw wordmark,
+     3vw ask, 1.7vw lede), so the hierarchy re-ranked itself as the window
+     moved - at some widths the ask nearly met the wordmark and the lede fell
+     off the bottom of the scale. Sized off one step in the page's own 1.2
+     ratio, the intervals hold at every width. */
+  --beat-step: clamp(1.05rem, 0.85rem + 0.95vw, 1.9rem);
+  --beat-line: calc(var(--beat-step) * 1.728); /* step ^ 3 */
+  /* ^5, not ^6: at six steps the mark was three times the line it exists to
+     say, and the scene read as a logo with two captions under it rather than
+     as one sentence. */
+  --beat-mark: calc(var(--beat-step) * 2.488);
+  transform: translateY(clamp(-5rem, -7svh, -2rem));
   will-change: transform, opacity;
 }
 
-.thesisKicker {
-  font-family: var(--np-font-mono);
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+/* The wordmark and what it does are one unit; the offer is the answer to
+   them, so it stands off on a gap of its own rather than on a third equal
+   interval. Both intervals are the type step, so the rhythm scales with the
+   type instead of drifting against it. */
+.thesisBeat {
+  display: grid;
+  justify-items: center;
+  row-gap: calc(var(--beat-step) * 0.55);
+  inline-size: 100%;
+  will-change: transform, opacity;
+}
+
+/* One mark, every beat on it: the grid areas overlap so a beat leaving and a
+   beat arriving occupy the same spot, and the scene height never depends on
+   how many beats there are. */
+.thesisOnly .thesisCopy {
+  grid-template-areas: "beat";
+  place-items: center;
+  row-gap: 0;
+}
+
+.thesisOnly .thesisBeat {
+  grid-area: beat;
+}
+
+/* The copy is the message now, and it stands where the metric field used to
+   have the stage to itself - the marks are surveyed into fixed slots that a
+   46rem column of prose runs straight through, and behind the legitimacy beat
+   it is a live carousel rather than a scatter.
+
+   So the column carries its own plate: a rectangle of paper that blurs
+   whatever is behind it, feathered on all four edges so it never cuts the
+   field on a hard line. The panel is what makes the type legible, which lets
+   the field itself stay readable as a field instead of being washed out. */
+.thesisCopy::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: clamp(-3.5rem, -5vw, -2rem) clamp(-5rem, -7vw, -2.5rem);
+  background: rgb(from var(--np-paper) r g b / 0.74);
+  backdrop-filter: blur(14px) saturate(1.05);
+  -webkit-backdrop-filter: blur(14px) saturate(1.05);
+  /* Two axes intersected: a rectangle whose edges dissolve rather than end.
+     The mask carries the backdrop blur with it, so the blur fades out at the
+     same rate the paper does. */
+  mask-image:
+    linear-gradient(to right, transparent 0%, #000 13%, #000 87%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, #000 15%, #000 85%, transparent 100%);
+  mask-composite: intersect;
+  -webkit-mask-composite: source-in;
+}
+
+/* Opening beat: the wordmark, at the scale it earned in the full story.
+   Hebrew display type carries nikud below the baseline - at 0.92 the vowel
+   marks under תַּרְאוּ ran into the line under it, and -0.05em closed the
+   letters on each other at the sizes this reaches. */
+.thesisWordmark {
+  margin: 0;
+  font-family: var(--np-font-display);
+  font-size: var(--beat-mark);
+  font-weight: 800;
+  /* The nikud hang below the baseline and are part of the mark, so the line
+     box has to carry them - at 1.02 they sat in the lede's gap. */
+  line-height: 1.18;
+  letter-spacing: -0.035em;
+}
+
+.thesisWordmark span {
   color: var(--intro-red);
 }
 
-.thesisTitle {
-  max-inline-size: 10.5ch;
-  margin: 0.85rem auto 1.45rem;
-  font-family: var(--np-font-display);
-  font-size: clamp(3.1rem, 5.2vw, 6.2rem);
+/* Emphasis inside copy: the paper's red, at the weight the line already has,
+   so it stresses a phrase without turning it into a second heading. */
+.stress {
+  font-weight: inherit;
+  color: var(--intro-red);
+}
+
+.thesisLede {
+  margin: 0;
+  /* Wide enough that the sentence sets in two lines rather than three short
+     ones stacked under a mark four times its size. */
+  max-inline-size: 36ch;
+  font-family: var(--np-font-body);
+  font-size: var(--beat-step);
+  line-height: 1.5;
+  text-align: center;
+  text-wrap: balance;
+  color: var(--intro-soft);
+}
+
+/* The offer itself, in the brand's own imperative. Two lines by construction:
+   a red mono lead-in, the paper's own kicker idiom, and the sentence under it
+   at beat scale - so the break falls where the sense does instead of wherever
+   the measure ran out. */
+.thesisAsk {
+  /* The unit above it is brand + explanation; this is the answer to both. */
+  margin: calc(var(--beat-step) * 0.9) 0 0;
+  display: grid;
+  justify-items: center;
+  row-gap: calc(var(--beat-step) * 0.4);
+  text-align: center;
+}
+
+.thesisAskLead {
+  font-family: var(--np-font-mono);
+  font-size: calc(var(--beat-step) * 0.72);
   font-weight: 800;
-  line-height: 0.92;
-  letter-spacing: -0.05em;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--intro-red);
+}
+
+.thesisAskQuote {
+  /* The measure has to sit on the sized element: `ch` resolves against the
+     element's own font-size, so on the wrapper (inherited 16px) it was a
+     190px column and the sentence broke between its own quote marks. */
+  max-inline-size: 22ch;
+  font-family: var(--np-font-display);
+  font-size: var(--beat-line);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+  color: var(--intro-ink);
+}
+
+/* Each following beat is one sentence of the argument, at a size that holds a
+   full clause without turning into a paragraph. */
+.thesisBeatLine {
+  margin: 0;
+  max-inline-size: 22ch;
+  font-family: var(--np-font-display);
+  font-size: var(--beat-line);
+  font-weight: 800;
+  line-height: 1.18;
+  letter-spacing: -0.03em;
   text-align: center;
   text-wrap: balance;
 }
 
-.thesisTitle span,
-.thesisTitle em {
-  display: block;
-}
-
-.thesisTitle em {
-  font-style: normal;
-  color: var(--intro-red);
-}
-
-.thesisRule {
-  display: block;
-  inline-size: min(100%, 50rem);
-  block-size: 1px;
-  background: var(--intro-ink);
-  transform: scaleX(0);
-  transform-origin: center;
-}
-
-.thesisLede {
-  max-inline-size: 45rem;
-  margin: 1.35rem auto 0;
+/* The condition the claim holds under, at reading scale: the claim is what
+   the screen is for, and a clause set at the same weight turned the beat
+   into a paragraph nobody reads at a glance. */
+.thesisBeatNote {
+  margin: calc(var(--beat-step) * 0.5) 0 0;
+  max-inline-size: 44ch;
   font-family: var(--np-font-body);
-  font-size: clamp(1.05rem, 1.75vw, 1.45rem);
+  font-size: var(--beat-step);
   line-height: 1.5;
   text-align: center;
+  text-wrap: pretty;
   color: var(--intro-soft);
+}
+
+/* Short laptops: the beat is bounded by height, not width. One step down and
+   the whole scene follows it, in ratio. */
+@media (min-width: 1101px) and (max-height: 820px) {
+  .thesisCopy {
+    --beat-step: clamp(0.98rem, 0.86rem + 0.42vw, 1.22rem);
+  }
 }
 
 /* Below desktop, the identity becomes a compact dock. */
@@ -2125,19 +2391,20 @@
     padding-inline: 1rem;
   }
 
+  /* The phone gets a smaller step, not a different scale: the same three
+     ratios, moved down together. */
   .thesisCopy {
     z-index: 4;
-    transform: translateY(-22svh);
-  }
-
-  .thesisTitle {
-    margin-block: 0.55rem 0.75rem;
-    font-size: clamp(2.35rem, 11.5vw, 3.65rem);
+    transform: translateY(-10svh);
+    --beat-step: clamp(0.95rem, 0.8rem + 0.9vw, 1.25rem);
   }
 
   .thesisLede {
-    margin-block-start: 0.7rem;
-    font-size: 0.82rem;
+    max-inline-size: 28ch;
+  }
+
+  .thesisBeatLine {
+    line-height: 1.25;
   }
 }
 
@@ -2170,8 +2437,17 @@
     opacity: 0;
   }
 
-  .reduced .thesisRule {
-    transform: scaleX(1);
+  /* No scrub to hand the beats off, so the stack unwinds into a column and
+     every claim is simply present. */
+  .reduced.thesisOnly .thesisCopy {
+    grid-template-areas: none;
+    row-gap: clamp(2rem, 5vh, 3.5rem);
+    transform: none;
+  }
+
+  .reduced.thesisOnly .thesisBeat {
+    grid-area: auto;
+    opacity: 1;
   }
 
   .pinRadar,
@@ -2189,5 +2465,112 @@
   /* No dwell animation means no meter to read - hide the empty rail. */
   .tocProgress {
     visibility: hidden;
+  }
+}
+
+
+/* ---- Per-beat backdrops ----------------------------------------------
+   Each stage is a full-field layer holding real components of the site; the
+   scroll timeline hands the field from one to the next as the beats change. */
+.beatStage {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* ---- The live desk, backing the legitimacy beat ----------------------
+   The real carousel, one plane back: scaled up so its tiles read at the size
+   they do on the desk, blurred until the type in front of it wins, and
+   drained of contrast so the beat is never competing with a headline. */
+.deskBackdrop {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+/* Pulled up so the carousel fills the frame rather than the desk's own
+   headline: the beat on stage is the headline here. */
+.deskBackdropInner {
+  /* Scale and pan travel together: the pan has to stay inside the slack the
+     inset and the scale leave, and both change with the frame. */
+  --desk-scale: 1.06;
+  --desk-pan: 2.6%;
+  position: absolute;
+  inset: -34% -6% -6%;
+  transform: scale(var(--desk-scale));
+  transform-origin: center;
+  filter: blur(3.4px) saturate(0.72);
+  opacity: 0.5;
+  /* The desk is a carousel, so the room the beat stands in moves like one:
+     a slow pan across the tiles, reversing inside the slack the -6% inset
+     leaves so an edge is never exposed. */
+  animation: deskPan 34s ease-in-out infinite alternate;
+  /* The top edge is where the desk's own masthead sits; fade it out rather
+     than letting two headlines share the screen. */
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 100%);
+}
+
+@keyframes deskPan {
+  from {
+    transform: scale(var(--desk-scale)) translate3d(calc(-1 * var(--desk-pan)), 0, 0);
+  }
+  to {
+    transform: scale(var(--desk-scale)) translate3d(var(--desk-pan), 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deskBackdropInner {
+    animation: none;
+  }
+}
+
+/* The desk sections inside carry their own paper and rules. The copy plate now
+   does the work of clearing the type, so this scrim only has to keep the field
+   from competing - it lifts off the centre rather than bleaching it, and the
+   tiles stay readable as tiles. */
+.deskBackdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 74% 62% at 50% 46%,
+    rgb(from var(--np-paper) r g b / 0.46) 30%,
+    rgb(from var(--np-paper) r g b / 0.34) 64%,
+    rgb(from var(--np-paper) r g b / 0.14) 100%
+  );
+}
+
+/* The desk is a full-field layer, so it survives a narrow window where the
+   surveyed card slots do not: the beat column widens until the side gutters
+   are gone, and the cards move into a strip instead (see BeatStages). Pull the
+   crop back as the frame narrows so the carousel still reads as tiles rather
+   than as one enlarged tile. */
+@media (max-width: 1100px) {
+  .deskBackdropInner {
+    --desk-scale: 1.02;
+    --desk-pan: 1.7%;
+    inset: -22% -4% -4%;
+  }
+}
+
+/* Phone: the desk stacks into its own tall bento here, so the crop that framed
+   a wide carousel would enlarge a single tile. Sit nearly flush instead and let
+   the stack itself be the texture. */
+@media (max-width: 800px) {
+  .deskBackdropInner {
+    /* The desk's own masthead is proportionally taller in a phone column, so
+       both the crop and the fade have to reach further before the tiles start
+       - a legible second headline behind the beat is the one failure here. */
+    --desk-scale: 1.03;
+    --desk-pan: 1.1%;
+    inset: -26% -2% -2%;
+    filter: blur(2.6px) saturate(0.75);
+    opacity: 0.42;
+    mask-image: linear-gradient(to bottom, transparent 0%, #000 24%, #000 100%);
   }
 }

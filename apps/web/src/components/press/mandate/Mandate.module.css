@@ -1,0 +1,387 @@
+/* The mandate register: what the residents decided, set as a public record
+   rather than as a feed. The furniture is the press kit's - hard corners,
+   heavy rules, mono figures - because this page is the thing an authority is
+   eventually shown, and it has to read as a document. */
+
+.page {
+  min-block-size: 100svh;
+  padding-block: clamp(2rem, 5vh, 4rem) clamp(4rem, 10vh, 8rem);
+  background: var(--np-paper);
+  color: var(--np-ink);
+}
+
+.inner {
+  inline-size: min(100% - 2 * var(--np-gutter), 74rem);
+  margin-inline: auto;
+  display: grid;
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+/* ---- Hero ---- */
+
+.hero {
+  display: grid;
+  gap: var(--space-3);
+  padding-block-end: clamp(1.2rem, 3vw, 2rem);
+  border-block-end: var(--np-rule-heavy) solid var(--np-ink);
+}
+
+.breadcrumb {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  color: var(--np-ink-soft);
+}
+
+.crumb {
+  color: inherit;
+  text-decoration: none;
+  border-block-end: var(--np-rule-hair) solid currentColor;
+}
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--np-red-ink);
+}
+
+.kickerTick {
+  inline-size: 0.5em;
+  block-size: 0.5em;
+  background: var(--np-red);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--np-font-display);
+  font-weight: 900;
+  font-size: clamp(var(--text-3xl), 6vw, var(--text-6xl));
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+}
+
+.red {
+  color: var(--np-red);
+}
+
+.standfirst {
+  margin: 0;
+  max-inline-size: 60ch;
+  font-family: var(--np-font-body);
+  font-size: clamp(var(--text-base), 1.4vw, var(--text-lg));
+  line-height: 1.5;
+  color: var(--np-ink-soft);
+}
+
+/* ---- The counted state of the register ---- */
+
+.totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding-block: var(--space-4);
+  border-block-end: var(--np-rule) solid var(--np-paper-edge);
+}
+
+.total {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.total dt {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  color: var(--np-ink-soft);
+}
+
+.total dd {
+  margin: 0;
+  font-family: var(--np-font-display);
+  font-weight: 900;
+  font-size: clamp(var(--text-2xl), 3vw, var(--text-4xl));
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Board ---- */
+
+.board {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  border-block-end: var(--np-rule-heavy) solid var(--np-ink);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  font-family: var(--np-font-display);
+  font-weight: 800;
+  font-size: var(--text-base);
+  color: var(--np-ink);
+  background: none;
+  border: var(--np-rule) solid transparent;
+  border-block-end: 0;
+  cursor: pointer;
+}
+
+.tab[aria-selected='true'] {
+  color: var(--np-paper);
+  background: var(--np-ink);
+}
+
+.tab:focus-visible {
+  outline: var(--np-rule) solid var(--np-red);
+  outline-offset: 2px;
+}
+
+.tabCount {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+.filter {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.filterLabel {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  color: var(--np-ink-soft);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip {
+  padding: var(--space-1) var(--space-3);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  color: var(--np-ink);
+  background: var(--np-paper-box);
+  border: var(--np-rule-hair) solid var(--np-paper-edge);
+  cursor: pointer;
+}
+
+.chip[aria-pressed='true'] {
+  color: var(--np-paper);
+  background: var(--np-ink);
+  border-color: var(--np-ink);
+}
+
+.chip:focus-visible {
+  outline: var(--np-rule) solid var(--np-red);
+  outline-offset: 2px;
+}
+
+/* ---- One decision ---- */
+
+.decisions {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.decision {
+  display: grid;
+  gap: var(--space-2);
+  padding: clamp(var(--space-4), 2vw, var(--space-6));
+  background: var(--np-paper-box);
+  border: var(--np-rule) solid var(--np-ink);
+  /* The stamp colour rides the edge: settled decisions carry the red the
+     press uses for anything already true, standings carry the ink. */
+  border-inline-start: var(--np-rule-heavy) solid var(--np-ink);
+}
+
+.decision[data-standing='decided'] {
+  border-inline-start-color: var(--np-red);
+}
+
+.decisionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.stamp {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 0.15rem var(--space-2);
+  color: var(--np-paper);
+  background: var(--np-ink);
+}
+
+.decision[data-standing='decided'] .stamp {
+  background: var(--np-red);
+}
+
+.authority {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  color: var(--np-ink-soft);
+}
+
+.clause {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.clauseLead {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  color: var(--np-ink-soft);
+}
+
+.position {
+  font-family: var(--np-font-display);
+  font-weight: 900;
+  font-size: clamp(var(--text-lg), 2.2vw, var(--text-2xl));
+  line-height: 1.12;
+}
+
+.subject {
+  font-family: var(--np-font-body);
+  font-size: var(--text-sm);
+  color: var(--np-ink-soft);
+}
+
+.figures {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.share {
+  font-family: var(--np-font-display);
+  font-weight: 900;
+  font-size: clamp(var(--text-xl), 2.6vw, var(--text-3xl));
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--np-red);
+}
+
+.figureMeta {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  color: var(--np-ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.readLink {
+  margin-inline-start: auto;
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  color: var(--np-ink);
+  text-decoration: none;
+  border-block-end: var(--np-rule-hair) solid currentColor;
+}
+
+.track {
+  display: block;
+  block-size: 0.5rem;
+  background: var(--np-paper-edge);
+}
+
+.track > i {
+  display: block;
+  block-size: 100%;
+  background: var(--np-ink);
+}
+
+.decision[data-standing='decided'] .track > i {
+  background: var(--np-red);
+}
+
+.standingNote {
+  margin: 0;
+  font-family: var(--np-font-body);
+  font-size: var(--text-xs);
+  color: var(--np-ink-soft);
+}
+
+/* ---- Nothing decided yet ---- */
+
+.empty {
+  display: grid;
+  gap: var(--space-2);
+  padding: clamp(var(--space-6), 5vw, var(--space-12));
+  text-align: center;
+  border: var(--np-rule) dashed var(--np-paper-edge);
+}
+
+.emptyLede {
+  margin: 0;
+  font-family: var(--np-font-display);
+  font-weight: 800;
+  font-size: clamp(var(--text-lg), 2.2vw, var(--text-2xl));
+}
+
+.emptyNote {
+  margin: 0;
+  font-family: var(--np-font-body);
+  font-size: var(--text-sm);
+  color: var(--np-ink-soft);
+}
+
+/* ---- Presentation mode ----
+   A demo register has to announce itself where the figures are read, not in
+   a footnote under them: this block sits between the kicker and the headline
+   and travels with any screenshot of the page. */
+
+.demoBanner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  max-inline-size: 72ch;
+  font-family: var(--np-font-body);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  color: var(--np-ink);
+  background: var(--np-paper-box);
+  border: var(--np-rule) solid var(--np-red);
+}
+
+.demoStamp {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  padding: 0.15rem var(--space-2);
+  color: var(--np-paper);
+  background: var(--np-red);
+}

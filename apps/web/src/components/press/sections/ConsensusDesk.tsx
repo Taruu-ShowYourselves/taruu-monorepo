@@ -9,6 +9,8 @@ import { ConsensusDeskClient } from './ConsensusDeskClient';
 
 interface ConsensusDeskProps {
   locale?: Locale;
+  /** Render as scenery: no page landmarks. See ConsensusDeskClient. */
+  decorative?: boolean;
 }
 
 /**
@@ -17,7 +19,10 @@ interface ConsensusDeskProps {
  * regional editions of the paper. Server component: fetches once per
  * revalidation window, hands the grouped map to the client picker.
  */
-export async function ConsensusDesk({ locale = 'he' }: ConsensusDeskProps) {
+export async function ConsensusDesk({
+  locale = 'he',
+  decorative = false,
+}: ConsensusDeskProps) {
   // Request-scoped read shared with the national desk - one ledger query per
   // render, not one per desk. Degrades to the empty desk when the DB is
   // unreachable (build-time prerender in CI has no service-role key - #39);
@@ -54,5 +59,12 @@ export async function ConsensusDesk({ locale = 'he' }: ConsensusDeskProps) {
     .map(([municipality, topics]) => ({ municipality, topics }))
     .sort((a, b) => b.topics.length - a.topics.length);
 
-  return <ConsensusDeskClient desks={desks} stats={stats} locale={locale} />;
+  return (
+    <ConsensusDeskClient
+      desks={desks}
+      stats={stats}
+      locale={locale}
+      decorative={decorative}
+    />
+  );
 }

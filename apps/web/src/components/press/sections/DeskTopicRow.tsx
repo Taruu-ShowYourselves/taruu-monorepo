@@ -15,6 +15,7 @@ import type { BillTitle } from '@/lib/knesset/billTitle';
 import { topicHeadline } from './deskData';
 import type { DeskTopicVariant } from './deskBento';
 import { getAsideTopics, restoreTopic, setTopicAside } from './deskAside';
+import { ShareTopicButton } from './ShareTopicButton';
 import { useVoteSwipe } from './useVoteSwipe';
 import type { SwipeIntent } from './voteSwipe';
 import styles from './ConsensusDesk.module.css';
@@ -224,7 +225,7 @@ const COPY: Record<Locale, RowCopy> = {
     swipeCastFor: 'בעד · לקלפי',
     swipeCastAgainst: 'נגד · לקלפי',
     asideTitle: 'לא נושא לקונצנזוס',
-    asideNote: 'ירד מהמהדורה שלכם. נספר כדי לשפר את בחירת הנושאים — לא כהצבעה, ובלי לפרסם מי אמר.',
+    asideNote: 'ירד מהמהדורה שלכם. נספר כדי לשפר את בחירת הנושאים - לא כהצבעה, ובלי לפרסם מי אמר.',
     asideUndo: 'החזרת הנושא',
   },
   en: {
@@ -281,7 +282,7 @@ const COPY: Record<Locale, RowCopy> = {
     swipeCastFor: 'For · to the ballot',
     swipeCastAgainst: 'Against · to the ballot',
     asideTitle: 'Not a consensus matter',
-    asideNote: 'Dropped from your edition. Counted to improve which topics run — never as a vote, never attributed.',
+    asideNote: 'Dropped from your edition. Counted to improve which topics run - never as a vote, never attributed.',
     asideUndo: 'Put it back',
   },
 };
@@ -464,10 +465,18 @@ function SovereignScale({
 function SlugLine({
   index,
   heat,
+  action,
   locale = 'he',
 }: {
   index: number;
   heat: number | null;
+  /**
+   * Tile chrome parked at the far end of the rule. The meta line would be the
+   * more natural home for a control that quotes its figures, but that line is
+   * dropped entirely on short rows and compact tiles - the slug rule is the one
+   * piece of furniture every variant prints.
+   */
+  action?: React.ReactNode;
   locale?: Locale;
 }) {
   const t = COPY[locale];
@@ -499,6 +508,8 @@ function SlugLine({
           {heat}°
         </span>
       )}
+
+      {action}
     </p>
   );
 }
@@ -727,6 +738,22 @@ export function RankingLine({
   );
 }
 
+/**
+ * A push made by someone the desk cannot yet count.
+ *
+ * The tile hands the whole gesture over rather than a flag, so the gate can
+ * print the position back and send the reader on to the ballot it belongs to
+ * once they are signed in.
+ */
+export interface VoteAuthRequest {
+  topic: DeskTopic;
+  intent: SwipeIntent;
+  /** The ballot option the side maps to; absent for `aside`. */
+  optionId?: string;
+  /** The headline as the tile printed it - the gate quotes it back. */
+  headline: string;
+}
+
 interface DeskTopicRowProps {
   topic: DeskTopic;
   /** Municipality the topic belongs to - shown as a chip inside the card. */
@@ -760,6 +787,12 @@ interface DeskTopicRowProps {
    * watching itself for no reason.
    */
   onTutorVisible?: (index: number) => void;
+  /**
+   * Handed a push made by a reader with no account, instead of letting it
+   * land. Present only for guests - its absence is what says the desk may
+   * count this reader, so a signed-in tile never pays for the check.
+   */
+  onRequireAuth?: (request: VoteAuthRequest) => void;
   locale: Locale;
 }
 
@@ -774,6 +807,7 @@ export function DeskTopicRow({
   onOpen,
   tutor = false,
   onTutorVisible,
+  onRequireAuth,
   locale,
 }: DeskTopicRowProps) {
   const t = COPY[locale];
@@ -822,17 +856,30 @@ export function DeskTopicRow({
     setAside(getAsideTopics().includes(topic.id));
   }, [topic.id]);
 
-  const { forOption, againstOption } = standingOf(topic.options);
+  const standing = standingOf(topic.options);
+  const { forOption, againstOption } = standing;
   const commit = useCallback(
     (cast: SwipeIntent) => {
+      const optionId =
+        cast === 'aside' ? undefined : (cast === 'for' ? forOption : againstOption)?.id;
+
+      /* A reader the desk cannot count is stopped here rather than at the
+         ballot: the gesture has already played out on the tile, so the gate
+         opens holding what they said instead of dropping it and asking them
+         to say it again on another screen. */
+      if (onRequireAuth) {
+        onRequireAuth({ topic, intent: cast, optionId, headline });
+        return;
+      }
+
       if (cast === 'aside') {
         setTopicAside(topic.id);
         setAside(true);
         return;
       }
-      open((cast === 'for' ? forOption : againstOption)?.id);
+      open(optionId);
     },
-    [againstOption, forOption, open, topic.id]
+    [againstOption, forOption, headline, onRequireAuth, open, topic]
   );
 
   const swipe = useVoteSwipe<HTMLLIElement>({
@@ -913,7 +960,28 @@ export function DeskTopicRow({
         />
       ) : null}
 
-      <SlugLine index={index} heat={heat} locale={locale} />
+      <SlugLine
+        index={index}
+        heat={heat}
+        locale={locale}
+        action={
+          /* The share carries this tile's counted facts, so it is built from
+             the same standing the scale below prints rather than re-read. */
+          <ShareTopicButton
+            topicId={topic.id}
+            locale={locale}
+            facts={{
+              headline,
+              authority: municipality,
+              forPct: standing.forPct,
+              againstPct: standing.againstPct,
+              ballots: standing.total,
+              participants: topic.participantCount,
+              daysLeft: days,
+            }}
+          />
+        }
+      />
 
       {/* The edition sits with the slug rule, not with the copy: on a two-row
           tile the headline centres in the tile's slack, and a chip carried

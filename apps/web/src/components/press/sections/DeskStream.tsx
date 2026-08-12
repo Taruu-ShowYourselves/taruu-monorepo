@@ -5,9 +5,11 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useAuthStore } from '@/stores/authStore';
 import { DeskCarousel, type DeskCarouselControls } from './DeskCarousel';
-import { DeskTopicRow, type DeskTopic } from './DeskTopicRow';
+import { DeskTopicRow, type DeskTopic, type VoteAuthRequest } from './DeskTopicRow';
 import { TopicDialog, type DeskEntry } from './TopicDialog';
+import { VoteAuthDialog } from './VoteAuthDialog';
 import { slotVariant } from './deskBento';
 import type { Locale } from '@/lib/i18n';
 
@@ -45,6 +47,19 @@ export function DeskStream({
   const [open, setOpen] = useState<DeskEntry | null>(null);
   /** The side a swipe carried in, if the dialog was opened by pushing a tile. */
   const [intent, setIntent] = useState<string | null>(null);
+
+  /* ---- Who may be counted ---------------------------------------------
+     A guest's push opens the sign-in gate instead of the ballot, and the gate
+     is rendered once for the whole desk rather than once per tile.
+
+     The flag is taken straight off the store as a single boolean rather than
+     out of the auth context, so a desk of a dozen live tiles is not re-rendered
+     by every other field of the session. It is restored from storage before
+     that session is re-verified, which is the right way round here: this only
+     decides which sheet a push opens, and the server remains the sole
+     authority on whether a ballot is ever recorded. */
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const [guestVote, setGuestVote] = useState<VoteAuthRequest | null>(null);
 
   /* ---- Who gets taught the gesture ------------------------------------
      The edge cues only appear once a tile is already in hand, which teaches
@@ -141,6 +156,7 @@ export function DeskStream({
             onOpen={openTopic}
             tutor={tutorIndex === i}
             onTutorVisible={lessonOpen ? claimTutor : undefined}
+            onRequireAuth={isAuthenticated ? undefined : setGuestVote}
             locale={locale}
           />
         ))}
@@ -153,6 +169,12 @@ export function DeskStream({
           setOpen(null);
           setIntent(null);
         }}
+        locale={locale}
+      />
+
+      <VoteAuthDialog
+        request={guestVote}
+        onClose={() => setGuestVote(null)}
         locale={locale}
       />
     </>

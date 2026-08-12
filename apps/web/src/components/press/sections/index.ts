@@ -3,6 +3,7 @@ export { ConsensusDesk } from './ConsensusDesk';
 export { WhatIsTaruu } from './WhatIsTaruu';
 export { CivicMandate } from './CivicMandate';
 export { CivicReminder } from './CivicReminder';
+export { HowToJoin } from './HowToJoin';
 export { KnessetDesk } from './KnessetDesk';
 export { KnessetAgenda } from './KnessetAgenda';
 export { ActNow } from './ActNow';

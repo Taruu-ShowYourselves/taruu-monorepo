@@ -1,4 +1,9 @@
+/* The homepage gives every section a 100svh floor and the page now rests on
+   section edges, so a desk that packs its content at the top leaves a third
+   of the screen empty under it at every stop. */
 .desk {
+  display: grid;
+  align-content: center;
   background: var(--np-paper);
   color: var(--np-ink);
   padding-inline: var(--np-gutter);
@@ -6,6 +11,7 @@
 }
 
 .inner {
+  inline-size: 100%;
   max-width: var(--np-container);
   margin-inline: auto;
 }
@@ -13,8 +19,13 @@
 /* ============================================================
  * SECTION HEADER
  * ============================================================ */
+/* Every other desk on the page reads down the centre line - the locality
+   desk, the join section, the intro. A header ranged to the start was the one
+   thing still hanging off the edge. */
 .header {
   max-width: 56rem;
+  margin-inline: auto;
+  text-align: center;
 }
 
 .kicker {
@@ -38,7 +49,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  align-self: flex-start;
+  align-self: center;
   margin-block-start: var(--space-3);
   padding: 0.25em 0.8em;
   border: var(--np-rule-hair) solid var(--np-ink);
@@ -73,7 +84,9 @@
   font-size: clamp(var(--text-base), 0.5vw + 0.9rem, var(--text-xl));
   line-height: 1.45;
   color: var(--np-ink-soft);
-  max-width: 44rem;
+  max-width: 52ch;
+  margin-inline: auto;
+  text-wrap: pretty;
 }
 
 .ruleHeavy {
@@ -978,6 +991,100 @@ a.topicMuni:hover { background: var(--np-red); }
   color: var(--np-red-ink);
 }
 
+/* ------------------------------------------------------------------
+ * Share the ballot.
+ *
+ * Rides the far end of the slug rule - the one line every tile variant keeps,
+ * at every width. It sits in the tile's own furniture rather than floating
+ * over the type, which also keeps the target off the middle of a swipe
+ * surface.
+ * ------------------------------------------------------------------ */
+.shareTopic {
+  position: relative;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  inline-size: 1.45rem;
+  block-size: 1.45rem;
+  padding: 0;
+  color: var(--np-ink);
+  background: var(--np-paper-box);
+  border: var(--np-rule-hair) solid var(--np-paper-edge);
+  border-radius: 50%;
+  cursor: pointer;
+  transition:
+    color var(--np-dur-snap) var(--np-ease),
+    background-color var(--np-dur-snap) var(--np-ease),
+    border-color var(--np-dur-snap) var(--np-ease);
+}
+
+.shareTopic:hover,
+.shareTopic:focus-visible {
+  color: var(--np-paper);
+  background: var(--np-red);
+  border-color: var(--np-red);
+}
+
+/* The lead tile is printed the other way round - paper on ink - so a filled
+   paper chip would read as a hole punched in it. */
+.topicCardLead .shareTopic {
+  color: var(--np-paper);
+  background: transparent;
+  border-color: color-mix(in srgb, var(--np-paper) 42%, transparent);
+}
+
+.topicCardLead .shareTopic:hover,
+.topicCardLead .shareTopic:focus-visible {
+  color: var(--np-ink);
+  background: var(--np-paper);
+  border-color: var(--np-paper);
+}
+
+.topicCardLead .shareSaid {
+  color: color-mix(in srgb, var(--np-paper) 78%, var(--np-ink));
+}
+
+.shareTopic:focus-visible {
+  outline: var(--np-rule) solid var(--np-red);
+  outline-offset: 2px;
+}
+
+.shareTopic svg {
+  inline-size: 0.72rem;
+  block-size: 0.72rem;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+}
+
+.shareFill {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* The outcome is announced, not drawn over the tile: the message is read by a
+   screen reader and printed beside the button, where there is room for it. */
+.shareSaid {
+  position: absolute;
+  inset-inline-end: calc(100% + 0.4rem);
+  inset-block-start: 50%;
+  translate: 0 -50%;
+  white-space: nowrap;
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  color: var(--np-red-ink);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--np-dur-snap) var(--np-ease);
+}
+
+.shareTopic[data-said] .shareSaid {
+  opacity: 1;
+}
+
 /* The lead tile ends in a door, not a dead edge. */
 .leadCta {
   align-self: flex-start;
@@ -1009,13 +1116,16 @@ a.topicMuni:hover { background: var(--np-red); }
 /* ============================================================
  * EMPTY STATE + FOOTER
  * ============================================================ */
+/* An empty desk is the first thing a new municipality sees, so it is set as a
+   centred notice rather than a wide box with its copy pinned to one corner. */
 .emptyState {
   border: var(--np-rule) solid var(--np-ink);
   background: var(--np-paper-box);
   padding: clamp(var(--space-6), 3vw, var(--space-12));
   display: grid;
   gap: var(--space-3);
-  justify-items: start;
+  justify-items: center;
+  text-align: center;
 }
 
 .emptyLede {
@@ -1036,7 +1146,7 @@ a.topicMuni:hover { background: var(--np-red); }
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
-  justify-content: flex-start;
+  justify-content: center;
   margin-block-start: clamp(var(--space-4), 2vw, var(--space-6));
 }
 
