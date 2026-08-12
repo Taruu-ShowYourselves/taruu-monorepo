@@ -1,27 +1,40 @@
 /**
  * JWT Session Service
  *
- * Handles session management with JWT tokens.
- * Replaces Clerk session management.
+ * Typed session/refresh tokens on HKDF-derived per-purpose keys (canonical
+ * §4.2), plus the central `session_version` revocation check - Model B
+ * (canonical §4.4). The stored-version check lives in exactly one private
+ * helper, `assertLiveSessionVersion`, called only from `getSessionFromCookies`
+ * and `getSessionFromRequest` - never from `requireAuth` (which already
+ * delegates to `getSessionFromRequest`, so a second call would double the
+ * per-request read) and never from the mint functions.
  */
 
-import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
 import { cookies } from 'next/headers';
+import { getUserSessionVersion } from '@/lib/supabase/db';
+import type { Assurance } from './assurance';
+import { signPurposeToken, verifyPurposeToken } from './tokens';
 
 // === Configuration ===
 
-const JWT_SECRET = process.env.JWT_SECRET || '';
-const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d';
 const COOKIE_NAME = 'sync-session';
 const COOKIE_REFRESH_NAME = 'sync-refresh';
 
+/** Session TTL, seconds. A code constant now - JWT_EXPIRY no longer governs it. */
+export const SESSION_TTL_SECONDS = 60 * 60; // 1 hour
+/** Refresh TTL, seconds. */
+export const REFRESH_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days
+
 // === Types ===
 
-export interface SessionPayload extends JWTPayload {
+export interface SessionPayload {
   userId: string;
   googleId: string;
   did: string;
   email: string;
+  sv: number;
+  amr: string[];
+  asr: Assurance;
 }
 
 export interface Session {
@@ -29,127 +42,141 @@ export interface Session {
   googleId: string;
   did: string;
   email: string;
+  sv: number;
+  amr: string[];
+  asr: Assurance;
   expiresAt: Date;
 }
 
-// === Helper Functions ===
-
-/**
- * Get secret key for JWT operations
- */
-function getSecretKey(): Uint8Array {
-  if (!JWT_SECRET) {
-    throw new Error('JWT_SECRET environment variable is not set');
-  }
-  return new TextEncoder().encode(JWT_SECRET);
-}
-
-/**
- * Parse duration string to milliseconds
- */
-function parseDuration(duration: string): number {
-  const match = duration.match(/^(\d+)([smhdw])$/);
-  if (!match) {
-    // Default to 7 days
-    return 7 * 24 * 60 * 60 * 1000;
-  }
-
-  const value = parseInt(match[1], 10);
-  const unit = match[2];
-
-  const multipliers: Record<string, number> = {
-    s: 1000,
-    m: 60 * 1000,
-    h: 60 * 60 * 1000,
-    d: 24 * 60 * 60 * 1000,
-    w: 7 * 24 * 60 * 60 * 1000,
-  };
-
-  return value * (multipliers[unit] || multipliers['d']);
-}
-
-// === Server-Side Functions ===
-
-/**
- * Create a new session token
- */
-export async function createSessionToken(payload: {
+export interface RefreshPayload {
   userId: string;
-  googleId: string;
-  did: string;
-  email: string;
-}): Promise<string> {
-  const expiresIn = parseDuration(JWT_EXPIRY);
-  const expiresAt = new Date(Date.now() + expiresIn);
+  sv: number;
+  amr: string[];
+  asr: Assurance;
+}
 
-  const token = await new SignJWT({
-    userId: payload.userId,
-    googleId: payload.googleId,
-    did: payload.did,
-    email: payload.email,
-  })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime(expiresAt)
-    .setSubject(payload.userId)
-    .sign(getSecretKey());
+export interface RefreshClaims {
+  userId: string;
+  sv: number;
+  amr: string[];
+  asr: Assurance;
+  expiresAt: Date;
+}
 
-  return token;
+// === Mint ===
+
+/**
+ * Mints a session token. Callers pass `sv` explicitly - this function never
+ * reads the database itself, so a caller cannot accidentally mint a token
+ * stamped with a version it did not verify.
+ */
+export async function createSessionToken(payload: SessionPayload): Promise<string> {
+  return signPurposeToken(
+    'session',
+    {
+      userId: payload.userId,
+      googleId: payload.googleId,
+      did: payload.did,
+      email: payload.email,
+      sv: payload.sv,
+      amr: payload.amr,
+      asr: payload.asr,
+    },
+    SESSION_TTL_SECONDS
+  );
 }
 
 /**
- * Create a refresh token (longer lived)
+ * Mints a refresh token. Carries no `did`/`email` - the refresh path never
+ * needs identity display fields, only enough to re-mint a session.
  */
-export async function createRefreshToken(userId: string): Promise<string> {
-  // Refresh tokens last 30 days
-  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+export async function createRefreshToken(payload: RefreshPayload): Promise<string> {
+  return signPurposeToken(
+    'refresh',
+    {
+      userId: payload.userId,
+      sv: payload.sv,
+      amr: payload.amr,
+      asr: payload.asr,
+    },
+    REFRESH_TTL_SECONDS
+  );
+}
 
-  const token = await new SignJWT({ userId })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime(expiresAt)
-    .setSubject(userId)
-    .sign(getSecretKey());
+// === Verify (pure - no DB read, no revocation check) ===
 
-  return token;
+/**
+ * Verifies a session token against the session purpose only. Does NOT check
+ * `session_version` - that happens in `assertLiveSessionVersion`, called only
+ * from the two session entry points below.
+ */
+export async function verifySessionToken(token: string): Promise<Session | null> {
+  const claims = await verifyPurposeToken('session', token);
+  if (!claims) return null;
+
+  return {
+    userId: claims.userId as string,
+    googleId: claims.googleId as string,
+    did: claims.did as string,
+    email: claims.email as string,
+    sv: claims.sv as number,
+    amr: (claims.amr as string[]) ?? [],
+    asr: claims.asr as Assurance,
+    expiresAt: new Date((claims.exp ?? 0) * 1000),
+  };
 }
 
 /**
- * Verify and decode a session token
+ * Verifies a refresh token against the refresh purpose only, returning the
+ * full claim set (not just a userId string) - the refresh route needs `sv`,
+ * `amr` and `asr`.
  */
-export async function verifySessionToken(
-  token: string
-): Promise<Session | null> {
-  try {
-    const { payload } = await jwtVerify(token, getSecretKey());
+export async function verifyRefreshToken(token: string): Promise<RefreshClaims | null> {
+  const claims = await verifyPurposeToken('refresh', token);
+  if (!claims) return null;
 
-    const sessionPayload = payload as SessionPayload;
+  return {
+    userId: claims.userId as string,
+    sv: claims.sv as number,
+    amr: (claims.amr as string[]) ?? [],
+    asr: claims.asr as Assurance,
+    expiresAt: new Date((claims.exp ?? 0) * 1000),
+  };
+}
 
-    return {
-      userId: sessionPayload.userId,
-      googleId: sessionPayload.googleId,
-      did: sessionPayload.did,
-      email: sessionPayload.email,
-      expiresAt: new Date((payload.exp || 0) * 1000),
-    };
-  } catch {
+/**
+ * The session-path verification helper. Task 5 (legacy window) extends this,
+ * after a null `verifySessionToken`, with a bounded legacy-token fallback -
+ * this is the one place that wiring happens.
+ */
+async function resolveSessionPathClaims(token: string): Promise<Session | null> {
+  return verifySessionToken(token);
+}
+
+// === Model B: the central revocation check ===
+
+/**
+ * Re-reads `users.session_version` by primary key and returns the session
+ * only when it strictly equals the token's `sv`. On mismatch, missing row, or
+ * read failure, attempts to clear the session cookies (best-effort - `cookies()`
+ * is mutable inside route handlers but throws in a React Server Component
+ * render, so the auth result must not depend on which context called it) and
+ * returns null either way.
+ */
+async function assertLiveSessionVersion(session: Session): Promise<Session | null> {
+  const storedVersion = await getUserSessionVersion(session.userId);
+  if (storedVersion === null || storedVersion !== session.sv) {
+    try {
+      await clearSessionCookies();
+    } catch {
+      // RSC render context, or no request scope - nothing to clear from here.
+    }
     return null;
   }
+  return session;
 }
 
-/**
- * Verify a refresh token and get userId
- */
-export async function verifyRefreshToken(
-  token: string
-): Promise<string | null> {
-  try {
-    const { payload } = await jwtVerify(token, getSecretKey());
-    return payload.sub || null;
-  } catch {
-    return null;
-  }
-}
+// === Cookie management ===
 
 /**
  * Set session cookies (server action)
@@ -159,14 +186,13 @@ export async function setSessionCookies(
   refreshToken?: string
 ): Promise<void> {
   const cookieStore = await cookies();
-  const expiresIn = parseDuration(JWT_EXPIRY);
 
   cookieStore.set(COOKIE_NAME, sessionToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
-    maxAge: expiresIn / 1000,
+    maxAge: SESSION_TTL_SECONDS,
   });
 
   if (refreshToken) {
@@ -175,7 +201,7 @@ export async function setSessionCookies(
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 30 * 24 * 60 * 60, // 30 days
+      maxAge: REFRESH_TTL_SECONDS,
     });
   }
 }
@@ -191,7 +217,10 @@ export async function getSessionFromCookies(): Promise<Session | null> {
     return null;
   }
 
-  return verifySessionToken(token);
+  const claims = await resolveSessionPathClaims(token);
+  if (!claims) return null;
+
+  return assertLiveSessionVersion(claims);
 }
 
 /**
@@ -221,36 +250,38 @@ export function isSessionExpiringSoon(session: Session): boolean {
 
 // === API Route Helpers ===
 
-/**
- * Get session from request headers
- * For use in API routes
- */
-export async function getSessionFromRequest(
-  request: Request
-): Promise<Session | null> {
-  // First try Authorization header
+function extractSessionTokenFromRequest(request: Request): string | null {
   const authHeader = request.headers.get('Authorization');
   if (authHeader?.startsWith('Bearer ')) {
-    const token = authHeader.slice(7);
-    return verifySessionToken(token);
+    return authHeader.slice(7);
   }
 
-  // Fall back to cookies
   const cookieHeader = request.headers.get('Cookie');
   if (cookieHeader) {
-    const cookies = Object.fromEntries(
+    const parsedCookies = Object.fromEntries(
       cookieHeader.split('; ').map((c) => {
         const [key, ...rest] = c.split('=');
         return [key, rest.join('=')];
       })
     );
-    const token = cookies[COOKIE_NAME];
-    if (token) {
-      return verifySessionToken(token);
-    }
+    return parsedCookies[COOKIE_NAME] || null;
   }
 
   return null;
+}
+
+/**
+ * Get session from request headers
+ * For use in API routes
+ */
+export async function getSessionFromRequest(request: Request): Promise<Session | null> {
+  const token = extractSessionTokenFromRequest(request);
+  if (!token) return null;
+
+  const claims = await resolveSessionPathClaims(token);
+  if (!claims) return null;
+
+  return assertLiveSessionVersion(claims);
 }
 
 /**

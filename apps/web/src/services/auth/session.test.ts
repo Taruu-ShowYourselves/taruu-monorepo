@@ -190,11 +190,16 @@ describe('session.ts', () => {
       amr: ['google'],
       asr: 'sf',
     });
-    cookieStore.set('sync-session', token);
 
+    // Stale sv: rejected, and the mismatch clears the cookie (verified
+    // separately below), so each case sets the cookie fresh.
+    cookieStore.set('sync-session', token);
     (getUserSessionVersion as Mock).mockResolvedValue(2);
     expect(await getSessionFromCookies()).toBeNull();
+    expect(cookieStore.has('sync-session')).toBe(false);
 
+    // Matching sv: accepted.
+    cookieStore.set('sync-session', token);
     (getUserSessionVersion as Mock).mockResolvedValue(1);
     expect(await getSessionFromCookies()).not.toBeNull();
   });
