@@ -13,7 +13,8 @@
 import { cookies } from 'next/headers';
 import { getUserSessionVersion } from '@/lib/supabase/db';
 import type { Assurance } from './assurance';
-import { signPurposeToken, verifyPurposeToken } from './tokens';
+import { signPurposeToken, verifyPurposeToken, decodeTokenTypeUnverified } from './tokens';
+import { verifyLegacySessionToken } from './legacy-token';
 
 // === Configuration ===
 
@@ -145,12 +146,22 @@ export async function verifyRefreshToken(token: string): Promise<RefreshClaims |
 }
 
 /**
- * The session-path verification helper. Task 5 (legacy window) extends this,
- * after a null `verifySessionToken`, with a bounded legacy-token fallback -
- * this is the one place that wiring happens.
+ * The session-path verification helper (canonical §4.6, T-M1-06). Tries the
+ * modern verify first; only when that fails AND the token carries no
+ * recognized `typ` claim does it fall through to the bounded legacy window -
+ * a token with a recognized type claim failed a REAL check and must never be
+ * retried as legacy, which is exactly the "strip the signature to reach the
+ * weak path" downgrade attack this guards against.
  */
 async function resolveSessionPathClaims(token: string): Promise<Session | null> {
-  return verifySessionToken(token);
+  const modern = await verifySessionToken(token);
+  if (modern) return modern;
+
+  if (decodeTokenTypeUnverified(token) !== null) {
+    return null;
+  }
+
+  return verifyLegacySessionToken(token);
 }
 
 // === Model B: the central revocation check ===
