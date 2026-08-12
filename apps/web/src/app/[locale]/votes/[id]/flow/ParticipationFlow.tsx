@@ -172,7 +172,7 @@ const COPY: Record<Locale, FlowCopy> = {
     scoreGatePrefix: 'Your vote cannot be recorded yet: you hold ',
     scoreGateMid: ' of the ',
     scoreGateSuffix: ' verification points a ballot requires.',
-    scoreGateResidency: 'The residency check is worth 40 points — the first check-in opens the ballot.',
+    scoreGateResidency: 'The residency check is worth 40 points - the first check-in opens the ballot.',
     scoreGateCta: 'Finish verification →',
     ctaClosed: 'Voting is closed',
     ctaSignIn: 'Sign in to complete',

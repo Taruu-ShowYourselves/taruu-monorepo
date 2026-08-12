@@ -1,7 +1,7 @@
 import 'server-only';
 
 /**
- * Space audit log — append and read, and nothing else.
+ * Space audit log - append and read, and nothing else.
  *
  * This module exports no `update*` and no `delete*` function. That absence is
  * the CI-checkable half of the append-only guarantee: a grep over this file
@@ -9,12 +9,12 @@ import 'server-only';
  *
  * The *enforceable* half is the database, migration `20260802000010`: a BEFORE
  * UPDATE/DELETE trigger that raises, a BEFORE TRUNCATE statement trigger, and a
- * REVOKE — plus `ON DELETE RESTRICT` on both foreign keys, so a user with audit
+ * REVOKE - plus `ON DELETE RESTRICT` on both foreign keys, so a user with audit
  * history cannot be deleted out from under it. RLS is not part of this: every
  * query here runs as the service role, which has BYPASSRLS. The manual probe is
  * `supabase/tests/audit_append_only.sql`.
  *
- * Reads are scope-gated like every other space query — a SpaceScope minted for
+ * Reads are scope-gated like every other space query - a SpaceScope minted for
  * `audit.read` is the only key that opens them.
  */
 

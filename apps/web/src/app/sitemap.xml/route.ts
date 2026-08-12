@@ -63,7 +63,7 @@ const STATIC_PATHS: readonly Omit<SitemapEntry, 'lastModified'>[] = [
 const url = (locale: Locale, path: string) =>
   `${SITE_URL}${localePath(locale, path)}`;
 
-/** Municipality names carry no XML metacharacters today; the vote ids do not either. Encoded anyway — a sitemap that breaks its own parser is worse than a missing row. */
+/** Municipality names carry no XML metacharacters today; the vote ids do not either. Encoded anyway - a sitemap that breaks its own parser is worse than a missing row. */
 const xml = (value: string) =>
   value
     .replace(/&/g, '&amp;')

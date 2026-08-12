@@ -1,5 +1,5 @@
 /**
- * Suspension is immediate and never erases history — SPACE-09.
+ * Suspension is immediate and never erases history - SPACE-09.
  *
  * Suspension is one nullable column, `space_capability_grants.suspended_at`.
  * Two properties follow and both are tested here:
@@ -14,8 +14,8 @@
  *
  * Suspension is simulated the way the database does it, not by clearing a mock:
  * `findActiveGrant` filters `suspended_at IS NULL` and so stops returning the
- * row, while `findGrantsForUser` — which reads suspended rows too, because a
- * suspended admin must still reach the shell — keeps returning it.
+ * row, while `findGrantsForUser` - which reads suspended rows too, because a
+ * suspended admin must still reach the shell - keeps returning it.
  */
 
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';

@@ -155,7 +155,7 @@ export default function VoteDetailScreen() {
   /**
    * Record the ballot on the server.
    *
-   * This used to push to `/payment/checkout` — a leftover from when
+   * This used to push to `/payment/checkout` - a leftover from when
    * participation cost ₪3. Participation is free, so a checkout screen for a
    * free vote was both a dead end and a false claim about what voting costs.
    * The web flow has recorded through this endpoint since the participation

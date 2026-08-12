@@ -1,5 +1,5 @@
 /* ============================================================
- * PressTable — the RTL data-table contract (Interaction Contract 4, D10/D11).
+ * PressTable - the RTL data-table contract (Interaction Contract 4, D10/D11).
  *
  * Table semantics survive every width. Responsive reduction is a paired
  * `display: none` on `th[data-col]` + `td[data-col]`; a cell is NEVER switched
@@ -45,7 +45,7 @@
 
 .table th,
 .table td {
-  /* `start`, including numeric columns — the press system does not right-align. */
+  /* `start`, including numeric columns - the press system does not right-align. */
   text-align: start;
   vertical-align: top;
   padding: var(--space-3) var(--space-4);
@@ -86,7 +86,7 @@
   border-block-start: 0;
 }
 
-/* No zebra striping — the press system separates with rules, not stripes. */
+/* No zebra striping - the press system separates with rules, not stripes. */
 .table tbody tr:hover > th,
 .table tbody tr:hover > td {
   background: var(--np-paper-2);

@@ -1,5 +1,5 @@
 /* ============================================================
- * ConfirmDialog — Radix AlertDialog, press-painted.
+ * ConfirmDialog - Radix AlertDialog, press-painted.
  * Also the home of the dense-`ink` hover fix (D23), at the bottom of the file.
  * The disabled-state contract (D17/D27) it used to carry now lives in
  * `disabledButton.module.css`, so controls that are not `ink` can take the
@@ -72,7 +72,7 @@
   color: var(--np-ink-soft);
 }
 
-/* Red text on paper-box is `--np-red-ink` — 10.32:1 (D9). */
+/* Red text on paper-box is `--np-red-ink` - 10.32:1 (D9). */
 .consequence {
   font-family: var(--np-font-mono);
   font-size: var(--text-sm);
@@ -126,7 +126,7 @@
 }
 
 /* ============================================================
- * D23 — the dense-`ink` hover fix.
+ * D23 - the dense-`ink` hover fix.
  *
  * The disabled appearance is `disabledButton.module.css`, and every consumer
  * of `confirmButtonClass` gets both class names. Only the hover half is here,

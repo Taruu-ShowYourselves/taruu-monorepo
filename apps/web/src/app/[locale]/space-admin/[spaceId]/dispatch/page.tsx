@@ -13,12 +13,12 @@ import styles from './page.module.css';
 import { localePrefix } from '@/lib/i18n';
 
 /**
- * Surface 5 — `/space-admin/{spaceId}/dispatch`.
+ * Surface 5 - `/space-admin/{spaceId}/dispatch`.
  *
  * This page resolves its own authorization on every request, through the same
  * use-case the API routes call. `listSentCampaigns` is gated on
  * `notification.send`: the history is a record of what an admin did with that
- * capability, and there is no separate read capability for it — so a member
+ * capability, and there is no separate read capability for it - so a member
  * without it gets the refusal here rather than an empty list.
  *
  * It reaches no repository and opens no database client. A page is directly
@@ -46,7 +46,7 @@ const COPY: Record<Locale, DispatchPageCopy> = {
     kicker: 'משגר · DISPATCH',
     heading: 'שליחת התראה לתושבי המרחב',
     standfirst:
-      'ההתראה נשלחת לאפליקציה ולמכשירים של הנמענים. מי שביטל הסכמה לא יקבל אותה — גם אם הוא בקהל שבחרתם.',
+      'ההתראה נשלחת לאפליקציה ולמכשירים של הנמענים. מי שביטל הסכמה לא יקבל אותה - גם אם הוא בקהל שבחרתם.',
     historyHeading: 'התראות שנשלחו',
     historyEmpty: 'עוד לא נשלחה התראה מהמרחב הזה.',
     recipientsLabel: 'נמענים',
@@ -57,7 +57,7 @@ const COPY: Record<Locale, DispatchPageCopy> = {
     kicker: 'Dispatch desk · DISPATCH',
     heading: "Send a notification to this space's residents",
     standfirst:
-      "The notification goes to recipients' app and devices. Anyone who has withdrawn consent will not receive it — even if they are in the audience you selected.",
+      "The notification goes to recipients' app and devices. Anyone who has withdrawn consent will not receive it - even if they are in the audience you selected.",
     historyHeading: 'Notifications sent',
     historyEmpty: 'No notification has been sent from this space yet.',
     recipientsLabel: 'recipients',
@@ -79,7 +79,7 @@ export default async function SpaceDispatchPage({ params }: DispatchPageProps) {
 
   // Shell identity and the capability set. A membership that does not resolve
   // is the same opaque refusal as a space that does not exist, and the space
-  // is not named in it — an admin who holds nothing here must not learn its
+  // is not named in it - an admin who holds nothing here must not learn its
   // name from the page that just refused them.
   const overview = await getSpaceOverview(session, spaceId);
   if (overview.isErr()) {
@@ -126,8 +126,8 @@ export default async function SpaceDispatchPage({ params }: DispatchPageProps) {
   );
 
   if (history.isErr()) {
-    // A member here who holds no `notification.send`: the page stays coherent —
-    // masthead, header, nav, footer — and the surface itself is the refusal,
+    // A member here who holds no `notification.send`: the page stays coherent -
+    // masthead, header, nav, footer - and the surface itself is the refusal,
     // with the escalation path on it.
     return (
       <section className={styles.surface} aria-labelledby={HEADING_ID}>

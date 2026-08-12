@@ -4,7 +4,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
  * The guard that keeps a keyless prerender from failing the build.
  *
  * `supabaseAdmin` is a Proxy that constructs its client on first property
- * access, so a missing service-role key throws at `supabaseAdmin.rpc` — before
+ * access, so a missing service-role key throws at `supabaseAdmin.rpc` - before
  * any query, and so outside the `error` channel reads destructure. Modules
  * documenting "degrades to empty without a key" did not actually do so; the
  * throw escaped the check and took `next build` down (#39).

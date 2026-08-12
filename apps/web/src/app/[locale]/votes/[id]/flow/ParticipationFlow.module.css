@@ -86,7 +86,7 @@
   margin-block-start: var(--space-4);
 }
 
-/* Score gate — a standing notice, not an error: the ballot stays usable and
+/* Score gate - a standing notice, not an error: the ballot stays usable and
    the server still decides. Red rule on the leading edge marks it as the one
    thing standing between this reader and a recorded vote. */
 .scoreGate {

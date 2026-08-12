@@ -1,5 +1,5 @@
 /**
- * /api/topics/[id]/aside — the desk's "not a matter of consensus" signal.
+ * /api/topics/[id]/aside - the desk's "not a matter of consensus" signal.
  *
  * GET    the topic's aside count, plus the caller's own reason if signed in
  * POST   set aside, or amend the reason

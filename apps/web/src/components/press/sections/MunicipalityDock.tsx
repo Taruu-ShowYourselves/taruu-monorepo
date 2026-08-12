@@ -166,7 +166,7 @@ const formatCount = (value: number | null, locale: Locale, dash: string): string
 
 /** A signed score prints its sign; an unmeasured one prints an em-dash. */
 const formatScore = (score: number | null): string =>
-  score === null ? '—' : `${score > 0 ? '+' : ''}${score}`;
+  score === null ? '-' : `${score > 0 ? '+' : ''}${score}`;
 
 const scoreBand = (score: number | null): 'up' | 'down' | 'flat' | 'none' => {
   if (score === null) return 'none';
@@ -185,7 +185,7 @@ function CivicFigure({ value, locale }: { value: number | null; locale: Locale }
   const ref = useRef<HTMLSpanElement>(null);
   const previous = useRef<number | null>(value);
   const reduceMotion = useReducedMotion();
-  const dash = '—';
+  const dash = '-';
   const text = formatCount(value, locale, dash);
 
   useEffect(() => {

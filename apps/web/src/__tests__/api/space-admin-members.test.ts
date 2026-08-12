@@ -1,5 +1,5 @@
 /**
- * People governance — SPACE-06 and SPACE-09.
+ * People governance - SPACE-06 and SPACE-09.
  *
  * Four properties are under test here, and each one has failed in some system
  * before:
@@ -106,7 +106,7 @@ const json = (method: string, url: string, body: unknown) =>
 /**
  * A `users` row exactly as the repository's seven-column allow-list projects
  * it. Written out in full rather than spread from a helper, so a reader can see
- * that the raw row carries names and a verification timestamp — both of which
+ * that the raw row carries names and a verification timestamp - both of which
  * the response must transform rather than pass through.
  */
 const memberRow = (overrides: Partial<Record<string, unknown>> = {}) => ({
@@ -232,7 +232,7 @@ describe('GET /api/space-admin/{spaceId}/members', () => {
    * A text-level guard rather than a field-by-field one. Asserting that
    * `body.members[0].email` is undefined only catches the leak somebody already
    * thought of; reading the whole serialized response catches the shape nobody
-   * named — a nested object, a renamed column, an accidental spread.
+   * named - a nested object, a renamed column, an accidental spread.
    */
   it('serializes nothing resembling an identity document, contact channel or DID', async () => {
     holds(['member.read']);
@@ -472,7 +472,7 @@ describe('suspension preserves history', () => {
     expect(suspend.status).toBe(200);
 
     // The resolver now reflects what the suspension wrote. Nothing is cached
-    // and the session is unchanged — the very next request re-reads the grant.
+    // and the session is unchanged - the very next request re-reads the grant.
     holds([]);
     const afterwards = await POST_GRANT(
       json('POST', `http://localhost/api/space-admin/${SPACE_A}/grants`, {
@@ -562,7 +562,7 @@ describe('platform-admin grant suspension', () => {
  * session whose grants are all in SPACE_A.
  *
  * `POST /escalations` is deliberately absent from this table and is the one
- * endpoint in the plan that must NOT behave this way — it is reachable without
+ * endpoint in the plan that must NOT behave this way - it is reachable without
  * any capability by design (SPACE-09), and its own opacity cases live in
  * `space-admin-content.test.ts`. Do not "fix" the omission by adding a row
  * here; a 403 there would put the escalation path out of reach of exactly the

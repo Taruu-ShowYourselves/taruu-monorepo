@@ -23,7 +23,7 @@ import { serverSentence } from '@/components/space-admin/serverSentence';
 import styles from './page.module.css';
 
 /**
- * Surface 5 — the notification composer, and the eight-state gate in front of
+ * Surface 5 - the notification composer, and the eight-state gate in front of
  * the one irreversible thing this dashboard can do.
  *
  * THE POINT OF THIS FILE IS AN ABSENCE: there is no list of recipients in it.
@@ -31,7 +31,7 @@ import styles from './page.module.css';
  * decides who receives a space notification; the preview persists what it
  * resolved and fingerprints it; the send re-runs the same resolver and refuses
  * unless both fingerprints still match. So this component cannot dispatch to
- * an audience other than the one it displayed — not because it is careful, but
+ * an audience other than the one it displayed - not because it is careful, but
  * because it holds four counts and an opaque token and has nothing else to
  * send.
  *
@@ -42,7 +42,7 @@ import styles from './page.module.css';
  */
 
 // ---------------------------------------------------------------------------
-// Copy deck — one literal per line, so each stays greppable
+// Copy deck - one literal per line, so each stays greppable
 // ---------------------------------------------------------------------------
 
 const TITLE_LABEL = 'כותרת ההתראה';
@@ -61,11 +61,11 @@ const HINT_NO_PREVIEW = 'חשבו קהל יעד כדי לאפשר שליחה.';
 const HINT_NO_RECIPIENTS = 'אין נמענים מאושרים בקהל שבחרתם.';
 
 const SEND_ERROR_HE =
-  'ההתראה לא נשלחה, ואף נמען לא קיבל אותה. נסו שוב; אם זה חוזר — פנו למנהל־על.';
+  'ההתראה לא נשלחה, ואף נמען לא קיבל אותה. נסו שוב; אם זה חוזר - פנו למנהל־על.';
 
 /** A failed preview is not in the copy deck; this is the deck's error voice. */
 const PREVIEW_ERROR_HE =
-  'לא הצלחנו לחשב את הקהל. הנתונים לא נפגעו — נסו שוב; אם זה חוזר, פנו למנהל־על.';
+  'לא הצלחנו לחשב את הקהל. הנתונים לא נפגעו - נסו שוב; אם זה חוזר, פנו למנהל־על.';
 
 /**
  * The house required-field string, verbatim. It already exists in four other
@@ -137,7 +137,7 @@ export interface DispatchClientProps {
   /**
    * From `GET …/notifications`. Composer state 0 renders before any preview
    * exists, so `{used}/{limit}` and the reset date cannot come from a preview
-   * response — and the send's 429 deliberately carries no figures at all.
+   * response - and the send's 429 deliberately carries no figures at all.
    */
   quota: SpaceNotificationQuota;
 }
@@ -170,7 +170,7 @@ export function DispatchClient({ spaceId, quota }: DispatchClientProps) {
    * Bumped by every edit. A preview that was requested before an edit and
    * arrives after it describes a message that no longer exists, so it must
    * land STALE rather than enabling the send for text the admin has changed.
-   * Comparing the counter is enough — the edit funnel is the only writer.
+   * Comparing the counter is enough - the edit funnel is the only writer.
    */
   const editSeq = useRef(0);
 
@@ -178,7 +178,7 @@ export function DispatchClient({ spaceId, quota }: DispatchClientProps) {
 
   /**
    * THE STATE IS DERIVED, NEVER ASSIGNED. Eight names, one expression, in
-   * priority order — a `setState('preview_fresh')` buried in a handler is how
+   * priority order - a `setState('preview_fresh')` buried in a handler is how
    * a send control outlives the preview that justified it.
    */
   const state: ComposerState = useMemo(() => {
@@ -196,7 +196,7 @@ export function DispatchClient({ spaceId, quota }: DispatchClientProps) {
 
   /**
    * The send is enabled in exactly one state. Everywhere else it is disabled
-   * with visible unblock text (Rule B) or — at quota and after a send — gone.
+   * with visible unblock text (Rule B) or - at quota and after a send - gone.
    */
   const canSend = state === 'preview_fresh';
   const showSend = state !== 'quota_exhausted' && state !== 'sent';
@@ -208,7 +208,7 @@ export function DispatchClient({ spaceId, quota }: DispatchClientProps) {
 
   /**
    * STALENESS FIRES ON CHANGE, NOT ON BLUR, and all three fields go through
-   * here — one place where 3 → 4 happens, so no field can forget it.
+   * here - one place where 3 → 4 happens, so no field can forget it.
    */
   const edit = useCallback(
     (patch: Partial<Draft>) => {
@@ -318,7 +318,7 @@ export function DispatchClient({ spaceId, quota }: DispatchClientProps) {
           return;
         }
 
-        // 429 — the quota was spent between the preview and the send. The body
+        // 429 - the quota was spent between the preview and the send. The body
         // carries no figures by design, so the block's numbers come from the
         // prop and the refresh is what makes them current.
         if (response.status === 429) {
@@ -328,7 +328,7 @@ export function DispatchClient({ spaceId, quota }: DispatchClientProps) {
           return;
         }
 
-        // 409 — a fingerprint moved, or the campaign had already been sent.
+        // 409 - a fingerprint moved, or the campaign had already been sent.
         // All of them return the composer to state 4 carrying THE SERVER'S OWN
         // SENTENCE, which is why this is one branch and not three: the two
         // staleness sentences are already distinct on the wire, and re-typing
@@ -336,7 +336,7 @@ export function DispatchClient({ spaceId, quota }: DispatchClientProps) {
         // screenshot review would ever catch drifting.
         //
         // 05-09 asks for the sent receipt rather than a banner on the third of
-        // them, `ההתראה כבר נשלחה.` — but an error response carries no
+        // them, `ההתראה כבר נשלחה.` - but an error response carries no
         // recipient count, no send time and no remaining quota, so that
         // receipt could only be fabricated. It is also all but unreachable
         // here: every preview inserts its own campaign row, the send disables
@@ -391,7 +391,7 @@ export function DispatchClient({ spaceId, quota }: DispatchClientProps) {
   );
 
   // ------------------------------------------------------------------
-  // State 6 — the send receipt replaces the composer
+  // State 6 - the send receipt replaces the composer
   // ------------------------------------------------------------------
   if (state === 'sent' && sent) {
     return (
@@ -430,7 +430,7 @@ export function DispatchClient({ spaceId, quota }: DispatchClientProps) {
   }
 
   // ------------------------------------------------------------------
-  // State 0 — the quota is spent
+  // State 0 - the quota is spent
   // ------------------------------------------------------------------
   //
   // The send control is ABSENT rather than disabled, because an exhausted
@@ -540,7 +540,7 @@ export function DispatchClient({ spaceId, quota }: DispatchClientProps) {
             <div className={styles.actionRow}>
               {/* Disabled only while its own request is in flight, with the
                   label swap Rule B's last row specifies. An empty field is
-                  answered by a field error on the field itself — a preview CTA
+                  answered by a field error on the field itself - a preview CTA
                   disabled until the form is valid would be a seventh disabled
                   state, and Rule B's list is exhaustive. */}
               <NewsButton
@@ -559,7 +559,7 @@ export function DispatchClient({ spaceId, quota }: DispatchClientProps) {
                   clears WCAG's large-text threshold, which is the sole reason
                   a 4.03:1 red fill is permitted for it at all (D8).
                   `disabledButtonClass` is the D17/D27 appearance WITHOUT D23's
-                  hover fill — that fix is scoped to `ink`, and this button's
+                  hover fill - that fix is scoped to `ink`, and this button's
                   own hover already inverts to ink at 16.66:1. */}
               {showSend ? (
                 <NewsButton

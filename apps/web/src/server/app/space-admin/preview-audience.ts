@@ -6,7 +6,7 @@ import 'server-only';
  * Resolve the audience once, persist what was resolved, and hand the admin the
  * counts plus a token derived from the message they were shown. Plan 05-09's
  * send re-runs the same resolver and refuses to proceed unless both
- * fingerprints still match — which is the whole of SPACE-08's "delivered
+ * fingerprints still match - which is the whole of SPACE-08's "delivered
  * recipients equal the previewed authorized audience".
  */
 
@@ -30,7 +30,7 @@ import type { Session } from '@/services/auth/session';
  *
  * State 0 of the composer renders the fields read-only with the send control
  * absent entirely, and it needs the true `{used}/{limit}` pair to render the
- * `המכסה מתאפסת ב־{date}` block at all — a 429 would leave the UI with nothing
+ * `המכסה מתאפסת ב־{date}` block at all - a 429 would leave the UI with nothing
  * to display and nothing to explain. The quota is enforced at send time
  * (05-09), against the same database count read here. Please do not "fix" this
  * into a 429; the preview writes no notification and consumes no quota.

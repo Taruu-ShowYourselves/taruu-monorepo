@@ -1,7 +1,7 @@
 import 'server-only';
 
 /**
- * Proposal decisions — one scoped read and one conditional transition.
+ * Proposal decisions - one scoped read and one conditional transition.
  *
  * This module is deliberately just those two functions. 05-06's content
  * moderation writer lives in `space-member.repo.ts`, so two plans running in
@@ -53,7 +53,7 @@ export function findProposalInScope(
     // later must be opted in here before it can reach an admin response.
     //
     // The submitter embed names its foreign key because `votes` has three into
-    // `users` — `creator_id` plus the `hidden_by` / `flagged_by` moderation
+    // `users` - `creator_id` plus the `hidden_by` / `flagged_by` moderation
     // columns from 20260802000012. Unqualified, PostgREST answers PGRST201 and
     // the detail panel 500s. Same fix, same reason, as `listProposals`.
     .select(
@@ -97,7 +97,7 @@ export function findProposalInScope(
  * Not an advisory transaction lock. Supabase connections arrive through a
  * pooler from Cloudflare Workers, where session-scoped lock semantics are not
  * dependable, and the conditional update already gives determinism at zero
- * cost — the same idiom `markMerchOrderPaid` has used in this codebase since
+ * cost - the same idiom `markMerchOrderPaid` has used in this codebase since
  * the merch rail shipped.
  *
  * The database carries a backstop underneath this guard: the partial unique

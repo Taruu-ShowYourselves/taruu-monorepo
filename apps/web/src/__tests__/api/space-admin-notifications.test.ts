@@ -2,8 +2,8 @@
  * SPACE-08, second half: the send.
  *
  * SPACE-08 requires that the recipients actually delivered to are exactly the
- * previewed authorized audience — opt-outs honoured, per-space quota enforced
- * server-side, every delivery logged — and this file proves each half against
+ * previewed authorized audience - opt-outs honoured, per-space quota enforced
+ * server-side, every delivery logged - and this file proves each half against
  * the *writes*, not against the response body, because a response can be
  * correct while the rows are wrong and it is the rows that are the guarantee.
  *
@@ -146,8 +146,8 @@ const MESSAGE = {
  * Arrange the exact campaign row the preview would have persisted for this
  * message and this membership.
  *
- * The fingerprints come from the real `resolveAudience` / `contentHash` — the
- * same two functions the send re-runs — because a test that re-derived them
+ * The fingerprints come from the real `resolveAudience` / `contentHash` - the
+ * same two functions the send re-runs - because a test that re-derived them
  * with its own join string would pass while the production comparison failed.
  */
 async function previewed(
@@ -237,7 +237,7 @@ beforeEach(() => {
   });
 });
 
-describe('sendNotification — the verification that makes SPACE-08 true', () => {
+describe('sendNotification - the verification that makes SPACE-08 true', () => {
   it('hands insertUserNotifications exactly the previewed id set, sorted', async () => {
     const { command, audience } = await previewed([
       candidate(5),
@@ -316,7 +316,7 @@ describe('sendNotification — the verification that makes SPACE-08 true', () =>
     expect(claimCampaignForSend).not.toHaveBeenCalled();
   });
 
-  it('allows the eighth send of a quota of eight — the check is at-or-over, not past', async () => {
+  it('allows the eighth send of a quota of eight - the check is at-or-over, not past', async () => {
     const { command } = await previewed();
     (countCampaignsSentThisMonth as Mock).mockReturnValue(okAsync(7));
 
@@ -334,7 +334,7 @@ describe('sendNotification — the verification that makes SPACE-08 true', () =>
     const error = result._unsafeUnwrapErr();
     expect(error.kind).toBe('CONFLICT');
     expect(error).toEqual(
-      conflict('ההודעה שונתה אחרי חישוב הקהל — חשבו שוב לפני שליחה.')
+      conflict('ההודעה שונתה אחרי חישוב הקהל - חשבו שוב לפני שליחה.')
     );
     expect(claimCampaignForSend).not.toHaveBeenCalled();
     expect(insertUserNotifications).not.toHaveBeenCalled();
@@ -346,7 +346,7 @@ describe('sendNotification — the verification that makes SPACE-08 true', () =>
     const result = await send({ ...command, previewToken: 'a'.repeat(64) });
 
     expect(result._unsafeUnwrapErr()).toEqual(
-      conflict('ההודעה שונתה אחרי חישוב הקהל — חשבו שוב לפני שליחה.')
+      conflict('ההודעה שונתה אחרי חישוב הקהל - חשבו שוב לפני שליחה.')
     );
     expect(claimCampaignForSend).not.toHaveBeenCalled();
   });
@@ -359,7 +359,7 @@ describe('sendNotification — the verification that makes SPACE-08 true', () =>
     const result = await send(command);
 
     expect(result._unsafeUnwrapErr()).toEqual(
-      conflict('הקהל השתנה — הציגו תצוגה מקדימה מחדש.')
+      conflict('הקהל השתנה - הציגו תצוגה מקדימה מחדש.')
     );
     expect(claimCampaignForSend).not.toHaveBeenCalled();
     expect(insertUserNotifications).not.toHaveBeenCalled();
@@ -457,7 +457,7 @@ describe('sendNotification — the verification that makes SPACE-08 true', () =>
     expect(log).toBeLessThan(push);
   });
 
-  it('does not await the push — a hanging fan-out cannot hold the response', async () => {
+  it('does not await the push - a hanging fan-out cannot hold the response', async () => {
     const { command } = await previewed();
     let release: (() => void) | undefined;
     (sendBatchNotifications as Mock).mockImplementation(
@@ -527,7 +527,7 @@ describe('POST /api/space-admin/[spaceId]/notifications/send', () => {
 
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({
-      error: 'הקהל השתנה — הציגו תצוגה מקדימה מחדש.',
+      error: 'הקהל השתנה - הציגו תצוגה מקדימה מחדש.',
       code: 'CONFLICT',
     });
   });
@@ -539,7 +539,7 @@ describe('POST /api/space-admin/[spaceId]/notifications/send', () => {
 
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({
-      error: 'ההודעה שונתה אחרי חישוב הקהל — חשבו שוב לפני שליחה.',
+      error: 'ההודעה שונתה אחרי חישוב הקהל - חשבו שוב לפני שליחה.',
       code: 'CONFLICT',
     });
   });
@@ -648,7 +648,7 @@ describe('GET /api/space-admin/[spaceId]/notifications', () => {
   });
 });
 
-describe('fanOutCampaignPush — best effort, and evidence either way', () => {
+describe('fanOutCampaignPush - best effort, and evidence either way', () => {
   const campaign = {
     id: CAMPAIGN_ID,
     space_id: SPACE_A,
@@ -696,7 +696,7 @@ describe('fanOutCampaignPush — best effort, and evidence either way', () => {
     );
   });
 
-  it('swallows a failing batch — the in-app notification is already delivered', async () => {
+  it('swallows a failing batch - the in-app notification is already delivered', async () => {
     (sendBatchNotifications as Mock).mockRejectedValue(new Error('expo is down'));
 
     await expect(fanOutCampaignPush(campaign, [uid(1)])).resolves.toBeUndefined();

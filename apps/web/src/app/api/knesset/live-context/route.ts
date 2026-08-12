@@ -14,8 +14,8 @@ const MAX_IDS = 20;
  *
  * Two modes: `?ids=a,b,c` returns evidence for the requested votes;
  * `?top=N` resolves the N hottest ranked active Knesset votes server-side.
- * The client cannot pick hot ids itself — it would need the rankings it is
- * asking for — so the burning-vote surfaces use `top`.
+ * The client cannot pick hot ids itself - it would need the rankings it is
+ * asking for - so the burning-vote surfaces use `top`.
  */
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;

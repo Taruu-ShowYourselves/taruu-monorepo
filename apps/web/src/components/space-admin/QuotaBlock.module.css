@@ -1,11 +1,11 @@
 /* ============================================================
- * QuotaBlock — composer state 0, the exhausted monthly quota.
+ * QuotaBlock - composer state 0, the exhausted monthly quota.
  *
  * An INK BLOCK, and the contrast rule on ink is not the rule on paper (D16).
  * Naming a token without naming its background is exactly how this case got
  * through the first spec pass. Measured against the ink fill:
  *
- *   paper                        → 16.66:1  AAA — the ONLY compliant text here
+ *   paper                        → 16.66:1  AAA - the ONLY compliant text here
  *   the dark red used for red
  *     text on paper backgrounds  →  1.74:1  fails everything
  *   the accent red               →  4.13:1  fails AA for normal text, and a
@@ -13,7 +13,7 @@
  *                                           and weight 700 IS normal text
  *
  * So there is no compliant red TEXT on ink under either red token, and none is
- * attempted — this file declares no red at all. The kicker text is paper; only
+ * attempted - this file declares no red at all. The kicker text is paper; only
  * the `■` tick stays red, and its colour comes from `.kicker .tick` in
  * `kicker.module.css`, which `.kickerOnInk` composes. The tick is `aria-hidden`
  * and decorative, which exempts it from the text threshold.
@@ -36,7 +36,7 @@
 /* Paper, not red. See the table above.
  *
  * `tabular-nums` sits on the paragraph rather than on a span around the
- * figures, because the whole sentence is ONE string literal in the component —
+ * figures, because the whole sentence is ONE string literal in the component -
  * the copy deck is graded by grep, and a sentence split across three JSX nodes
  * to style two numbers stops being findable. */
 .body {

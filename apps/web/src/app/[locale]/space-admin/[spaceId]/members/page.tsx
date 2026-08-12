@@ -1,5 +1,5 @@
 /**
- * Surface 3 — חברים והרשאות (members and roles).
+ * Surface 3 - חברים והרשאות (members and roles).
  *
  * A Server Component that resolves its own authority on every request. The
  * shell (space identity + the capability set that drives Rule A) comes from
@@ -11,7 +11,7 @@
  * `getSpaceMembers` is the authorized read and the only one this page may
  * reach for. The repository entry point behind it takes a `SpaceScope` this
  * page cannot mint, and importing it would put a database call in front of no
- * authorization at all — which is exactly why the two carry different names.
+ * authorization at all - which is exactly why the two carry different names.
  *
  * The privacy note under the standfirst is not decoration: it is this
  * surface's statement of the SPACE-07 promise, and it is rendered as visible
@@ -47,7 +47,7 @@ const COPY: Record<Locale, MembersPageCopy> = {
     kicker: 'חברים והרשאות · MEMBERS',
     heading: 'חברים והרשאות',
     standfirst:
-      'רשימת החברים במרחב הזה בלבד, עם הפרטים הדרושים לניהול — ולא יותר מזה.',
+      'רשימת החברים במרחב הזה בלבד, עם הפרטים הדרושים לניהול - ולא יותר מזה.',
     privacyNote:
       'מוצגים רק פרטים הנדרשים לניהול. מסמכי זהות אינם נגישים מלוח זה, בשום מסך ובשום ייצוא.',
   },
@@ -55,9 +55,9 @@ const COPY: Record<Locale, MembersPageCopy> = {
     kicker: 'Members and roles · MEMBERS',
     heading: 'Members and roles',
     standfirst:
-      'The members of this space only, with the details administration requires — and nothing more.',
+      'The members of this space only, with the details administration requires - and nothing more.',
     privacyNote:
-      'Only details required for administration are shown. Identity documents cannot be reached from this desk — on any screen, in any export.',
+      'Only details required for administration are shown. Identity documents cannot be reached from this desk - on any screen, in any export.',
   },
 };
 

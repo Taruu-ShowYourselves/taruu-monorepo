@@ -3,7 +3,7 @@
  *
  * Zod schemas for the document-verification step (issue #32): the client
  * scans an Israeli ID card / driver's license on-device, extracts fields via
- * OCR, and submits ONLY the extracted fields — never the image. The server
+ * OCR, and submits ONLY the extracted fields - never the image. The server
  * re-validates everything it can (checksum, dates) before persisting.
  */
 
@@ -23,7 +23,7 @@ export type IdentityDocumentStatus = z.infer<typeof IdentityDocumentStatusSchema
 
 // === POST /api/verification/document ===
 
-/** OCR provenance — how trustworthy the submitted fields are. */
+/** OCR provenance - how trustworthy the submitted fields are. */
 export const OcrProvenanceSchema = z.object({
   /** Did OCR find the typed ID number on the document image? */
   idNumberMatched: z.boolean(),
@@ -35,7 +35,7 @@ export const OcrProvenanceSchema = z.object({
 export type OcrProvenance = z.infer<typeof OcrProvenanceSchema>;
 
 /**
- * Face-match provenance — derived scores only. The selfie, the document
+ * Face-match provenance - derived scores only. The selfie, the document
  * portrait and both embeddings never leave the device; the server sees
  * exactly these numbers.
  */

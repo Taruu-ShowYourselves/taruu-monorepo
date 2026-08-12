@@ -7,7 +7,7 @@
  * privacy allow-list itself: a display name, a join date, a membership state
  * and the capabilities granted in this space. Nothing derived from an identity
  * document reaches it, and nothing may be added here that the contract does
- * not already name — widening what is shown is a privacy decision made in the
+ * not already name - widening what is shown is a privacy decision made in the
  * contract, not a convenience taken in a cell renderer.
  *
  * Two absences are load-bearing:
@@ -18,8 +18,8 @@
  *      capabilities of someone who cannot act is meaningless and would write
  *      audit rows nobody can interpret later.
  *
- * Suspension itself is a reversible act — it sets a nullable column and
- * reinstatement clears it — so its confirmation is `audited`. The plate
+ * Suspension itself is a reversible act - it sets a nullable column and
+ * reinstatement clears it - so its confirmation is `audited`. The plate
  * reserved for acts the admin cannot undo from this dashboard belongs to
  * approve, reject and send, and this surface has none of those.
  */
@@ -136,15 +136,15 @@ interface MembersDialogDeck {
 interface MembersCopy {
   reasonPlaceholder: string;
   /**
-   * The FALLBACK when the failure carries no sentence of its own — a network
+   * The FALLBACK when the failure carries no sentence of its own - a network
    * error, or a status whose body is structural English. No string in the copy
    * deck covers it (the deck's error sentence is about a failed *load*), so
    * this one is written in its voice: what did not happen, and where to go if
    * it repeats.
    *
    * A 409 does carry a sentence, and it is rendered instead of this one. Those
-   * sentences are the repository's own — `החבר/ה כבר מושעה/ית במרחב הזה.`,
-   * `ההרשאה כבר אינה פעילה.` — and this line would contradict them: they mean
+   * sentences are the repository's own - `החבר/ה כבר מושעה/ית במרחב הזה.`,
+   * `ההרשאה כבר אינה פעילה.` - and this line would contradict them: they mean
    * the state already exists, while this one says nothing happened and nothing
    * was recorded. See `serverSentence` for which codes qualify.
    */
@@ -194,7 +194,7 @@ const COPY: Record<Locale, MembersCopy> = {
     reasonPlaceholder:
       'למה הכרעתם כך? הנימוק נשמר ביומן ואי אפשר לערוך אותו אחר כך.',
     actionFailed:
-      'הפעולה לא בוצעה ולא נרשמה ביומן. נסו שוב; אם זה חוזר — פנו למנהל־על.',
+      'הפעולה לא בוצעה ולא נרשמה ביומן. נסו שוב; אם זה חוזר - פנו למנהל־על.',
     pendingLabel: '…שומר',
     capabilityLabels: CAPABILITY_LABELS_HE,
     roleLabels: ROLE_PRESET_LABELS_HE,
@@ -202,7 +202,7 @@ const COPY: Record<Locale, MembersCopy> = {
       grant: {
         heading: 'להעניק את ההרשאה?',
         body: (name, capability) =>
-          `${name} יוכל/תוכל מעכשיו: ${capability} — במרחב הזה בלבד.`,
+          `${name} יוכל/תוכל מעכשיו: ${capability} - במרחב הזה בלבד.`,
         confirmLabel: 'העניקו הרשאה',
         announcement: (name) => `ההרשאה הוענקה ל־${name}.`,
       },
@@ -256,7 +256,7 @@ const COPY: Record<Locale, MembersCopy> = {
     tableDescription: (spaceName) =>
       `חברי המרחב ${spaceName} וההרשאות שלהם. כל שורה כוללת שם, מועד הצטרפות, מצב חברות והרשאות שהוענקו.`,
     totalMembers: (total) => `${total} חברים במרחב`,
-    editorHeading: (name) => `ניהול הרשאות — ${name}`,
+    editorHeading: (name) => `ניהול הרשאות - ${name}`,
     roleLabel: 'תפקיד',
     rolePlaceholder: '…בחרו תפקיד',
     presetNote: 'התפקיד כולל את ההרשאות הבאות. כל הרשאה מוענקת בנפרד ובאישור נפרד.',
@@ -270,7 +270,7 @@ const COPY: Record<Locale, MembersCopy> = {
     reasonPlaceholder:
       'Why did you decide this way? The reason is recorded in the log and cannot be edited later.',
     actionFailed:
-      'The action was not carried out and nothing was recorded in the log. Try again; if it recurs — contact a super-admin.',
+      'The action was not carried out and nothing was recorded in the log. Try again; if it recurs - contact a super-admin.',
     pendingLabel: 'Saving…',
     capabilityLabels: {
       'proposal.read': 'Review proposals',
@@ -296,7 +296,7 @@ const COPY: Record<Locale, MembersCopy> = {
       grant: {
         heading: 'Grant this permission?',
         body: (name, capability) =>
-          `${name} will now be able to: ${capability} — in this space only.`,
+          `${name} will now be able to: ${capability} - in this space only.`,
         confirmLabel: 'Grant permission',
         announcement: (name) => `The permission was granted to ${name}.`,
       },
@@ -351,7 +351,7 @@ const COPY: Record<Locale, MembersCopy> = {
     tableDescription: (spaceName) =>
       `Members of the ${spaceName} space and their permissions. Each row includes a name, join date, membership status and the permissions granted.`,
     totalMembers: (total) => `${total} members in this space`,
-    editorHeading: (name) => `Manage permissions — ${name}`,
+    editorHeading: (name) => `Manage permissions - ${name}`,
     roleLabel: 'Role',
     rolePlaceholder: 'Choose a role…',
     presetNote:
@@ -529,7 +529,7 @@ export function MembersClient({
         });
         if (!response.ok) {
           // The dialog stays open with the reason intact and shows the
-          // server's own sentence where it has one — a 409 here means the
+          // server's own sentence where it has one - a 409 here means the
           // state already exists, which the generic line would deny.
           const payload: unknown = await response.json().catch(() => null);
           setFailure(serverSentence(payload) ?? t.actionFailed);
@@ -580,7 +580,7 @@ export function MembersClient({
 
   // The refused surface is `EscalationDialog`'s own `no-permission` shape: it
   // renders `NoPermissionPanel` and owns the escalation path behind its CTA.
-  // The decision dialog above is not reachable here — none of its four actions
+  // The decision dialog above is not reachable here - none of its four actions
   // has a trigger on a page with no table.
   if (state.kind === 'denied') {
     return <EscalationDialog spaceId={spaceId} trigger="no-permission" />;

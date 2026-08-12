@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * GET /api/newsletter — list size, counted rather than reported by a vendor.
+ * GET /api/newsletter - list size, counted rather than reported by a vendor.
  */
 export async function GET() {
   try {

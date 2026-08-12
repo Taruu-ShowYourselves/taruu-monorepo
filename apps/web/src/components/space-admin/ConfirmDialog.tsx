@@ -14,7 +14,7 @@ export const REASON_MAX_LENGTH = 500;
 
 /**
  * The disabled-state contract (D17/D27) on its own, for every permitted
- * `disabled` control in this phase — including the ones that are not `ink`:
+ * `disabled` control in this phase - including the ones that are not `ink`:
  * `PressTable`'s `outline` pagination and the dispatch send, which is
  * `red`/`lg`.
  *
@@ -28,7 +28,7 @@ export const disabledButtonClass: string = disabledStyles.control;
  * Apply this one to `variant="ink"` controls ONLY. No `outline` control and no
  * `red` control ever takes a red or red-dark fill: `outline` already inverts
  * to ink at 16.66:1, and `red` inverts to ink at the same ratio, so the D23
- * override would LOWER compliant contrast on both — the mistake the spec
+ * override would LOWER compliant contrast on both - the mistake the spec
  * caught and reverted once. Those controls take `disabledButtonClass`.
  */
 export const confirmButtonClass = `${disabledStyles.control} ${styles.confirmBtn}`;
@@ -48,7 +48,7 @@ const COPY: Record<Locale, ConfirmDialogCopy> = {
     kickerAudited: 'פעולה מתועדת · AUDITED',
     kickerIrreversible: 'פעולה בלתי הפיכה · IRREVERSIBLE',
     reasonLabel: 'נימוק ההחלטה (חובה)',
-    reasonError: 'נדרש נימוק — לפחות 10 תווים.',
+    reasonError: 'נדרש נימוק - לפחות 10 תווים.',
     cancelLabel: 'ביטול',
     unblockHint: 'הנימוק נדרש כדי להמשיך.',
     pendingLabel: '…שולח',
@@ -57,7 +57,7 @@ const COPY: Record<Locale, ConfirmDialogCopy> = {
     kickerAudited: 'RECORDED ACTION · AUDITED',
     kickerIrreversible: 'CANNOT BE UNDONE · IRREVERSIBLE',
     reasonLabel: 'Reason for the decision (required)',
-    reasonError: 'A reason is required — at least 10 characters.',
+    reasonError: 'A reason is required - at least 10 characters.',
     cancelLabel: 'Cancel',
     unblockHint: 'The reason is required to continue.',
     pendingLabel: 'Sending…',
@@ -72,7 +72,7 @@ interface ConfirmDialogBaseProps {
   heading: string;
   /** What happens. */
   body: string;
-  /** The action verb — never `אישור` and never `OK`. */
+  /** The action verb - never `אישור` and never `OK`. */
   confirmLabel: string;
   reasonLabel?: string;
   reasonError?: string;
@@ -94,7 +94,7 @@ interface ConfirmDialogBaseProps {
 
 /**
  * `irreversible` means: THE ADMIN CANNOT UNDO THE EFFECT FROM THIS DASHBOARD.
- * It does not mean "it is written to the audit log" — that is true of every
+ * It does not mean "it is written to the audit log" - that is true of every
  * action here, so audit-permanence cannot be the test or the label means
  * nothing. Exactly three actions qualify in this phase:
  *
@@ -102,8 +102,8 @@ interface ConfirmDialogBaseProps {
  *   reject  (terminal for that submission),
  *   send    (delivered to devices, cannot be recalled).
  *
- * Everything else — grant, revoke, suspend, reinstate, hide, unhide, flag,
- * unflag, request-changes, escalate — has an inverse reachable from this same
+ * Everything else - grant, revoke, suspend, reinstate, hide, unhide, flag,
+ * unflag, request-changes, escalate - has an inverse reachable from this same
  * dashboard and is therefore `audited`. Do not re-label suspension: it sets a
  * nullable `suspended_at` and clearing it restores access.
  */
@@ -115,7 +115,7 @@ type ConfirmDialogProps =
     })
   | (ConfirmDialogBaseProps & {
       kind: 'irreversible';
-      /** Required by the compiler on this kind — the plate must state it. */
+      /** Required by the compiler on this kind - the plate must state it. */
       consequence: string;
     });
 
@@ -243,7 +243,7 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
                 {/* `outline`, so it takes the disabled appearance WITHOUT the
                     D23 hover fill. Before 05-15 split the two, this button
                     could not have the appearance at all without also taking a
-                    red hover — so while a request was in flight it looked
+                    red hover - so while a request was in flight it looked
                     exactly like an enabled control. */}
                 <NewsButton
                   variant="outline"

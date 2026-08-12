@@ -1,5 +1,5 @@
 /* ============================================================
- * Surface 5 — משגר (the notification composer).
+ * Surface 5 - משגר (the notification composer).
  *
  * Tokens only. The single permitted hardcoded length in this phase is the
  * media-query breakpoint, because CSS media queries cannot read custom
@@ -61,7 +61,7 @@
   gap: var(--space-4);
 }
 
-/* State 1's always-visible quota line — `מכסה חודשית · {used}/{limit}`. */
+/* State 1's always-visible quota line - `מכסה חודשית · {used}/{limit}`. */
 .quotaLine {
   font-family: var(--np-font-mono);
   font-size: var(--text-sm);
@@ -100,7 +100,7 @@
 
 /* ---------- Alerts: a failed preview, a refused send, a rejected send ------ */
 
-/* Red text on paper-box is `--np-red-ink` — 10.32:1 (D9). A red FILL here
+/* Red text on paper-box is `--np-red-ink` - 10.32:1 (D9). A red FILL here
    would be paper text at 4.03:1 at this size; danger is structural in this
    system, carried by the heavy red rule rather than by a background. */
 .alert {

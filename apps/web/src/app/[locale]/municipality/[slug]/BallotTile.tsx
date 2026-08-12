@@ -23,7 +23,7 @@ interface BallotTileProps {
 }
 
 function formatDate(t: MunicipalityCopy, iso: string | null): string {
-  if (!iso) return '—';
+  if (!iso) return '-';
   return new Intl.DateTimeFormat(t.dateLocale, {
     day: '2-digit',
     month: '2-digit',

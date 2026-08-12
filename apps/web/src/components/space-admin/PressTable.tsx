@@ -8,7 +8,7 @@ import styles from './PressTable.module.css';
 
 /**
  * The post-mutation row flash (Interaction Contract 2), as a class to pass
- * through `rowClassName` — the same shape as `confirmButtonClass`.
+ * through `rowClassName` - the same shape as `confirmButtonClass`.
  *
  * It lives here rather than in each surface's stylesheet because the members
  * and proposals surfaces each had to rediscover the two traps documented at
@@ -35,7 +35,7 @@ export interface PressTableColumn<Row> {
   primary?: boolean;
   /**
    * Hidden below 768px by a paired `display: none` on both `th[data-col]` and
-   * `td[data-col]` — never by switching a cell to `display: block`, which
+   * `td[data-col]` - never by switching a cell to `display: block`, which
    * destroys table semantics in assistive tech. The value stays reachable
    * through the row disclosure.
    */
@@ -51,7 +51,7 @@ export interface PressTablePagination {
   olderDisabled?: boolean;
   /** Disabled on the first page. Pair with `newerHint`. */
   newerDisabled?: boolean;
-  /** Visible unblock text — required by Rule B whenever a control is disabled. */
+  /** Visible unblock text - required by Rule B whenever a control is disabled. */
   olderHint?: string;
   newerHint?: string;
   /** e.g. `מוצגות {n} רשומות` or `{n} חברים במרחב`. */
@@ -68,27 +68,27 @@ export interface PressTableProps<Row> {
   skeletonRows?: number;
   /**
    * Replaces the built-in hidden-column disclosure. When supplied the table
-   * renders no disclosure button of its own — the caller owns the trigger
+   * renders no disclosure button of its own - the caller owns the trigger
    * (the proposals surface uses the title cell) and drives `expandedKey`.
    * There is exactly one `<tr>` expansion per row at every width either way.
    */
   renderExpansion?: (row: Row) => React.ReactNode;
   /**
-   * Replaces the built-in expansion `<tr>` ENTIRELY — the caller returns the
+   * Replaces the built-in expansion `<tr>` ENTIRELY - the caller returns the
    * row itself, so it owns the `<td colSpan>`, its `id`, and therefore the
    * target of its own trigger's `aria-controls`.
    *
    * `renderExpansion` cannot serve that case: its result is placed inside a
    * `<td>` this component owns, and the id of that cell is generated here and
-   * never handed out. The proposals surface needs both — its detail panel is a
-   * component in its own right and its title-cell button must point at it — so
+   * never handed out. The proposals surface needs both - its detail panel is a
+   * component in its own right and its title-cell button must point at it - so
    * this hook exists for it. Mutually exclusive with `renderExpansion`; still
    * exactly one `<tr>` expansion per row at every width.
    */
   renderExpansionRow?: (row: Row, columnCount: number) => React.ReactNode;
   expandedKey?: string | null;
   onExpandedKeyChange?: (key: string | null) => void;
-  /** Extra class on a body `<tr>` — e.g. the post-decision row flash. */
+  /** Extra class on a body `<tr>` - e.g. the post-decision row flash. */
   rowClassName?: (row: Row) => string | undefined;
   pagination?: PressTablePagination;
   className?: string;
@@ -126,7 +126,7 @@ export function ClampedText({
  * Semantics are non-negotiable and survive every width: a real `<caption>`,
  * `scope="col"` on every head cell, `scope="row"` on the primary body cell,
  * and a labelled focusable scroll region applied ONLY when the table actually
- * overflows — an unconditional `tabindex` is a pointless tab stop.
+ * overflows - an unconditional `tabindex` is a pointless tab stop.
  */
 export function PressTable<Row>({
   columns,

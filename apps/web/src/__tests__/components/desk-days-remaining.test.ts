@@ -5,7 +5,7 @@ import { describe, expect, it, vi, afterEach } from 'vitest';
  *
  * These exist because a production date shift masked a real bug rather than
  * fixing it: `daysRemaining` clamped negatives to zero, so a topic that closed
- * days ago printed "מסתיים היום" — the desk telling a reader they still have
+ * days ago printed "מסתיים היום" - the desk telling a reader they still have
  * until tonight to vote on something already closed. With every end_date moved
  * forward the clamp simply stopped being reached, which is exactly the kind of
  * fault that reappears the moment the data moves back.

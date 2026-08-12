@@ -1,11 +1,11 @@
 /**
- * Municipality geo data — centroids for GPS → municipality resolution.
+ * Municipality geo data - centroids for GPS → municipality resolution.
  * Self-contained (no external geocoding API): nearest-centroid matching
  * within a sanity radius. Coordinates are stable public geographic facts.
  */
 
 export interface MunicipalityGeo {
-  /** Canonical municipality name — matches votes.municipality_id. */
+  /** Canonical municipality name - matches votes.municipality_id. */
   name: string;
   lat: number;
   lng: number;

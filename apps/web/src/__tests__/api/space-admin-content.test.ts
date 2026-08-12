@@ -1,5 +1,5 @@
 /**
- * Permitted content and the escalation path — SPACE-06 and SPACE-09.
+ * Permitted content and the escalation path - SPACE-06 and SPACE-09.
  *
  * The two halves of this file are governed by opposite rules, which is why
  * they live together: content moderation is capability-gated, scoped and
@@ -279,8 +279,8 @@ describe('POST /api/space-admin/{spaceId}/escalations', () => {
 
   /**
    * The test that fails if anyone reintroduces an existence check or an audit
-   * write on this path. Each case establishes a baseline — the answer a fully
-   * capable member of their own space gets — and then asserts the target answer
+   * write on this path. Each case establishes a baseline - the answer a fully
+   * capable member of their own space gets - and then asserts the target answer
    * is indistinguishable from it, so all four responses are equal by
    * construction rather than by a hard-coded expectation somebody could update.
    */

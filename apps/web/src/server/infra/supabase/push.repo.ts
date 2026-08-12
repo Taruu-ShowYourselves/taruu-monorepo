@@ -11,7 +11,7 @@ import { dbError, type AppError } from '@/server/http/errors';
  * Which of these users can currently be reached on a device.
  *
  * `activeTokensForUsers` deliberately dedups down to bare tokens, which throws
- * away the user each one belongs to — correct for a fan-out, useless for a
+ * away the user each one belongs to - correct for a fan-out, useless for a
  * count of *people* with no channel. SPACE-08's preview has to report that
  * count before it will let an admin send, so it needs the user-level answer.
  * Same one batched query, same table, same repository: this is the second

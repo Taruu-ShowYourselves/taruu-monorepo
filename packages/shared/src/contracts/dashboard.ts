@@ -1,6 +1,6 @@
 /**
  * Dashboard API Contracts
- * Zod schemas for GET /api/dashboard — the single aggregate the dashboard
+ * Zod schemas for GET /api/dashboard - the single aggregate the dashboard
  * renders from (replaces six independent client fetches).
  */
 
@@ -37,7 +37,7 @@ export const DashboardContributionSchema = z.object({
 });
 
 /**
- * Certificates keep the exact shape of GET /api/user/nfts records — the
+ * Certificates keep the exact shape of GET /api/user/nfts records - the
  * CertificateCard component owns that contract; here they pass through.
  */
 export const DashboardCertificateSchema = z.record(z.unknown());

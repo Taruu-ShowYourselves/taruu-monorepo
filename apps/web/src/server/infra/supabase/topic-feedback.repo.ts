@@ -1,5 +1,5 @@
 /**
- * Topic feedback repository — the "not a matter of consensus" signal.
+ * Topic feedback repository - the "not a matter of consensus" signal.
  *
  * Result-typed throughout: every call here sits behind an API route, unlike
  * the roster importers next door which run in a cron job that keeps its own
@@ -16,7 +16,7 @@ export interface AsideStandingRow {
   ownReason: SetAsideReason | null;
 }
 
-/** True when the topic exists at all — a 404 is nicer than a foreign-key 500. */
+/** True when the topic exists at all - a 404 is nicer than a foreign-key 500. */
 export function topicExists(voteId: string): ResultAsync<boolean, AppError> {
   const query = supabaseAdmin
     .from('votes')
@@ -33,7 +33,7 @@ export function topicExists(voteId: string): ResultAsync<boolean, AppError> {
 /**
  * The topic's standing: how many readers set it aside, and whether the caller
  * is one of them. Two statements rather than one join because the count is
- * public and the caller's own row is not — keeping them apart makes it hard to
+ * public and the caller's own row is not - keeping them apart makes it hard to
  * serve the second to somebody who only asked for the first.
  */
 export function asideStanding(

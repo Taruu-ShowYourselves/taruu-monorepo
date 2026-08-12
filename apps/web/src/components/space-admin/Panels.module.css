@@ -1,5 +1,5 @@
 /* ============================================================
- * EmptyPanel / ErrorPanel / NoPermissionPanel — one boxed treatment.
+ * EmptyPanel / ErrorPanel / NoPermissionPanel - one boxed treatment.
  * Hierarchy is carried by the heavy rule and the kicker, not by a size ladder.
  * ============================================================ */
 
@@ -38,7 +38,7 @@
   gap: var(--space-3);
 }
 
-/* Mono, faint — 4.96:1 on paper-box. */
+/* Mono, faint - 4.96:1 on paper-box. */
 .note {
   font-family: var(--np-font-mono);
   font-size: var(--text-sm);

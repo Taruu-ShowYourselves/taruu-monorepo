@@ -254,7 +254,7 @@
 }
 .inlineLink:hover { color: var(--np-ink); }
 
-/* Route to a ballot — a numbered running order, same numerals as the desk
+/* Route to a ballot - a numbered running order, same numerals as the desk
    tiles. The rule above it separates the score from the steps that earn it. */
 .stepsBlock {
   display: flex;

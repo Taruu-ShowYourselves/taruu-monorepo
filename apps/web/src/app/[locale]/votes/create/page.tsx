@@ -23,7 +23,7 @@ const MSG_REQUIRED = 'צריך למלא את השדה הזה כדי להמשיך
 const MSG_GENERAL = 'משהו השתבש אצלנו, לא אצלכם. נסו שוב בעוד רגע.';
 
 // Press wizard is 4 editorial steps; the underlying validation stays 3-staged
-// (details → options → submission) — duration lives on the final plate.
+// (details → options → submission) - duration lives on the final plate.
 const STEP_LABELS = [
   { label: 'נושא' },
   { label: 'אפשרויות' },
@@ -55,7 +55,7 @@ export default function CreateVotePage() {
   const [descriptionError, setDescriptionError] = useState('');
   const [optionsError, setOptionsError] = useState('');
 
-  // Success surface — gated on the id the server returned for the proposal.
+  // Success surface - gated on the id the server returned for the proposal.
   const [submittedVoteId, setSubmittedVoteId] = useState<string | null>(null);
 
   // Form state - unchanged
@@ -157,7 +157,7 @@ export default function CreateVotePage() {
       // Submission is free and posts the proposal directly. There is no
       // checkout here and no draft stashed anywhere: the row exists the moment
       // the server answers, and the ₪50 obligation is created only if a space
-      // admin approves it (issue #75). Nothing is retried — there is no
+      // admin approves it (issue #75). Nothing is retried - there is no
       // webhook to wait for.
       const now = new Date();
       const end = new Date(now.getTime() + duration * 24 * 60 * 60 * 1000);
@@ -225,7 +225,7 @@ export default function CreateVotePage() {
                 ההצעה שלכם <span className={styles.red}>נשלחה לבדיקה.</span>
               </h1>
               <p className={styles.standfirst}>
-                מנהל/ת המרחב יבדקו את ההצעה. ההגשה לא חויבה — דמי יצירה של ₪50
+                מנהל/ת המרחב יבדקו את ההצעה. ההגשה לא חויבה - דמי יצירה של ₪50
                 ייווצרו רק אם ההצעה תאושר ותתפרסם.
               </p>
             </header>
@@ -292,7 +292,7 @@ export default function CreateVotePage() {
             </h1>
             <p className={styles.standfirst}>
               הציעו נושא, נסחו את האפשרויות, וקבעו את משך ההצבעה. ההגשה ללא
-              תשלום — ההצעה עוברת לבדיקה, ורק אחרי אישור היא מתפרסמת ונחתמת
+              תשלום - ההצעה עוברת לבדיקה, ורק אחרי אישור היא מתפרסמת ונחתמת
               בבלוקצ׳יין.
             </p>
           </header>
@@ -432,7 +432,7 @@ export default function CreateVotePage() {
                     { label: 'משך הצבעה', value: `${duration} ימים` },
                     { label: 'אפשרויות', value: String(filledOptions.length) },
                     { label: 'עלות הגשה', value: 'ללא תשלום', strong: true },
-                    { label: 'דמי יצירה', value: '₪50 — רק אם ההצעה תאושר' },
+                    { label: 'דמי יצירה', value: '₪50 - רק אם ההצעה תאושר' },
                   ]}
                   footer="ההגשה עוברת לבדיקת מנהל/ת המרחב לפני פרסום."
                 />

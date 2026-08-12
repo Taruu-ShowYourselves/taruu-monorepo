@@ -10,7 +10,7 @@
 
 import { civicScorePercent } from '@sync/shared/contracts';
 
-export const EM_DASH = '—';
+export const EM_DASH = '-';
 
 /** A signed score is a direction before it is a number. */
 export type Band = 'up' | 'down' | 'flat' | 'none';

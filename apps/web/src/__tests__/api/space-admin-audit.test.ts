@@ -1,5 +1,5 @@
 /**
- * The audit row a decision writes — SPACE-04.
+ * The audit row a decision writes - SPACE-04.
  *
  * WHAT THIS FILE PROVES, AND WHAT IT DOES NOT.
  *
@@ -13,7 +13,7 @@
  * It does NOT prove the database guarantee. That `UPDATE`, `DELETE` and
  * `TRUNCATE` against `space_audit_log` actually raise is the trigger's and the
  * REVOKE's job, and the evidence for it is `supabase/tests/audit_append_only.sql`
- * — a manual probe run against a scratch database, not something CI executes.
+ * - a manual probe run against a scratch database, not something CI executes.
  * Nothing here should be read as covering it.
  */
 
@@ -140,7 +140,7 @@ describe('every decision writes one complete audit row', () => {
 
   // An approval's new_state carries the creation fee alongside the status
   // (05-10), so the immutable log ties the ₪50 to the decision that caused it.
-  // A decline carries the status alone — asserted in the it.each below.
+  // A decline carries the status alone - asserted in the it.each below.
   it('records the real transition, not a restatement of the request', async () => {
     await DECIDE(post({ decision: 'approve', reason: REASON }), ctx());
 
@@ -203,7 +203,7 @@ describe('a reason under ten characters never reaches the data layer', () => {
 describe('the audit repository has no mutation vocabulary', () => {
   it('exposes no mutation path for audit rows', async () => {
     /**
-     * The real module, not the mocked namespace this file installs above —
+     * The real module, not the mocked namespace this file installs above -
      * `Object.keys` over a mock would only describe the mock, which would make
      * this assertion pass no matter what the repository exports.
      */

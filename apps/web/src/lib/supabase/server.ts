@@ -66,14 +66,14 @@ export const supabaseAdmin: SupabaseClient<Database> = new Proxy(
  * Whether there is a service-role key to read with.
  *
  * `supabaseAdmin` above builds its client on first property access, so a
- * missing key throws at `supabaseAdmin.rpc` itself — before any query runs,
+ * missing key throws at `supabaseAdmin.rpc` itself - before any query runs,
  * and therefore outside the `error` channel that reads destructure. Every
  * module documenting "degrades to empty without a key" is describing
  * behaviour it does not have: the throw escapes past the check, fails the
  * route, and takes `next build` down on any prerendered page (#39).
  *
  * Lives here rather than in a read module because it is a property of the
- * proxy, not of any one caller. Probe `.rpc` specifically — `has` is trapped
+ * proxy, not of any one caller. Probe `.rpc` specifically - `has` is trapped
  * separately and would not build the client, so `in` proves nothing.
  *
  * Absorbs exactly one throw. A network fault or a broken RPC still

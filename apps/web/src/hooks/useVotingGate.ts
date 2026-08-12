@@ -12,7 +12,7 @@ export interface VoterGateStatus extends VotingGate {
 /**
  * The signed-in reader's voting gate, as the server scores it.
  *
- * `null` while it loads and for guests — never a guessed verdict. Callers must
+ * `null` while it loads and for guests - never a guessed verdict. Callers must
  * treat null as "say nothing yet": a screen that assumes "not eligible" until
  * the fetch lands would flash a warning at residents who are perfectly
  * eligible, which is the failure this hook exists to avoid.
