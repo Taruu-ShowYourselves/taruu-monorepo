@@ -9,14 +9,23 @@
  * - Without cryptographic signing, an attacker can forge state values
  * - This allows account linking attacks and session fixation
  *
- * Implementation:
- * - Uses JWT (via jose library) for state signing
- * - Includes userId, timestamp, nonce, and platform for verification
- * - 10-minute expiration to limit replay window
+ * Two state families live here:
+ *
+ * 1. The Facebook/Instagram social-connect flows below (`createOAuthState` /
+ *    `verifyOAuthState` / `verifyOAuthStatePlatform`) - unchanged, still
+ *    signed with `JWT_SECRET`. Four live routes and two test suites depend
+ *    on this exact behavior. Moving them onto the purpose-typed `oauth_state`
+ *    key (canonical §4.1) is deliberate follow-up work, not an oversight -
+ *    it just isn't this milestone's scope.
+ * 2. The login flow (`createLoginOAuthState` / `verifyLoginOAuthState`)
+ *    below, added for requirement #71-M1-08 - server-minted, HKDF-derived
+ *    `oauth_state` purpose key, carrying a nonce hash and no user (the state
+ *    exists before any identity is known).
  */
 
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
 import { randomBytes } from 'crypto';
+import { signPurposeToken, verifyPurposeToken } from '@/services/auth/tokens';
 
 // Use the same JWT_SECRET for consistency
 const STATE_SECRET = process.env.JWT_SECRET || '';
@@ -132,4 +141,61 @@ export function verifyOAuthStatePlatform(
     return false;
   }
   return true;
+}
+
+// ============================================
+// Login flow (requirement #71-M1-08, canonical §4.3 step 1)
+// ============================================
+
+const LOGIN_OAUTH_STATE_TTL_SECONDS = 10 * 60;
+
+/** M1 declares exactly one flow value; reauth (M2+) adds to this union. */
+export type LoginOAuthStateFlow = 'login';
+
+export interface LoginOAuthStatePayload {
+  /** SHA-256 hex digest of the raw nonce - the raw nonce itself never enters this token. */
+  nonceHash: string;
+  redirect?: string;
+}
+
+export interface LoginOAuthState {
+  nonceHash: string;
+  flow: LoginOAuthStateFlow;
+  redirect?: string;
+}
+
+/**
+ * Mints the server-side login OAuth state: a purpose-typed `oauth_state.v1`
+ * token (HKDF-derived key, distinct from the social-connect functions above),
+ * 10-minute lifetime, carrying only the nonce hash, the flow discriminator,
+ * and an optional post-login redirect. No `userId` - the state is minted
+ * before any identity is known.
+ */
+export async function createLoginOAuthState(payload: LoginOAuthStatePayload): Promise<string> {
+  return signPurposeToken(
+    'oauth_state',
+    {
+      nonce_hash: payload.nonceHash,
+      flow: 'login' satisfies LoginOAuthStateFlow,
+      ...(payload.redirect ? { redirect: payload.redirect } : {}),
+    },
+    LOGIN_OAUTH_STATE_TTL_SECONDS
+  );
+}
+
+/**
+ * Verifies a login OAuth state token. Returns null on any failure - expired,
+ * wrong purpose/key, wrong flow, or a missing/malformed nonce hash.
+ */
+export async function verifyLoginOAuthState(state: string): Promise<LoginOAuthState | null> {
+  const claims = await verifyPurposeToken('oauth_state', state);
+  if (!claims) return null;
+  if (claims.flow !== 'login') return null;
+  if (typeof claims.nonce_hash !== 'string') return null;
+
+  return {
+    nonceHash: claims.nonce_hash,
+    flow: 'login',
+    redirect: typeof claims.redirect === 'string' ? claims.redirect : undefined,
+  };
 }
