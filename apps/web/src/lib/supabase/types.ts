@@ -43,6 +43,12 @@ export interface Database {
            * suspension only. Confers no space capability and no data access.
            */
           is_platform_admin: boolean;
+          /**
+           * Global revocation counter (Issue #71 Model B). Stamped into
+           * session/refresh tokens as `sv` at mint; re-read on every
+           * authenticated request. See migration 20260901000001.
+           */
+          session_version: number;
           created_at: string;
           updated_at: string;
         };
@@ -69,6 +75,7 @@ export interface Database {
           phone_verified_at?: string | null;
           identity_verified_at?: string | null;
           is_platform_admin?: boolean;
+          session_version?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -95,6 +102,7 @@ export interface Database {
           phone_verified_at?: string | null;
           identity_verified_at?: string | null;
           is_platform_admin?: boolean;
+          session_version?: number;
           created_at?: string;
           updated_at?: string;
         };

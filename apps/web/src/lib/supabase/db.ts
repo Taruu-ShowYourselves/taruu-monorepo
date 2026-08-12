@@ -71,6 +71,25 @@ export async function getUserById(userId: string): Promise<User | null> {
   return data;
 }
 
+/**
+ * Primary-key read of just `session_version` - deliberately narrower than
+ * `getUserById` because this runs on every authenticated request (Issue #71
+ * Model B, canonical §4.4). Returns null when the row is missing or the query
+ * errors; the caller treats null as "cannot authenticate", never as "matches".
+ * No caching of any kind - a cache would silently relax the revocation
+ * guarantee from "immediate" to "up to cache TTL".
+ */
+export async function getUserSessionVersion(userId: string): Promise<number | null> {
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .select('session_version')
+    .eq('id', userId)
+    .single();
+
+  if (error || !data) return null;
+  return data.session_version;
+}
+
 export async function getUserByEmail(email: string): Promise<User | null> {
   const { data, error } = await supabaseAdmin
     .from('users')
