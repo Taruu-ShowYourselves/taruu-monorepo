@@ -13,7 +13,7 @@
  * Three deliberate properties:
  *
  *   1. The `sync-session` cookie is NEVER sent to PostgREST. It is signed with a
- *      different key, lives for 7 days, and carries claims the database has no
+ *      different key, lives for 1 hour, and carries claims the database has no
  *      business seeing. It is a session credential, not a database credential.
  *   2. Minutes, not days. The token is minted per request and thrown away; a
  *      leaked one is useless almost immediately.

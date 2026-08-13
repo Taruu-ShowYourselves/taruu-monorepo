@@ -147,7 +147,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (response.ok) {
         const data = await response.json();
         if (data.accessToken) {
-          setTokens(data.accessToken);
+          // Pass the rotated refresh token and real expiry through - a
+          // one-arg call here used to wipe both from the store on every
+          // silent refresh.
+          setTokens(data.accessToken, data.refreshToken, data.expiresAt);
         }
         if (data.user) {
           setUser(data.user);
