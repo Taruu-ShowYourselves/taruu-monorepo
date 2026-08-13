@@ -17,6 +17,7 @@ import {
 } from '@sync/shared/contracts';
 import { Progress } from '@/components/uikit/progress';
 import { municipalityHref } from '@/components/uikit/municipality-link';
+import { sidewaysWheel } from './sidewaysWheel';
 import type { Locale } from '@/lib/i18n';
 import styles from './MunicipalityDock.module.css';
 
@@ -129,8 +130,16 @@ const WHEEL_COOLDOWN_MS = 480;
 const PAGE_FOLD_PX = 24;
 /** Sideways travel on the tuner before it is a tune rather than a page scroll. */
 const TUNE_AXIS_PX = 6;
-/** The same, for a wheel: one gentle two-finger push moves one station. */
-const TUNE_WHEEL_STEP_PX = 40;
+/**
+ * The same, for a wheel: one push, one station.
+ *
+ * The dial is held to a longer cooldown than the river. A tile is a tile, but
+ * a station is a whole edition - the readout re-points and the desk travels -
+ * so overshooting it by three costs the reader more than overshooting a tile.
+ */
+const TUNE_WHEEL_STEP_PX = 55;
+const TUNE_WHEEL_COOLDOWN_MS = 620;
+const TUNE_WHEEL_QUIET_MS = 160;
 /**
  * How long the desk has to hold still before the needle follows it.
  *
@@ -717,32 +726,21 @@ export function MunicipalityDock({
     const band = bandRef.current;
     if (!band) return;
 
-    let travel = 0;
-    const wheel = (evt: WheelEvent) => {
-      const sideways = evt.shiftKey
-        ? Math.abs(evt.deltaX) > Math.abs(evt.deltaY)
-          ? evt.deltaX
-          : evt.deltaY
-        : evt.deltaX;
-      if (!evt.shiftKey && Math.abs(evt.deltaX) <= Math.abs(evt.deltaY)) return;
-      if (!sideways) return;
-      evt.preventDefault();
-      evt.stopPropagation();
-
-      travel += sideways;
-      if (Math.abs(travel) < TUNE_WHEEL_STEP_PX) return;
-      const forward = travel < 0;
-      travel = 0;
-
-      const { stations: names, active: current, select: pick } = live.current;
-      const at = names.indexOf(current);
-      const next = Math.min(
-        Math.max((at < 0 ? 0 : at) + (forward ? 1 : -1), 0),
-        names.length - 1
-      );
-      const name = names[next];
-      if (name) pick(name);
-    };
+    const wheel = sidewaysWheel({
+      stepPx: TUNE_WHEEL_STEP_PX,
+      cooldownMs: TUNE_WHEEL_COOLDOWN_MS,
+      quietMs: TUNE_WHEEL_QUIET_MS,
+      onStep: (forward) => {
+        const { stations: names, active: current, select: pick } = live.current;
+        const at = names.indexOf(current);
+        const next = Math.min(
+          Math.max((at < 0 ? 0 : at) + (forward ? 1 : -1), 0),
+          names.length - 1
+        );
+        const name = names[next];
+        if (name) pick(name);
+      },
+    });
 
     band.addEventListener('wheel', wheel, { passive: false });
     return () => band.removeEventListener('wheel', wheel);

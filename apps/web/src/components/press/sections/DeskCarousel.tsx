@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { DeskDrift, type DeskDriftType } from './deskDrift';
+import { sidewaysWheel } from './sidewaysWheel';
 import { DeskDragLockContext, type DeskDragLock } from './deskDragLock';
 import type { Locale } from '@/lib/i18n';
 import styles from './DeskCarousel.module.css';
@@ -37,17 +38,15 @@ const HOVER_SPEED = 0.12;
 const TRAVEL_LINGER_MS = 7000;
 
 /**
- * Sideways travel on a wheel or trackpad before the desk moves a tile, and how
- * long the desk holds still afterwards.
+ * One sideways push, one tile. See sidewaysWheel.ts for how a flick is read.
  *
- * A two-finger sideways swipe is how a laptop reads a river, and Embla only
- * listens for drags - so the desk sat there under it. The travel is
- * accumulated rather than answered per event because one flick of a trackpad
- * arrives as thirty events of four pixels each. Kept short: a desk that waits
- * for a hard push before it moves at all is a desk the reader concludes is
- * broken, and every tile is one gentle swipe from the next.
+ * The cooldown outlasts the momentum a trackpad keeps sending after the
+ * fingers have left it, so a flick cannot spend itself as six tiles; the quiet
+ * period is short enough that pushing again straight away still travels.
  */
-const WHEEL_STEP_PX = 40;
+const WHEEL_STEP_PX = 55;
+const WHEEL_COOLDOWN_MS = 420;
+const WHEEL_QUIET_MS = 160;
 const WHEEL_LINGER_MS = 2500;
 
 const EMBLA_OPTIONS = {
@@ -166,37 +165,55 @@ export function DeskCarousel({
     const viewport = viewportRef.current;
     if (!emblaApi || !viewport) return;
 
-    let travel = 0;
-    const onWheel = (event: WheelEvent) => {
-      /* Shift+wheel is how a mouse with one wheel says sideways, and the
-         browser reports it on whichever axis it likes - Chrome moves it to
-         deltaX, Firefox leaves it on deltaY. Take the larger of the two and
-         read it as horizontal either way. */
-      const bigger =
-        Math.abs(event.deltaX) > Math.abs(event.deltaY)
-          ? event.deltaX
-          : event.deltaY;
-      const sideways = event.shiftKey ? bigger : event.deltaX;
-      // Anything else on the vertical is the page's; only a gesture genuinely
-      // working across the screen is taken.
-      if (!event.shiftKey && Math.abs(event.deltaX) <= Math.abs(event.deltaY)) {
-        return;
-      }
-      if (!sideways) return;
-      event.preventDefault();
-      /* And kept from the page's own smooth scroll, which reads the wheel on
-         an ancestor and does not care whether the default was prevented -
-         without this a shift+wheel steers the desk and scrolls the page. */
-      event.stopPropagation();
-      travel += sideways;
-      if (Math.abs(travel) < WHEEL_STEP_PX) return;
-      drift?.linger(WHEEL_LINGER_MS);
-      /* The track is RTL, so a swipe that pushes content to the right - a
-         negative deltaX - is a move towards the next tile in reading order. */
-      if (travel < 0) emblaApi.scrollNext();
-      else emblaApi.scrollPrev();
-      travel = 0;
-    };
+    const onWheel = sidewaysWheel({
+      stepPx: WHEEL_STEP_PX,
+      cooldownMs: WHEEL_COOLDOWN_MS,
+      quietMs: WHEEL_QUIET_MS,
+      onStep: (forward) => {
+        drift?.linger(WHEEL_LINGER_MS);
+        /* One tile from where the desk IS, not from the slide it last
+           announced.
+           `scrollNext` steps from the selected snap, and this desk is never
+           parked on one: it drifts continuously, so by the time a reader
+           pushes, the selection can be most of the river behind the tiles in
+           front of them - and the step then travelled all of that distance in
+           one go. A single push threw the desk twenty columns.
+           So the snap nearest what is painted right now is found first, and
+           the step is taken from there. Distances are compared the short way
+           round the loop, since the track is a ring. */
+        const snaps = emblaApi.scrollSnapList();
+        if (!snaps.length) return;
+        const now = emblaApi.scrollProgress();
+        let nearest = 0;
+        let best = Number.POSITIVE_INFINITY;
+        snaps.forEach((snap, index) => {
+          const gap = Math.abs(snap - now);
+          const shortest = Math.min(gap, 1 - gap);
+          if (shortest < best) {
+            best = shortest;
+            nearest = index;
+          }
+        });
+
+        /* The bento stacks three tiles to a column, and Embla holds a snap per
+           TILE - so three of them stand at the same place on the track. The
+           next snap along is usually the tile below the current one, at the
+           identical offset, and stepping to it moves the desk by nothing at
+           all. Walk on until the offset actually changes: one push is one
+           column of the mosaic, whatever it happens to be carrying. */
+        const here = snaps[nearest];
+        const dir = forward ? 1 : -1;
+        const wrap = (index: number) =>
+          ((index % snaps.length) + snaps.length) % snaps.length;
+        for (let step = 1; step <= snaps.length; step += 1) {
+          const probe = wrap(nearest + dir * step);
+          if (Math.abs(snaps[probe] - here) > 1e-4) {
+            emblaApi.scrollTo(probe);
+            return;
+          }
+        }
+      },
+    });
 
     viewport.addEventListener('wheel', onWheel, { passive: false });
     return () => viewport.removeEventListener('wheel', onWheel);
