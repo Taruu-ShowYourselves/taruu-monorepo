@@ -3,6 +3,14 @@
  *
  * Handles Google OAuth authentication flow for web.
  * Primary authentication method for SEL-DID system.
+ *
+ * Identity authority: the Google `sub` used by the callback route comes from
+ * a locally JWKS-verified id_token (`services/auth/google-oidc.ts`,
+ * requirement #71-M1-07), not from the `getGoogleUserInfo` call below - that
+ * call is profile enrichment only (picture, names) from here on. State and
+ * the authorize URL are minted server-side by `/api/auth/google/start`
+ * (requirement #71-M1-08); this module no longer builds the authorize URL or
+ * generates/stores OAuth state client-side.
  */
 
 import type { GoogleOAuthTokens } from '@sync/shared';
@@ -35,87 +43,10 @@ const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
  * Must appear verbatim under "Authorized redirect URIs" on the OAuth client.
  */
 export const GOOGLE_REDIRECT_PATH = '/he/sign-in';
-const GOOGLE_REDIRECT_URI =
-  (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, '') + GOOGLE_REDIRECT_PATH;
 
 // Google OAuth endpoints
-const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_USERINFO_URL = 'https://openidconnect.googleapis.com/v1/userinfo';
-
-// Scopes required for authentication
-const SCOPES = [
-  'openid',
-  'email',
-  'profile',
-].join(' ');
-
-// === Client-Side Functions ===
-
-/**
- * Generate OAuth state for CSRF protection
- */
-export function generateOAuthState(): string {
-  const array = new Uint8Array(32);
-  crypto.getRandomValues(array);
-  return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('');
-}
-
-/**
- * Store OAuth state for verification
- */
-export function storeOAuthState(state: string): void {
-  if (typeof window !== 'undefined') {
-    sessionStorage.setItem('oauth_state', state);
-  }
-}
-
-/**
- * Verify OAuth state matches stored state
- */
-export function verifyOAuthState(state: string): boolean {
-  if (typeof window !== 'undefined') {
-    const storedState = sessionStorage.getItem('oauth_state');
-    sessionStorage.removeItem('oauth_state');
-    return storedState === state;
-  }
-  return false;
-}
-
-/**
- * Build Google OAuth authorization URL
- */
-export function buildGoogleAuthUrl(options?: {
-  redirectUri?: string;
-  prompt?: 'none' | 'consent' | 'select_account';
-}): string {
-  const state = generateOAuthState();
-  storeOAuthState(state);
-
-  const params = new URLSearchParams({
-    client_id: GOOGLE_CLIENT_ID,
-    redirect_uri: options?.redirectUri || GOOGLE_REDIRECT_URI,
-    response_type: 'code',
-    scope: SCOPES,
-    state,
-    access_type: 'offline', // Get refresh token
-    prompt: options?.prompt || 'consent',
-  });
-
-  return `${GOOGLE_AUTH_URL}?${params.toString()}`;
-}
-
-/**
- * Redirect to Google OAuth page
- */
-export function redirectToGoogleAuth(options?: {
-  redirectUri?: string;
-  prompt?: 'none' | 'consent' | 'select_account';
-}): void {
-  if (typeof window !== 'undefined') {
-    window.location.href = buildGoogleAuthUrl(options);
-  }
-}
 
 // === Server-Side Functions (for API routes) ===
 
@@ -160,6 +91,9 @@ export async function exchangeCodeForTokens(
 /**
  * Get user info from Google using access token
  * This should only be called from server-side API routes
+ *
+ * Enrichment only (picture, names) - never the identity authority. See the
+ * module header.
  */
 export async function getGoogleUserInfo(
   accessToken: string
@@ -211,36 +145,4 @@ export async function refreshAccessToken(
     idToken: data.id_token,
     expiresAt: new Date(Date.now() + data.expires_in * 1000),
   };
-}
-
-/**
- * Verify Google ID token
- * This should only be called from server-side API routes
- */
-export async function verifyIdToken(idToken: string): Promise<{
-  sub: string; // Google user ID
-  email: string;
-  email_verified: boolean;
-  name: string;
-  picture: string;
-  given_name: string;
-  family_name: string;
-}> {
-  // Google's tokeninfo endpoint for verification
-  const response = await fetch(
-    `https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`
-  );
-
-  if (!response.ok) {
-    throw new Error('Invalid ID token');
-  }
-
-  const payload = await response.json();
-
-  // Verify the token was issued for our client
-  if (payload.aud !== GOOGLE_CLIENT_ID) {
-    throw new Error('ID token was not issued for this application');
-  }
-
-  return payload;
 }
