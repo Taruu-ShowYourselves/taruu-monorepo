@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { resetDerivedKeyCache } from '@/services/auth/keys';
-import { verifyLoginOAuthState } from '@/lib/oauth-state';
+import { verifyLoginOAuthState } from '@/services/auth/login-state';
 
 describe('POST /api/auth/google/start', () => {
   beforeEach(() => {

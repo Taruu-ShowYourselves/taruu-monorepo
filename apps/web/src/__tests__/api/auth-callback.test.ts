@@ -25,8 +25,8 @@ vi.mock('@/services/auth/google-oidc', async (importOriginal) => ({
   verifyGoogleIdToken: vi.fn(),
 }));
 
-vi.mock('@/lib/oauth-state', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/lib/oauth-state')>()),
+vi.mock('@/services/auth/login-state', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/services/auth/login-state')>()),
   verifyLoginOAuthState: vi.fn(),
 }));
 
@@ -62,7 +62,7 @@ vi.mock('@sync/shared', async (importOriginal) => ({
 // Import mocked modules
 import { exchangeCodeForTokens, getGoogleUserInfo } from '@/services/auth/google';
 import { verifyGoogleIdToken, GoogleIdTokenVerificationError } from '@/services/auth/google-oidc';
-import { verifyLoginOAuthState } from '@/lib/oauth-state';
+import { verifyLoginOAuthState } from '@/services/auth/login-state';
 import { createSessionToken, createRefreshToken, setSessionCookies } from '@/services/auth/session';
 import {
   getUserByGoogleId,

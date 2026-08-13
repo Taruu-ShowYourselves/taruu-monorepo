@@ -15,7 +15,7 @@
 import { NextResponse } from 'next/server';
 import { GOOGLE_REDIRECT_PATH } from '@/services/auth/google';
 import { resolveOrigin } from '@/services/auth/origin';
-import { createLoginOAuthState } from '@/lib/oauth-state';
+import { createLoginOAuthState } from '@/services/auth/login-state';
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const OAUTH_STATE_COOKIE = 'sync-oauth-state';

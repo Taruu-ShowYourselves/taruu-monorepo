@@ -24,7 +24,7 @@ import {
   type GoogleUserInfo,
 } from '@/services/auth/google';
 import { verifyGoogleIdToken, GoogleIdTokenVerificationError } from '@/services/auth/google-oidc';
-import { verifyLoginOAuthState } from '@/lib/oauth-state';
+import { verifyLoginOAuthState } from '@/services/auth/login-state';
 import { resolveOrigin } from '@/services/auth/origin';
 import { secureEqual } from '@/lib/secureCompare';
 import {
