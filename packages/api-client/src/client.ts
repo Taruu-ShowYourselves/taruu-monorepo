@@ -61,8 +61,11 @@ export class ApiClient {
         message: 'An error occurred',
       }));
 
+      // Server routes answer { error, code } (no `message` field) - read both
+      // shapes so machine-readable codes like MFA_REQUIRED surface to clients
+      // instead of collapsing into the literal 'Request failed'.
       throw new ApiError(
-        error.message || 'Request failed',
+        error.message || error.error || 'Request failed',
         response.status,
         error.code
       );

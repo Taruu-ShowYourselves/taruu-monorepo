@@ -197,6 +197,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
           if (response.ok) {
             const data = await response.json();
 
+            // MFA challenge (engineering model §5.2 case 3): the account has
+            // an active factor under enforcement - no session exists yet, the
+            // pending cookie carries the challenge locator, and the user
+            // completes it on the challenge screen.
+            if (data.mfaRequired) {
+              window.history.replaceState({}, '', window.location.pathname);
+              router.push('/sign-in/challenge');
+              return;
+            }
+
             if (data.accessToken) {
               setTokens(data.accessToken, data.refreshToken, data.expiresAt);
             }
