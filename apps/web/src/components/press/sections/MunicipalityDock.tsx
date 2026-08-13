@@ -129,6 +129,8 @@ const WHEEL_COOLDOWN_MS = 480;
 const PAGE_FOLD_PX = 24;
 /** Sideways travel on the tuner before it is a tune rather than a page scroll. */
 const TUNE_AXIS_PX = 6;
+/** The same, for a wheel: one gentle two-finger push moves one station. */
+const TUNE_WHEEL_STEP_PX = 40;
 /**
  * How long the desk has to hold still before the needle follows it.
  *
@@ -372,9 +374,17 @@ export function MunicipalityDock({
      With no stored locality there is no "here" to sort around, and the band
      keeps the desk's own order. */
   const bandStations = useMemo(() => {
+    /* The station under the needle is NOT put at the head of this list.
+       It was, to guarantee it had a place on the band at all - but with no
+       stored locality to sort around, that made the band's order a function of
+       where the needle stands: tuning one station along re-ranked the scale so
+       that the station just left became second again, and the next push tuned
+       straight back to it. The dial rocked between two editions and would go
+       no further. The desk's own running order is the scale; the current
+       edition only joins it if the desk somehow does not carry it. */
     const pool: string[] = [];
     const seen = new Set<string>();
-    for (const name of [...(home ? [home] : []), active, ...deskOrder]) {
+    for (const name of [...(home ? [home] : []), ...deskOrder, active]) {
       if (!name || seen.has(name)) continue;
       seen.add(name);
       pool.push(name);
@@ -495,8 +505,9 @@ export function MunicipalityDock({
     return painted + delta;
   }, []);
 
-  /* The desk drifts on its own, so the needle follows what the tiles are
-     showing - except while the reader has hold of the band themselves. */
+  /* The needle answers to the dial and to nothing else - see the note on
+     `activeIndex` in ConsensusDeskClient. It re-centres whenever the edition
+     changes, except while the reader has hold of the band themselves. */
   useEffect(() => {
     if (draggingRef.current) return;
 
@@ -690,6 +701,52 @@ export function MunicipalityDock({
       window.removeEventListener('pointercancel', up);
     };
     // Registered once, for the life of the dock - see the note on `live`.
+  }, []);
+
+  /* Spinning the band with a wheel.
+   *
+   * The same gesture a thumb makes on the dial, for the reader who has a
+   * trackpad instead: sideways over the BAND tunes, sideways anywhere else
+   * over the desk moves the tiles. Which is the whole distinction - the
+   * toolbar is re-pointed by pushing the toolbar, and by nothing else.
+   *
+   * Non-passive and stopped rather than merely defaulted: the page's smooth
+   * scroll reads the wheel on an ancestor and does not consult
+   * `defaultPrevented`. */
+  useEffect(() => {
+    const band = bandRef.current;
+    if (!band) return;
+
+    let travel = 0;
+    const wheel = (evt: WheelEvent) => {
+      const sideways = evt.shiftKey
+        ? Math.abs(evt.deltaX) > Math.abs(evt.deltaY)
+          ? evt.deltaX
+          : evt.deltaY
+        : evt.deltaX;
+      if (!evt.shiftKey && Math.abs(evt.deltaX) <= Math.abs(evt.deltaY)) return;
+      if (!sideways) return;
+      evt.preventDefault();
+      evt.stopPropagation();
+
+      travel += sideways;
+      if (Math.abs(travel) < TUNE_WHEEL_STEP_PX) return;
+      const forward = travel < 0;
+      travel = 0;
+
+      const { stations: names, active: current, select: pick } = live.current;
+      const at = names.indexOf(current);
+      const next = Math.min(
+        Math.max((at < 0 ? 0 : at) + (forward ? 1 : -1), 0),
+        names.length - 1
+      );
+      const name = names[next];
+      if (name) pick(name);
+    };
+
+    band.addEventListener('wheel', wheel, { passive: false });
+    return () => band.removeEventListener('wheel', wheel);
+    // Registered once - everything it reads comes off `live`.
   }, []);
 
   useEffect(

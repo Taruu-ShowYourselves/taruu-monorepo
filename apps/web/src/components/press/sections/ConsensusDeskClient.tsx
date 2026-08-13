@@ -88,8 +88,16 @@ export function ConsensusDeskClient({
 }: ConsensusDeskClientProps) {
   const t = COPY[locale];
   const [home, setHome] = useState<string | null>(null);
-  /* Which tile is at the head of the river. The dock names its municipality,
-     and the dial steers the river back through this same index. */
+  /* Which edition the dock is set to, and where the dial sends the river.
+     Set by the dial alone.
+
+     It used to follow the carousel, and the desk moving under it was enough
+     to re-point the whole instrument: the river is one continuous stream of
+     tiles from twenty authorities, so a single push sideways re-tuned the
+     needle, swapped the name and re-ran three animated figures - the toolbar
+     went off on its own while the reader was only looking at the next tile.
+     The tiles each name their own municipality; the dock answers for the one
+     the reader chose. */
   const [activeIndex, setActiveIndex] = useState(0);
   const carousel = useRef<DeskCarouselControls | null>(null);
 
@@ -161,12 +169,6 @@ export function ConsensusDeskClient({
   const activeMunicipality =
     entries[activeIndex]?.municipality ?? entries[0]?.municipality ?? '';
 
-  // Stable identity: DeskCarousel takes this into the dep array of the
-  // callback it subscribes to Embla with.
-  const handleActiveIndex = useCallback((index: number) => {
-    setActiveIndex(index);
-  }, []);
-
   const travelTo = useCallback(
     (municipality: string) => {
       const index = entries.findIndex((e) => e.municipality === municipality);
@@ -220,11 +222,12 @@ export function ConsensusDeskClient({
           </div>
         ) : (
           <>
+            {/* The desk reports nothing back: the dial steers it, not the
+                other way round. */}
             <DeskStream
               label={t.carouselLabel}
               locale={locale}
               entries={entries}
-              onActiveIndexChange={handleActiveIndex}
               controlsRef={carousel}
             />
 
