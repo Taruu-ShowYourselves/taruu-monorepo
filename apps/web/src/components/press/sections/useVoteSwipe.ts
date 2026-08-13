@@ -50,9 +50,10 @@ interface VoteSwipe<T extends HTMLElement> {
  * a matter of consensus. Release past the commit distance and it lands;
  * release short and the tile springs back having said nothing.
  *
- * Sideways belongs to the tile at every width - the tiles used to hand it to
- * the carousel, which is why the desk no longer offers arrows and leans on its
- * own drift and the municipality tuner instead. Downwards is shared with the
+ * Sideways belongs to the tile under a finger, and to the desk under a cursor:
+ * a thumb has one tile and one river beneath it and loses nothing by lending
+ * sideways to the ballot, while dragging the river is the first thing a cursor
+ * tries. Downwards is shared with the
  * page: on a touchscreen `touch-action: pan-y` means the browser takes a
  * vertical pan before this ever sees it, so setting a topic aside by pushing
  * down is a pointer gesture (mouse, trackpad, pen). The tile's headline opens
@@ -139,6 +140,8 @@ export function useVoteSwipe<T extends HTMLElement>({
 
     let armed = false;
     let pointerId: number | null = null;
+    /** Whether the pointer in hand is a cursor - see the axis test below. */
+    let byMouse = false;
     let originX = 0;
     let originY = 0;
     let box = { width: 0, height: 0 };
@@ -186,6 +189,7 @@ export function useVoteSwipe<T extends HTMLElement>({
       if (evt.pointerType === 'mouse' && evt.button !== 0) return;
       if (armed || pointerId !== null) return;
       pointerId = evt.pointerId;
+      byMouse = evt.pointerType === 'mouse';
       originX = evt.clientX;
       originY = evt.clientY;
       swallowClick = false;
@@ -203,6 +207,16 @@ export function useVoteSwipe<T extends HTMLElement>({
            the pull still mostly vertical, they mean the tile. Upwards is
            always the page - there is nothing to say in that direction. */
         const sideways = Math.abs(dx) > Math.abs(dy);
+        /* Except under a mouse, where sideways is the desk's.
+           A thumb has one river and one tile under it, and taking sideways
+           for the ballot costs the reader nothing they had - the desk drifts
+           on its own and the tuner steers it. A cursor is the other way
+           round: dragging the river is the obvious thing to try, it is how
+           every other carousel on the web behaves, and a desk that refuses
+           the drag reads as broken. The ballot is still one click away in
+           the tile's own dialog, and the downward set-aside still answers
+           the mouse. */
+        if (sideways && byMouse) return;
         if (!sideways && !(dy > AXIS_PX * 2)) return;
         arm();
         if (!armed) return;

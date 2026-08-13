@@ -36,6 +36,19 @@ const HOVER_SPEED = 0.12;
  */
 const TRAVEL_LINGER_MS = 7000;
 
+/**
+ * Sideways travel on a wheel or trackpad before the desk moves a tile, and how
+ * long the desk holds still afterwards.
+ *
+ * A two-finger sideways swipe is how a laptop reads a river, and Embla only
+ * listens for drags - so the desk sat there under it. The travel is
+ * accumulated rather than answered per event because one flick of a trackpad
+ * arrives as thirty events of four pixels each; 90px is roughly one deliberate
+ * push, and short of it nothing moves.
+ */
+const WHEEL_STEP_PX = 90;
+const WHEEL_LINGER_MS = 2500;
+
 const EMBLA_OPTIONS = {
   direction: 'rtl' as const,
   align: 'start' as const,
@@ -130,6 +143,46 @@ export function DeskCarousel({
     };
   }, [emblaApi, refresh]);
 
+  /* A sideways wheel steers the river.
+   *
+   * Non-passive on purpose: the sideways delta has to be swallowed, or the
+   * browser answers it with its own horizontal pan - and on macOS, at the end
+   * of the page, with the back-navigation gesture. The page's vertical scroll
+   * is left entirely alone; only a gesture that is genuinely working across
+   * the screen is taken, on the same axis test the pager uses. */
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  /* Embla hands out a callback ref and the wheel listener needs the same node,
+     so the element is kept as it passes through. */
+  const setViewport = useCallback(
+    (node: HTMLDivElement | null) => {
+      viewportRef.current = node;
+      emblaRef(node);
+    },
+    [emblaRef]
+  );
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!emblaApi || !viewport) return;
+
+    let travel = 0;
+    const onWheel = (event: WheelEvent) => {
+      if (Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
+      event.preventDefault();
+      travel += event.deltaX;
+      if (Math.abs(travel) < WHEEL_STEP_PX) return;
+      drift?.linger(WHEEL_LINGER_MS);
+      /* The track is RTL, so a swipe that pushes content to the right - a
+         negative deltaX - is a move towards the next tile in reading order. */
+      if (travel < 0) emblaApi.scrollNext();
+      else emblaApi.scrollPrev();
+      travel = 0;
+    };
+
+    viewport.addEventListener('wheel', onWheel, { passive: false });
+    return () => viewport.removeEventListener('wheel', onWheel);
+  }, [emblaApi, drift]);
+
   useEffect(() => {
     if (!controlsRef) return;
     controlsRef.current = emblaApi
@@ -149,7 +202,7 @@ export function DeskCarousel({
     <div className={styles.carousel} role="region" aria-label={label}>
       <div
         className={styles.viewport}
-        ref={emblaRef}
+        ref={setViewport}
         onMouseEnter={() => drift?.setSpeed(HOVER_SPEED)}
         onMouseLeave={() => drift?.setSpeed(DRIFT_SPEED)}
       >
