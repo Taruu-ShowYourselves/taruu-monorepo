@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, type RefObject } from 'react';
+import { useEffect, useState, type RefObject } from 'react';
 import { useLenis } from '@/providers/LenisProvider';
 import {
   SNAP_STOPS_EVENT,
@@ -23,7 +23,21 @@ import {
  * so however hard the flick, the next thing on the screen is the next thing on
  * the page. And a section taller than the screen gets a second stop at its
  * foot, so its lower half stays reachable instead of being snapped away from.
+ *
+ * It is a phone gesture, and it runs on phones only. A thumb has one throw and
+ * no way to stop halfway, so a page that answers it with one screen is doing
+ * the reader a favour. A wheel, a trackpad and a dragged scrollbar are all
+ * continuous and already land where they were aimed - answering those with a
+ * page takes the scroll out of the reader's hands, which on a desk reads as
+ * the page fighting back. See HANDHELD_QUERY.
  */
+
+/**
+ * The devices the pager is for: a coarse pointer with no hover, which is a
+ * finger. A touchscreen laptop reports a coarse pointer too, but it also
+ * hovers - it keeps its free scroll along with every other desktop.
+ */
+const HANDHELD_QUERY = '(pointer: coarse) and (hover: none)';
 
 /** How long the scroll has to be quiet before it counts as a gesture ending. */
 const SETTLE_MS = 130;
@@ -81,10 +95,23 @@ export function useSectionSnap(
   { enabled }: SectionSnapOptions
 ): void {
   const lenis = useLenis();
+  /* False through the server render and the first client one, so a desktop
+     never has the pager attached even for a frame; a phone picks it up on the
+     effect that follows. Watched rather than read once: a tablet switching to
+     a trackpad case, or a devtools device emulation, changes the answer. */
+  const [handheld, setHandheld] = useState(false);
+
+  useEffect(() => {
+    const query = window.matchMedia(HANDHELD_QUERY);
+    const read = () => setHandheld(query.matches);
+    read();
+    query.addEventListener('change', read);
+    return () => query.removeEventListener('change', read);
+  }, []);
 
   useEffect(() => {
     const root = rootRef.current;
-    if (!enabled || !lenis || !root) return;
+    if (!enabled || !handheld || !lenis || !root) return;
 
     let stops: number[] = [];
     /** Where the current gesture began - null between gestures. */
@@ -367,5 +394,5 @@ export function useSectionSnap(
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onTouchEnd);
     };
-  }, [enabled, lenis, rootRef]);
+  }, [enabled, handheld, lenis, rootRef]);
 }

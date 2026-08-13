@@ -53,8 +53,9 @@ export function HomepageExperience({
   const rootRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
 
-  // One gesture, one desk: the page comes to rest on a section edge instead of
-  // carrying a flick three sections deep and cutting a headline in half.
+  // One thumb, one desk: on a phone the page comes to rest on a section edge
+  // instead of carrying a flick three sections deep and cutting a headline in
+  // half. The hook holds its own device test - a desk keeps its free scroll.
   useSectionSnap(rootRef, { enabled: !shouldReduceMotion });
 
   useEffect(() => {
