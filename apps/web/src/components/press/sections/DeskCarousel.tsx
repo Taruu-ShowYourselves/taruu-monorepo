@@ -43,10 +43,11 @@ const TRAVEL_LINGER_MS = 7000;
  * A two-finger sideways swipe is how a laptop reads a river, and Embla only
  * listens for drags - so the desk sat there under it. The travel is
  * accumulated rather than answered per event because one flick of a trackpad
- * arrives as thirty events of four pixels each; 90px is roughly one deliberate
- * push, and short of it nothing moves.
+ * arrives as thirty events of four pixels each. Kept short: a desk that waits
+ * for a hard push before it moves at all is a desk the reader concludes is
+ * broken, and every tile is one gentle swipe from the next.
  */
-const WHEEL_STEP_PX = 90;
+const WHEEL_STEP_PX = 40;
 const WHEEL_LINGER_MS = 2500;
 
 const EMBLA_OPTIONS = {
@@ -167,9 +168,27 @@ export function DeskCarousel({
 
     let travel = 0;
     const onWheel = (event: WheelEvent) => {
-      if (Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
+      /* Shift+wheel is how a mouse with one wheel says sideways, and the
+         browser reports it on whichever axis it likes - Chrome moves it to
+         deltaX, Firefox leaves it on deltaY. Take the larger of the two and
+         read it as horizontal either way. */
+      const bigger =
+        Math.abs(event.deltaX) > Math.abs(event.deltaY)
+          ? event.deltaX
+          : event.deltaY;
+      const sideways = event.shiftKey ? bigger : event.deltaX;
+      // Anything else on the vertical is the page's; only a gesture genuinely
+      // working across the screen is taken.
+      if (!event.shiftKey && Math.abs(event.deltaX) <= Math.abs(event.deltaY)) {
+        return;
+      }
+      if (!sideways) return;
       event.preventDefault();
-      travel += event.deltaX;
+      /* And kept from the page's own smooth scroll, which reads the wheel on
+         an ancestor and does not care whether the default was prevented -
+         without this a shift+wheel steers the desk and scrolls the page. */
+      event.stopPropagation();
+      travel += sideways;
       if (Math.abs(travel) < WHEEL_STEP_PX) return;
       drift?.linger(WHEEL_LINGER_MS);
       /* The track is RTL, so a swipe that pushes content to the right - a
