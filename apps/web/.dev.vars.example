@@ -100,6 +100,9 @@ EXPO_PUBLIC_API_URL=https://api.taruu.co.il
 # --- Ops tokens (machine/CI credentials - NEVER pushed to the worker; see SKIP
 # in scripts/sync-secrets.sh). Pushed to GitHub Actions via sync-gh-secrets.sh.
 CLOUDFLARE_API_TOKEN=
+# Account the worker deploys into. The OpenNext adapter needs it explicitly to
+# provision the R2 incremental-cache bucket; `wrangler whoami` shows the value.
+CLOUDFLARE_ACCOUNT_ID=
 OPENAI_API_KEY=
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
