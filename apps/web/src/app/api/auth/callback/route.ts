@@ -33,6 +33,8 @@ import {
   setSessionCookies,
 } from '@/services/auth/session';
 import { DEFAULT_LOGIN_AMR, DEFAULT_LOGIN_ASR } from '@/services/auth/assurance';
+import { mintPendingChallenge, setPendingChallengeCookie } from '@/services/auth/mfa-challenge';
+import { userRequiresMfa } from '@/lib/supabase/mfa';
 import { generateEncryptedDID } from '@sync/shared';
 import {
   getUserByGoogleId,
@@ -210,6 +212,42 @@ export async function POST(request: Request) {
       user = (await updateUser(user.id, {
         updated_at: new Date().toISOString(),
       })) ?? user;
+    }
+
+    // Login-challenge branch (engineering model §5.2 case 3): when the
+    // account has an active factor AND global enforcement is on, no session
+    // and no refresh token exist - only the pending challenge (DB row =
+    // authority, cookie/body token = locator). A null derivation throws:
+    // enforcement state is never guessed.
+    const requiresMfa = await userRequiresMfa(user.id);
+    if (requiresMfa === null) {
+      throw new Error('required-assurance derivation failed during login');
+    }
+    if (requiresMfa) {
+      const challenge = await mintPendingChallenge(user.id, request);
+      if (challenge === 'rate_limited') {
+        return clearingStateCookie(
+          NextResponse.json(
+            { error: 'Too many attempts', code: 'RATE_LIMITED' },
+            { status: 429 }
+          )
+        );
+      }
+      if (!challenge) {
+        throw new Error('pending-challenge mint failed');
+      }
+      await setPendingChallengeCookie(challenge.token);
+      return clearingStateCookie(
+        NextResponse.json({
+          success: false,
+          mfaRequired: true,
+          code: 'MFA_REQUIRED',
+          // The locator is also returned in the body for cookie-less clients;
+          // it is worthless without completing the challenge.
+          pendingToken: challenge.token,
+          expiresInSeconds: challenge.expiresInSeconds,
+        })
+      );
     }
 
     // sv comes from the row we just read/created - never a literal at the

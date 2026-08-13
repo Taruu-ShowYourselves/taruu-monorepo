@@ -242,6 +242,21 @@ export async function insertPendingToken(row: {
   return data;
 }
 
+/**
+ * Row read for challenge-state classification (expired vs consumed vs
+ * exhausted -> the right error code and event). The atomic consume RPC
+ * remains the only authority for the accept decision.
+ */
+export async function getPendingToken(id: string): Promise<MfaPendingTokenRow | null> {
+  const { data, error } = await supabaseAdmin
+    .from('mfa_pending_tokens')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data;
+}
+
 /** Rows past expires_at + 24h are forensically spent - opportunistic cleanup at mint. */
 export async function deleteExpiredPendingTokens(): Promise<void> {
   const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();

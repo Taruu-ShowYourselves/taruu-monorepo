@@ -36,6 +36,15 @@ vi.mock('@/services/auth/session', () => ({
   setSessionCookies: vi.fn(),
 }));
 
+// M5 challenge branch collaborators - default: account does not require MFA.
+vi.mock('@/lib/supabase/mfa', () => ({
+  userRequiresMfa: vi.fn(async () => false),
+}));
+vi.mock('@/services/auth/mfa-challenge', () => ({
+  mintPendingChallenge: vi.fn(),
+  setPendingChallengeCookie: vi.fn(),
+}));
+
 vi.mock('@/lib/supabase/db', () => ({
   getUserByGoogleId: vi.fn(),
   createUser: vi.fn(),
@@ -64,6 +73,8 @@ import { exchangeCodeForTokens, getGoogleUserInfo } from '@/services/auth/google
 import { verifyGoogleIdToken, GoogleIdTokenVerificationError } from '@/services/auth/google-oidc';
 import { verifyLoginOAuthState } from '@/services/auth/login-state';
 import { createSessionToken, createRefreshToken, setSessionCookies } from '@/services/auth/session';
+import { userRequiresMfa } from '@/lib/supabase/mfa';
+import { mintPendingChallenge, setPendingChallengeCookie } from '@/services/auth/mfa-challenge';
 import {
   getUserByGoogleId,
   createUser,
@@ -145,6 +156,7 @@ describe('Auth Callback API Routes', () => {
 
   /** Wire every mock for a successful existing-user login; tests override what they need. */
   function primeHappyPath() {
+    (userRequiresMfa as Mock).mockResolvedValue(false);
     (verifyLoginOAuthState as Mock).mockResolvedValue({ nonceHash: 'n'.repeat(64), flow: 'login' });
     (exchangeCodeForTokens as Mock).mockResolvedValue({
       accessToken: 'google-access-token',
@@ -433,6 +445,54 @@ describe('Auth Callback API Routes', () => {
 
       expect(response.status).toBe(500);
       expect(data.error).toBe('Authentication failed');
+    });
+  });
+
+  describe('login-challenge branch (engineering model §5.2 case 3)', () => {
+    it('opens a challenge instead of minting when the account requires MFA', async () => {
+      primeHappyPath();
+      (userRequiresMfa as Mock).mockResolvedValue(true);
+      (mintPendingChallenge as Mock).mockResolvedValue({
+        token: 'pending-jwt',
+        expiresInSeconds: 300,
+      });
+
+      const response = await POST(callbackRequest({ code: 'valid-code', state: STATE }));
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(false);
+      expect(data.mfaRequired).toBe(true);
+      expect(data.code).toBe('MFA_REQUIRED');
+      expect(data.pendingToken).toBe('pending-jwt');
+      // The invariant: NO session and NO refresh token exist in the pending state.
+      expect(createSessionToken).not.toHaveBeenCalled();
+      expect(createRefreshToken).not.toHaveBeenCalled();
+      expect(setSessionCookies).not.toHaveBeenCalled();
+      expect(setPendingChallengeCookie).toHaveBeenCalledWith('pending-jwt');
+      // State stays single-use on this path too.
+      expect(response.cookies.get('sync-oauth-state')?.value).toBe('');
+    });
+
+    it('429s when the durable pending-mint ceiling refuses', async () => {
+      primeHappyPath();
+      (userRequiresMfa as Mock).mockResolvedValue(true);
+      (mintPendingChallenge as Mock).mockResolvedValue('rate_limited');
+
+      const response = await POST(callbackRequest({ code: 'valid-code', state: STATE }));
+
+      expect(response.status).toBe(429);
+      expect(createSessionToken).not.toHaveBeenCalled();
+    });
+
+    it('fails closed (500) when the enforcement derivation is unreadable', async () => {
+      primeHappyPath();
+      (userRequiresMfa as Mock).mockResolvedValue(null);
+
+      const response = await POST(callbackRequest({ code: 'valid-code', state: STATE }));
+
+      expect(response.status).toBe(500);
+      expect(createSessionToken).not.toHaveBeenCalled();
     });
   });
 });
