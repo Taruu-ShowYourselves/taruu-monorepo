@@ -207,11 +207,13 @@ Gotchas the implementation must respect:
 
 ### 3.3 Two OAuth-state families coexist (transitional)
 
-`lib/oauth-state.ts` holds both: **family 1** (social connect,
-Facebook/Instagram) still signs with `JWT_SECRET` captured at module load, no
-`kid`, and logs failures; **family 2** (login, M1) uses the `oauth_state`
-purpose key. The header comment marks migrating family 1 onto the purpose key
-as deliberate follow-up work, out of Issue #71's critical path. Consequence:
+**Family 1** (social connect, Facebook/Instagram) lives in
+`lib/oauth-state.ts`, still signs with `JWT_SECRET` captured at module load,
+no `kid`, and logs failures; migrating it onto the purpose key is deliberate
+follow-up work, out of Issue #71's critical path. **Family 2** (login) lives
+in `services/auth/login-state.ts` - it signs with the kernel's purpose-key
+primitive, and the mint-path guard test forbids that import outside
+`services/auth/`, which is exactly why it moved out of lib/. Consequence:
 **`JWT_SECRET` cannot be deleted when the legacy window closes** until the four
 social routes migrate — track as a follow-up, not an M1 blocker.
 
@@ -601,14 +603,15 @@ locked column is an attacker-triggerable DoS. Responses reuse
 | `POST /api/auth/callback` | M1 ✅ (uncommitted) | state + id_token gates (§5.2) | verified identity → user row → session mint (M2: or pending challenge) |
 | `POST /api/auth/session` | pre-existing | session verify | validate + return profile |
 | `DELETE /api/auth/session` | pre-existing | none | clear cookies (no revocation — §5.1c) |
-| `POST /api/auth/session/refresh` | M1 Task 8 ⏳ | refresh verify + sv + assurance | rotate per §5.1e |
-| `POST /api/auth/mfa/verify` | M5/WS-D | pending row (§5.5) | challenge: TOTP or recovery → session |
-| `POST /api/security/mfa/enroll` | M3 | `requireAuth` + enrollment flag | §5.3 |
-| `POST /api/security/mfa/enroll/confirm` | M3 | `requireAuth` + pending row | §5.3 |
-| `POST /api/security/mfa/disable` | M3 | `requireAuth` + reauth(`mfa_disable`) | §5.3 |
-| `POST /api/security/mfa/recovery/regenerate` | M3 | `requireAuth` + reauth(`recovery_regenerate`) | §5.4 |
-| `POST /api/security/reauth` | M4 | session + method matrix | §5.6a |
-| `POST /api/security/admin/mfa-reset` | M7 | `requireSecurityAdmin` + reauth(TOTP only) + flag | §5.6b |
+| `POST /api/auth/session/refresh` | M1 ✅ | refresh verify + sv + assurance | rotate per §5.1e |
+| `POST /api/auth/mfa/verify` | M5 ✅ | pending row (§5.5) | challenge: TOTP or recovery → session |
+| `POST /api/security/mfa/enroll` | M3 ✅ | `requireAuth` + enrollment flag | §5.3 |
+| `POST /api/security/mfa/enroll/confirm` | M3 ✅ | `requireAuth` + pending row | §5.3 |
+| `POST /api/security/mfa/disable` | M3 ✅ | reauth(`mfa_disable`) | §5.3 — deliberately NOT flag-gated: an active factor stays disableable after the enrollment surface is off |
+| `POST /api/security/mfa/recovery/regenerate` | M3 ✅ | enrollment flag + reauth(`recovery_regenerate`) | §5.4 |
+| `POST /api/security/reauth` | M4 ✅ | session + server-derived method matrix | §5.6a |
+| `POST /api/security/admin/mfa-reset` | M7 ✅ | flag + `requireSecurityAdmin` + reauth(TOTP only) | §5.6b |
+| `GET /api/security/status` | M6 ✅ | session | read model for settings/security (factor state, recovery count, enforcement, score, own events) |
 
 ### 9.2 Error responses
 
@@ -762,52 +765,72 @@ does.
 
 ---
 
-## 13. Current implementation status vs this model (2026-08-13)
+## 13. Current implementation status vs this model (2026-08-13, post-E2E)
 
-**M1 auth kernel: 8 of 9 tasks landed on `dolev/issue-71-m1-auth-kernel`.**
+**Implemented on `dolev/issue-71-m1-auth-kernel`: the full server-side and
+web-client feature.** M1 auth kernel (all 9 tasks incl. the refresh rewrite
+and both guard tests), M2 schema (`20260901000002`/`-03`, committed, **not
+applied to production** - operator runbook step) with a 21-case SQL proof
+suite verified on a scratch replay of the full migration chain, M3
+enrollment/recovery/disable APIs, M4 reauth tickets + `requireReauth`, M5
+login challenge (callback case-3 branch + `/api/auth/mfa/verify`), M6 web
+surfaces (settings/security, enrollment flow, challenge page, ReauthDialog)
+plus the api-client `code` surfacing, and M7 operator reset. All controls
+default OFF; nothing pushed, merged, or applied to production.
 
-| Piece | State |
-|---|---|
-| keys / tokens / assurance / session (Model B) / legacy window / google start / oauth login state / google-oidc JWKS | ✅ committed, tested (11 commits) |
-| Callback hardening (Task 7) | ✅ implemented + reviewed, **uncommitted** — 3 files: `callback/route.ts`, `services/auth/google.ts`, `services/auth/index.ts` |
-| Refresh route (Task 8) | ❌ untouched pre-M1 code; **does not typecheck** (3 × TS2345 at `refresh/route.ts:46,56,64`); all 7 flaws of §5.1e's "before" state present; its tests still mock the old string-returning contract |
-| Guard tests + full-suite regression (Task 9) | ❌ not started (`mint-path-guard.test.ts`, `user-token.test.ts` assurance-claims guard) |
-| Migration `20260901000001` | committed, **not applied to prod** (correct — operator runbook step) |
+Recorded deviations from this model's original prose (all
+repository-grounded; the affected sections were updated in place):
 
-**No material conflicts between existing implementation and this model.** The
-implementation *is* this model's M1 slice. Recorded warts (fix in their named
-milestone, don't let them drift):
+1. **Login OAuth state moved into the kernel** (`services/auth/login-state.ts`,
+   §3.3): the mint-path guard caught `lib/oauth-state.ts` importing the
+   signing primitive - the guard is right, the module moved.
+2. **The `google` reauth method is refused everywhere**: the §7.2 matrix's
+   only `google` cell is the *future* `security_settings` purpose for
+   factor-less accounts, which no Issue #71 endpoint accepts. The method
+   derivation returns an empty list for factor-less accounts and the
+   challenge endpoint answers `REAUTH_UNAVAILABLE`.
+3. **Security events are written app-side after the atomic RPCs**, not inside
+   the DB transactions - the same relationship `space_audit_log` has with its
+   actions. Evidence writes are best-effort and never fail the action; the
+   durable rate-limit counters read the same table and fail closed.
+4. **Score-card extraction is partial**: `settings/security` renders the
+   security score against its explicit /20 maximum; the shared
+   IdentityScoreCard/TrustScoreBadge extraction (and every /140 rendering)
+   waits for PR-A to land - rendering /140 while production's model is /100
+   would be wrong today.
+5. **The callback answers the challenge as HTTP 200 with
+   `{ success: false, mfaRequired: true, code: 'MFA_REQUIRED' }`** (plus the
+   locator in the body for cookie-less clients) rather than a 401 - the
+   client flow stays on the ok-path; the machine-readable code is unchanged.
+6. **`GET /api/security/status`** was added as the read model for the
+   settings surface (additive; requireAuth-only, deliberately not
+   flag-gated so an enrolled user still sees their state after the
+   enrollment surface is switched off).
 
-1. `callback/route.ts:192` hardcodes `identity_score: 40` — pre-existing; PR-A
-   removes it; **leave it in M1** (removing it early would race PR-A's
-   two-stage rollout).
-2. `isSessionExpiringSoon` uses a 1h horizon = the whole session TTL, so it is
-   effectively always true. Harmless; tidy in Task 8/9.
-3. `user-token.ts:16-18` header still says the session cookie "lives for 7
-   days" — stale comment; fix when Task 8 lands.
-4. `.env.example` still lists `JWT_EXPIRY=7d` (dead for sessions).
-5. `types.ts` types `identity_score: number` while production has the column
-   nullable — hand-maintained-types drift; PR-A territory.
-6. oauth-state family 1 (social connect) still on `JWT_SECRET`, logs failures —
-   deliberate follow-up (§3.3).
+Pre-existing warts intentionally left (unchanged from the original list):
+the callback's `identity_score: 40` literal (PR-A removes it; removing it
+early would race PR-A's two-stage rollout), `isSessionExpiringSoon`'s
+1h-horizon tautology, `.env.example`'s dead `JWT_EXPIRY`, the
+types.ts/production nullability drift on `identity_score`, and oauth-state
+family 1 on `JWT_SECRET`.
 
 ---
 
-## 14. Remaining work to complete Issue #71 E2E
+## 14. Remaining work to ship Issue #71
 
-Order per architecture §16; every milestone lands dark.
+Implementation is complete and locally verified; what remains is landing and
+rollout - every item below is operator/runbook work or a separately-tracked
+dependency, not feature code:
 
-| Milestone | Work | Depends on |
+| Step | Work | Notes |
 |---|---|---|
-| **M1 finish** | commit Task 7; rewrite refresh route per §5.1e + rewrite its tests; Task 9 guard tests; full vitest + typecheck green; SUMMARY | nothing |
-| **M0** | rebase + land PR-A; apply `20260807000001` (app-first) | §12.3 |
-| **M2** | migrations `20260901000002` + `...03`; SQL proof suite; security-events repo writer; Resend security templates; hand-written types | M1, M0 |
-| **M3** | enroll / confirm / disable / recovery APIs behind `MFA_ENROLLMENT_ENABLED`; durable limits | M2 |
-| **M4** | reauth tickets + `requireReauth` + method matrix | M1, M2 |
-| **M5** | login-challenge branch (case 3) + `/api/auth/mfa/verify` + refresh assurance re-check goes live-but-dark | M1, M2, M3 |
-| **M6 / M6b** | web UI surfaces; mobile: api-client `code` surfacing + challenge UI (or formal mobile-login retirement) — M6b gates the flip | M3, M5 |
-| **M7** | operator reset + notifications behind `OPERATOR_RESET_ENABLED` | M4, M2 |
-| **M8** | runbook flips only (§5.7) | all above + mobile gate |
+| Review + merge | this branch -> PR -> main | CI runs test/typecheck/lint/build (all green locally) |
+| **M0** | rebase + land PR-A; apply `20260807000001` (app-first) | §12.3 blockers; prerequisite for the scoring *display* extraction, not for MFA |
+| Apply migrations | `20260901000001`, `-02`, `-03` - single verbatim apply each, ledger-delta verified | inert on arrival |
+| Provision secrets | `AUTH_MASTER_KEY`, `AUTH_LEGACY_UNTIL`, `SECURITY_EVENT_PEPPER` as Worker secrets | before the deploy that carries M1 |
+| Score-card extraction | IdentityScoreCard /140 + TrustScoreBadge /160 shared components | after PR-A lands (deviation 4) |
+| **M6b** | mobile challenge UI - blocked on the mobile login redesign (out of Issue #71 scope, §10.2); until then the enforcement flip's mobile gate is unsatisfied unless mobile login is formally retired | gates M8 step 4 |
+| **M8** | staged runbook flips (§5.7): enrollment staging -> enrollment prod -> operator onboarding + `OPERATOR_RESET_ENABLED` -> enforcement flip transaction | the only behavioral milestone; forbidden from automation |
 
 Out of Issue #71 (tracked separately): mobile login deep-link redesign beyond
 the challenge requirement; oauth-state family-1 migration + `JWT_SECRET`
