@@ -7,9 +7,12 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SignJWT } from 'jose';
-import { resetDerivedKeyCache, deriveAuthKey, type TokenPurpose } from './keys';
+import { resetDerivedKeyCache, deriveAuthKey } from './keys';
+import type { SigningPurpose } from './tokens';
 
-const PURPOSES: TokenPurpose[] = ['session', 'refresh', 'oauth_state'];
+// Every signing purpose in the catalog - the cross-purpose matrix below
+// covers all ordered pairs, so it grows automatically with this list.
+const PURPOSES: SigningPurpose[] = ['session', 'refresh', 'oauth_state', 'mfa_pending', 'reauth'];
 const VALID_MASTER_KEY = 'a'.repeat(32);
 
 describe('tokens: signPurposeToken / verifyPurposeToken', () => {
@@ -28,7 +31,7 @@ describe('tokens: signPurposeToken / verifyPurposeToken', () => {
     expect(claims?.userId).toBe('user-1');
   });
 
-  it('fails verification for every ordered cross-purpose pair (6 cases)', async () => {
+  it('fails verification for every ordered cross-purpose pair (all ordered pairs)', async () => {
     const { signPurposeToken, verifyPurposeToken } = await import('./tokens');
 
     for (const mintPurpose of PURPOSES) {

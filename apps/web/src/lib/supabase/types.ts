@@ -49,6 +49,14 @@ export interface Database {
            * authenticated request. See migration 20260901000001.
            */
           session_version: number;
+          /**
+           * Security posture score (Issue #71, canonical §10.2 - formula
+           * locked). 20 iff an active MFA factor exists AND global enforcement
+           * is on; else 0. DB-owned: written only by the factor trigger and
+           * the M8 flip runbook (migration 20260901000003). Display only -
+           * never an input to voting eligibility.
+           */
+          security_score: number;
           created_at: string;
           updated_at: string;
         };
@@ -76,6 +84,7 @@ export interface Database {
           identity_verified_at?: string | null;
           is_platform_admin?: boolean;
           session_version?: number;
+          security_score?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -103,6 +112,7 @@ export interface Database {
           identity_verified_at?: string | null;
           is_platform_admin?: boolean;
           session_version?: number;
+          security_score?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -175,6 +185,201 @@ export interface Database {
           locale?: 'he' | 'en' | null;
           subscribed_at?: string;
           unsubscribed_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      /**
+       * TOTP factor per user (Issue #71, migration 20260901000002). Lifecycle
+       * pending -> active -> disabled; disabled rows retained as audit
+       * history. Partial unique indexes allow at most one active and one
+       * pending factor per user. secret_enc is AES-256-GCM
+       * (iv || ciphertext || tag), AAD = user_id || id - the hex string
+       * PostgREST returns for bytea (\x-prefixed).
+       */
+      user_mfa_factors: {
+        Row: {
+          id: string;
+          user_id: string;
+          factor_type: 'totp';
+          status: 'pending' | 'active' | 'disabled';
+          secret_enc: string;
+          enc_key_version: number;
+          last_accepted_step: number | null;
+          confirm_attempts: number;
+          disabled_reason: 'user' | 'operator_reset' | null;
+          created_at: string;
+          confirmed_at: string | null;
+          disabled_at: string | null;
+          last_used_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          factor_type: 'totp';
+          status?: 'pending' | 'active' | 'disabled';
+          secret_enc: string;
+          enc_key_version?: number;
+          last_accepted_step?: number | null;
+          confirm_attempts?: number;
+          disabled_reason?: 'user' | 'operator_reset' | null;
+        };
+        Update: {
+          status?: 'pending' | 'active' | 'disabled';
+          last_accepted_step?: number | null;
+          confirm_attempts?: number;
+          disabled_reason?: 'user' | 'operator_reset' | null;
+          confirmed_at?: string | null;
+          disabled_at?: string | null;
+          last_used_at?: string | null;
+        };
+        Relationships: [];
+      };
+      /**
+       * Recovery-code hashes (Issue #71). Plaintext shown exactly once at
+       * generation; spend is the mfa_consume_recovery_code RPC.
+       */
+      user_recovery_codes: {
+        Row: {
+          id: string;
+          user_id: string;
+          batch_id: string;
+          code_hash: string;
+          used_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          batch_id: string;
+          code_hash: string;
+          used_at?: string | null;
+        };
+        Update: {
+          used_at?: string | null;
+        };
+        Relationships: [];
+      };
+      /**
+       * Authoritative MFA login-challenge state (Issue #71 §6.4a). The
+       * mfa_pending.v1 JWT is only a signed locator for a row here; id equals
+       * the JWT jti and is minted by the application.
+       */
+      mfa_pending_tokens: {
+        Row: {
+          id: string;
+          user_id: string;
+          expires_at: string;
+          consumed_at: string | null;
+          attempt_count: number;
+          ip_hash: string | null;
+          user_agent: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          user_id: string;
+          expires_at: string;
+          consumed_at?: string | null;
+          attempt_count?: number;
+          ip_hash?: string | null;
+          user_agent?: string | null;
+        };
+        Update: {
+          consumed_at?: string | null;
+          attempt_count?: number;
+        };
+        Relationships: [];
+      };
+      /**
+       * Single-use, purpose-bound step-up tickets (Issue #71 §7). The DB row
+       * is the authority over the reauth.v1 JWT; id equals the jti.
+       */
+      reauth_tickets: {
+        Row: {
+          id: string;
+          user_id: string;
+          purpose: 'mfa_disable' | 'recovery_regenerate' | 'operator_reset' | 'security_settings';
+          method: 'totp' | 'recovery' | 'google';
+          expires_at: string;
+          consumed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          user_id: string;
+          purpose: 'mfa_disable' | 'recovery_regenerate' | 'operator_reset' | 'security_settings';
+          method: 'totp' | 'recovery' | 'google';
+          expires_at: string;
+          consumed_at?: string | null;
+        };
+        Update: {
+          consumed_at?: string | null;
+        };
+        Relationships: [];
+      };
+      /**
+       * Append-only security audit (Issue #71 §8). INSERT and SELECT only -
+       * the database refuses UPDATE/DELETE/TRUNCATE for every role including
+       * service_role. Doubles as the durable rate-limit counter.
+       */
+      security_events: {
+        Row: {
+          id: number;
+          user_id: string | null;
+          actor_user_id: string | null;
+          event_type:
+            | 'mfa_enrollment_started'
+            | 'mfa_enrollment_confirmed'
+            | 'mfa_enrollment_failed'
+            | 'totp_verification_success'
+            | 'totp_verification_failure'
+            | 'recovery_code_used'
+            | 'recovery_code_failed'
+            | 'recovery_codes_regenerated'
+            | 'mfa_disabled'
+            | 'mfa_reset_by_operator'
+            | 'reauth_success'
+            | 'reauth_failure'
+            | 'mfa_challenge_expired'
+            | 'mfa_challenge_replayed'
+            | 'session_version_revoked';
+          ip_hash: string | null;
+          user_agent: string | null;
+          reason: string | null;
+          metadata: Record<string, unknown>;
+          created_at: string;
+        };
+        Insert: {
+          user_id?: string | null;
+          actor_user_id?: string | null;
+          event_type: SecurityEventType;
+          ip_hash?: string | null;
+          user_agent?: string | null;
+          reason?: string | null;
+          metadata?: Record<string, unknown>;
+        };
+        Update: never;
+        Relationships: [];
+      };
+      /**
+       * One-row global security settings (Issue #71 §5.6). The single source
+       * of truth for MFA enforcement - no env var mirrors it. Flips are
+       * runbook DML, transactional with the security_score recompute.
+       */
+      security_settings: {
+        Row: {
+          id: boolean;
+          mfa_enforcement_enabled: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          id?: boolean;
+          mfa_enforcement_enabled?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          mfa_enforcement_enabled?: boolean;
           updated_at?: string;
         };
         Relationships: [];
@@ -2201,6 +2406,52 @@ export interface Database {
         };
         Returns: void;
       };
+      mfa_consume_pending_token: {
+        Args: { p_id: string; p_user_id: string };
+        Returns: boolean | null;
+      };
+      mfa_record_pending_attempt: {
+        Args: { p_id: string; p_user_id: string };
+        Returns: number | null;
+      };
+      mfa_accept_totp_step: {
+        Args: { p_factor_id: string; p_user_id: string; p_step: number };
+        Returns: boolean | null;
+      };
+      mfa_increment_confirm_attempts: {
+        Args: { p_factor_id: string; p_user_id: string };
+        Returns: number | null;
+      };
+      mfa_activate_factor: {
+        Args: {
+          p_factor_id: string;
+          p_user_id: string;
+          p_step: number;
+          p_batch_id: string;
+          p_code_hashes: string[];
+        };
+        Returns: boolean;
+      };
+      mfa_consume_recovery_code: {
+        Args: { p_user_id: string; p_code_hash: string };
+        Returns: boolean | null;
+      };
+      mfa_regenerate_recovery_codes: {
+        Args: { p_user_id: string; p_batch_id: string; p_code_hashes: string[] };
+        Returns: number;
+      };
+      users_bump_session_version: {
+        Args: { p_user_id: string };
+        Returns: number | null;
+      };
+      mfa_disable_factor: {
+        Args: { p_user_id: string; p_reason: 'user' | 'operator_reset' };
+        Returns: boolean;
+      };
+      reauth_consume_ticket: {
+        Args: { p_id: string; p_user_id: string; p_purpose: string };
+        Returns: boolean | null;
+      };
       increment_vote_option: {
         Args: {
           option_id: string;
@@ -2546,3 +2797,14 @@ export type PilotLinkRow = Tables<'pilot_links'>;
 export type PilotLinkClickRow = Tables<'pilot_link_clicks'>;
 export type PilotRegistrationRow = Tables<'pilot_registrations'>;
 export type PilotAuditRow = Tables<'pilot_audit_log'>;
+
+// Issue #71 MFA (migrations 20260901000002/-03)
+export type MfaFactorRow = Tables<'user_mfa_factors'>;
+export type RecoveryCodeRow = Tables<'user_recovery_codes'>;
+export type MfaPendingTokenRow = Tables<'mfa_pending_tokens'>;
+export type ReauthTicketRow = Tables<'reauth_tickets'>;
+export type SecurityEventRow = Tables<'security_events'>;
+export type SecuritySettingsRow = Tables<'security_settings'>;
+export type SecurityEventType = SecurityEventRow['event_type'];
+export type ReauthPurpose = ReauthTicketRow['purpose'];
+export type ReauthMethod = ReauthTicketRow['method'];

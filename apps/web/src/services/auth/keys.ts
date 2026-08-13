@@ -5,15 +5,25 @@
  * module derives its purpose-specific key from here rather than touching the
  * master key or an env var directly (canonical §4.1).
  *
- * M1 declares exactly three purposes: session, refresh, oauth_state. The
- * canonical §4.1 catalog also lists mfa_pending, reauth and mfa_secret_enc -
- * those are M2 scope and must not be derived, declared, or referenced here.
+ * The full canonical §4.1 purpose catalog is declared here as of M2:
+ * session, refresh and oauth_state sign M1's tokens; mfa_pending and reauth
+ * sign the challenge/step-up locator tokens; mfa_secret_enc is
+ * encryption-only - it derives the AES-256-GCM key for TOTP secrets at rest
+ * (services/auth/mfa-secret.ts) and is deliberately excluded from the signing
+ * purposes in tokens.ts, so key separation between signing and encryption is
+ * a type error rather than a convention.
  *
  * Runtime is Cloudflare Workers via OpenNext (nodejs_compat) - derivation uses
  * Web Crypto (`crypto.subtle`), never `node:crypto`'s `hkdfSync`.
  */
 
-export type TokenPurpose = 'session' | 'refresh' | 'oauth_state';
+export type TokenPurpose =
+  | 'session'
+  | 'refresh'
+  | 'oauth_state'
+  | 'mfa_pending'
+  | 'reauth'
+  | 'mfa_secret_enc';
 
 /** HKDF salt for every M1 purpose key. Versioned alongside KEY_VERSION below. */
 export const HKDF_SALT = 'taruu-auth-v1';

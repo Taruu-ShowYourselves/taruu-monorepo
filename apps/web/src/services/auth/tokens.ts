@@ -15,14 +15,23 @@ import { SignJWT, jwtVerify, decodeJwt, type JWTPayload } from 'jose';
 import { deriveAuthKey, getAuthMasterKey, JWT_KEY_ID, type TokenPurpose } from './keys';
 
 /**
+ * Purposes that sign tokens. `mfa_secret_enc` is excluded on purpose: it is
+ * an encryption-key derivation label (services/auth/mfa-secret.ts), and using
+ * it to sign must be a compile error, not a runtime surprise.
+ */
+export type SigningPurpose = Exclude<TokenPurpose, 'mfa_secret_enc'>;
+
+/**
  * The `typ` **claim in the payload** for each purpose - not the JWT protected
  * header's media type, which stays the ordinary `JWT` (plus `alg: HS256` and
  * `kid` from keys.ts's key-version constant).
  */
-export const PURPOSE_TYPE_CLAIMS: Readonly<Record<TokenPurpose, string>> = Object.freeze({
+export const PURPOSE_TYPE_CLAIMS: Readonly<Record<SigningPurpose, string>> = Object.freeze({
   session: 'session.v1',
   refresh: 'refresh.v1',
   oauth_state: 'oauth_state.v1',
+  mfa_pending: 'mfa_pending.v1',
+  reauth: 'reauth.v1',
 });
 
 export type PurposeTokenClaims = JWTPayload & Record<string, unknown>;
@@ -33,7 +42,7 @@ export type PurposeTokenClaims = JWTPayload & Record<string, unknown>;
  * keys.ts when the master key is absent - never swallowed here.
  */
 export async function signPurposeToken(
-  purpose: TokenPurpose,
+  purpose: SigningPurpose,
   claims: Record<string, unknown>,
   ttlSeconds: number
 ): Promise<string> {
@@ -63,7 +72,7 @@ export async function signPurposeToken(
  * token, any claim value, or key material; the caller decides what to report.
  */
 export async function verifyPurposeToken(
-  purpose: TokenPurpose,
+  purpose: SigningPurpose,
   token: string
 ): Promise<PurposeTokenClaims | null> {
   try {
