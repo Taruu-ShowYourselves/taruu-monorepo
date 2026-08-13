@@ -6,6 +6,9 @@
   isolation: isolate;
   overflow: hidden;
   display: grid;
+  /* Squeezable column - an implicit `auto` track would be as wide as the three
+     routes ask for and push the section off the start edge below that width. */
+  grid-template-columns: minmax(0, 1fr);
   align-content: center;
   padding: clamp(3.5rem, 9vh, 7rem) var(--np-gutter);
   border-block-start: var(--np-rule-heavy) solid var(--np-ink);

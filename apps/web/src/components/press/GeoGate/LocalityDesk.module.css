@@ -10,6 +10,10 @@
      layer's grid instead of covering it. */
   isolation: isolate;
   display: grid;
+  /* Squeezable column: an implicit `auto` track is as wide as the copy asks
+     for (`.inner` asks for 74rem), which pushes the band off the start edge on
+     any screen narrower than that. */
+  grid-template-columns: minmax(0, 1fr);
   /* The homepage gives every main > section a 100svh floor, and this one is
      three lines and a control - so it centres in the screen it is given
      rather than sitting at the top of a mostly empty one. */

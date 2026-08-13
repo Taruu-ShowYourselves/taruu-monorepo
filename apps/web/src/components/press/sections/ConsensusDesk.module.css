@@ -3,6 +3,13 @@
    of the screen empty under it at every stop. */
 .desk {
   display: grid;
+  /* The column is named, and named as a fraction that may be squeezed to
+     nothing. An implicit `auto` track takes the width of its content, and this
+     desk's content asks for `--np-container` whatever the screen is - so under
+     1600px the track stood wider than the section, `.inner`'s auto margins
+     centred the desk inside the track rather than the screen, and the whole
+     column sat pushed off the start edge with the headline cut by it. */
+  grid-template-columns: minmax(0, 1fr);
   align-content: center;
   background: var(--np-paper);
   color: var(--np-ink);
