@@ -291,10 +291,13 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error('OAuth callback error:', error);
-    // Generic to the client - never echo verification internals here.
-    return NextResponse.json(
-      { error: 'Authentication failed', code: 'AUTH_FAILED' },
-      { status: 500 }
+    // Generic to the client - never echo verification internals here. Clear
+    // the state cookie on this path too: it is single-use once read, and an
+    // exception after state validation (an escaped enrichment error, a DB
+    // failure, the pending-mint throw) must not leave sync-oauth-state alive
+    // for the rest of its TTL.
+    return clearingStateCookie(
+      NextResponse.json({ error: 'Authentication failed', code: 'AUTH_FAILED' }, { status: 500 })
     );
   }
 }

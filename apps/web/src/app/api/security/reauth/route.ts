@@ -31,12 +31,11 @@ import {
 } from '@/services/auth/durable-limits';
 import type { ReauthPurpose } from '@/lib/supabase/types';
 
-const PURPOSES: readonly ReauthPurpose[] = [
-  'mfa_disable',
-  'recovery_regenerate',
-  'operator_reset',
-  'security_settings',
-];
+// The `security_settings` purpose exists in the DB CHECK for a future
+// consumer (canonical §7.2); no endpoint consumes it today, so a minted
+// ticket would be dead surface. Left out of the accepted set until it has a
+// consumer - the DB column keeps the slot reserved.
+const PURPOSES: readonly ReauthPurpose[] = ['mfa_disable', 'recovery_regenerate', 'operator_reset'];
 
 const MAX_FAILURES_PER_WINDOW = 5;
 
@@ -87,12 +86,23 @@ export async function POST(request: Request) {
     );
     const result = await verifySecondFactor(session.userId, code, factorMethods);
     if (!result.ok) {
-      await recordSecurityEvent({
+      // The failure-event write is this endpoint's ONLY durable rate limit -
+      // there is no per-attempt row counter here. If the write fails the
+      // counter never advances and the ceiling silently becomes infinite, so
+      // a failed failure-write must refuse rather than pass: fail closed
+      // against unbounded TOTP guessing.
+      const recorded = await recordSecurityEvent({
         userId: session.userId,
         eventType: 'reauth_failure',
         request,
         metadata: { purpose, method: result.method },
       });
+      if (!recorded) {
+        return NextResponse.json(
+          { error: 'Temporarily unavailable', code: 'RATE_LIMIT_UNAVAILABLE' },
+          { status: 503 }
+        );
+      }
       // Generic - never say which check failed.
       return NextResponse.json({ error: 'Verification failed', code: 'INVALID_CODE' }, { status: 401 });
     }

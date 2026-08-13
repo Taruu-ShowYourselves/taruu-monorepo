@@ -136,7 +136,10 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
+        // refreshToken deliberately NOT persisted: on web the 30-day refresh
+        // credential lives in the httpOnly sync-refresh cookie and nothing
+        // client-side ever reads it back from this store - persisting it to
+        // localStorage would only hand it to any XSS.
         expiresAt: state.expiresAt,
         isAuthenticated: state.isAuthenticated,
       }),

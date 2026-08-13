@@ -29,6 +29,12 @@ export type TokenPurpose =
 export const HKDF_SALT = 'taruu-auth-v1';
 /** Derived key length in bytes (HS256 wants a 256-bit key). */
 export const DERIVED_KEY_LENGTH_BYTES = 32;
+/**
+ * Minimum accepted AUTH_MASTER_KEY length in characters. Numerically 32 like
+ * the derived-key byte length, but a distinct concept - this bounds the input
+ * entropy, not the HKDF output - so it gets its own name.
+ */
+export const AUTH_MASTER_KEY_MIN_CHARS = 32;
 /** HKDF hash algorithm. */
 export const HKDF_HASH = 'SHA-256';
 /** Numeric key version stamped into encrypted blobs / token headers alongside JWT_KEY_ID. */
@@ -44,7 +50,7 @@ export const JWT_KEY_ID = 'v1';
  */
 export function getAuthMasterKey(): string {
   const key = process.env.AUTH_MASTER_KEY;
-  if (!key || key.length < DERIVED_KEY_LENGTH_BYTES) {
+  if (!key || key.length < AUTH_MASTER_KEY_MIN_CHARS) {
     throw new Error(
       'AUTH_MASTER_KEY is missing or too short (must be at least 32 characters). ' +
         'There is no fallback - set it before minting or verifying any token.'

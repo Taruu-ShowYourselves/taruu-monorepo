@@ -95,7 +95,16 @@ export async function requireReauth(
   if (claims.purpose !== purpose) return null;
   if (typeof claims.jti_row !== 'string') return null;
 
-  const consumed = await consumeReauthTicket(claims.jti_row, session.userId, purpose);
+  // Bind the method at consume too (§7.2 defence in depth): operator_reset
+  // accepts only a TOTP-minted ticket; the user-facing purposes accept
+  // whatever the mint-time matrix already permitted.
+  const allowedMethods = purpose === 'operator_reset' ? (['totp'] as const) : undefined;
+  const consumed = await consumeReauthTicket(
+    claims.jti_row,
+    session.userId,
+    purpose,
+    allowedMethods ? [...allowedMethods] : undefined
+  );
   if (!consumed) return null;
 
   return session;

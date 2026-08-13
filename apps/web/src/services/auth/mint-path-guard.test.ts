@@ -66,4 +66,14 @@ describe('token signing primitive containment', () => {
     const sessionSource = readFileSync(path.join(AUTH_DIR, 'session.ts'), 'utf8');
     expect(sessionSource).toMatch(/from\s+['"]\.\/tokens['"]/);
   });
+
+  it('the auth barrel never re-exports the signing primitives', () => {
+    // A `export * from './tokens'` (or a named re-export) in index.ts would
+    // hand the primitive to every importer of @/services/auth and defeat the
+    // file-level guard wholesale. Forbid re-exporting tokens/keys from the
+    // barrel entirely.
+    const barrel = readFileSync(path.join(AUTH_DIR, 'index.ts'), 'utf8');
+    expect(barrel).not.toMatch(/export\s+\*\s+from\s+['"]\.\/(tokens|keys)['"]/);
+    expect(barrel).not.toMatch(/export\s+\{[^}]*\}\s+from\s+['"]\.\/(tokens|keys)['"]/);
+  });
 });

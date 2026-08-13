@@ -42,7 +42,7 @@
 --   DROP FUNCTION IF EXISTS public.mfa_regenerate_recovery_codes(uuid, uuid, text[]);
 --   DROP FUNCTION IF EXISTS public.mfa_disable_factor(uuid, text);
 --   DROP FUNCTION IF EXISTS public.users_bump_session_version(uuid);
---   DROP FUNCTION IF EXISTS public.reauth_consume_ticket(uuid, uuid, text);
+--   DROP FUNCTION IF EXISTS public.reauth_consume_ticket(uuid, uuid, text, text[]);
 --   DROP FUNCTION IF EXISTS public.security_events_append_only();
 --   DROP TABLE IF EXISTS public.security_settings;
 --   DROP TABLE IF EXISTS public.security_events;
@@ -468,9 +468,14 @@ BEGIN
   RETURN TRUE;
 END $$;
 
--- §5.4: atomic, purpose-bound ticket consume.
+-- §5.4/§7.2: atomic, purpose-bound AND method-bound ticket consume. Binding
+-- `method` at consume - not only at mint - makes "operator_reset is TOTP
+-- only" defence in depth: the caller passes the methods its policy permits
+-- for the action, and a ticket recorded with any other method never consumes
+-- even if one were somehow minted. p_allowed_methods NULL means "any method"
+-- (the user-facing purposes, where the matrix already constrained mint).
 CREATE OR REPLACE FUNCTION public.reauth_consume_ticket(
-  p_id UUID, p_user_id UUID, p_purpose TEXT
+  p_id UUID, p_user_id UUID, p_purpose TEXT, p_allowed_methods TEXT[] DEFAULT NULL
 )
 RETURNS BOOLEAN
 LANGUAGE sql
@@ -481,6 +486,7 @@ AS $$
      SET consumed_at = now()
    WHERE id = p_id AND user_id = p_user_id
      AND purpose = p_purpose
+     AND (p_allowed_methods IS NULL OR method = ANY(p_allowed_methods))
      AND consumed_at IS NULL
      AND expires_at > now()
   RETURNING TRUE;
@@ -497,7 +503,7 @@ REVOKE EXECUTE ON FUNCTION public.mfa_consume_recovery_code(UUID, TEXT) FROM PUB
 REVOKE EXECUTE ON FUNCTION public.mfa_regenerate_recovery_codes(UUID, UUID, TEXT[]) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.users_bump_session_version(UUID) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.mfa_disable_factor(UUID, TEXT) FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.reauth_consume_ticket(UUID, UUID, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.reauth_consume_ticket(UUID, UUID, TEXT, TEXT[]) FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION public.mfa_consume_pending_token(UUID, UUID) TO service_role;
 GRANT EXECUTE ON FUNCTION public.mfa_record_pending_attempt(UUID, UUID) TO service_role;
@@ -508,4 +514,4 @@ GRANT EXECUTE ON FUNCTION public.mfa_consume_recovery_code(UUID, TEXT) TO servic
 GRANT EXECUTE ON FUNCTION public.mfa_regenerate_recovery_codes(UUID, UUID, TEXT[]) TO service_role;
 GRANT EXECUTE ON FUNCTION public.users_bump_session_version(UUID) TO service_role;
 GRANT EXECUTE ON FUNCTION public.mfa_disable_factor(UUID, TEXT) TO service_role;
-GRANT EXECUTE ON FUNCTION public.reauth_consume_ticket(UUID, UUID, TEXT) TO service_role;
+GRANT EXECUTE ON FUNCTION public.reauth_consume_ticket(UUID, UUID, TEXT, TEXT[]) TO service_role;

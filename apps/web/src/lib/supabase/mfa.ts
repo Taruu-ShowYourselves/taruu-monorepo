@@ -58,21 +58,6 @@ export async function getPendingFactor(userId: string): Promise<MfaFactorRow | n
   return data;
 }
 
-/**
- * Opportunistic cleanup at enrollment start: a pending row older than the
- * §6.1 horizon is treated as absent and deleted so the new enrollment can
- * take the partial-unique slot. No cron dependency.
- */
-export async function deleteStalePendingFactor(userId: string): Promise<void> {
-  const cutoff = new Date(Date.now() - PENDING_FACTOR_MAX_AGE_MINUTES * 60 * 1000).toISOString();
-  await supabaseAdmin
-    .from('user_mfa_factors')
-    .delete()
-    .eq('user_id', userId)
-    .eq('status', 'pending')
-    .lt('created_at', cutoff);
-}
-
 /** Deletes an in-window pending row too - restart-enrollment replaces it. */
 export async function deletePendingFactor(userId: string): Promise<void> {
   await supabaseAdmin
@@ -209,12 +194,14 @@ export async function recordPendingAttempt(id: string, userId: string): Promise<
 export async function consumeReauthTicket(
   id: string,
   userId: string,
-  purpose: ReauthPurpose
+  purpose: ReauthPurpose,
+  allowedMethods?: ReauthMethod[]
 ): Promise<boolean> {
   const { data, error } = await supabaseAdmin.rpc('reauth_consume_ticket', {
     p_id: id,
     p_user_id: userId,
     p_purpose: purpose,
+    p_allowed_methods: allowedMethods ?? null,
   });
   if (error) return false;
   return data === true;

@@ -21,7 +21,6 @@ import { generateTotpSecret, base32Encode, buildOtpauthUri } from '@/services/au
 import { encryptTotpSecret, bytesToPgHex, MFA_SECRET_ENC_KEY_VERSION } from '@/services/auth/mfa-secret';
 import {
   getActiveFactor,
-  deleteStalePendingFactor,
   deletePendingFactor,
   insertPendingFactor,
   PENDING_FACTOR_MAX_AGE_MINUTES,
@@ -68,8 +67,8 @@ export async function POST(request: Request) {
       return rateLimitedResponse(60 * 60);
     }
 
-    // One in-flight enrollment: stale or not, a prior pending row is replaced.
-    await deleteStalePendingFactor(session.userId);
+    // One in-flight enrollment per user (the partial unique index enforces
+    // it): any prior pending row - stale or in-window - is replaced.
     await deletePendingFactor(session.userId);
 
     const factorId = crypto.randomUUID();

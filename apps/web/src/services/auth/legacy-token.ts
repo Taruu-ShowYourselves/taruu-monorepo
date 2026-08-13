@@ -67,11 +67,30 @@ export async function verifyLegacySessionToken(token: string): Promise<LegacySes
 
   try {
     const { payload } = await jwtVerify(token, key);
+
+    // Shape check - CRITICAL. JWT_SECRET signed more than pre-M1 session
+    // tokens: the social-connect OAuth state ({userId, platform, nonce},
+    // travels in URLs) and the pre-M1 refresh token ({userId} alone, 30-day,
+    // plaintext on mobile) are both HS256 under the same secret and carry no
+    // `typ`, so they reach this verifier. Accepting either as a session
+    // would re-open the exact interchangeability defect this milestone
+    // closes. Only the full pre-M1 session claim set passes; anything
+    // carrying state-token claims is rejected outright.
+    if (
+      typeof payload.userId !== 'string' ||
+      typeof payload.googleId !== 'string' ||
+      typeof payload.email !== 'string' ||
+      'platform' in payload ||
+      'nonce' in payload
+    ) {
+      return null;
+    }
+
     return {
-      userId: payload.userId as string,
-      googleId: payload.googleId as string,
-      did: payload.did as string,
-      email: payload.email as string,
+      userId: payload.userId,
+      googleId: payload.googleId,
+      did: typeof payload.did === 'string' ? payload.did : '',
+      email: payload.email,
       sv: 1,
       amr: [...DEFAULT_LOGIN_AMR],
       asr: DEFAULT_LOGIN_ASR,

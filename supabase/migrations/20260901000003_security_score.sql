@@ -21,14 +21,24 @@
 --
 -- ENFORCEMENT FLIP RUNBOOK (M8 step 4 - runbook DML, never a migration; the
 -- trigger below cannot see settings changes, so the recompute is explicit
--- and transactional with the flip):
+-- and transactional with the flip). The session_version bump is REQUIRED,
+-- not optional: the session path (getSessionFromRequest) does not consult
+-- required assurance - only the refresh route does - so without the bump an
+-- already-enrolled user's outstanding sf session keeps full access for up to
+-- the 1h TTL after enforcement goes live, unchallenged. The bump forces every
+-- enrolled user through the challenge on their next request. It costs one
+-- indexed UPDATE.
 --   BEGIN;
 --     UPDATE public.security_settings SET mfa_enforcement_enabled = TRUE, updated_at = now();
 --     UPDATE public.users u SET security_score = public.calculate_security_score(u.id)
 --      WHERE EXISTS (SELECT 1 FROM public.user_mfa_factors f
 --                     WHERE f.user_id = u.id AND f.status = 'active');
+--     UPDATE public.users u SET session_version = session_version + 1
+--      WHERE EXISTS (SELECT 1 FROM public.user_mfa_factors f
+--                     WHERE f.user_id = u.id AND f.status = 'active');
 --   COMMIT;
--- Rollback flip: same transaction with FALSE; the recompute then writes 0.
+-- Rollback flip: same transaction with FALSE and the recompute (which writes
+-- 0); no bump on rollback - relaxing enforcement need not revoke sessions.
 --
 -- ROLLBACK (verbatim):
 --   DROP TRIGGER IF EXISTS trigger_security_score_on_factor_change ON public.user_mfa_factors;

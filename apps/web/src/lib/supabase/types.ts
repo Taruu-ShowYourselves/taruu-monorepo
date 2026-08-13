@@ -2449,7 +2449,7 @@ export interface Database {
         Returns: boolean;
       };
       reauth_consume_ticket: {
-        Args: { p_id: string; p_user_id: string; p_purpose: string };
+        Args: { p_id: string; p_user_id: string; p_purpose: string; p_allowed_methods?: string[] | null };
         Returns: boolean | null;
       };
       increment_vote_option: {

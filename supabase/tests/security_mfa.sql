@@ -12,7 +12,7 @@
 -- migration evidence. Do not claim CI coverage for it anywhere.
 --
 -- Every case prints exactly one PASS or FAIL line. A clean run prints
--- twenty-one PASS lines and no FAIL lines. Run against a throwaway database
+-- twenty-two PASS lines and no FAIL lines. Run against a throwaway database
 -- and only once per reset: the probe leaves its rows behind on purpose - the
 -- security_events row it appends cannot be deleted, which is the point.
 
@@ -71,20 +71,27 @@ BEGIN
   END IF;
 END $$;
 
--- Case A3: the M8 flip transaction (settings + explicit recompute) awards +20.
+-- Case A3: the M8 flip transaction awards +20 AND bumps session_version for
+-- enrolled users, so outstanding sf sessions die on their next request
+-- rather than surviving the 1h TTL unchallenged.
 DO $$
-DECLARE score INT;
+DECLARE score INT; sv_before INT; sv_after INT;
 BEGIN
+  SELECT session_version INTO sv_before FROM public.users
+   WHERE id = '00000000-0000-4000-8000-00000000d001';
   UPDATE public.security_settings SET mfa_enforcement_enabled = TRUE, updated_at = now();
   UPDATE public.users u SET security_score = public.calculate_security_score(u.id)
    WHERE EXISTS (SELECT 1 FROM public.user_mfa_factors f
                   WHERE f.user_id = u.id AND f.status = 'active');
-  SELECT security_score INTO score FROM public.users
+  UPDATE public.users u SET session_version = session_version + 1
+   WHERE EXISTS (SELECT 1 FROM public.user_mfa_factors f
+                  WHERE f.user_id = u.id AND f.status = 'active');
+  SELECT security_score, session_version INTO score, sv_after FROM public.users
    WHERE id = '00000000-0000-4000-8000-00000000d001';
-  IF score = 20 THEN
-    RAISE NOTICE 'PASS: enforcement flip + recompute awards 20';
+  IF score = 20 AND sv_after = sv_before + 1 THEN
+    RAISE NOTICE 'PASS: enforcement flip awards 20 and bumps session_version';
   ELSE
-    RAISE NOTICE 'FAIL: post-flip score % (want 20)', score;
+    RAISE NOTICE 'FAIL: post-flip score % (want 20), sv %->% (want +1)', score, sv_before, sv_after;
   END IF;
 END $$;
 
@@ -267,6 +274,32 @@ BEGIN
     RAISE NOTICE 'PASS: ticket purpose-bound and single-use';
   ELSE
     RAISE NOTICE 'FAIL: wrong_purpose=%, correct=%, replay=%', wrong_purpose, correct, replay;
+  END IF;
+END $$;
+
+-- Case E2 (§7.2 defence in depth): a recovery-minted ticket cannot be
+-- consumed under a TOTP-only allowlist even with the right purpose.
+DO $$
+DECLARE wrong_method BOOLEAN; right_method BOOLEAN;
+BEGIN
+  INSERT INTO public.reauth_tickets (id, user_id, purpose, method, expires_at)
+  VALUES ('00000000-0000-4000-8000-00000000a002',
+          '00000000-0000-4000-8000-00000000d001', 'operator_reset', 'recovery',
+          now() + interval '5 minutes');
+  SELECT public.reauth_consume_ticket(
+    '00000000-0000-4000-8000-00000000a002',
+    '00000000-0000-4000-8000-00000000d001', 'operator_reset', ARRAY['totp']) INTO wrong_method;
+  INSERT INTO public.reauth_tickets (id, user_id, purpose, method, expires_at)
+  VALUES ('00000000-0000-4000-8000-00000000a003',
+          '00000000-0000-4000-8000-00000000d001', 'operator_reset', 'totp',
+          now() + interval '5 minutes');
+  SELECT public.reauth_consume_ticket(
+    '00000000-0000-4000-8000-00000000a003',
+    '00000000-0000-4000-8000-00000000d001', 'operator_reset', ARRAY['totp']) INTO right_method;
+  IF (wrong_method IS NULL OR NOT wrong_method) AND right_method THEN
+    RAISE NOTICE 'PASS: ticket method-bound (recovery refused under TOTP-only allowlist)';
+  ELSE
+    RAISE NOTICE 'FAIL: wrong_method=%, right_method=%', wrong_method, right_method;
   END IF;
 END $$;
 

@@ -148,6 +148,44 @@ describe('legacy-token.ts', () => {
       const token = await signLegacyToken({ userId: 'user-1', googleId: 'g', did: 'd', email: 'e' });
       await expect(verifyLegacySessionToken(token)).rejects.toThrow();
     });
+
+    // The secret signed more than session tokens. These two impostors carry a
+    // userId but are NOT sessions; accepting either would be the critical
+    // interchangeability defect. They must be rejected by the shape check.
+    it('rejects a social-connect OAuth state token (userId + platform + nonce)', async () => {
+      vi.stubEnv('AUTH_LEGACY_UNTIL', futureIso(24));
+      const { verifyLegacySessionToken } = await import('./legacy-token');
+
+      const stateToken = await signLegacyToken({
+        userId: 'victim-1',
+        platform: 'facebook',
+        nonce: 'abc123',
+      });
+      expect(await verifyLegacySessionToken(stateToken)).toBeNull();
+    });
+
+    it('rejects a bare pre-M1 refresh token (userId only, no googleId/email)', async () => {
+      vi.stubEnv('AUTH_LEGACY_UNTIL', futureIso(24));
+      const { verifyLegacySessionToken } = await import('./legacy-token');
+
+      const refreshLike = await signLegacyToken({ userId: 'victim-2' });
+      expect(await verifyLegacySessionToken(refreshLike)).toBeNull();
+    });
+
+    it('still accepts a genuine pre-M1 session token (userId + googleId + email)', async () => {
+      vi.stubEnv('AUTH_LEGACY_UNTIL', futureIso(24));
+      const { verifyLegacySessionToken } = await import('./legacy-token');
+
+      const session = await signLegacyToken({
+        userId: 'user-1',
+        googleId: 'g-1',
+        did: 'did:sync:x',
+        email: 'u@example.com',
+      });
+      const claims = await verifyLegacySessionToken(session);
+      expect(claims?.userId).toBe('user-1');
+      expect(claims?.asr).toBe('sf');
+    });
   });
 
   describe('session.ts integration', () => {

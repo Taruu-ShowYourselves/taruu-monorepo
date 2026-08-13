@@ -494,9 +494,10 @@ everything dark
   --4--> ENFORCEMENT FLIP: single DB transaction
              UPDATE security_settings SET mfa_enforcement_enabled = true;
              <recompute security_score for all users with active factors>
+             <bump session_version for all users with active factors>   ← REQUIRED
          gated on: every supported first-party client can complete the challenge
                    (today: apps/mobile ships challenge UI, or mobile login formally retired)
-  --rollback--> same transaction with false + recompute-to-0; secrets retained encrypted
+  --rollback--> same transaction with false + recompute-to-0 (no bump); secrets retained encrypted
 ```
 
 Nothing activates because schema or code lands. Migrations are inert on

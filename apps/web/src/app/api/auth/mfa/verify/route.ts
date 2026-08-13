@@ -50,12 +50,14 @@ import {
   overLimit,
   rateLimitedResponse,
   HOUR_MS,
+  DAY_MS,
 } from '@/services/auth/durable-limits';
 import { sendRecoveryCodeUsedEmail } from '@/services/email/security';
 
 const MAX_ROW_ATTEMPTS = 5;
 const MAX_TOTP_FAILURES_PER_HOUR = 20;
 const MAX_RECOVERY_FAILURES_PER_HOUR = 5;
+const MAX_RECOVERY_FAILURES_PER_DAY = 20;
 
 function unauthorized(code: string, error = 'Verification failed') {
   return NextResponse.json({ error, code }, { status: 401 });
@@ -127,17 +129,40 @@ export async function POST(request: Request) {
     if (overLimit(failures, ceiling)) {
       return rateLimitedResponse(60 * 60);
     }
+    if (isRecoveryShaped) {
+      // Recovery codes get a second, daily ceiling (§9: 5/hour AND 20/day) -
+      // an 80-bit code space doesn't need it mathematically, but the audit
+      // trail should never show a day-long recovery grind.
+      const daily = await countSecurityEventsSince(
+        locator.userId,
+        'recovery_code_failed',
+        windowStartIso(DAY_MS)
+      );
+      if (overLimit(daily, MAX_RECOVERY_FAILURES_PER_DAY)) {
+        return rateLimitedResponse(24 * 60 * 60);
+      }
+    }
 
     // Code verification BEFORE the consume - §6.4a ordering.
     const result = await verifySecondFactor(locator.userId, code, ['totp', 'recovery']);
     if (!result.ok) {
+      // The per-row attempt_count is the primary durable limit here, but the
+      // account-hour ceiling rides on the failure event - record it and, if
+      // that write fails, refuse rather than under-count (fail closed, same
+      // rule as the reauth endpoint).
       const attempts = await recordPendingAttempt(locator.rowId, locator.userId);
-      await recordSecurityEvent({
+      const recorded = await recordSecurityEvent({
         userId: locator.userId,
         eventType: result.method === 'recovery' ? 'recovery_code_failed' : 'totp_verification_failure',
         request,
         metadata: { context: 'login' },
       });
+      if (!recorded) {
+        return NextResponse.json(
+          { error: 'Temporarily unavailable', code: 'RATE_LIMIT_UNAVAILABLE' },
+          { status: 503 }
+        );
+      }
       const remaining =
         attempts === null ? 0 : Math.max(0, MAX_ROW_ATTEMPTS - attempts);
       return NextResponse.json(

@@ -144,6 +144,22 @@ describe('POST /api/security/admin/mfa-reset', () => {
     expect((await res.json()).code).toBe('NO_ACTIVE_FACTOR');
   });
 
+  it('binds the ticket consume to TOTP-only at the DB layer (defence in depth)', async () => {
+    (disableFactor as Mock).mockResolvedValue(true);
+    const POST = await loadRoute();
+
+    await POST(resetReq(VALID, await ticketJwt()));
+
+    // requireReauth for operator_reset must pass the TOTP-only allowlist to
+    // the consume RPC, so a non-TOTP ticket could never be spent here.
+    expect(consumeReauthTicket).toHaveBeenCalledWith(
+      expect.any(String),
+      'op-1',
+      'operator_reset',
+      ['totp']
+    );
+  });
+
   it('happy path: transaction, two evidence rows with actor identity, and the target email', async () => {
     (disableFactor as Mock).mockResolvedValue(true);
     const POST = await loadRoute();
