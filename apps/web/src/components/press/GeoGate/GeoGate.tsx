@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import {
   MUNICIPALITY_GEO,
   municipalityFromCoords,
@@ -93,6 +94,11 @@ const COPY: Record<Locale, GeoGateCopy> = {
   },
 };
 
+/* The auth desks (sign-in, sign-up, onboarding) already put a single ask in
+   front of the reader; a locality modal on top of them buries that CTA under a
+   second competing one. The locale prefix (/en) may or may not be present. */
+const AUTH_DESK_PATH = /^\/(?:[a-z]{2}\/)?(?:sign-in|sign-up|onboarding)(?:\/|$)/;
+
 /**
  * GeoGate - the geo-first entry prompt. The platform is municipal: without
  * knowing the reader's town we can't open the right board. Shown once per
@@ -101,6 +107,7 @@ const COPY: Record<Locale, GeoGateCopy> = {
  */
 export function GeoGate({ locale = 'he' }: { locale?: Locale }) {
   const { isAuthenticated, isLoading } = useAuth();
+  const pathname = usePathname();
   const [state, setState] = useState<GateState>('closed');
   const [town, setTown] = useState('');
   const [detected, setDetected] = useState<string | null>(null);
@@ -109,14 +116,20 @@ export function GeoGate({ locale = 'he' }: { locale?: Locale }) {
 
   useEffect(() => {
     if (isLoading || isAuthenticated) return;
+    if (AUTH_DESK_PATH.test(pathname ?? '')) {
+      // The component outlives client navigations; an already-open gate must
+      // also stand down when a redirect lands the reader on an auth desk.
+      setState('closed');
+      return;
+    }
     if (getStoredMunicipality() || isLocalityPromptDismissed()) return;
     /* A page that asks the question in its own flow asks it better: it can
        show what the answer changes, and it stays there to be changed again.
        Where one is mounted (the homepage's LocalityDesk, between the desks)
        this modal has nothing to add and would arrive on top of it. */
     if (document.querySelector('[data-locality-gate]')) return;
-    setState('open');
-  }, [isLoading, isAuthenticated]);
+    setState((s) => (s === 'closed' ? 'open' : s));
+  }, [isLoading, isAuthenticated, pathname]);
 
   const textMatch = useMemo(
     () => (town.trim().length >= 2 ? municipalityFromText(town) : null),

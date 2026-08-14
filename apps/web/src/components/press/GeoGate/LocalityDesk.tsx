@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   MUNICIPALITY_GEO,
   municipalityFromCoords,
   municipalityFromText,
 } from '@sync/shared';
 import { NewsButton } from '@/components/press/NewsButton';
+import { chime, primeChime } from '@/lib/feedback/chime';
 import type { Locale } from '@/lib/i18n';
 import {
   LOCALITY_EVENT,
@@ -19,20 +21,22 @@ import styles from './LocalityDesk.module.css';
 /**
  * The locality desk - where the reader says which edition they are reading.
  *
- * This was a modal that met people at the door. A dialog is the wrong shape for
- * it: it interrupts before the reader knows what is being asked for or why, it
- * can only be answered once, and it disappears - so the single most important
- * setting on the page ends up with nowhere to live and no way back.
+ * This was a modal that met people at the door, then a centered stack of
+ * form controls. Both were the wrong shape. It is now an editorial column
+ * and an instrument panel side by side: the ask reads like the paper, and
+ * the answer happens on a boxed sheet sitting on the desk - the same
+ * desk-and-sheet pairing the tokens define for exactly this.
  *
- * As a section between the two desks it governs them instead. It sits where its
- * effect is visible: the municipal river above it re-orders the moment a town
- * is chosen (both desks listen for LOCALITY_EVENT), and the national desk below
- * it is what a reader gets either way. It also stops being a one-shot question -
- * it prints the standing choice, and changing it is a control rather than a
- * second visit.
+ * It sits where its effect is visible: the municipal river above it
+ * re-orders the moment a town is chosen (both desks listen for
+ * LOCALITY_EVENT), and it prints the standing choice, so changing it is a
+ * control rather than a second visit.
  */
 
 type Mode = 'settled' | 'choosing' | 'locating' | 'confirm';
+
+/** The dock's own easing constant, as framer-motion spells it. */
+const NP_EASE = 'cubicBezier(0.2, 0, 0, 1)';
 
 interface LocalityDeskCopy {
   kicker: string;
@@ -60,6 +64,7 @@ interface LocalityDeskCopy {
   openBoard: string;
   matchPrefix: string;
   cancel: string;
+  quickPicksLabel: string;
   errNoGeoSupport: string;
   errNoMatchNearby: string;
   errNoPermission: string;
@@ -96,6 +101,7 @@ const COPY: Record<Locale, LocalityDeskCopy> = {
     openBoard: 'פתחו את המהדורה',
     matchPrefix: 'נמצא:',
     cancel: 'ביטול',
+    quickPicksLabel: 'בחירה מהירה של יישוב',
     errNoGeoSupport: 'הדפדפן לא תומך באיתור מיקום. כתבו את שם היישוב.',
     errNoMatchNearby: 'לא זיהינו רשות נתמכת בקרבתכם. כתבו את שם היישוב.',
     errNoPermission: 'לא קיבלנו הרשאת מיקום. כתבו את שם היישוב במקום.',
@@ -131,6 +137,7 @@ const COPY: Record<Locale, LocalityDeskCopy> = {
     openBoard: 'Open the edition',
     matchPrefix: 'Found:',
     cancel: 'Cancel',
+    quickPicksLabel: 'Quick town picks',
     errNoGeoSupport:
       'Your browser does not support location services. Type the name of your town instead.',
     errNoMatchNearby:
@@ -144,10 +151,9 @@ const COPY: Record<Locale, LocalityDeskCopy> = {
 
 export function LocalityDesk({ locale = 'he' }: { locale?: Locale }) {
   const t = COPY[locale];
+  const reduceMotion = useReducedMotion();
   /* The stored choice can only be read after mount, so the section renders its
-     asking state on the server and settles once it knows. `home === null` is a
-     reader with no choice yet; `chose` separates "reads everything on purpose"
-     from "has not answered". */
+     asking state on the server and settles once it knows. */
   const [home, setHome] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>('choosing');
   const [town, setTown] = useState('');
@@ -170,7 +176,19 @@ export function LocalityDesk({ locale = 'he' }: { locale?: Locale }) {
     [town]
   );
 
+  /* The blank's live reveal gets one pop per NEW match, not one per
+     keystroke while the same match holds. */
+  const lastMatch = useRef<string | null>(null);
+  useEffect(() => {
+    const name = textMatch?.name ?? null;
+    if (name && name !== lastMatch.current) chime('pop');
+    lastMatch.current = name;
+  }, [textMatch]);
+
+  /* Every commit path - chip, confirm-yes, typed submit - funnels here, so
+     the tick lives in exactly one place. */
   const choose = (name: string) => {
+    chime('tick');
     setStoredMunicipality(name);
     setTown('');
     setDetected(null);
@@ -182,6 +200,9 @@ export function LocalityDesk({ locale = 'he' }: { locale?: Locale }) {
       setError(t.errNoGeoSupport);
       return;
     }
+    /* The confirm tick lands in the geolocation callback - an async
+       continuation, not a gesture - so the context is woken on the click. */
+    primeChime();
     setError(null);
     setMode('locating');
     navigator.geolocation.getCurrentPosition(
@@ -189,6 +210,7 @@ export function LocalityDesk({ locale = 'he' }: { locale?: Locale }) {
         const muni = municipalityFromCoords(pos.coords.latitude, pos.coords.longitude);
         if (muni) {
           // Never auto-commit a GPS guess - show it and let the reader confirm.
+          chime('tick');
           setDetected(muni.name);
           setMode('confirm');
         } else {
@@ -210,8 +232,41 @@ export function LocalityDesk({ locale = 'he' }: { locale?: Locale }) {
     else setError(t.errNoTextMatch);
   };
 
-  const settled = mode === 'settled';
-  const picking = mode === 'choosing' || mode === 'locating';
+  const busy = mode === 'locating';
+  /* One face per composition, coarser than `mode`: choosing and locating
+     share a face, so the panel does not cross-fade against itself while the
+     radar sweeps. */
+  const face =
+    mode === 'confirm' && detected
+      ? 'confirm'
+      : mode === 'settled' && home
+        ? 'settled'
+        : 'ask';
+
+  /* Population order is the array's own order; the reader's current town
+     would be a dead button, so it sits the list out. */
+  const quickPicks = useMemo(
+    () =>
+      MUNICIPALITY_GEO.slice(0, 7)
+        .filter((m) => m.name !== home)
+        .slice(0, 6),
+    [home]
+  );
+
+  const faceMotion = {
+    initial: { opacity: 0, y: 6 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -6 },
+    transition: { duration: reduceMotion ? 0 : 0.2, ease: NP_EASE },
+  } as const;
+
+  const radar = (
+    <span className={styles.radar} data-sweeping={busy || undefined} aria-hidden>
+      <span className={styles.radarRing} />
+      <span className={styles.radarRing} />
+      <span className={styles.radarDot} />
+    </span>
+  );
 
   return (
     <section
@@ -220,146 +275,217 @@ export function LocalityDesk({ locale = 'he' }: { locale?: Locale }) {
       aria-labelledby="locality-desk-headline"
     >
       <div className={styles.inner}>
-        <span className={styles.kicker}>
-          <span aria-hidden className={styles.kickerTick} />
-          {settled ? t.settledKicker : home === null && !picking ? t.allKicker : t.kicker}
-        </span>
-
-        {settled && home ? (
-          <>
-            <h2 id="locality-desk-headline" className={styles.headline}>
-              {t.settledLede} <span className={styles.town}>{home}</span>
-            </h2>
-            <p className={styles.lede}>{t.settledNote}</p>
-            <div className={styles.actions}>
-              <NewsButton
-                variant="ink"
-                size="md"
-                onClick={() => {
-                  setMode('choosing');
-                  setError(null);
-                }}
-              >
-                {t.change}
-              </NewsButton>
-              <button
-                type="button"
-                className={styles.quiet}
-                onClick={() => clearStoredMunicipality()}
-              >
-                {t.readAll}
-              </button>
-            </div>
-          </>
-        ) : mode === 'confirm' && detected ? (
-          <>
-            <h2 id="locality-desk-headline" className={styles.headline}>
-              {t.confirmLede} <span className={styles.town}>{detected}</span>
-            </h2>
-            <p className={styles.lede}>{t.confirmAsk}</p>
-            <div className={styles.actions}>
-              <NewsButton
-                variant="red"
-                size="md"
-                onClick={() => choose(detected)}
-                trailing={<span aria-hidden>{t.confirmGlyph}</span>}
-              >
-                {t.confirmYes}
-              </NewsButton>
-              <NewsButton
-                variant="outline"
-                size="md"
-                onClick={() => {
-                  setDetected(null);
-                  setMode('choosing');
-                }}
-              >
-                {t.confirmNo}
-              </NewsButton>
-            </div>
-          </>
-        ) : (
-          <>
-            <h2 id="locality-desk-headline" className={styles.headline}>
-              {t.askHeadline}
-            </h2>
-            <p className={styles.lede}>{t.askLede}</p>
-
-            <div className={styles.actions}>
-              <NewsButton
-                variant="red"
-                size="md"
-                onClick={locate}
-                disabled={mode === 'locating'}
-                trailing={<span aria-hidden>◎</span>}
-              >
-                {mode === 'locating' ? t.locating : t.locateCta}
-              </NewsButton>
-
-              <span className={styles.or}>{t.or}</span>
-
-              <form className={styles.townForm} onSubmit={submitTown}>
-                <label className={styles.srOnly} htmlFor="locality-town">
-                  {t.townLabel}
-                </label>
-                <input
-                  id="locality-town"
-                  type="text"
-                  className={styles.input}
-                  placeholder={t.townPlaceholder}
-                  value={town}
-                  onChange={(event) => {
-                    setTown(event.target.value);
-                    setError(null);
-                  }}
-                  list="locality-towns"
-                  autoComplete="off"
-                />
-                <datalist id="locality-towns">
-                  {MUNICIPALITY_GEO.map((m) => (
-                    <option key={m.name} value={m.name} />
-                  ))}
-                </datalist>
-                <NewsButton type="submit" variant="ink" size="md" disabled={!textMatch}>
-                  {t.openBoard}
-                </NewsButton>
-              </form>
-
-              {/* Only offered to a reader who already had a choice - there is
-                  nothing to go back to otherwise. */}
-              {home ? (
-                <button
-                  type="button"
-                  className={styles.quiet}
-                  onClick={() => setMode('settled')}
-                >
-                  {t.cancel}
-                </button>
+        {/* Column A - the editorial ask. Never carries a control. */}
+        <div className={styles.story} aria-live="polite">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div key={face} className={styles.storyFace} {...faceMotion}>
+              <span className={styles.kicker}>
+                <span aria-hidden className={styles.kickerTick} />
+                {face === 'settled' ? t.settledKicker : t.kicker}
+              </span>
+              {face === 'settled' && home ? (
+                <>
+                  <h2 id="locality-desk-headline" className={styles.headline}>
+                    {t.settledLede}{' '}
+                    {/* Keyed by value: the stamp plays once per new town,
+                        not on every re-render of a standing choice. */}
+                    <span key={home} className={styles.town}>
+                      {home}
+                    </span>
+                  </h2>
+                  <p className={styles.lede}>{t.settledNote}</p>
+                </>
+              ) : face === 'confirm' && detected ? (
+                <>
+                  <h2 id="locality-desk-headline" className={styles.headline}>
+                    {t.confirmLede}{' '}
+                    <span className={styles.townRise}>{detected}</span>
+                  </h2>
+                  <p className={styles.lede}>{t.confirmAsk}</p>
+                </>
               ) : (
-                <button
-                  type="button"
-                  className={styles.quiet}
-                  onClick={() => clearStoredMunicipality()}
-                >
-                  {t.readAll}
-                </button>
+                <>
+                  <h2 id="locality-desk-headline" className={styles.headline}>
+                    {t.askHeadline}
+                  </h2>
+                  <p className={styles.lede}>{t.askLede}</p>
+                </>
               )}
-            </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
 
-            <p className={styles.privacy}>{t.privacy}</p>
-          </>
-        )}
+        {/* Column B - the instrument panel: the sheet on the desk. The live
+            wrapper is persistent so assistive tech keeps its registration
+            while the faces swap inside it. */}
+        <div className={styles.panel} data-busy={busy || undefined}>
+          <div className={styles.panelLive} aria-live="polite">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div key={face} className={styles.panelFace} {...faceMotion}>
+                {face === 'settled' && home ? (
+                  <div className={styles.panelStack}>
+                    <NewsButton
+                      variant="ink"
+                      size="md"
+                      onClick={() => {
+                        setMode('choosing');
+                        setError(null);
+                      }}
+                    >
+                      {t.change}
+                    </NewsButton>
+                    <button
+                      type="button"
+                      className={styles.quiet}
+                      onClick={() => clearStoredMunicipality()}
+                    >
+                      {t.readAll}
+                    </button>
+                  </div>
+                ) : face === 'confirm' && detected ? (
+                  <div className={styles.panelStack}>
+                    {/* Staggered on purpose: the eye lands on the primary
+                        path before the escape hatch arrives. */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: reduceMotion ? 0 : 0.18, ease: NP_EASE }}
+                    >
+                      <NewsButton
+                        variant="red"
+                        size="md"
+                        onClick={() => choose(detected)}
+                        trailing={<span aria-hidden>{t.confirmGlyph}</span>}
+                      >
+                        {t.confirmYes}
+                      </NewsButton>
+                    </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        duration: reduceMotion ? 0 : 0.18,
+                        delay: reduceMotion ? 0 : 0.06,
+                        ease: NP_EASE,
+                      }}
+                    >
+                      <NewsButton
+                        variant="outline"
+                        size="md"
+                        onClick={() => {
+                          setDetected(null);
+                          setMode('choosing');
+                        }}
+                      >
+                        {t.confirmNo}
+                      </NewsButton>
+                    </motion.div>
+                  </div>
+                ) : (
+                  <div className={styles.panelStack}>
+                    <NewsButton
+                      variant="red"
+                      size="lg"
+                      onClick={locate}
+                      disabled={busy}
+                      className={busy ? styles.locating : undefined}
+                      trailing={radar}
+                    >
+                      {busy ? t.locating : t.locateCta}
+                    </NewsButton>
 
-        {textMatch && town.trim() !== textMatch.name ? (
-          <p className={styles.match}>
-            {t.matchPrefix} {textMatch.name}
-          </p>
-        ) : null}
-        {error ? (
-          <p className={styles.error} role="status">
-            {error}
-          </p>
-        ) : null}
+                    <div className={styles.divider} aria-hidden>
+                      <span>{t.or}</span>
+                    </div>
+
+                    <div
+                      className={styles.chips}
+                      role="group"
+                      aria-label={t.quickPicksLabel}
+                    >
+                      {quickPicks.map((m) => (
+                        <button
+                          key={m.name}
+                          type="button"
+                          className={styles.chip}
+                          disabled={busy}
+                          onClick={() => choose(m.name)}
+                        >
+                          {m.name}
+                        </button>
+                      ))}
+                    </div>
+
+                    <form className={styles.townForm} onSubmit={submitTown}>
+                      <label className={styles.srOnly} htmlFor="locality-town">
+                        {t.townLabel}
+                      </label>
+                      <input
+                        id="locality-town"
+                        type="text"
+                        className={styles.input}
+                        placeholder={t.townPlaceholder}
+                        value={town}
+                        disabled={busy}
+                        onChange={(event) => {
+                          setTown(event.target.value);
+                          setError(null);
+                        }}
+                        list="locality-towns"
+                        autoComplete="off"
+                      />
+                      <datalist id="locality-towns">
+                        {MUNICIPALITY_GEO.map((m) => (
+                          <option key={m.name} value={m.name} />
+                        ))}
+                      </datalist>
+                      <NewsButton
+                        type="submit"
+                        variant="ink"
+                        size="md"
+                        disabled={!textMatch || busy}
+                      >
+                        {t.openBoard}
+                      </NewsButton>
+                    </form>
+
+                    {textMatch && town.trim() !== textMatch.name ? (
+                      <p className={styles.match}>
+                        {t.matchPrefix} {textMatch.name}
+                      </p>
+                    ) : null}
+
+                    {home ? (
+                      <button
+                        type="button"
+                        className={styles.quiet}
+                        onClick={() => setMode('settled')}
+                      >
+                        {t.cancel}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className={styles.quiet}
+                        onClick={() => clearStoredMunicipality()}
+                      >
+                        {t.readAll}
+                      </button>
+                    )}
+
+                    <p className={styles.privacy}>{t.privacy}</p>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {error ? (
+            <p className={styles.error} role="status">
+              {error}
+            </p>
+          ) : null}
+        </div>
       </div>
     </section>
   );
