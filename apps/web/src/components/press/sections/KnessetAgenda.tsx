@@ -26,7 +26,7 @@ interface KnessetAgendaCopy {
 
 const COPY: Record<Locale, KnessetAgendaCopy> = {
   he: {
-    noBallots: 'טרם נרשמו קולות.',
+    noBallots: 'טרם נרשמו קולות',
     participants: 'משתתפים',
     endsToday: 'מסתיים היום',
     daysLeft: (days) => `נותרו ${days} ימים`,
@@ -38,7 +38,7 @@ const COPY: Record<Locale, KnessetAgendaCopy> = {
     extrasHeader: '■ עוד על הדסק הארצי',
   },
   en: {
-    noBallots: 'No ballots recorded yet.',
+    noBallots: 'No ballots recorded yet',
     participants: 'participants',
     endsToday: 'Ends today',
     daysLeft: (days) => `${days} days remaining`,
@@ -61,27 +61,35 @@ function ConsensusMeters({ topic, locale }: { topic: DeskTopic; locale: Locale }
   const hasBallots = topic.options.some((o) => o.votes > 0);
   const days = daysRemaining(topic.endDate);
 
+  // A silent ballot has nothing to measure - one quiet line instead of
+  // meter furniture plus a zero-participant count.
+  if (!hasBallots) {
+    return (
+      <p className={styles.noBallots}>
+        <span>{t.noBallots}</span>
+        <span aria-hidden>·</span>
+        <span>{days === 0 ? t.endsToday : t.daysLeft(days)}</span>
+      </p>
+    );
+  }
+
   return (
     <>
-      {hasBallots ? (
-        <ul className={styles.meterList}>
-          {topic.options.map((option) => (
-            <li key={option.id} className={styles.meterRow}>
-              <span className={styles.meterLabel}>{option.text}</span>
-              <span className={styles.meterTrack}>
-                <span
-                  className={styles.meterFill}
-                  style={{ inlineSize: `${option.pct}%` }}
-                  aria-hidden
-                />
-              </span>
-              <span className={styles.meterPct}>{option.pct}%</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className={styles.noBallots}>{t.noBallots}</p>
-      )}
+      <ul className={styles.meterList}>
+        {topic.options.map((option) => (
+          <li key={option.id} className={styles.meterRow}>
+            <span className={styles.meterLabel}>{option.text}</span>
+            <span className={styles.meterTrack}>
+              <span
+                className={styles.meterFill}
+                style={{ inlineSize: `${option.pct}%` }}
+                aria-hidden
+              />
+            </span>
+            <span className={styles.meterPct}>{option.pct}%</span>
+          </li>
+        ))}
+      </ul>
 
       <p className={styles.itemMeta}>
         <span>{topic.participantCount} {t.participants}</span>
@@ -146,6 +154,22 @@ function SessionBlock({
 
   return (
     <section aria-labelledby={`plm-${session.plenumSessionId}`}>
+      {/* ~111 entries scroll as one river - a slim line pinned under the
+          masthead keeps the current sitting's date in view. It repeats the
+          h2 below, so screen readers skip it. */}
+      <div className={styles.sessionTicker} aria-hidden>
+        <span className={styles.tickerKicker}>
+          {t.plenumSession}
+          {session.sessionNumber ? t.sessionNo(session.sessionNumber) : ''}
+        </span>
+        {date ? (
+          <span className={styles.tickerDate}>
+            {weekday ? `${weekday}, ` : ''}
+            {date}
+          </span>
+        ) : null}
+      </div>
+
       <header className={styles.sessionHeader}>
         <span className={styles.sessionStamp}>{t.sessionStamp}</span>
         <h2 id={`plm-${session.plenumSessionId}`} className={styles.sessionTitle}>

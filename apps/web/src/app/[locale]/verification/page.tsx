@@ -1,13 +1,15 @@
 'use client';
 
-import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/providers/AuthProvider';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { NewsButton, Stepper, SealCard, PressInput } from '@/components/press';
+import { CheerBurst } from '@/components/uikit/cheer-burst';
 import { isEligibleToVote } from '@/lib/verification';
 import { safeRedirect } from '@/lib/safeRedirect';
+import { chime, primeChime } from '@/lib/feedback/chime';
 import { DocumentScanStep } from './components/DocumentScanStep';
 import styles from './page.module.css';
 
@@ -89,6 +91,11 @@ function VerificationView() {
     'unknown' | 'none' | 'verified' | 'pending_review' | 'rejected'
   >('unknown');
 
+  /* True only when verification completed in this session. The mount-time
+     jump to 'done' for returning verified users must stay silent - the
+     fanfare and confetti are for a verification that just happened. */
+  const earnedDoneRef = useRef(false);
+
   const eligible = isEligibleToVote(user);
 
   // --- Auth bounce: preserve the original redirect through sign-in ---
@@ -147,6 +154,8 @@ function VerificationView() {
       setPhoneError(COPY.emptyField);
       return;
     }
+    // Acknowledge the step at the tap itself - the fetch stays silent.
+    chime('tick');
     setBusy(true);
     setPhoneError(null);
     try {
@@ -186,6 +195,9 @@ function VerificationView() {
       setOtpError(COPY.emptyField);
       return;
     }
+    // The acceptance pop lands after the fetch - no longer a gesture. Wake
+    // the audio context now, while autoplay policy still lets it start.
+    primeChime();
     setBusy(true);
     setOtpError(null);
     try {
@@ -199,6 +211,8 @@ function VerificationView() {
       if (res.ok) {
         const data = await res.json().catch(() => null);
         if (data?.verified !== false) {
+          // A code accepted is the pop's moment (see chime.ts vocabulary).
+          chime('pop');
           await refreshSession();
           setFlow(docDone ? 'gps' : 'document');
           return;
@@ -211,6 +225,7 @@ function VerificationView() {
 
       // Mock-degrade: SMS service absent → accept the code so the flow proceeds.
       if (res.status === 503) {
+        chime('pop');
         await refreshSession();
         setFlow(docDone ? 'gps' : 'document');
         return;
@@ -226,6 +241,10 @@ function VerificationView() {
 
   /* ---- GPS step: ensure a run exists, then check in ---- */
   const handleCheckIn = useCallback(async () => {
+    // The fanfare lands after geolocation plus a fetch - long past this
+    // gesture. Tick now, and prime so the later sound has a running context.
+    chime('tick');
+    primeChime();
     setBusy(true);
     setGpsError(null);
     setNextWindow(null);
@@ -264,6 +283,12 @@ function VerificationView() {
           });
 
           if (res.ok) {
+            /* Celebrate the acceptance itself, before the session refresh:
+               refreshSession never rejects - on failure it signs the user out
+               and redirects - and a fanfare on THAT path would soundtrack a
+               logout. Same ordering as the OTP handler's pop. */
+            earnedDoneRef.current = true;
+            chime('fanfare');
             await refreshSession();
             setFlow('done');
             return;
@@ -274,6 +299,9 @@ function VerificationView() {
           // Dev fallback: endpoint/creds absent (5xx) → soft-pass so the flow
           // can complete in environments without the verification backend.
           if (res.status >= 500) {
+            /* Fanfare before the refresh here too - see the res.ok branch. */
+            earnedDoneRef.current = true;
+            chime('fanfare');
             await refreshSession();
             setFlow('done');
             return;
@@ -339,23 +367,37 @@ function VerificationView() {
   }, [flow]);
 
   /* ---- Loading skeleton (preserved) ---- */
+  /* The skeleton prints on the same desk/sheet chrome as the loaded page, with
+     the dateline and heavy rule typeset for real - only the content shimmers -
+     so resolve swaps lines within a standing frame instead of jump-cutting. */
   if (isLoading) {
     return (
       <div className="np-page">
         <Header />
-        <main className={styles.main}>
+        <main className={`${styles.main} np-desk`}>
           <div className={styles.container} aria-busy="true" aria-label="טוען">
-            <div className={styles.skeletonContainer}>
-              <div className={styles.skeletonHeader}>
-                <div className={`${styles.skelLine} ${styles.skelKicker}`} />
-                <div className={`${styles.skelLine} ${styles.skelTitle}`} />
-                <div className={`${styles.skelLine} ${styles.skelLead}`} />
-                <div className={`${styles.skelLine} ${styles.skelLeadShort}`} />
+            <div className={`${styles.sheet} np-sheet`}>
+              <div className={styles.dateline}>
+                <span className={styles.datelineTick} aria-hidden />
+                <span>אימות תושב · VERIFICATION</span>
+                <span className={styles.datelineSep} aria-hidden>■</span>
+                <span>פרוצדורה חד-פעמית</span>
               </div>
-              <div className={styles.skelStepper} />
-              <div className={styles.skeletonGrid}>
-                <div className={styles.skelPanel} />
-                <div className={styles.skelLedger} />
+
+              <div className="np-rule-heavy" aria-hidden />
+
+              <div className={styles.skeletonContainer}>
+                <div className={styles.skeletonHeader}>
+                  <div className={`${styles.skelLine} ${styles.skelKicker}`} />
+                  <div className={`${styles.skelLine} ${styles.skelTitle}`} />
+                  <div className={`${styles.skelLine} ${styles.skelLead}`} />
+                  <div className={`${styles.skelLine} ${styles.skelLeadShort}`} />
+                </div>
+                <div className={styles.skelStepper} />
+                <div className={styles.skeletonGrid}>
+                  <div className={styles.skelPanel} />
+                  <div className={styles.skelLedger} />
+                </div>
               </div>
             </div>
           </div>
@@ -509,6 +551,11 @@ function VerificationView() {
                   profileFirstName={user?.firstName}
                   profileLastName={user?.lastName}
                   onDone={(result) => {
+                    // The scan's gesture lives inside DocumentScanStep and
+                    // this callback runs after its fetch. On a context no
+                    // gesture has started yet, chime() drops the note rather
+                    // than queueing it against a frozen clock.
+                    chime('tick');
                     setDocStatus(result.status);
                     setFlow('gps');
                   }}
@@ -563,6 +610,9 @@ function VerificationView() {
               {/* ---- STEP 4 - אישור (eligible / verified) ---- */}
               {flow === 'done' && (
                 <article className={styles.panel}>
+                  {/* Confetti only for a verification earned this session -
+                      returning verified users get the seal, not the party. */}
+                  {earnedDoneRef.current && <CheerBurst />}
                   <header className={styles.panelHead}>
                     <span className={styles.panelTag}>שלב 4 · אישור</span>
                     <h2 className={styles.panelTitle}>אתם מאומתים. אפשר להצביע</h2>

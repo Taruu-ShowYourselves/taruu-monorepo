@@ -80,6 +80,8 @@ const COPY: Record<Locale, MandateCopy> = {
     emptyMunicipal: 'עוד לא הוכרע דבר ברשויות.',
     emptyNote:
       'הנושאים פתוחים והספירה רצה. ברגע שהצבעה תיסגר עם רוב ברור, ההחלטה תופיע כאן בשם התושבים שהצביעו בה.',
+    emptyStamp: 'הספירה רצה · COUNTING',
+    emptyCta: 'להצבעות הפתוחות ←',
     readVote: 'לרשומת ההצבעה ←',
     decidedThat: 'הוכרע על ידי האזרחים ש־',
   },
@@ -117,6 +119,8 @@ const COPY: Record<Locale, MandateCopy> = {
     emptyMunicipal: 'Nothing has been decided in the authorities yet.',
     emptyNote:
       'The topics are open and the count is running. The moment a ballot closes with a clear majority, the decision appears here in the name of the residents who cast it.',
+    emptyStamp: 'COUNTING',
+    emptyCta: 'To the open ballots →',
     readVote: 'Vote record →',
     decidedThat: 'The residents decided that',
   },

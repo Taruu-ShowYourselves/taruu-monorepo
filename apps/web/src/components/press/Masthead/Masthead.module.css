@@ -53,6 +53,24 @@
 
 .ears span { white-space: nowrap; }
 
+/* The edition switch must speak in the ears' own register: global anchors
+   are blue, and that blue would be the only non-press pixel on the page.
+   Soft ink on a hairline; the red belongs to hover and focus alone. */
+.localeSwitch {
+  font-family: var(--np-font-mono);
+  color: var(--np-ink-soft);
+  text-decoration: none;
+  border-block-end: var(--np-rule-hair) solid currentColor;
+  transition: color var(--np-dur-snap) var(--np-ease);
+}
+
+.localeSwitch:hover { color: var(--np-red); }
+
+.localeSwitch:focus-visible {
+  outline: var(--np-rule) solid var(--np-red);
+  outline-offset: 2px;
+}
+
 .ruleHair { border-block-start: var(--np-rule) solid var(--np-ink); }
 .ruleMast { border-block-start: var(--np-rule-masthead) solid var(--np-ink); }
 
@@ -503,7 +521,9 @@
 /* Mobile minimized */
 @media (max-width: 767px) {
   .ears { font-size: 0.62rem; gap: var(--space-2); }
-  .ears span:nth-child(3) { display: none; }
+  /* Only the region label yields to the narrow strip - the locale switch in
+     the same span is the sole way to the other edition and must survive. */
+  .earsRegion { display: none; }
   .tagL, .tagR { display: none; }
   .brandRow { grid-template-columns: 1fr; }
 

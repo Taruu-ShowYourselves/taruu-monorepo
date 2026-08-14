@@ -140,12 +140,18 @@ function FeedCardImpl({
   // boilerplate as its description, so where the ranker wrote a rationale it
   // is the background, not the boilerplate.
   const standfirst = ranking?.rationale ?? topic.description;
+  // Deck 02 exists for the evidence - document, agenda slot, source and press
+  // strips. With none of them it is a headline floating on a full screen, so
+  // the card drops to two decks and the scroll goes front → ballot.
+  const hasBackground = Boolean(doc || agenda || topic.source || ranking);
+  const ballotStage = hasBackground ? 2 : 1;
+  const deckCount = hasBackground ? 3 : 2;
 
   return (
     <article
       id={anchor}
       ref={cardRef}
-      className={styles.card}
+      className={`${styles.card} ${hasBackground ? '' : styles.cardPair}`}
       aria-label={`${isNational ? t.nationalScope : scope} · ${headline}`}
     >
       <div className={styles.shell}>
@@ -227,85 +233,89 @@ function FeedCardImpl({
             </p>
           </section>
 
-          {/* --- deck 02 · the background --- */}
-          <section
-            className={styles.deck}
-            data-active={stage === 1}
-            aria-hidden={stage !== 1}
-            inert={stage !== 1}
-          >
-            <span className={styles.deckNo}>02 · {t.deckLabels[1]}</span>
-
-            <h3 className={styles.deckTitle}>{headline}</h3>
-
-            <p className={styles.body}>{standfirst}</p>
-
-            {agenda ? (
-              <p className={styles.agenda}>
-                <span aria-hidden>▍</span>
-                {[
-                  agenda.ordinal !== null ? t.agendaOrdinal(agenda.ordinal) : null,
-                  agenda.weekday && agenda.date
-                    ? `${agenda.weekday}, ${agenda.date}`
-                    : agenda.date,
-                  agenda.itemType,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </p>
-            ) : null}
-
-            {doc ? (
-              <aside className={styles.doc} aria-label={t.docAriaLabel}>
-                <span className={styles.docKicker}>{t.docKicker}</span>
-                {doc.summary ? (
-                  <p
-                    className={styles.docText}
-                    title={t.docSummaryTitle}
-                  >
-                    {doc.summary}
-                  </p>
-                ) : null}
-                <span className={styles.docMeta}>
-                  {doc.docGroup ? <span>{doc.docGroup}</span> : null}
-                  {doc.docUrl ? (
-                    <a
-                      href={doc.docUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.docLink}
+          {/* --- deck 02 · the background (only when there is one to show) --- */}
+          {hasBackground ? (
+            <section
+              className={styles.deck}
+              data-active={stage === 1}
+              aria-hidden={stage !== 1}
+              inert={stage !== 1}
+            >
+              <span className={styles.deckNo}>02 · {t.deckLabels[1]}</span>
+  
+              <h3 className={styles.deckTitle}>{headline}</h3>
+  
+              <p className={styles.body}>{standfirst}</p>
+  
+              {agenda ? (
+                <p className={styles.agenda}>
+                  <span aria-hidden>▍</span>
+                  {[
+                    agenda.ordinal !== null ? t.agendaOrdinal(agenda.ordinal) : null,
+                    agenda.weekday && agenda.date
+                      ? `${agenda.weekday}, ${agenda.date}`
+                      : agenda.date,
+                    agenda.itemType,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </p>
+              ) : null}
+  
+              {doc ? (
+                <aside className={styles.doc} aria-label={t.docAriaLabel}>
+                  <span className={styles.docKicker}>{t.docKicker}</span>
+                  {doc.summary ? (
+                    <p
+                      className={styles.docText}
+                      title={t.docSummaryTitle}
                     >
-                      {t.docLink}
-                    </a>
+                      {doc.summary}
+                    </p>
                   ) : null}
-                </span>
-              </aside>
-            ) : null}
+                  <span className={styles.docMeta}>
+                    {doc.docGroup ? <span>{doc.docGroup}</span> : null}
+                    {doc.docUrl ? (
+                      <a
+                        href={doc.docUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={styles.docLink}
+                      >
+                        {t.docLink}
+                      </a>
+                    ) : null}
+                  </span>
+                </aside>
+              ) : null}
+  
+              {/* Both evidence strips where both exist - the reactions the AI
+                  found at the source and the press the ranker verified are
+                  different facts, not alternatives. The heat badge prints once,
+                  on the editorial strip where the desk ranked the item. */}
+              {topic.source ? (
+                <SourceMetrics
+                  source={topic.source}
+                  heatRank={ranking ? undefined : heatRank}
+                  locale={locale}
+                />
+              ) : null}
+              {ranking ? (
+                <RankingMetrics ranking={ranking} heatRank={heatRank} locale={locale} />
+              ) : null}
+            </section>
+          ) : null}
 
-            {/* Both evidence strips where both exist - the reactions the AI
-                found at the source and the press the ranker verified are
-                different facts, not alternatives. The heat badge prints once,
-                on the editorial strip where the desk ranked the item. */}
-            {topic.source ? (
-              <SourceMetrics
-                source={topic.source}
-                heatRank={ranking ? undefined : heatRank}
-                locale={locale}
-              />
-            ) : null}
-            {ranking ? (
-              <RankingMetrics ranking={ranking} heatRank={heatRank} locale={locale} />
-            ) : null}
-          </section>
-
-          {/* --- deck 03 · the ballot --- */}
+          {/* --- last deck · the ballot --- */}
           <section
             className={styles.deck}
-            data-active={stage === 2}
-            aria-hidden={stage !== 2}
-            inert={stage !== 2}
+            data-active={stage === ballotStage}
+            aria-hidden={stage !== ballotStage}
+            inert={stage !== ballotStage}
           >
-            <span className={styles.deckNo}>03 · {t.deckLabels[2]}</span>
+            <span className={styles.deckNo}>
+              {`0${ballotStage + 1}`} · {t.deckLabels[2]}
+            </span>
 
             <FeedBallot
               voteId={topic.id}
@@ -326,15 +336,17 @@ function FeedCardImpl({
               className={styles.advance}
               onClick={advance}
               aria-label={
-                stage < 2 ? t.advanceTo(t.deckLabels[stage + 1]) : t.nextTopic
+                stage < ballotStage
+                  ? t.advanceTo(t.deckLabels[hasBackground ? stage + 1 : 2])
+                  : t.nextTopic
               }
             >
               <span className={styles.advanceLabel}>
-                {stage === 0
-                  ? t.scrollToBackground
-                  : stage === 1
-                    ? t.scrollToBallot
-                    : t.nextTopic}
+                {stage >= ballotStage
+                  ? t.nextTopic
+                  : stage === 0 && hasBackground
+                    ? t.scrollToBackground
+                    : t.scrollToBallot}
               </span>
               <span aria-hidden className={styles.advanceGlyph}>
                 ↓
@@ -350,7 +362,7 @@ function FeedCardImpl({
 
       {/* Scroll stops: invisible, full-height, one per deck. They generate the
           card's scroll length and are what the browser snaps to. */}
-      {[0, 1, 2].map((stop) => (
+      {Array.from({ length: deckCount }, (_, stop) => (
         <div
           key={stop}
           data-stop={stop}

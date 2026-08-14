@@ -20,6 +20,7 @@ interface FeedBallotCopy {
   recordedTrust: (count: string) => string;
   fullRecordLink: string;
   gateNote: string;
+  noVotes: string;
   openTrust: string;
   closedButton: string;
   signInButton: string;
@@ -37,6 +38,7 @@ const COPY: Record<Locale, FeedBallotCopy> = {
       `${count} קולות מאומתים · הקול נרשם פעם אחת ואי אפשר לשנות אותו.`,
     fullRecordLink: 'לרשומה המלאה ←',
     gateNote: 'צריך חשבון כדי לרשום קול. נשמור את הבחירה ונחזיר אתכם בדיוק לכאן.',
+    noVotes: 'עדיין אין קולות. הקול הראשון פתוח.',
     openTrust: 'הקול נרשם פעם אחת, משויך לתושב מאומת, ואי אפשר לשנות אותו בדיעבד.',
     closedButton: 'ההצבעה סגורה',
     signInButton: 'התחברו והצביעו',
@@ -52,6 +54,7 @@ const COPY: Record<Locale, FeedBallotCopy> = {
     fullRecordLink: 'Full record →',
     gateNote:
       'You need an account to record a vote. We will keep your choice and bring you back exactly here.',
+    noVotes: 'No votes yet. The first voice is open.',
     openTrust:
       'A vote is recorded once, tied to a verified resident, and cannot be changed after the fact.',
     closedButton: 'The vote is closed',
@@ -107,6 +110,11 @@ export function FeedBallot({
   const [errorCode, setErrorCode] = useState<ParticipationRejectionCode | null>(null);
 
   const blocked = errorCode !== null && isTerminalRejection(errorCode);
+
+  // An empty tally printed as rows of 0% over hollow tracks reads as a broken
+  // poll, not an open one - below zero votes the numbers stay off the page and
+  // one editorial line says what the zero means.
+  const hasVotes = totalVotes > 0;
 
   const recordedText = useMemo(
     () => options.find((option) => option.id === recordedOptionId)?.text ?? null,
@@ -215,13 +223,17 @@ export function FeedBallot({
                 ) : null}
                 {option.text}
               </span>
-              <span className={styles.track} aria-hidden>
-                <span
-                  className={`${styles.fill} ${option.id === recordedOptionId ? styles.fillMine : ''}`}
-                  style={{ inlineSize: `${option.pct}%` }}
-                />
-              </span>
-              <span className={styles.resultPct}>{option.pct}%</span>
+              {hasVotes ? (
+                <>
+                  <span className={styles.track} aria-hidden>
+                    <span
+                      className={`${styles.fill} ${option.id === recordedOptionId ? styles.fillMine : ''}`}
+                      style={{ inlineSize: `${option.pct}%` }}
+                    />
+                  </span>
+                  <span className={styles.resultPct}>{option.pct}%</span>
+                </>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -259,20 +271,33 @@ export function FeedBallot({
                       {isSelected ? '■' : '□'}
                     </span>
                     <span className={styles.optionLabel}>{option.text}</span>
-                    <span className={styles.optionPct}>{option.pct}%</span>
+                    {hasVotes ? (
+                      <span className={styles.optionPct}>{option.pct}%</span>
+                    ) : null}
                   </span>
-                  <span className={styles.track} aria-hidden>
-                    <span
-                      className={`${styles.fill} ${isSelected ? styles.fillSelected : ''}`}
-                      style={{ inlineSize: `${option.pct}%` }}
-                    />
-                  </span>
+                  {hasVotes ? (
+                    <span className={styles.track} aria-hidden>
+                      <span
+                        className={`${styles.fill} ${isSelected ? styles.fillSelected : ''}`}
+                        style={{ inlineSize: `${option.pct}%` }}
+                      />
+                    </span>
+                  ) : null}
                 </button>
               </li>
             );
           })}
         </ul>
       </fieldset>
+
+      {!hasVotes ? (
+        <p className={styles.noVotesNote}>
+          <span aria-hidden className={styles.mark}>
+            ■{' '}
+          </span>
+          {t.noVotes}
+        </p>
+      ) : null}
 
       {!isAuthenticated ? (
         <p className={styles.gateNote}>

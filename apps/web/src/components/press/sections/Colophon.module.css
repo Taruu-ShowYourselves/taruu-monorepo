@@ -50,6 +50,32 @@
   margin-block-end: var(--space-6);
 }
 
+/* Once launched the clock's slot carries the live flag instead - a red mono
+   strip holding the same vertical rhythm the clock kept above the form. */
+.liveFlag {
+  display: block;
+  inline-size: 100%;
+  font-family: var(--np-font-mono);
+  font-weight: 800;
+  font-size: var(--text-lg);
+  letter-spacing: 0.16em;
+  text-align: center;
+  color: var(--np-paper);
+  background: var(--np-red);
+  padding: var(--space-3) var(--space-4);
+  margin-block-end: var(--space-6);
+}
+
+/* Red buttons sit on the ink footer here, where their usual ink hover would
+   vanish ink-on-ink - flip to the negative plate instead: paper ground, ink
+   text, paper border. The paper border also frames the resting red block. */
+.colophon .btnOnInk { border-color: var(--np-paper); }
+.colophon .btnOnInk:hover {
+  background: var(--np-paper);
+  color: var(--np-ink);
+  border-color: var(--np-paper);
+}
+
 .ruleMast { border-block-start: var(--np-rule-heavy) solid var(--np-paper); }
 .ruleHair { border-block-start: var(--np-rule-hair) solid rgba(244, 241, 232, 0.3); margin-block: var(--space-6) var(--space-4); }
 
@@ -122,11 +148,7 @@
 }
 .contactMail:hover { color: var(--np-red); }
 
-.foundersCta {
-  margin-block-start: var(--space-2);
-  /* paper border so the red block reads on the ink colophon */
-  border-color: var(--np-paper);
-}
+.foundersCta { margin-block-start: var(--space-2); }
 
 .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-6); }
 .col { display: flex; flex-direction: column; gap: var(--space-2); }

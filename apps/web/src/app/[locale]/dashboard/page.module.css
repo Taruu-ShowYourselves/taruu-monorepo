@@ -54,6 +54,26 @@
   color: var(--np-ink-faint);
 }
 
+/* The wait is still the paper: wordmark + kicker keep the brand on the field
+   while auth resolves, instead of a lone machine on blank ground. */
+.loadingWordmark {
+  font-family: var(--np-font-display);
+  font-weight: 900;
+  font-size: var(--text-3xl);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--np-ink);
+}
+
+.loadingKicker {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--np-red);
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
@@ -354,6 +374,12 @@
 
 @media (min-width: 480px) {
   .figuresGrid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* Three cells on the 2-col grid would leave the fourth area as bare grid ink;
+   the last figure takes the full row instead. */
+@media (max-width: 479px) {
+  .figureCell:last-child { grid-column: 1 / -1; }
 }
 
 .figureCell {

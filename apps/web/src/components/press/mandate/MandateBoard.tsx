@@ -24,6 +24,8 @@ export interface MandateBoardCopy {
   emptyNational: string;
   emptyMunicipal: string;
   emptyNote: string;
+  emptyStamp: string;
+  emptyCta: string;
   readVote: string;
   decidedThat: string;
 }
@@ -120,10 +122,14 @@ export function MandateBoard({ national, municipal, copy, locale }: MandateBoard
 
       {shown.length === 0 ? (
         <div className={styles.empty}>
+          <span className={styles.emptyStamp}>{copy.emptyStamp}</span>
           <p className={styles.emptyLede}>
             {tab === 'national' ? copy.emptyNational : copy.emptyMunicipal}
           </p>
           <p className={styles.emptyNote}>{copy.emptyNote}</p>
+          <Link className={styles.emptyCta} href={`${localePrefix(locale)}/feed`}>
+            {copy.emptyCta}
+          </Link>
         </div>
       ) : (
         <ol className={styles.decisions}>

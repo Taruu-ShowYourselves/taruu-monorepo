@@ -69,7 +69,7 @@ const COPY: Record<Locale, SignInCopy> = {
     termsJoin: 'ול',
     privacyLink: 'מדיניות הפרטיות',
     dividerPrompt: 'עוד אין לכם חשבון?',
-    switchCta: 'פתחו חשבון בחינם ←',
+    switchCta: 'פתחו חשבון בחינם',
     features: {
       scope: 'עיר · כנסת · ממשלה',
       oneVoice: 'קול אחד בכל הצבעה',
@@ -108,7 +108,7 @@ const COPY: Record<Locale, SignInCopy> = {
     termsJoin: 'and the ',
     privacyLink: 'Privacy Policy',
     dividerPrompt: 'No account yet?',
-    switchCta: 'Create a free account →',
+    switchCta: 'Create a free account',
     features: {
       scope: 'City · Knesset · Government',
       oneVoice: 'One voice in every vote',
@@ -135,6 +135,7 @@ export default function SignInPage() {
   const t = COPY[locale];
   const { signInWithGoogle, isAuthenticated, isLoading } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [connecting, setConnecting] = useState(false);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -144,6 +145,14 @@ export default function SignInPage() {
       router.push(safeRedirect(searchParams.get('redirect'), '/dashboard'));
     }
   }, [isAuthenticated, isLoading, router, searchParams]);
+
+  // The OAuth redirect unloads the page mid-"connecting"; a bfcache restore
+  // (back button) would otherwise revive it with the CTA stuck disabled.
+  useEffect(() => {
+    const reset = () => setConnecting(false);
+    window.addEventListener('pageshow', reset);
+    return () => window.removeEventListener('pageshow', reset);
+  }, []);
 
   // Handle error from URL
   useEffect(() => {
@@ -160,7 +169,10 @@ export default function SignInPage() {
   }, [searchParams, t]);
 
   const handleGoogleSignIn = () => {
+    // The OAuth redirect takes 1-3s to leave the page; without a local pending
+    // state the tap appears to do nothing and invites a second click.
     setError(null);
+    setConnecting(true);
     signInWithGoogle();
   };
 
@@ -195,13 +207,20 @@ export default function SignInPage() {
           type="button"
           className={styles.googleBtn}
           onClick={handleGoogleSignIn}
-          disabled={isLoading}
+          disabled={isLoading || connecting}
         >
-          <span className={styles.googleGlyph} aria-hidden>
+          <span
+            className={
+              connecting
+                ? `${styles.googleGlyph} ${styles.googleGlyphPending}`
+                : styles.googleGlyph
+            }
+            aria-hidden
+          >
             <GoogleMark />
           </span>
           <span className={styles.googleLabel}>
-            {isLoading ? t.googleCtaLoading : t.googleCta}
+            {isLoading || connecting ? t.googleCtaLoading : t.googleCta}
           </span>
         </button>
 
@@ -223,7 +242,11 @@ export default function SignInPage() {
         </div>
 
         <Link href={`${localePrefix(locale)}/sign-up`} className={styles.switchLink}>
-          {t.switchCta}
+          <span>{t.switchCta}</span>
+          {/* Separate glyph so hover can slide it along the reading direction. */}
+          <span aria-hidden className={styles.switchArrow}>
+            {locale === 'he' ? '←' : '→'}
+          </span>
         </Link>
 
         <ul className={styles.features}>

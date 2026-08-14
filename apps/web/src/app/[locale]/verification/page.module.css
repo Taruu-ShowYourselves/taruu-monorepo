@@ -147,6 +147,8 @@
 /* ---------- State panel (phase-driven press furniture) ---------- */
 
 .panel {
+  /* Anchor for the one-shot CheerBurst on the done panel. */
+  position: relative;
   display: grid;
   gap: var(--space-6);
   background: var(--np-paper-box);

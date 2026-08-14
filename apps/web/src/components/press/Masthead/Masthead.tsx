@@ -431,9 +431,18 @@ export function Masthead({ locale = 'he' }: MastheadProps) {
           <span suppressHydrationWarning>{formatDateline(new Date(), locale)}</span>
           <span>{t.edition}</span>
           <span>
-            {t.region}
-            {' · '}
-            <Link href={localeSwitchPath(pathname ?? localePath(locale), otherLocale)} lang={otherLocale}>
+            {/* Region and separator are the droppable half: on a phone they
+                yield, while the locale switch stays - it is the only door to
+                the other edition anywhere on the page. */}
+            <span className={styles.earsRegion}>
+              {t.region}
+              {' · '}
+            </span>
+            <Link
+              href={localeSwitchPath(pathname ?? localePath(locale), otherLocale)}
+              lang={otherLocale}
+              className={styles.localeSwitch}
+            >
               {t.switchLabel}
             </Link>
           </span>
