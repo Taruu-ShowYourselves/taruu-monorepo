@@ -7,9 +7,10 @@ import {
 import {
   KnessetDesk,
   ConsensusDesk,
-  CivicReminder,
+  DeskTabs,
   Colophon,
   HowToJoin,
+  IsraelMapDesk,
 } from '@/components/press/sections';
 import {
   BeatMandateStage,
@@ -43,13 +44,18 @@ export default async function HomePage({ params }: HomePageProps) {
       liveDashboard={<EventDashboard locale={locale} />}
     >
       {/* The order a resident needs, which is evidence first and argument
-          second. The intro is now one screen - the wordmark and what Taruu
-          offers - and then the reader is in their own town's desk.
+          second. The intro is now one screen - the wordmark, the reminder the
+          paper exists to make, and the mechanism in one sentence - and then
+          the reader is in the desk.
 
-          LocalityDesk sits between the two carousels because that is where its
-          effect is legible: the municipal river above it re-orders the moment a
-          town is chosen, and the national desk below it is what everyone gets
-          regardless. It replaced a modal that asked the same question at the
+          The two desks are one tabbed section now - מועצות מקומיות and ממשלה -
+          and the section is exactly one viewport of river: no headline above
+          the tiles, no second desk queued below them. A reader flips editions
+          instead of scrolling past one to reach the other.
+
+          LocalityDesk follows the desk because that is where its effect is
+          legible: the tabbed river above it re-orders the moment a town is
+          chosen. It replaced a modal that asked the same question at the
           door, before the reader had seen anything the answer changes.
 
           The four claims come after both desks. Argument in front of the
@@ -73,9 +79,12 @@ export default async function HomePage({ params }: HomePageProps) {
         <main>
           <Masthead locale={locale} />
           <Ticker locale={locale} />
-          <ConsensusDesk locale={locale} />
+          <DeskTabs
+            locale={locale}
+            localPanel={<ConsensusDesk locale={locale} embedded />}
+            nationalPanel={<KnessetDesk locale={locale} embedded />}
+          />
           <LocalityDesk locale={locale} />
-          <KnessetDesk locale={locale} />
           <CinematicIntro
             locale={locale}
             story="beats"
@@ -85,8 +94,14 @@ export default async function HomePage({ params }: HomePageProps) {
             ]}
             deskBackdrop={<ConsensusDesk locale={locale} decorative />}
           />
-          <CivicReminder locale={locale} />
+          {/* CivicReminder is gone from this page: its sentence is now the
+              opening headline, and a page that closes by repeating its own
+              masthead is a page padding itself. It still closes /pitchdeck
+              and /what-is-taruu, where the reminder is the destination. */}
           <HowToJoin locale={locale} />
+          {/* The weather map closes the page: every open municipal topic
+              pinned to its town, right before the colophon. */}
+          <IsraelMapDesk locale={locale} />
         </main>
         <Colophon locale={locale} />
       </div>

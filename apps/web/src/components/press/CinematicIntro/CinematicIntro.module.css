@@ -1865,6 +1865,22 @@
   color: var(--intro-ink);
 }
 
+/* The opening story's purpose line, at beat scale under the wordmark. It is
+   the homepage's h1: heading margins reset so the beat grid's own row-gap
+   spaces it like every other line in the column. */
+.openingHeadline {
+  margin: 0;
+  max-inline-size: 24ch;
+  font-family: var(--np-font-display);
+  font-size: var(--beat-line);
+  font-weight: 800;
+  line-height: 1.18;
+  letter-spacing: -0.03em;
+  text-align: center;
+  text-wrap: balance;
+  color: var(--intro-ink);
+}
+
 /* Each following beat is one sentence of the argument, at a size that holds a
    full clause without turning into a paragraph. */
 .thesisBeatLine {

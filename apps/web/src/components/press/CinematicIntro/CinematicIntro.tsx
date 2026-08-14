@@ -23,7 +23,6 @@ import {
 } from "./israel-map";
 import { structureKnessetTitle } from "./knesset-title";
 import { LedgerMark, type LedgerMarkKind } from "./ledgerMarks";
-import { SNAP_STOPS_EVENT } from "@/components/press/HomepageExperience/snapStops";
 import styles from "./CinematicIntro.module.css";
 
 interface SignalSource {
@@ -169,6 +168,15 @@ interface IntroCopy {
   thesisAskLead: string;
   thesisAskQuote: string;
   /**
+   * The homepage's one-screen opening. The full and thesis stories keep the
+   * wordmark's offer (lede + ask); the opening story states the paper's
+   * purpose instead - the reminder that used to close the page - and, under
+   * it, the mechanism in one sentence. The reminder reads as the site's
+   * masthead motto, so it is the homepage's h1.
+   */
+  openingHeadline: string;
+  openingStandfirst: string;
+  /**
    * Each beat is a claim and, where the claim needs one, the condition it
    * holds under. Carried as two fields because they are set as two things:
    * as one string the whole beat ran at display scale, and a sentence with a
@@ -242,19 +250,22 @@ const COPY: Record<Locale, IntroCopy> = {
       "מאפשרת לאזרחים לבנות ריבונות אזרחית סביב נושאים שבהם הרשות או הממשלה *לא מבצעות את המנדט הציבורי* שהוטל עליהן.",
     thesisAskLead: "ואומרת לכם",
     thesisAskQuote: "תראו להם מה אתם *באמת* רוצים",
+    openingHeadline: "אנחנו כאן כדי להזכיר לרשויות שהן *בשירות הציבור*.",
+    openingStandfirst:
+      "אזרחים מצביעים על נושאים שעל הפרק, יוצרים רוב אזרחי ובונים מנדט - מנדט שהרשויות מחויבות לכבד, או לאבד את הלגיטימציה שלהן.",
     thesisBeats: [
       {
         head: "אנחנו מאזינים לאזרחים בפייסבוק - בכל רשות, ובכנסת.",
-        note: "ומנגישים את ההצבעות שראוי שיעלו לשיח הציבורי, שאזרחים יבחרו בהן עמדה - כדי לייצר עליהן מנדט ציבורי.",
+        note: "ופותחים להצבעה את הנושאים שראוי שיוכרעו בציבור.",
       },
       {
-        head: "סביב נושא אנו מארחים הצבעה אזרחית, ואיתה *ריבון אזרחי*.",
-        note: "הריבון האזרחי מוביל אולטימטום של לגיטימיות לרשות או לממשלה - על זכותה להמשיך לשרת את מי שבחר בה.",
+        head: "סביב כל נושא נפתחת הצבעה אזרחית - והקולות נעשים *רוב אזרחי*.",
+        note: "רוב אזרחי הוא מנדט ציבורי: הוראה שהרשות או הממשלה נדרשת לכבד.",
       },
-      { head: "העירייה או הממשלה מקבלת דירוג, וצוברת ניקוד לאורך כהונתה." },
+      { head: "העירייה או הממשלה מקבלת ציון, וצוברת ניקוד לאורך הכהונה." },
       {
-        head: "ואם היא לא מכבדת את רצון התושבים - פונים לבית משפט.",
-        note: "ומחייבים אותה משפטית להתיישר למנדט הציבורי.",
+        head: "ואם היא לא מכבדת את המנדט - פונים לבית משפט.",
+        note: "רשות שמתעלמת מרצון התושבים מאבדת את הלגיטימציה שלה.",
       },
     ],
   },
@@ -321,35 +332,31 @@ const COPY: Record<Locale, IntroCopy> = {
       "lets citizens build civic sovereignty around the issues where the authority or the government *is not delivering the public mandate* it was given.",
     thesisAskLead: "and says to you",
     thesisAskQuote: "show them what you *really* want",
+    openingHeadline:
+      "We are here to remind the authorities that they are *in the service of the public*.",
+    openingStandfirst:
+      "Civilians vote on the topics that concern them, form civilian majorities, and build a mandate - one the authorities must honour, or lose their legitimacy.",
     thesisBeats: [
       {
         head: "We listen to citizens on Facebook - in every authority, and in the Knesset.",
-        note: "And we open the ballots that belong in public debate, for citizens to take a position on - so a public mandate can form on them.",
+        note: "And open ballots on the topics that deserve a public decision.",
       },
       {
-        head: "Around an issue we host a civic ballot, and with it a *civic sovereign*.",
-        note: "That sovereign carries an ultimatum of legitimacy to the authority or the government - over its standing to keep serving the people who elected it.",
+        head: "Around each topic a civic ballot opens - and the votes become a *civilian majority*.",
+        note: "A civilian majority is a public mandate: an instruction the authority or the government is required to honour.",
       },
       {
-        head: "The municipality or the government is rated, and accumulates a score across its term.",
+        head: "The municipality or the government is scored, and the score accrues across its term.",
       },
       {
-        head: "And should it not honour the will of its residents - it goes to court.",
-        note: "Legally compelled to align with the public mandate.",
+        head: "And if it does not honour the mandate - it is taken to court.",
+        note: "An authority that ignores the will of its residents loses its legitimacy.",
       },
     ],
   },
 };
 
 const KNESSET_SCOPE = /כנסת|ארצי|ישראל/;
-
-/**
- * How far above a runway's start its no-rest span reaches. The pager puts a
- * stop on every section edge, and a runway's edge sits a nav-dock's height
- * above its first beat - close enough that the two are the same picture and
- * one of them is a wasted swipe.
- */
-const RUNWAY_EDGE_SLACK = 120;
 
 /**
  * Copy carries its own emphasis: `*like this*` prints in the paper's red.
@@ -889,6 +896,11 @@ export function CinematicIntro({
   const [knessetEvidence, setKnessetEvidence] = useState<
     Record<string, KnessetEvidence>
   >({});
+  // Fingerprints of the payloads last committed to state. The 30s poll
+  // mostly returns the same country it returned 30 seconds ago, and a fresh
+  // array reference alone re-renders this entire tree to prove it.
+  const signalsFingerprint = useRef<string | null>(null);
+  const evidenceFingerprint = useRef<string | null>(null);
 
   const advanceToLiveMap = () => {
     const root = rootRef.current;
@@ -902,6 +914,25 @@ export function CinematicIntro({
 
   useEffect(() => {
     const controller = new AbortController();
+
+    // Committed only when the data actually moved. The sync stamp rides
+    // with the signals: it marks the last time the picture changed, not the
+    // last time we asked - a stamp that ticks over identical data is just a
+    // metronome for re-renders.
+    const commitSignals = (votes: SignalVote[], syncedAt: Date | null) => {
+      const fingerprint = JSON.stringify(votes);
+      if (fingerprint === signalsFingerprint.current) return;
+      signalsFingerprint.current = fingerprint;
+      setSignals(votes);
+      if (syncedAt) setLastSignalSync(syncedAt);
+    };
+
+    const commitEvidence = (evidence: Record<string, KnessetEvidence>) => {
+      const fingerprint = JSON.stringify(evidence);
+      if (fingerprint === evidenceFingerprint.current) return;
+      evidenceFingerprint.current = fingerprint;
+      setKnessetEvidence(evidence);
+    };
 
     async function loadSignals() {
       try {
@@ -918,17 +949,19 @@ export function CinematicIntro({
         if (controller.signal.aborted) return;
         // Stored raw: each desk does its own filtering, ordering and
         // deduping downstream, so neither scope can reorder the other.
-        setSignals(votes);
-        setLastSignalSync(new Date());
+        commitSignals(votes, new Date());
 
         const knessetTopics = votes.filter((vote) =>
           KNESSET_SCOPE.test(vote.municipality),
         ).length;
-        setPublicLedger((current) => ({
-          ...current,
-          knessetTopics,
-          municipalTopics: votes.length - knessetTopics,
-        }));
+        const municipalTopics = votes.length - knessetTopics;
+        // Returning `current` untouched lets React bail out of the render.
+        setPublicLedger((current) =>
+          current.knessetTopics === knessetTopics &&
+          current.municipalTopics === municipalTopics
+            ? current
+            : { ...current, knessetTopics, municipalTopics },
+        );
 
         // Evidence for the hottest votes is resolved server-side (`top`):
         // slicing N ids client-side by arrival order meant the actually
@@ -943,16 +976,18 @@ export function CinematicIntro({
               const contextPayload = (await contextResponse.json()) as {
                 evidence?: Record<string, KnessetEvidence>;
               };
-              setKnessetEvidence(contextPayload.evidence ?? {});
+              commitEvidence(contextPayload.evidence ?? {});
             }
           } catch {
-            if (!controller.signal.aborted) setKnessetEvidence({});
+            if (!controller.signal.aborted) commitEvidence({});
           }
         }
       } catch {
         if (!controller.signal.aborted) {
-          setSignals([]);
-          setKnessetEvidence({});
+          // No stamp on the wipe: the footer reads "last confirmed sync",
+          // and an outage is not a sync.
+          commitSignals([], null);
+          commitEvidence({});
         }
       }
     }
@@ -1006,13 +1041,24 @@ export function CinematicIntro({
         }
 
         if (!controller.signal.aborted) {
-          setPublicLedger((current) => ({ ...current, ...next }));
+          // Same bail-out as the topic counts: hand React back the object it
+          // already holds unless a number actually moved.
+          setPublicLedger((current) => {
+            const keys = Object.keys(next) as (keyof PublicLedgerStats)[];
+            return keys.some((key) => current[key] !== next[key])
+              ? { ...current, ...next }
+              : current;
+          });
         }
       } catch {
         // Keep the last confirmed aggregate during a transient stats outage.
       }
     }
 
+    // The poll runs in every story, deliberately: the thesis ledger
+    // (CivicSignalMap) sits in the thesis scene that all four stories render,
+    // and it reads the signals, the ledger stats and the Knesset evidence.
+    // The commit guards above are what keep an unchanged answer free.
     void loadSignals();
     void loadPublicLedger();
     const poll = window.setInterval(() => {
@@ -1117,22 +1163,29 @@ export function CinematicIntro({
   const holdMuni = useMemo(() => holdHandlers(setMuniPaused), []);
   const holdKnesset = useMemo(() => holdHandlers(setKnessetPaused), []);
 
-  useEffect(
-    () =>
-      rotate(municipalWindow, muniPaused, MUNI_ROTATION_MS, setActiveMuniIndex),
-    [municipalWindow, muniPaused],
-  );
+  // The cursors only page the comparison scene's reading surfaces, and every
+  // thesis-only story cuts that scene (the `!thesisOnly` gate in the JSX).
+  // Left unguarded they re-rendered this whole tree every few seconds to
+  // advance a card nobody was shown.
+  useEffect(() => {
+    if (thesisOnly) return;
+    return rotate(
+      municipalWindow,
+      muniPaused,
+      MUNI_ROTATION_MS,
+      setActiveMuniIndex,
+    );
+  }, [municipalWindow, muniPaused, thesisOnly]);
 
-  useEffect(
-    () =>
-      rotate(
-        knessetWindow,
-        knessetPaused,
-        KNESSET_ROTATION_MS,
-        setActiveKnessetIndex,
-      ),
-    [knessetWindow, knessetPaused],
-  );
+  useEffect(() => {
+    if (thesisOnly) return;
+    return rotate(
+      knessetWindow,
+      knessetPaused,
+      KNESSET_ROTATION_MS,
+      setActiveKnessetIndex,
+    );
+  }, [knessetWindow, knessetPaused, thesisOnly]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -1140,7 +1193,6 @@ export function CinematicIntro({
 
     let cancelled = false;
     let revertGsap = () => {};
-    let revertSnapStops = () => {};
 
     const animeScope = createScope({ root }).add(() => {
       // Identity is on stage in both stories now, so it animates before the
@@ -1289,6 +1341,20 @@ export function CinematicIntro({
           const handsOffIdentity = !beatsOnly && beats.length > 1;
           if (handsOffIdentity) gsap.set("[data-intro-logo]", { opacity: 0, y: -14 });
 
+          /* Where the runway may come to rest, as fractions of the whole
+             scrub. Mid-handoff the exit of one claim prints over the
+             entrance of the next, so a stopped reader has to be carried to
+             the middle of a beat's solo window - entrance done at +0.42,
+             exit not yet started at +0.7. The denominator is the timeline's
+             full length: the paper wash is its longest tail (starts at
+             lastAt + 0.72, runs 0.5). Beat 0 rests at the load state, and
+             the runway's own end is a rest too, so a reader who runs the
+             scrub out is not pulled back from the handoff to the dock. */
+          const RUNWAY_TAIL = 1.22;
+          const beatRests = beats.map((_, index) =>
+            index === 0 ? 0 : (index * STEP + 0.56) / (lastAt + RUNWAY_TAIL),
+          );
+
           const soloStory = gsap.timeline({
             defaults: { ease: "power3.inOut" },
             scrollTrigger: {
@@ -1306,6 +1372,17 @@ export function CinematicIntro({
               // behind them.
               end: "78% bottom",
               scrub: 0.45,
+              /* Directional, so a slow push settles on the beat the reader
+                 was moving toward instead of bouncing back to the one they
+                 left. A single-beat runway (`opening`) has no handoff to
+                 rest on and stays free. */
+              ...(beats.length > 1 && {
+                snap: {
+                  snapTo: [...beatRests, 1],
+                  duration: 0.3,
+                  directional: true,
+                },
+              }),
               invalidateOnRefresh: true,
             },
           });
@@ -1417,61 +1494,7 @@ export function CinematicIntro({
           // enough over four beats to leave the frame at the top.
           addLedgerDrift(soloStory, STEP * 1.2, lastAt, 90);
 
-          /* The runway is one tall section with five claims scrubbed through
-             it, and nothing in the DOM says where a claim is. The pager, left
-             to divide the section into screens, stepped ~720px while the
-             beats step ~330 - so one swipe carried two claims past the reader.
-             The timeline is the only thing that knows, so it publishes: each
-             beat's scroll position, taken from the trigger's own range, at the
-             point in its step where it is arrived and still. */
-          const publishSnapStops = () => {
-            const trigger = soloStory.scrollTrigger;
-            const span = soloStory.duration();
-            if (!trigger || !span) return;
-            const range = trigger.end - trigger.start;
-            /* A single-beat runway - the opening intro - is one image being
-               handed to the page, and every position inside it is a frame of
-               that handoff: a plate half-faded, a wordmark mid-scale. It
-               declares its start and nothing else, and because a runway's own
-               stops replace the ones the pager would generate, the whole
-               handoff becomes one gesture instead of three rests in the
-               middle of a transition. */
-            scopeRoot.dataset.snapStops =
-              beats.length < 2
-                ? String(Math.round(trigger.start))
-                : beats
-                    .map((_, index) =>
-                      Math.round(
-                        trigger.start +
-                          ((index * STEP + STEP * 0.55) / span) * range,
-                      ),
-                    )
-                    .join(",");
-            /* The span those stops govern: from just above the runway's own
-               start - far enough to take in the section-edge stop the pager
-               would otherwise put a screen before the first beat - to the end
-               of the handoff that carries the scene off. Every position in
-               between is a frame of something moving. */
-            const foot = Math.max(
-              trigger.end,
-              trigger.start + scopeRoot.offsetHeight - window.innerHeight,
-            );
-            scopeRoot.dataset.snapRange = `${Math.round(
-              trigger.start - RUNWAY_EDGE_SLACK,
-            )},${Math.round(foot)}`;
-            window.dispatchEvent(new CustomEvent(SNAP_STOPS_EVENT));
-          };
-
-          ScrollTrigger.addEventListener("refresh", publishSnapStops);
-          revertSnapStops = () => {
-            ScrollTrigger.removeEventListener("refresh", publishSnapStops);
-            delete scopeRoot.dataset.snapStops;
-            delete scopeRoot.dataset.snapRange;
-            window.dispatchEvent(new CustomEvent(SNAP_STOPS_EVENT));
-          };
-
           ScrollTrigger.refresh();
-          publishSnapStops();
           return;
         }
 
@@ -1733,7 +1756,6 @@ export function CinematicIntro({
     return () => {
       cancelled = true;
       animeScope.revert();
-      revertSnapStops();
       revertGsap();
     };
   }, [beatOffset, beatsOnly, openingOnly, shouldReduceMotion, thesisOnly]);
@@ -2239,16 +2261,37 @@ export function CinematicIntro({
                   {t.brandName}
                   <span>.</span>
                 </p>
-                <p className={styles.thesisLede}>{withEmphasis(t.thesisLede)}</p>
-                {/* Kicker and line, the paper's own pairing: the lead-in is
-                    set as furniture so the sentence it introduces can be the
-                    thing the reader actually sees. */}
-                <p className={styles.thesisAsk}>
-                  <span className={styles.thesisAskLead}>{t.thesisAskLead}</span>
-                  <span className={styles.thesisAskQuote}>
-                    {withEmphasis(t.thesisAskQuote)}
-                  </span>
-                </p>
+                {openingOnly ? (
+                  <>
+                    {/* The homepage's whole argument, in two sentences: the
+                        purpose at display scale - it is the page's h1, since
+                        the question scene that used to carry one is cut from
+                        this story - and the mechanism at reading scale. */}
+                    <h1 className={styles.openingHeadline}>
+                      {withEmphasis(t.openingHeadline)}
+                    </h1>
+                    <p className={styles.thesisLede}>
+                      {withEmphasis(t.openingStandfirst)}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className={styles.thesisLede}>
+                      {withEmphasis(t.thesisLede)}
+                    </p>
+                    {/* Kicker and line, the paper's own pairing: the lead-in
+                        is set as furniture so the sentence it introduces can
+                        be the thing the reader actually sees. */}
+                    <p className={styles.thesisAsk}>
+                      <span className={styles.thesisAskLead}>
+                        {t.thesisAskLead}
+                      </span>
+                      <span className={styles.thesisAskQuote}>
+                        {withEmphasis(t.thesisAskQuote)}
+                      </span>
+                    </p>
+                  </>
+                )}
               </div>
             )}
 
