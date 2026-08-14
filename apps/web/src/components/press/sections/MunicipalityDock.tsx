@@ -18,6 +18,7 @@ import {
 import { Progress } from '@/components/uikit/progress';
 import { municipalityHref } from '@/components/uikit/municipality-link';
 import { sidewaysWheel } from './sidewaysWheel';
+import { chime } from '@/lib/feedback/chime';
 import type { Locale } from '@/lib/i18n';
 import styles from './MunicipalityDock.module.css';
 
@@ -454,9 +455,16 @@ export function MunicipalityDock({
     [byCode]
   );
 
+  /* Every way a reader picks a station - band tap, index tap, spin release,
+     wheel detent - lands here, always from inside the gesture's own handler,
+     so the detent tick sounds here and nowhere else. The guard keeps it
+     honest: a dial that has not moved does not click, and the needle's own
+     follow-the-desk effect never comes through this path at all. */
   const select = useCallback(
     (name: string) => {
-      if (name !== active) onSelect(name);
+      if (name === active) return;
+      chime('tick');
+      onSelect(name);
     },
     [active, onSelect]
   );

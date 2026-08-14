@@ -5,6 +5,7 @@ import useEmblaCarousel from 'embla-carousel-react';
 import { DeskDrift, type DeskDriftType } from './deskDrift';
 import { sidewaysWheel } from './sidewaysWheel';
 import { DeskDragLockContext, type DeskDragLock } from './deskDragLock';
+import { useDeskPanelActive } from './deskPanelActive';
 import type { Locale } from '@/lib/i18n';
 import styles from './DeskCarousel.module.css';
 
@@ -23,11 +24,27 @@ interface DeskCarouselProps {
   onActiveIndexChange?: (index: number) => void;
   /** Filled once Embla is up so outside controls can steer the track. */
   controlsRef?: React.MutableRefObject<DeskCarouselControls | null>;
+  /**
+   * Scenery, not an instrument. The intro's backdrop desk is behind copy at
+   * opacity 0 for most of its life; a drift engine, a wheel listener and
+   * hover handlers on it are pure idle cost - and an invisible track that
+   * moves on its own burns GPU re-rasterising a blurred layer nobody sees.
+   * Decorative renders the same mosaic, still.
+   */
+  decorative?: boolean;
 }
 
-/** Drift speed with nobody reading, and the pace it eases to under a cursor. */
-const DRIFT_SPEED = 0.6;
-const HOVER_SPEED = 0.12;
+/**
+ * Drift speed with nobody reading, and the pace it eases to under a cursor.
+ *
+ * Pixels per engine tick - Embla steps its animation at a fixed 60Hz with an
+ * accumulator, so this is device-independent: 0.32 is ~19px/s on every
+ * display. It was 0.6 (~36px/s), which read as the desk hurrying its own
+ * readers; the tiles are for reading, and the river only needs to prove it
+ * flows.
+ */
+const DRIFT_SPEED = 0.32;
+const HOVER_SPEED = 0.08;
 
 /**
  * How long the desk holds still after the dial steers it somewhere.
@@ -74,6 +91,7 @@ export function DeskCarousel({
   label,
   onActiveIndexChange,
   controlsRef,
+  decorative = false,
 }: DeskCarouselProps) {
   /* The track's drag, lent to whichever tile is being pushed. Embla calls
      `watchDrag` on every pointer down and skips the drag when it returns
@@ -110,6 +128,7 @@ export function DeskCarousel({
      backwards the moment a cursor arrives. `DeskDrift` takes its new speed
      live instead. */
   const [drift] = useState<DeskDriftType | null>(() => {
+    if (decorative) return null;
     if (
       typeof window !== 'undefined' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -122,6 +141,25 @@ export function DeskCarousel({
   driftRef.current = drift;
 
   const [emblaRef, emblaApi] = useEmblaCarousel(options, plugins);
+
+  /* Inside the tabbed desk, the hidden edition keeps its layout but must not
+     keep its river running: an invisible track translating every frame is
+     idle main-thread and GPU work. hold() is the exact-stop primitive; the
+     release only fires for a panel that was actually stood down, so the
+     initial active render never touches a drift that is still on its own
+     start delay. */
+  const panelActive = useDeskPanelActive();
+  const stoodDown = useRef(false);
+  useEffect(() => {
+    if (!drift || !emblaApi) return;
+    if (!panelActive) {
+      drift.hold();
+      stoodDown.current = true;
+    } else if (stoodDown.current) {
+      stoodDown.current = false;
+      drift.release();
+    }
+  }, [panelActive, drift, emblaApi]);
 
   /* The desk reports where it is; it no longer offers to be paged. The arrows
      were furniture for a river that already moves on its own, and every one of
@@ -163,7 +201,7 @@ export function DeskCarousel({
 
   useEffect(() => {
     const viewport = viewportRef.current;
-    if (!emblaApi || !viewport) return;
+    if (!emblaApi || !viewport || decorative) return;
 
     const onWheel = sidewaysWheel({
       stepPx: WHEEL_STEP_PX,
@@ -217,7 +255,7 @@ export function DeskCarousel({
 
     viewport.addEventListener('wheel', onWheel, { passive: false });
     return () => viewport.removeEventListener('wheel', onWheel);
-  }, [emblaApi, drift]);
+  }, [emblaApi, drift, decorative]);
 
   useEffect(() => {
     if (!controlsRef) return;

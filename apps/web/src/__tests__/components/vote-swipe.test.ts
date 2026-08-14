@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  HOLD_MS,
+  holdCount,
   horizontalCommit,
   resolveSwipe,
   SWIPE_DEADZONE,
@@ -69,5 +71,24 @@ describe('resolveSwipe', () => {
       expect(horizontalCommit(box)).toBeLessThan(box.width);
       expect(verticalCommit(box)).toBeLessThan(box.height);
     }
+  });
+});
+
+describe('holdCount', () => {
+  it('counts three whole seconds down, one digit per second', () => {
+    expect(holdCount(0)).toBe(3);
+    expect(holdCount(999)).toBe(3);
+    expect(holdCount(1000)).toBe(2);
+    expect(holdCount(1999)).toBe(2);
+    expect(holdCount(2000)).toBe(1);
+    expect(holdCount(2999)).toBe(1);
+  });
+
+  it('never prints 0 or 4, however the timer lands', () => {
+    // A tick a frame early must not show a fourth second, and a tick a frame
+    // late must not show a zero - the zero moment is the cast itself.
+    expect(holdCount(-16)).toBe(3);
+    expect(holdCount(HOLD_MS)).toBe(1);
+    expect(holdCount(HOLD_MS + 250)).toBe(1);
   });
 });

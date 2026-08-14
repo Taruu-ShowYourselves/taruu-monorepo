@@ -311,8 +311,12 @@
      The cap lives here rather than on `.panel` because `.panel` is the
      element framer-motion animates height on, and it has to keep
      `overflow: hidden` to clip that animation. */
+  /* `--np-desk-tabs-h` is the tabbed desk section's tab bar, which now also
+     sits in the span above the bar - without it the open sheet landed
+     exactly over the two tab labels. Zero anywhere the dock lives outside
+     the tabs. */
   max-block-size: calc(
-    100svh - var(--np-nav-h) -
+    100svh - var(--np-nav-h) - var(--np-desk-tabs-h, 0rem) -
       var(--np-desk-dock-measured, var(--np-desk-dock-h))
   );
   overflow-y: auto;

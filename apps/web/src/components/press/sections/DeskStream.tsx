@@ -5,15 +5,30 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useAuthStore } from '@/stores/authStore';
 import { DeskCarousel, type DeskCarouselControls } from './DeskCarousel';
 import { DeskTopicRow, type DeskTopic, type VoteAuthRequest } from './DeskTopicRow';
-import { TopicDialog, type DeskEntry } from './TopicDialog';
-import { VoteAuthDialog } from './VoteAuthDialog';
+import { useDeskPanelActive } from './deskPanelActive';
+import type { DeskEntry } from './TopicDialog';
 import { slotVariant } from './deskBento';
 import type { Locale } from '@/lib/i18n';
 
 export type { DeskEntry };
+
+/* The reading room and the sign-in gate open on a push, never on load - so
+   their code (radix dialog, the whole participation flow) has no business in
+   the desk's initial bundle, and their closed state has no business in the
+   server HTML. They mount on the first push and stay mounted, which keeps
+   the exit animations from the second open onward. */
+const TopicDialog = dynamic(
+  () => import('./TopicDialog').then((m) => m.TopicDialog),
+  { ssr: false }
+);
+const VoteAuthDialog = dynamic(
+  () => import('./VoteAuthDialog').then((m) => m.VoteAuthDialog),
+  { ssr: false }
+);
 
 /**
  * That this reader has already been shown how a tile works.
@@ -34,6 +49,14 @@ interface DeskStreamProps {
   onActiveIndexChange?: (index: number) => void;
   /** Handle for controls outside the track (the municipality dial). */
   controlsRef?: React.MutableRefObject<DeskCarouselControls | null>;
+  /**
+   * Scenery. The intro's backdrop desk renders the mosaic and nothing else:
+   * no dialogs, no auth gate, no drift (see DeskCarousel) - and, critically,
+   * no swipe lesson. The decorative desk's tiles used to bid for the tutor
+   * and write the taught flag from behind an opacity-0 layer, spending the
+   * one lesson a reader gets on a demonstration nobody saw.
+   */
+  decorative?: boolean;
 }
 
 /** One desk's stream of tiles, with the topic dialog they open into. */
@@ -43,10 +66,16 @@ export function DeskStream({
   locale,
   onActiveIndexChange,
   controlsRef,
+  decorative = false,
 }: DeskStreamProps) {
   const [open, setOpen] = useState<DeskEntry | null>(null);
   /** The side a swipe carried in, if the dialog was opened by pushing a tile. */
   const [intent, setIntent] = useState<string | null>(null);
+  /* Inside the tabbed desk, the hidden edition stays mounted and laid out -
+     its tiles intersect like anyone's, and left alone they would bid for the
+     one-time swipe lesson from behind visibility:hidden. The lesson only
+     goes to a desk somebody is looking at. */
+  const panelActive = useDeskPanelActive();
 
   /* ---- Who may be counted ---------------------------------------------
      A guest's push opens the sign-in gate instead of the ballot, and the gate
@@ -79,6 +108,7 @@ export function DeskStream({
   const claimed = useRef(false);
 
   useEffect(() => {
+    if (decorative) return;
     try {
       setTaught(window.localStorage.getItem(TUTOR_KEY) === '1');
     } catch {
@@ -87,7 +117,7 @@ export function DeskStream({
          the first is useful. */
       setTaught(true);
     }
-  }, []);
+  }, [decorative]);
 
   /* Bids are collected for a beat rather than settled on the first one in.
      Several tiles cross the threshold in the same frame when the desk scrolls
@@ -136,6 +166,13 @@ export function DeskStream({
     setOpen(entry);
   };
 
+  /* The dialogs mount on the first push and stay: a lazy chunk that unmounts
+     on close would re-pay its exit animation every time. */
+  const [dialogsLive, setDialogsLive] = useState(false);
+  useEffect(() => {
+    if (open || guestVote) setDialogsLive(true);
+  }, [open, guestVote]);
+
   return (
     <>
       <DeskCarousel
@@ -143,6 +180,7 @@ export function DeskStream({
         locale={locale}
         onActiveIndexChange={onActiveIndexChange}
         controlsRef={controlsRef}
+        decorative={decorative}
       >
         {entries.map(({ topic, municipality, heatRank, ranking }, i) => (
           <DeskTopicRow
@@ -153,30 +191,38 @@ export function DeskStream({
             heatRank={heatRank}
             ranking={ranking ?? null}
             variant={slotVariant(i)}
-            onOpen={openTopic}
+            onOpen={decorative ? undefined : openTopic}
             tutor={tutorIndex === i}
-            onTutorVisible={lessonOpen ? claimTutor : undefined}
-            onRequireAuth={isAuthenticated ? undefined : setGuestVote}
+            onTutorVisible={
+              !decorative && panelActive && lessonOpen ? claimTutor : undefined
+            }
+            onRequireAuth={
+              decorative || isAuthenticated ? undefined : setGuestVote
+            }
             locale={locale}
           />
         ))}
       </DeskCarousel>
 
-      <TopicDialog
-        entry={open}
-        intentOptionId={intent}
-        onClose={() => {
-          setOpen(null);
-          setIntent(null);
-        }}
-        locale={locale}
-      />
+      {dialogsLive ? (
+        <>
+          <TopicDialog
+            entry={open}
+            intentOptionId={intent}
+            onClose={() => {
+              setOpen(null);
+              setIntent(null);
+            }}
+            locale={locale}
+          />
 
-      <VoteAuthDialog
-        request={guestVote}
-        onClose={() => setGuestVote(null)}
-        locale={locale}
-      />
+          <VoteAuthDialog
+            request={guestVote}
+            onClose={() => setGuestVote(null)}
+            locale={locale}
+          />
+        </>
+      ) : null}
     </>
   );
 }

@@ -1,9 +1,7 @@
 import { KNESSET_SCOPE } from '@sync/shared';
-import {
-  getCardArtByVoteIds,
-  getKnessetRankingsByVoteIds,
-} from '@/lib/supabase/db';
+import { getKnessetRankingsByVoteIds } from '@/lib/supabase/db';
 import { activeVotesWithOptions } from '@/server/read/active-votes';
+import { activeVoteCardArt } from '@/server/read/card-art';
 import { NewsButton } from '@/components/press/NewsButton';
 import type { Locale } from '@/lib/i18n';
 import { formatBillTitle } from '@/lib/knesset/billTitle';
@@ -14,7 +12,16 @@ import { localePrefix } from '@/lib/i18n';
 
 interface KnessetDeskProps {
   locale?: Locale;
+  /** Rendered inside the tabbed desk section - the stream without the
+   *  section shell, whose landmarks and headline the tabs own. */
+  embedded?: boolean;
 }
+
+/**
+ * The national print run. The full agenda lives on /knesset; the front page
+ * carries the hottest dozen - see the cap note on ConsensusDesk.
+ */
+const TOPICS_TOTAL = 12;
 
 interface KnessetDeskCopy {
   kicker: string;
@@ -72,7 +79,10 @@ function outletsCountedOf(evidence: unknown): number | null {
  * (votes scoped to KNESSET_SCOPE) with the same meters and engagement heat
  * as the municipal desk. Server component; shares the desk furniture.
  */
-export async function KnessetDesk({ locale = 'he' }: KnessetDeskProps) {
+export async function KnessetDesk({
+  locale = 'he',
+  embedded = false,
+}: KnessetDeskProps) {
   const t = COPY[locale];
   // Degrade to the empty-state desk when the DB is unreachable - notably at
   // build-time prerender in CI, where the service-role key deliberately does
@@ -90,7 +100,8 @@ export async function KnessetDesk({ locale = 'he' }: KnessetDeskProps) {
   const voteIds = votes.map((v) => v.id);
   const [rankings, art] = await Promise.all([
     getKnessetRankingsByVoteIds(voteIds),
-    getCardArtByVoteIds(voteIds),
+    // Request-memoised across every desk on the page - see card-art.ts.
+    activeVoteCardArt(),
   ]);
   const heatOf = (topicId: string, sourceHotness: number) =>
     rankings.get(topicId)?.hotness ?? sourceHotness;
@@ -105,7 +116,9 @@ export async function KnessetDesk({ locale = 'he' }: KnessetDeskProps) {
     .sort(
       (a, b) =>
         heatOf(b.id, b.source?.hotness ?? 0) - heatOf(a.id, a.source?.hotness ?? 0)
-    );
+    )
+    // The print run: hottest first, so the slice is the front page.
+    .slice(0, TOPICS_TOTAL);
 
   // Ranked topics carry the editorial evidence strip; heat rank is their
   // 1-based position among ranked items (the list is already heat-sorted).
@@ -124,6 +137,42 @@ export async function KnessetDesk({ locale = 'he' }: KnessetDeskProps) {
       rankedAt: row.ranked_at,
     };
   };
+
+  const emptyState = (
+    <div className={styles.emptyState}>
+      <p className={styles.emptyLede}>{t.emptyLede}</p>
+      <p className={styles.emptyNote}>{t.emptyNote}</p>
+      <NewsButton
+        href={`${localePrefix(locale)}/knesset`}
+        variant="outline"
+        size="md"
+        trailing={<span aria-hidden>{t.arrow}</span>}
+      >
+        {t.emptyCta}
+      </NewsButton>
+    </div>
+  );
+
+  const stream = (
+    <DeskStream
+      label={t.carouselLabel}
+      locale={locale}
+      entries={topics.map((topic) => ({
+        topic,
+        municipality: KNESSET_SCOPE,
+        ranking: deskRankingOf(topic.id),
+        heatRank: rankings.has(topic.id)
+          ? rankedIds.indexOf(topic.id) + 1
+          : undefined,
+      }))}
+    />
+  );
+
+  if (embedded) {
+    /* The tabbed section owns the frame and the headline; this is the
+       national filling. */
+    return topics.length === 0 ? emptyState : stream;
+  }
 
   return (
     <section
@@ -148,35 +197,7 @@ export async function KnessetDesk({ locale = 'he' }: KnessetDeskProps) {
 
         <div className={styles.ruleHeavy} aria-hidden />
 
-        {topics.length === 0 ? (
-          <div className={styles.emptyState}>
-            <p className={styles.emptyLede}>{t.emptyLede}</p>
-            <p className={styles.emptyNote}>{t.emptyNote}</p>
-            <NewsButton
-              href={`${localePrefix(locale)}/knesset`}
-              variant="outline"
-              size="md"
-              trailing={<span aria-hidden>{t.arrow}</span>}
-            >
-              {t.emptyCta}
-            </NewsButton>
-          </div>
-        ) : (
-          <>
-            <DeskStream
-              label={t.carouselLabel}
-              locale={locale}
-              entries={topics.map((topic) => ({
-                topic,
-                municipality: KNESSET_SCOPE,
-                ranking: deskRankingOf(topic.id),
-                heatRank: rankings.has(topic.id)
-                  ? rankedIds.indexOf(topic.id) + 1
-                  : undefined,
-              }))}
-            />
-          </>
-        )}
+        {topics.length === 0 ? emptyState : stream}
       </div>
     </section>
   );

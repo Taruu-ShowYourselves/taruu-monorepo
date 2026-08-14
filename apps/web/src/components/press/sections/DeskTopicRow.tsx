@@ -203,15 +203,15 @@ const COPY: Record<Locale, RowCopy> = {
     sourceHeatTitle: 'מדד חום: תגובות וריאקציות על הפוסטים המקוריים',
     postLink: 'לפוסט ←',
     muniProfileTitle: (municipality) => `פרופיל רשות - ${municipality}`,
-    sovereignLocal: 'הריבון המקומי',
-    sovereignNational: 'הריבון הארצי',
+    sovereignLocal: 'הרוב המקומי',
+    sovereignNational: 'הרוב הארצי',
     sovereignFor: 'בעד',
     sovereignAgainst: 'נגד',
     sovereignAbstain: 'נמנע',
     sovereignTally: (count) => `${count} קולות נספרו`,
     sovereignOpening: 'הקול הראשון קובע את הכיוון',
     sovereignBarTitle: (forPct, againstPct) =>
-      `עמדת הריבון: ${forPct}% בעד, ${againstPct}% נגד`,
+      `עמדת הרוב: ${forPct}% בעד, ${againstPct}% נגד`,
     sovereignEmptyTitle: 'טרם נספרו קולות בנושא הזה',
     participants: (count) => `${count} משתתפים`,
     daysLeft: (days) =>
@@ -221,7 +221,7 @@ const COPY: Record<Locale, RowCopy> = {
     swipeFor: 'בעד',
     swipeAgainst: 'נגד',
     swipeAside: 'לא נושא לקונצנזוס',
-    swipeHint: 'גררו · ימינה בעד · שמאלה נגד',
+    swipeHint: 'החזיקו רגע לאחיזה · ימינה בעד · שמאלה נגד · 3 שניות לאישור',
     swipeCastFor: 'בעד · לקלפי',
     swipeCastAgainst: 'נגד · לקלפי',
     asideTitle: 'לא נושא לקונצנזוס',
@@ -260,15 +260,15 @@ const COPY: Record<Locale, RowCopy> = {
     sourceHeatTitle: 'Heat index: comments and reactions on the original posts',
     postLink: 'To the post →',
     muniProfileTitle: (municipality) => `Municipality profile - ${municipality}`,
-    sovereignLocal: 'The local sovereign',
-    sovereignNational: 'The national sovereign',
+    sovereignLocal: 'The local majority',
+    sovereignNational: 'The national majority',
     sovereignFor: 'For',
     sovereignAgainst: 'Against',
     sovereignAbstain: 'Abstain',
     sovereignTally: (count) => `${count} voices counted`,
     sovereignOpening: 'The first voice sets the direction',
     sovereignBarTitle: (forPct, againstPct) =>
-      `The sovereign's standing: ${forPct}% for, ${againstPct}% against`,
+      `The majority's standing: ${forPct}% for, ${againstPct}% against`,
     sovereignEmptyTitle: 'No voices counted on this topic yet',
     participants: (count) => `${count} participants`,
     daysLeft: (days) =>
@@ -278,7 +278,7 @@ const COPY: Record<Locale, RowCopy> = {
     swipeFor: 'For',
     swipeAgainst: 'Against',
     swipeAside: 'Not a consensus matter',
-    swipeHint: 'Push · left for · right against',
+    swipeHint: 'Hold a moment to grip · left for · right against · 3s to confirm',
     swipeCastFor: 'For · to the ballot',
     swipeCastAgainst: 'Against · to the ballot',
     asideTitle: 'Not a consensus matter',
@@ -293,6 +293,12 @@ const COPY: Record<Locale, RowCopy> = {
  * One shared row so the lead tile's full strip and a brief's one-liner report
  * the same measured facts in the same language.
  */
+/* The glyphs are furniture, not figures - faint ink keeps them behind their
+   numbers. One inline token rather than a stylesheet rule: the strip's
+   stylesheet belongs to the desk rework. Type is inherited from the strip
+   (.aiStats / .sourceLine), already meta. */
+const glyphStyle = { color: 'var(--np-ink-faint)' } as const;
+
 function Sentiment({ source, locale = 'he' }: { source: DeskSource; locale?: Locale }) {
   const t = COPY[locale];
   const { approving, objecting } = reactionSentiment(source.reactions);
@@ -300,15 +306,15 @@ function Sentiment({ source, locale = 'he' }: { source: DeskSource; locale?: Loc
   return (
     <span className={styles.reactions}>
       <span className={styles.reaction} title={t.approvingTitle}>
-        <span aria-hidden>👍</span>
+        <span aria-hidden style={glyphStyle}>▲</span>
         {he(approving)}
       </span>
       <span className={styles.reaction} title={t.objectingTitle}>
-        <span aria-hidden>👎</span>
+        <span aria-hidden style={glyphStyle}>▼</span>
         {he(objecting)}
       </span>
       <span className={styles.reaction} title={t.commentsTitle}>
-        <span aria-hidden>💬</span>
+        <span aria-hidden style={glyphStyle}>❙</span>
         {he(source.commentsCount)}
       </span>
     </span>
@@ -339,12 +345,14 @@ function Sentiment({ source, locale = 'he' }: { source: DeskSource; locale?: Loc
 /**
  * How long the swipe lesson runs.
  *
- * Long enough for all three cues to light in turn and be read - the CSS
- * sequence in ConsensusDesk.module.css runs right, left, then down at roughly
- * 1.2s apiece - and short enough that a reader who ignores it is not left with
- * a tile flashing at them while they read the headline underneath.
+ * The lesson is a demonstration now, not three lit pills: a ghost sheet
+ * performs the gesture on the tile - leans right and holds, leans left and
+ * holds, dips down - with the matching cue lighting as it goes. The CSS
+ * sequence in ConsensusDesk.module.css (np-teach-ghost + the cue delays) is
+ * hard-coupled to this number: change either and the other must follow, or
+ * the lesson is cut off mid-gesture.
  */
-const TUTOR_MS = 5200;
+const TUTOR_MS = 6200;
 
 const FOR_TEXT = /^(בעד|for)$/i;
 const AGAINST_TEXT = /^(נגד|against)$/i;
@@ -901,6 +909,13 @@ export function DeskTopicRow({
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry.isIntersecting || entry.intersectionRatio < 0.6) return;
+        /* Intersection is geometry, not sight: the tabbed desk keeps its
+           hidden edition laid out under visibility:hidden, and its tiles
+           intersect like anyone else's. A tile nobody can see must not bid -
+           it would play the one lesson a reader gets behind a hidden panel
+           and mark them taught. (checkVisibility is everywhere this ships;
+           the guard degrades to the old behaviour where it is not.) */
+        if (entry.target.checkVisibility?.() === false) return;
         observer.disconnect();
         onTutorVisible(index);
       },
@@ -940,6 +955,7 @@ export function DeskTopicRow({
       data-swipe-tutor={teaching || undefined}
       data-swipe-intent={swipe.intent ?? undefined}
       data-swipe-ready={(swipe.ready && swipe.intent) || undefined}
+      data-swipe-hold={swipe.hold ?? undefined}
       data-aside={aside || undefined}
       /* Lenis owns the page's scroll; while a tile has the pointer it must
          not also be feeding it. */
@@ -1093,6 +1109,14 @@ export function DeskTopicRow({
         </div>
       </div>
 
+      {/* The lesson's ghost: a translucent sheet over the tile that performs
+          the swipe - lean right, hold, lean left, hold, dip down - so the
+          reader is shown the card moving rather than told about it. Its own
+          element on purpose: the tile's transform belongs to the gesture and
+          the reveal (both inline), and a keyframe on the tile itself would
+          out-rank and fight them. */}
+      {teaching ? <span className={styles.tutorGhost} aria-hidden /> : null}
+
       {/* The three answers, each printed on the edge it lives on, and lit as
           the tile is pushed toward it. Decorative: the gesture is a shortcut
           past the headline button, and everything here is said again in the
@@ -1121,6 +1145,22 @@ export function DeskTopicRow({
             ? t.swipeAgainst
             : t.swipeAside}
       </span>
+
+      {/* The be-sure dial: 3, 2, 1 while the push is held at full distance.
+          The sweep runs off --hold-t, painted by the hook; the digit is keyed
+          so each second re-enters rather than mutating in place. Decorative
+          for the same reason as the cues - the dialog remains the ballot. */}
+      {swipe.hold !== null ? (
+        <span className={styles.holdDial} aria-hidden>
+          <svg className={styles.holdRing} viewBox="0 0 48 48">
+            <circle className={styles.holdRingTrack} cx="24" cy="24" r="21" />
+            <circle className={styles.holdRingSweep} cx="24" cy="24" r="21" />
+          </svg>
+          <b key={swipe.hold} className={styles.holdDigit}>
+            {swipe.hold}
+          </b>
+        </span>
+      ) : null}
 
       {swipe.phase === 'cast' && swipe.intent && swipe.intent !== 'aside' ? (
         <p className={styles.swipeStamp} data-cue={swipe.intent}>

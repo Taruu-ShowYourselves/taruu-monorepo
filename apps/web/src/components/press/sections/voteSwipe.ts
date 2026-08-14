@@ -59,6 +59,30 @@ export function verticalCommit(box: SwipeBox): number {
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 
 /**
+ * The be-sure hold: how long a push must be held past the commit distance
+ * before it lands.
+ *
+ * Release-to-cast turned out to be too cheap for a ballot - a flick that
+ * happened to travel far enough was counted as a position. The tile now asks
+ * for three deliberate seconds at full push: a 3-2-1 prints on the tile while
+ * the reader holds, the cast lands when the count reaches zero, and letting
+ * go early is the reader changing their mind - the tile springs back having
+ * said nothing.
+ */
+export const HOLD_MS = 3000;
+
+/**
+ * The digit the tile prints at this point through the hold: 3, then 2, then 1.
+ *
+ * Clamped on both ends so a timer that fires a frame early or late never
+ * prints 0 or 4 - the zero moment is the cast itself, not a numeral.
+ */
+export function holdCount(elapsedMs: number): 1 | 2 | 3 {
+  const left = Math.ceil((HOLD_MS - elapsedMs) / 1000);
+  return Math.min(3, Math.max(1, left)) as 1 | 2 | 3;
+}
+
+/**
  * Read a push.
  *
  * The dominant axis wins outright rather than blending: a gesture that is

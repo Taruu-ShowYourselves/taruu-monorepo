@@ -42,7 +42,7 @@ export interface ShareTopicPayload {
 
 const COPY = {
   he: {
-    standing: (f: number, a: number) => `עמדת הריבון: ${f}% בעד · ${a}% נגד`,
+    standing: (f: number, a: number) => `עמדת הרוב: ${f}% בעד · ${a}% נגד`,
     counted: (n: string) => `${n} קולות נספרו`,
     opening: 'טרם נספרו קולות - הקול הראשון קובע את הכיוון',
     participants: (n: string) => `${n} משתתפים`,
@@ -52,7 +52,7 @@ const COPY = {
     verified: 'להצבעה נדרשת הזדהות כאזרח מאומת.',
   },
   en: {
-    standing: (f: number, a: number) => `The sovereign's standing: ${f}% for · ${a}% against`,
+    standing: (f: number, a: number) => `The majority's standing: ${f}% for · ${a}% against`,
     counted: (n: string) => `${n} voices counted`,
     opening: 'No voices counted yet - the first one sets the direction',
     participants: (n: string) => `${n} participants`,
