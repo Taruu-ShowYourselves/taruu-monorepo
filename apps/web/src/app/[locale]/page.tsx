@@ -11,12 +11,13 @@ import {
   Colophon,
   HowToJoin,
   IsraelMapDesk,
+  ThesisChapters,
 } from '@/components/press/sections';
 import {
   BeatMandateStage,
   BeatScoresStage,
 } from '@/components/press/CinematicIntro/stages/BeatStages';
-import { CinematicIntro } from '@/components/press/CinematicIntro/CinematicIntro';
+import { FacebookWall } from '@/components/press/sections/FacebookWall';
 import { LocalityDesk } from '@/components/press/GeoGate/LocalityDesk';
 import type { Locale } from '@/lib/i18n';
 
@@ -85,23 +86,39 @@ export default async function HomePage({ params }: HomePageProps) {
             nationalPanel={<KnessetDesk locale={locale} embedded />}
           />
           <LocalityDesk locale={locale} />
-          <CinematicIntro
+          {/* The live map answers the locality desk: the reader has just
+              said where they live, and this is "and where is everyone else" -
+              every open municipal topic pinned to its town, one viewport
+              tall under the nav. */}
+          <IsraelMapDesk locale={locale} />
+          {/* The four claims as four standing sections - the scrubbed beat
+              handoff is the pitch deck's delivery, not the homepage's. Each
+              chapter carries the evidence for its claim behind the copy:
+              the live desk behind the majority, the scores behind the score,
+              the mandate sheet behind the court. */}
+          <ThesisChapters
             locale={locale}
-            story="beats"
-            beatStages={[
+            backdrops={[
+              /* The listening claim stands in front of what is being listened
+                 to: the top-engagement posts, in Facebook's own chrome. */
+              <FacebookWall key="facebook" locale={locale} />,
+              {
+                /* drifting: the majority claim stands in front of a LIVE
+                   river, not a still of one. */
+                node: (
+                  <ConsensusDesk key="desk" locale={locale} decorative drifting />
+                ),
+                washed: true,
+              },
               <BeatScoresStage key="scores" locale={locale} />,
               <BeatMandateStage key="mandate" locale={locale} />,
             ]}
-            deskBackdrop={<ConsensusDesk locale={locale} decorative />}
           />
           {/* CivicReminder is gone from this page: its sentence is now the
               opening headline, and a page that closes by repeating its own
               masthead is a page padding itself. It still closes /pitchdeck
               and /what-is-taruu, where the reminder is the destination. */}
           <HowToJoin locale={locale} />
-          {/* The weather map closes the page: every open municipal topic
-              pinned to its town, right before the colophon. */}
-          <IsraelMapDesk locale={locale} />
         </main>
         <Colophon locale={locale} />
       </div>

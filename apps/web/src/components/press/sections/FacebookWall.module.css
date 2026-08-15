@@ -1,0 +1,235 @@
+/* The posts behind the listening claim, set in Facebook's own register - its
+   system type, its card chrome, its action row - because the claim is about
+   Facebook and a paraphrase of it would read as decoration. The cards hang in
+   the chapter's margins, clear of the centred claim, and drift faintly so the
+   wall reads as a feed still moving rather than three screenshots. */
+
+.wall {
+  position: absolute;
+  inset: 0;
+  /* Facebook's stack, deliberately not the paper's: the whole point of the
+     plate is that it is set in someone else's type. */
+  font-family: system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+
+.demoStamp {
+  position: absolute;
+  inset-block-start: clamp(4.5rem, 10vh, 6.5rem);
+  inset-inline-end: var(--np-gutter);
+  font-family: var(--np-font-mono);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--np-red-ink);
+  border: var(--np-rule-hair) solid currentColor;
+  padding: 0.2em 0.6em;
+}
+
+.post {
+  position: absolute;
+  inline-size: min(24vw, 21rem);
+  padding: 0.75rem 1rem 0.35rem;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 20%),
+    0 12px 28px rgb(0 0 0 / 8%);
+  color: #050505;
+  animation: fb-drift 7s ease-in-out infinite alternate;
+}
+
+/* The three slots frame the claim: one high on each margin, one low. The
+   rotations are small and opposed, the way pinned clippings sit. */
+.post[data-slot='0'] {
+  inset-block-start: 12%;
+  inset-inline-start: 4%;
+  rotate: -1.6deg;
+}
+
+.post[data-slot='1'] {
+  inset-block-start: 18%;
+  inset-inline-end: 3.5%;
+  rotate: 1.2deg;
+  animation-delay: 1.8s;
+}
+
+.post[data-slot='2'] {
+  inset-block-end: 8%;
+  inset-inline-start: 10%;
+  rotate: 0.8deg;
+  animation-delay: 3.2s;
+}
+
+@keyframes fb-drift {
+  from { translate: 0 0; }
+  to { translate: 0 -10px; }
+}
+
+/* ---- Header ---- */
+
+.postHead {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  flex: none;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.postBy {
+  display: grid;
+  gap: 0.1rem;
+  min-inline-size: 0;
+}
+
+.postNames {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.postNames b {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.groupArrow {
+  flex: none;
+  font-style: normal;
+  color: #65676b;
+}
+
+/* LTR editions read the group crumb the other way. */
+.wall[dir='ltr'] .groupArrow {
+  transform: scaleX(-1);
+}
+
+.postMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  color: #65676b;
+}
+
+.globe {
+  inline-size: 0.72rem;
+  block-size: 0.72rem;
+}
+
+/* ---- Body ---- */
+
+.postText {
+  margin: 0.6rem 0 0.5rem;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ---- Counts row: the reaction pips and the tallies ---- */
+
+.postCounts {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: 0.45rem;
+  font-size: 0.82rem;
+  color: #65676b;
+  border-block-end: 1px solid #ced0d4;
+}
+
+.reactionPips {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.reactionPips > i {
+  display: grid;
+  place-items: center;
+  inline-size: 1.15rem;
+  block-size: 1.15rem;
+  border-radius: 999px;
+  border: 2px solid #fff;
+  color: #fff;
+}
+
+.reactionPips > i > svg {
+  inline-size: 0.62rem;
+  block-size: 0.62rem;
+}
+
+.pipLike {
+  background: #1877f2;
+  z-index: 1;
+}
+
+.pipLove {
+  background: #f3425f;
+  margin-inline-start: -0.45rem;
+}
+
+.countTail {
+  white-space: nowrap;
+}
+
+/* ---- Action row ---- */
+
+.postActions {
+  display: flex;
+}
+
+.postActions > span {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding-block: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #65676b;
+  border-radius: 4px;
+}
+
+.postActions svg {
+  inline-size: 1.05rem;
+  block-size: 1.05rem;
+}
+
+/* Under 800px the chapter is a single narrow column; one clipping is
+   texture, three are a second page fighting the claim. */
+@media (max-width: 800px) {
+  .post {
+    inline-size: min(72vw, 19rem);
+  }
+
+  .post[data-slot='1'],
+  .post[data-slot='2'] {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .post {
+    animation: none;
+  }
+}
