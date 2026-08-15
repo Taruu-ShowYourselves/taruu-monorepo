@@ -70,7 +70,7 @@ const COPY: Record<Locale, OverviewCopy> = {
       'כל מה שדורש את ההכרעה שלכם במרחב הזה, במקום אחד. כל פעולה שתעשו כאן נרשמת ביומן עם שמכם ועם הנימוק.',
     queueEmpty: 'אין כרגע הצעות שממתינות להכרעה.',
     escalationBody:
-      'נתקלתם במשהו שחורג מההרשאות שלכם, או במקרה שדורש מנהל־על?',
+      'נתקלתם במשהו שחורג מההרשאות שלכם, או במקרה שדורש מנהל-על?',
     figureLabels: {
       awaiting: 'הצעות ממתינות להכרעה',
       members: 'חברים במרחב',
@@ -85,7 +85,7 @@ const COPY: Record<Locale, OverviewCopy> = {
     capabilitiesKicker: 'ההרשאות שלכם · CAPABILITIES',
     capabilitiesHeading: 'מה מותר לכם לעשות במרחב הזה',
     escalationKicker: 'הסלמה · ESCALATION',
-    escalationHeading: 'פנייה למנהל־על',
+    escalationHeading: 'פנייה למנהל-על',
   },
   en: {
     standfirst:

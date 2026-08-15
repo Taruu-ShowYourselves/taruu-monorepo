@@ -123,7 +123,7 @@ const REASON_PLACEHOLDER =
  * deck has no sentence for "the request never reached the server", and a
  * dialog that closes on a failure it cannot describe loses the typed reason.
  */
-const ACTION_FAILED_HE = 'הפעולה לא הושלמה. נסו שוב; אם זה חוזר - פנו למנהל־על.';
+const ACTION_FAILED_HE = 'הפעולה לא הושלמה. נסו שוב; אם זה חוזר - פנו למנהל-על.';
 
 const toSummary = (detail: ProposalDetail): ProposalSummary => ({
   id: detail.id,

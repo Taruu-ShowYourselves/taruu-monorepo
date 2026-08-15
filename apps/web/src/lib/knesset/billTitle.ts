@@ -14,7 +14,7 @@
  */
 
 export interface BillTitle {
-  /** Instrument type: `הצעת חוק`, `חוק־יסוד`, `דיון מהיר`… Null when unrecognised. */
+  /** Instrument type: `הצעת חוק`, `חוק-יסוד`, `דיון מהיר`… Null when unrecognised. */
   kicker: string | null;
   /** The subject, as a headline. Never empty - falls back to the raw title. */
   headline: string;
@@ -36,8 +36,8 @@ const INSTRUMENTS: readonly (readonly [RegExp, string])[] = [
   [/^הצעה\s+לדיון\s+מהיר\s+בנושא\s*:?\s*/, 'דיון מהיר'],
   [/^הצעה\s+לסדר\s+היום\s+בנושא\s*:?\s*/, 'הצעה לסדר היום'],
   [/^שאילתה\s+דחופה\s*:?\s*/, 'שאילתה דחופה'],
-  [/^הצעת\s+חוק[-־]יסוד\s*:?\s*/, 'הצעת חוק־יסוד'],
-  [/^חוק[-־]יסוד\s*:?\s*/, 'חוק־יסוד'],
+  [/^הצעת\s+חוק[-־]יסוד\s*:?\s*/, 'הצעת חוק-יסוד'],
+  [/^חוק[-־]יסוד\s*:?\s*/, 'חוק-יסוד'],
   [/^הצעת\s+חוק\s+/, 'הצעת חוק'],
   [/^חוק\s+/, 'חוק'],
 ];

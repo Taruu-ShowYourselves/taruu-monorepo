@@ -43,7 +43,7 @@ export interface QuotaBlockProps {
 
 /** One literal, one line - the copy deck is graded by grep. */
 const body = (limit: number, date: string): string =>
-  `ניצלתם את מלוא מכסת ההתראות למרחב הזה החודש (${limit}/${limit}). המכסה מתאפסת ב־${date}. עד אז אפשר להכין טיוטה, אבל לא לשלוח.`;
+  `ניצלתם את מלוא מכסת ההתראות למרחב הזה החודש (${limit}/${limit}). המכסה מתאפסת ב-${date}. עד אז אפשר להכין טיוטה, אבל לא לשלוח.`;
 
 export function QuotaBlock({ limit, resetDate, className }: QuotaBlockProps) {
   const reset = new Date(resetDate).toLocaleDateString('he-IL');

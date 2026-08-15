@@ -194,7 +194,7 @@ const COPY: Record<Locale, MembersCopy> = {
     reasonPlaceholder:
       'למה הכרעתם כך? הנימוק נשמר ביומן ואי אפשר לערוך אותו אחר כך.',
     actionFailed:
-      'הפעולה לא בוצעה ולא נרשמה ביומן. נסו שוב; אם זה חוזר - פנו למנהל־על.',
+      'הפעולה לא בוצעה ולא נרשמה ביומן. נסו שוב; אם זה חוזר - פנו למנהל-על.',
     pendingLabel: '…שומר',
     capabilityLabels: CAPABILITY_LABELS_HE,
     roleLabels: ROLE_PRESET_LABELS_HE,
@@ -204,14 +204,14 @@ const COPY: Record<Locale, MembersCopy> = {
         body: (name, capability) =>
           `${name} יוכל/תוכל מעכשיו: ${capability} - במרחב הזה בלבד.`,
         confirmLabel: 'העניקו הרשאה',
-        announcement: (name) => `ההרשאה הוענקה ל־${name}.`,
+        announcement: (name) => `ההרשאה הוענקה ל-${name}.`,
       },
       revoke: {
         heading: 'לשלול את ההרשאה?',
         body: (name, capability) => `${name} יאבד/תאבד מיד את היכולת: ${capability}.`,
         consequence: 'הפעולה נכנסת לתוקף מיד ונרשמת ביומן לצמיתות.',
         confirmLabel: 'שללו הרשאה',
-        announcement: (name) => `ההרשאה נשללה מ־${name}.`,
+        announcement: (name) => `ההרשאה נשללה מ-${name}.`,
       },
       suspend: {
         heading: (name) => `להשעות את ${name} במרחב?`,

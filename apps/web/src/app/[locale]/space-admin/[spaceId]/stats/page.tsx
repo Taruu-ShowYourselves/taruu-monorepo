@@ -116,7 +116,7 @@ function StatCard({ label, metric, suffix }: StatCardProps) {
 }
 
 const FOOTER_NOTE_HE =
-  'כל המספרים כאן מצטברים. אין בלוח הזה פילוח או צפייה ברמת תושב יחיד - לא במסך ולא ב־API שמאחוריו.';
+  'כל המספרים כאן מצטברים. אין בלוח הזה פילוח או צפייה ברמת תושב יחיד - לא במסך ולא ב-API שמאחוריו.';
 
 interface SpaceStatsPageProps {
   params: Promise<{ locale: Locale; spaceId: string }>;

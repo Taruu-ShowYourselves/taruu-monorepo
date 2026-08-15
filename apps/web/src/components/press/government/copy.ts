@@ -179,7 +179,7 @@ export const GOV_COPY: Record<Locale, GovernmentCopy> = {
     crumbGovernment: 'ממשל',
     kicker: 'פרופיל ממשל · GOVERNMENT',
     houseName: 'כנסת ישראל',
-    term: (n) => `הכנסת ה־${n}`,
+    term: (n) => `הכנסת ה-${n}`,
     termUnknown: 'המצבת טרם סונכרנה',
     standfirst:
       'מאה ועשרים אנשים מחליטים בשמכם. כאן כתוב מי הם, מה הם מחזיקים, ואיך ההצבעה שלהם במליאה עמדה מול מה שהציבור ביקש באותו נושא בדיוק.',
@@ -219,7 +219,7 @@ export const GOV_COPY: Record<Locale, GovernmentCopy> = {
     methodEngagement:
       'שיעור האזרחים הרשומים שכבר הצביעו על שאלה לאומית לפחות פעם אחת.',
     methodAgreement:
-      'לכל נושא לאומי, פער בעד־נגד חלקי סך הקולות. ציבור שמסכים עם עצמו עולה, ציבור חצוי יורד.',
+      'לכל נושא לאומי, פער בעד-נגד חלקי סך הקולות. ציבור שמסכים עם עצמו עולה, ציבור חצוי יורד.',
     methodTrust: 'ממוצע הדירוגים שאזרחים מאומתים נותנים לחברי הכנסת.',
     evidenceMatched: (agreed, matched) =>
       `${agreed} מתוך ${matched} נושאים תואמים`,
@@ -261,7 +261,7 @@ export const GOV_COPY: Record<Locale, GovernmentCopy> = {
     memberKicker: 'נבחר ציבור · MEMBER',
     memberStandfirst: (name) =>
       `איך ${name} הצביע בפועל, מול מה שהציבור ביקש באותם נושאים. כל תפקיד וכל הצבעה כאן מגיעים מהפרסום הרשמי של הכנסת.`,
-    sourceLine: (source, asOf) => `מקור: ${source} · נכון ל־${asOf}`,
+    sourceLine: (source, asOf) => `מקור: ${source} · נכון ל-${asOf}`,
     backToRoster: 'לכל המצבת',
 
     memberScoreAlignment: 'ייצוג',
@@ -290,7 +290,7 @@ export const GOV_COPY: Record<Locale, GovernmentCopy> = {
 
     memberVotesTitle: 'הראיות',
     memberVotesNote:
-      'ציון בלי הראיות שמאחוריו הוא האשמה. אלה הנושאים שהציון נמדד עליהם, אחד־אחד.',
+      'ציון בלי הראיות שמאחוריו הוא האשמה. אלה הנושאים שהציון נמדד עליהם, אחד-אחד.',
     memberVotesEmptyTitle: 'אין עדיין ראיות',
     memberVotesEmptyBody:
       'אף נושא שפורסם כאן לא הגיע עדיין להצבעה שמית שבה נרשמה עמדתו.',
@@ -346,7 +346,7 @@ export const GOV_COPY: Record<Locale, GovernmentCopy> = {
       retract: 'משיכת הדירוג',
       signedOut: 'רק אזרח מאומת יכול לדרג נבחר ציבור.',
       signIn: 'התחברות',
-      needsRating: 'בחרו דירוג בין 1 ל־5.',
+      needsRating: 'בחרו דירוג בין 1 ל-5.',
       bodyTooShort: 'נימוק צריך להיות באורך 10 תווים לפחות, או להישאר ריק.',
       failed: 'הדירוג לא נשמר. נסו שוב.',
       saved: 'הדירוג נשמר.',

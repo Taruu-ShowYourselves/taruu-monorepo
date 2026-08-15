@@ -65,7 +65,7 @@ export default function OnboardingPage() {
   const handleComplete = async () => {
     if (!selectedMunicipality) return;
 
-    // Autoplay policy: the audio context may only start inside the gesture —
+    // Autoplay policy: the audio context may only start inside the gesture -
     // wake it now so the fanfare can fire after the async save resolves.
     primeChime();
     setLoading(true);
@@ -84,7 +84,7 @@ export default function OnboardingPage() {
         throw new Error('Failed to save profile');
       }
 
-      // Completion redirects immediately — the fanfare is the whole success
+      // Completion redirects immediately - the fanfare is the whole success
       // state, so it plays only once the profile is actually saved.
       chime('fanfare');
 

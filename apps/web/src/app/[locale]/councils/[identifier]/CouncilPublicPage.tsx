@@ -76,7 +76,7 @@ const COPY: Record<Locale, CouncilCopy> = {
     unavailableCopy: 'הנתון יופיע לאחר אימות המקור.',
     definitionSummary: 'איך הנתון מחושב?',
     sourcePrefix: 'מקור: ',
-    asOf: 'נכון ל־',
+    asOf: 'נכון ל-',
     updated: 'עודכן ',
     noSource: 'מקור מלא טרם פורסם.',
     eyebrow: 'פרופיל מועצה · COUNCIL',
@@ -89,7 +89,7 @@ const COPY: Record<Locale, CouncilCopy> = {
       'לא הצלחנו לטעון את נתוני המועצה. אפשר לנסות שוב בעוד כמה דקות.',
     intro:
       'תמונה ציבורית של האוכלוסייה הרשמית והקהילה הפעילה בתַּרְאוּ. הנתונים מצרפיים בלבד - ללא פרטים על אנשים.',
-    generatedAt: (date) => `תמונת מצב נוצרה ב־${date}`,
+    generatedAt: (date) => `תמונת מצב נוצרה ב-${date}`,
     metricsAria: 'מדדי המועצה',
     emptyAria: 'מועצה ללא פעילות',
     emptyTitle: 'הקהילה המקומית עוד לא התחילה לפעול',

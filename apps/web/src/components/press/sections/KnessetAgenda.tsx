@@ -33,7 +33,7 @@ const COPY: Record<Locale, KnessetAgendaCopy> = {
     sessionStamp: 'סדר יום · DAY ORDER',
     plenumSession: 'ישיבת מליאה',
     sessionNo: (n) => ` מס׳ ${n}`,
-    knessetNum: (n) => `הכנסת ה־${n}`,
+    knessetNum: (n) => `הכנסת ה-${n}`,
     voteCta: 'להצבעה ←',
     extrasHeader: '■ עוד על הדסק הארצי',
   },

@@ -83,7 +83,7 @@ const COPY: Record<Locale, MandateCopy> = {
     emptyStamp: 'הספירה רצה · COUNTING',
     emptyCta: 'להצבעות הפתוחות ←',
     readVote: 'לרשומת ההצבעה ←',
-    decidedThat: 'הוכרע על ידי האזרחים ש־',
+    decidedThat: 'הוכרע על ידי האזרחים ש-',
   },
   en: {
     metaTitle: 'The civic mandate · Taruu',
