@@ -116,8 +116,10 @@
   /* Sections that claim the whole viewport subtract this - keep the token
      the single source of truth rather than repeating the clamp. */
   min-block-size: var(--np-nav-h);
-  max-inline-size: var(--np-container);
-  margin-inline: auto;
+  /* Side to side, like the ears and the wordmark row above: the dock's own
+     gutter padding is the only inset. A container clamp here left the nav
+     floating inside its band on wide screens. */
+  inline-size: 100%;
 }
 
 .navWordmark {
