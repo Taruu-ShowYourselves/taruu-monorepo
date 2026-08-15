@@ -12,15 +12,23 @@
      the bar below sizes itself from the same number, so the two cannot
      drift apart. */
   --np-desk-tabs-h: 3.25rem;
+  /* The dock no longer stands over the desk (it holds only over the
+     locality desk and the chapters - see Masthead), so a full nav-height
+     allowance here was a dead band over the river. A sliver of air remains;
+     the carousel's track calc reads the same number. */
+  --np-desk-top-pad: var(--space-3);
 
   display: flex;
   flex-direction: column;
   min-block-size: 100svh;
   box-sizing: border-box;
-  /* The pinned masthead floats over the top of the desk rather than above
-     it; the tab bar has to start below it or the nav sits on the labels. */
-  padding-block-start: var(--np-nav-h);
   background: var(--np-paper);
+}
+
+/* Doubled to outrank the site layer's blanket `main > section` padding -
+   that rule budgets for a nav this section no longer sits under. */
+.section.section {
+  padding-block-start: var(--np-desk-top-pad);
 }
 
 /* The section's heading, for the document outline and the section's
