@@ -28,22 +28,6 @@
   will-change: transform;
 }
 
-.section::after {
-  content: '07';
-  position: absolute;
-  inset-inline-end: -0.04em;
-  inset-block-end: -0.18em;
-  z-index: -1;
-  transform: translate3d(0, var(--np-parallax-fore, 0), 0);
-  will-change: transform;
-  font-family: var(--np-font-display);
-  font-size: clamp(14rem, 30vw, 34rem);
-  font-weight: 950;
-  line-height: 0.75;
-  color: rgb(224 48 30 / 4%);
-  pointer-events: none;
-}
-
 /* A statement and the door it opens, stacked on the centre line: split across
    the spread the sentence hung off one edge and its call-to-action off the
    other, with the whole width of the page between them. */
