@@ -38,6 +38,19 @@ const DURATIONS = [
   { value: '30', label: '30 יום' },
 ];
 
+/* Where the proposal is addressed. A municipal issue is raised for the
+   creator's own town; a national one goes to the Knesset's desk, and every
+   resident in the country can support or oppose it. */
+const SCOPES = [
+  { value: 'municipal', label: 'היישוב שלי' },
+  { value: 'knesset', label: 'כנסת ישראל' },
+];
+
+const SCOPE_LABELS: Record<string, string> = {
+  municipal: 'היישוב שלי',
+  knesset: 'כנסת ישראל',
+};
+
 const STEP_COUNT = STEP_LABELS.length;
 
 export default function CreateVotePage() {
@@ -63,6 +76,17 @@ export default function CreateVotePage() {
   const [description, setDescription] = useState('');
   const [options, setOptions] = useState(['', '']);
   const [duration, setDuration] = useState(7); // days
+  const [scope, setScope] = useState<'municipal' | 'knesset'>('municipal');
+
+  /* Switching to the Knesset pre-sets the classic national ballot - for,
+     against, abstain - but only over untouched options: typed answers are
+     the proposer's, not the form's. */
+  const pickScope = (next: 'municipal' | 'knesset') => {
+    setScope(next);
+    if (next === 'knesset' && options.every((option) => !option.trim())) {
+      setOptions(['בעד', 'נגד', 'נמנע']);
+    }
+  };
 
   const filledOptions = options.filter((o) => o.trim());
 
@@ -167,6 +191,7 @@ export default function CreateVotePage() {
         body: JSON.stringify({
           title,
           description,
+          scope,
           options: filledOptions.map((label) => ({ label })),
           startDate: now.toISOString(),
           endDate: end.toISOString(),
@@ -235,6 +260,7 @@ export default function CreateVotePage() {
                 kicker="קבלה · RECEIPT"
                 title={title}
                 rows={[
+                  { label: 'זירה', value: SCOPE_LABELS[scope] },
                   { label: 'משך הצבעה', value: `${duration} ימים` },
                   { label: 'אפשרויות', value: String(filledOptions.length) },
                   {
@@ -311,6 +337,18 @@ export default function CreateVotePage() {
             {step === 1 && (
               <div className={styles.plateBody}>
                 <span className={styles.plateKicker}>FIG. 1 · הצעת נושא</span>
+                <Segmented
+                  aria-label="לאן ההצעה מופנית"
+                  variant="red"
+                  segments={SCOPES}
+                  value={scope}
+                  onChange={(v) => pickScope(v as 'municipal' | 'knesset')}
+                />
+                <p className={styles.plateNote}>
+                  {scope === 'knesset'
+                    ? 'הצעה לאומית: עולה לשולחן הכנסת, וכל תושב בארץ יכול לתמוך או להתנגד.'
+                    : 'הצעה מקומית: עולה לתושבי היישוב שלכם בלבד.'}
+                </p>
                 <PressInput
                   label="כותרת ההצבעה"
                   placeholder="למשל: הקמת גן שעשועים חדש"
@@ -429,6 +467,7 @@ export default function CreateVotePage() {
                   kicker="סיכום · SUBMISSION"
                   title={title || 'הצבעה חדשה'}
                   rows={[
+                    { label: 'זירה', value: SCOPE_LABELS[scope] },
                     { label: 'משך הצבעה', value: `${duration} ימים` },
                     { label: 'אפשרויות', value: String(filledOptions.length) },
                     { label: 'עלות הגשה', value: 'ללא תשלום', strong: true },
