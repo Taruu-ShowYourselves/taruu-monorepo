@@ -57,6 +57,8 @@ interface DeskStreamProps {
    * one lesson a reader gets on a demonstration nobody saw.
    */
   decorative?: boolean;
+  /** Scenery that moves: keep the decorative river's drift running. */
+  drifting?: boolean;
 }
 
 /** One desk's stream of tiles, with the topic dialog they open into. */
@@ -67,6 +69,7 @@ export function DeskStream({
   onActiveIndexChange,
   controlsRef,
   decorative = false,
+  drifting = false,
 }: DeskStreamProps) {
   const [open, setOpen] = useState<DeskEntry | null>(null);
   /** The side a swipe carried in, if the dialog was opened by pushing a tile. */
@@ -126,20 +129,30 @@ export function DeskStream({
      be fully on screen while the lead was still a few pixels short, and taught
      the gesture on a 1x1 with barely room for the three pills.
 
-     The lowest index wins, which is the lead of the stretch: slot 0 is the
-     biggest tile on the desk, it carries the hint line without help, and it is
-     the one a reader is looking at anyway. */
-  const bids = useRef<number[]>([]);
+     Each bid carries the tile's squared distance from the viewport's centre,
+     and the closest bidder wins: the lesson plays on the tile in the middle
+     of the screen - the one the reader is actually looking at - whatever the
+     scroll position put there. An index-based winner used to hand it to the
+     lead of the stretch, which on a carousel mid-travel can be half off the
+     edge of the desk, demonstrating the gesture into the void. Ties (two
+     tiles equally centred) fall to the lower index, the bigger tile. */
+  const bids = useRef<{ index: number; distance: number }[]>([]);
   const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const claimTutor = useCallback((index: number) => {
+  const claimTutor = useCallback((index: number, distance: number) => {
     if (claimed.current) return;
-    bids.current.push(index);
+    bids.current.push({ index, distance });
     if (settle.current) return;
 
     settle.current = setTimeout(() => {
       claimed.current = true;
-      setTutorIndex(Math.min(...bids.current));
+      const winner = bids.current.reduce((best, bid) =>
+        bid.distance < best.distance ||
+        (bid.distance === best.distance && bid.index < best.index)
+          ? bid
+          : best
+      );
+      setTutorIndex(winner.index);
       try {
         window.localStorage.setItem(TUTOR_KEY, '1');
       } catch {
@@ -181,6 +194,7 @@ export function DeskStream({
         onActiveIndexChange={onActiveIndexChange}
         controlsRef={controlsRef}
         decorative={decorative}
+        drifting={drifting}
       >
         {entries.map(({ topic, municipality, heatRank, ranking }, i) => (
           <DeskTopicRow

@@ -86,6 +86,8 @@ interface ConsensusDeskClientProps {
    * sits at the very top of the page.
    */
   decorative?: boolean;
+  /** Scenery that moves: keep the decorative river's drift running. */
+  drifting?: boolean;
   /**
    * Rendered inside the tabbed desk section, which owns the landmarks, the
    * headline furniture and the 100svh frame. Embedded, this component is the
@@ -107,6 +109,7 @@ export function ConsensusDeskClient({
   openTopicCounts,
   locale,
   decorative = false,
+  drifting = false,
   embedded = false,
 }: ConsensusDeskClientProps) {
   const t = COPY[locale];
@@ -225,6 +228,7 @@ export function ConsensusDeskClient({
       entries={shown}
       controlsRef={carousel}
       decorative={decorative}
+      drifting={drifting}
     />
   );
 

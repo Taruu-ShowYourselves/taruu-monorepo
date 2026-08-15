@@ -32,6 +32,8 @@ interface DeskCarouselProps {
    * Decorative renders the same mosaic, still.
    */
   decorative?: boolean;
+  /** Scenery that moves: let a decorative desk keep its drift running. */
+  drifting?: boolean;
 }
 
 /**
@@ -92,6 +94,7 @@ export function DeskCarousel({
   onActiveIndexChange,
   controlsRef,
   decorative = false,
+  drifting = false,
 }: DeskCarouselProps) {
   /* The track's drag, lent to whichever tile is being pushed. Embla calls
      `watchDrag` on every pointer down and skips the drag when it returns
@@ -128,7 +131,10 @@ export function DeskCarousel({
      backwards the moment a cursor arrives. `DeskDrift` takes its new speed
      live instead. */
   const [drift] = useState<DeskDriftType | null>(() => {
-    if (decorative) return null;
+    /* Scenery is stationary by default - a backdrop desk spending frames on
+       an unwatched river is waste - unless it is asked to live (`drifting`),
+       as the thesis chapter's backdrop is. */
+    if (decorative && !drifting) return null;
     if (
       typeof window !== 'undefined' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches

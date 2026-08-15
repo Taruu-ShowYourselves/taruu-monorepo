@@ -11,6 +11,8 @@ interface ConsensusDeskProps {
   locale?: Locale;
   /** Render as scenery: no page landmarks. See ConsensusDeskClient. */
   decorative?: boolean;
+  /** Scenery that moves: keep the decorative river's drift running. */
+  drifting?: boolean;
   /** Rendered inside the tabbed desk section - stream and dial only. */
   embedded?: boolean;
 }
@@ -37,6 +39,7 @@ const TOPICS_TOTAL = 45;
 export async function ConsensusDesk({
   locale = 'he',
   decorative = false,
+  drifting = false,
   embedded = false,
 }: ConsensusDeskProps) {
   // Request-scoped read shared with the national desk - one ledger query per
@@ -124,6 +127,7 @@ export async function ConsensusDesk({
       openTopicCounts={openTopicCounts}
       locale={locale}
       decorative={decorative}
+      drifting={drifting}
       embedded={embedded}
     />
   );
