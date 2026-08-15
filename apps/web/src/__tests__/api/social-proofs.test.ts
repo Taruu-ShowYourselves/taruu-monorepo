@@ -119,10 +119,14 @@ describe('Social Proofs API Routes', () => {
       expect(data.socialProofs[1].platform).toBe('facebook');
       expect(data.identityScore).toBeDefined();
       expect(data.identityScore.total).toBe(70);
+      // Full six-field breakdown: verified residency contributes gps 20.
       expect(data.identityScore.breakdown).toEqual({
+        gps: 20,
         google: 40,
         facebook: 10,
         instagram: 0,
+        phone: 0,
+        idDocument: 0,
       });
       // 70 < VERIFIED_THRESHOLD (80) under the issue #71 bands
       expect(data.identityScore.level).toBe('basic');
@@ -169,9 +173,12 @@ describe('Social Proofs API Routes', () => {
       expect(data.identityScore.total).toBe(100);
       expect(data.identityScore.level).toBe('verified');
       expect(data.identityScore.breakdown).toEqual({
+        gps: 20,
         google: 40,
         facebook: 10,
         instagram: 10,
+        phone: 0,
+        idDocument: 0,
       });
 
       // 120 crosses the trusted threshold

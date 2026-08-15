@@ -297,5 +297,7 @@ describe('buildUserProfile', () => {
     // google 40 + GPS 20 — GPS-verified users earn their 20 points.
     expect(profile.identityScore.total).toBe(60);
     expect(profile.identityScore.breakdown.gps).toBe(20);
+    // 60 stays in the basic band (40–79) under the issue #71 levels.
+    expect(profile.identityScore.level).toBe('basic');
   });
 });

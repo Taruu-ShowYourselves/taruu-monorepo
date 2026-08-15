@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getIdentityLevelForTotal, IDENTITY_SCORE_WEIGHTS } from '@sync/shared';
+import {
+  getIdentityLevelForTotal,
+  IDENTITY_SCORE_WEIGHTS,
+  GPS_SCORE_WEIGHT,
+  PHONE_SCORE_WEIGHT,
+  ID_DOCUMENT_SCORE_WEIGHT,
+} from '@sync/shared';
 import { getSessionFromRequest } from '@/services/auth/session';
 import {
   getUserById,
@@ -28,8 +34,12 @@ export async function GET(request: NextRequest) {
     // Get social proofs from Supabase
     const socialProofs = await getSocialProofsByUserId(user.id);
 
-    // Calculate breakdown from proofs (shared weights - issue #71 final model)
+    // Full six-field breakdown (issue #71 final model): social weights plus the
+    // GPS / phone / approved-document evidence that the DB-owned total already
+    // counts, so breakdown and total describe the same score rather than a
+    // socials-only subset that would zero a user's other evidence client-side.
     const breakdown = {
+      gps: user.verification_status === 'verified' ? GPS_SCORE_WEIGHT : 0,
       google: socialProofs.some((p) => p.provider === 'google')
         ? IDENTITY_SCORE_WEIGHTS.google
         : 0,
@@ -39,6 +49,8 @@ export async function GET(request: NextRequest) {
       instagram: socialProofs.some((p) => p.provider === 'instagram')
         ? IDENTITY_SCORE_WEIGHTS.instagram
         : 0,
+      phone: user.phone_verified === true ? PHONE_SCORE_WEIGHT : 0,
+      idDocument: user.identity_verified_at != null ? ID_DOCUMENT_SCORE_WEIGHT : 0,
     };
 
     // Total comes from the DB-owned canonical score; level from shared bands
@@ -117,8 +129,10 @@ export async function DELETE(request: NextRequest) {
     const updatedProofs = await getSocialProofsByUserId(user.id);
     const updatedUser = await getUserById(user.id);
 
-    // Calculate breakdown (shared weights - issue #71 final model)
+    // Full six-field breakdown (issue #71 final model), consistent with the
+    // DB-owned total; evidence columns come from the freshly re-read user row.
     const breakdown = {
+      gps: updatedUser?.verification_status === 'verified' ? GPS_SCORE_WEIGHT : 0,
       google: updatedProofs.some((p) => p.provider === 'google')
         ? IDENTITY_SCORE_WEIGHTS.google
         : 0,
@@ -128,6 +142,8 @@ export async function DELETE(request: NextRequest) {
       instagram: updatedProofs.some((p) => p.provider === 'instagram')
         ? IDENTITY_SCORE_WEIGHTS.instagram
         : 0,
+      phone: updatedUser?.phone_verified === true ? PHONE_SCORE_WEIGHT : 0,
+      idDocument: updatedUser?.identity_verified_at != null ? ID_DOCUMENT_SCORE_WEIGHT : 0,
     };
 
     const total = updatedUser?.identity_score || 0;

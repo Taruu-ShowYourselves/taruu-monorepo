@@ -5,7 +5,7 @@
  *   survives a duplicate submit by keying off SQLSTATE 23505 and reading the
  *   existing ballot back instead of throwing.
  * - the voter-eligibility truth table (apps/web/src/services/verification/eligibility.ts)
- *   - the issue #71 ballot rule: identity_score >= 60 AND explicitly verified
+ *   - the issue #71 ballot rule: identity_score >= 40 AND explicitly verified
  *   residency, with no evidence substituting for residency.
  */
 
