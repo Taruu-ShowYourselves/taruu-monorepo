@@ -1,5 +1,5 @@
 /**
- * Pilot repository — Result-typed access to the pilot cohort, its curated
+ * Pilot repository - Result-typed access to the pilot cohort, its curated
  * votes, and the ranking/overview RPCs.
  *
  * Service-role client by design; authorization lives in
@@ -188,7 +188,7 @@ export function completeCohortRows(
 
 /**
  * Guarded status transition. Returns the updated row, or null when the guard
- * lost (row absent or not in `fromStatuses`) — the caller maps null to 409.
+ * lost (row absent or not in `fromStatuses`) - the caller maps null to 409.
  */
 export function transitionCohortStatus(
   municipalityId: string,
@@ -283,7 +283,7 @@ export function getVotesByIds(voteIds: string[]): ResultAsync<Vote[], AppError> 
 }
 
 /**
- * Activate still-pending curated votes. Explicit status write — both writers
+ * Activate still-pending curated votes. Explicit status write - both writers
  * of vote status set it explicitly, per 20260802000012's contract.
  */
 export function activatePendingVotes(

@@ -1,8 +1,8 @@
 /**
  * /api/space-admin/{spaceId}/grants
  *
- * POST   grant a capability, or — when the body names a grant id instead of a
- *        user and capability — suspend one as a platform admin
+ * POST   grant a capability, or - when the body names a grant id instead of a
+ *        user and capability - suspend one as a platform admin
  * DELETE revoke a capability
  *
  * The two POST bodies are distinguished by shape rather than by a mode flag: a

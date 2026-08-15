@@ -1,7 +1,7 @@
 import 'server-only';
 
 /**
- * The send (Surface 5) — where SPACE-08 stops being an intention.
+ * The send (Surface 5) - where SPACE-08 stops being an intention.
  *
  * The requirement is an equality between two sets: the recipients the admin was
  * shown and the recipients who are delivered to. Two things could break it
@@ -12,7 +12,7 @@ import 'server-only';
  *
  * Both are verified against the campaign row the preview persisted, by re-running
  * the same two functions that produced it. Neither can be waived by the client,
- * because neither fingerprint is client-supplied — the recipient list is resolved
+ * because neither fingerprint is client-supplied - the recipient list is resolved
  * here, from the space, every time.
  */
 
@@ -41,8 +41,8 @@ import {
 import type { Session } from '@/services/auth/session';
 
 /** Verbatim from the copy deck; the composer maps 409 to whichever it receives. */
-const CONTENT_STALE_HE = 'ההודעה שונתה אחרי חישוב הקהל — חשבו שוב לפני שליחה.';
-const AUDIENCE_STALE_HE = 'הקהל השתנה — הציגו תצוגה מקדימה מחדש.';
+const CONTENT_STALE_HE = 'ההודעה שונתה אחרי חישוב הקהל - חשבו שוב לפני שליחה.';
+const AUDIENCE_STALE_HE = 'הקהל השתנה - הציגו תצוגה מקדימה מחדש.';
 
 /** The history list is a header, not an archive. */
 const PAST_CAMPAIGNS_LIMIT = 20;
@@ -63,7 +63,7 @@ export function sendNotification(
   return authorize(session, rawSpaceId, 'notification.send').andThen((scope) =>
     // 2. Read the campaign THROUGH the scope. A campaign in another space reads
     //    back null, and null is the same opaque refusal as one that does not
-    //    exist — a 404 here would confirm the id is real somewhere else.
+    //    exist - a 404 here would confirm the id is real somewhere else.
     findCampaignInScope(scope, cmd.campaignId).andThen((campaign) => {
       if (campaign === null) {
         return errAsync<SendNotificationResponse, AppError>(forbidden());
@@ -73,7 +73,7 @@ export function sendNotification(
       //
       //    This is the quota of record. It cannot be a request-rate limiter:
       //    `lib/rate-limit.ts` degrades to an in-process `Map` whenever Upstash
-      //    is unconfigured — which it is in this deployment — and on Cloudflare
+      //    is unconfigured - which it is in this deployment - and on Cloudflare
       //    Workers that map is per-isolate, so N isolates would each grant this
       //    space a full monthly allowance. The count below is over durable
       //    campaign rows with a `sent_at` in the current calendar month.
@@ -105,8 +105,8 @@ export function sendNotification(
             );
           }
 
-          // 5. Audience verification. The same resolver the preview called —
-          //    there is no second recipient query anywhere in the codebase — so
+          // 5. Audience verification. The same resolver the preview called -
+          //    there is no second recipient query anywhere in the codebase - so
           //    a membership change becomes an explicit, testable refusal instead
           //    of a silent divergence between what was shown and what is sent.
           return resolveAudience(scope, cmd.audienceFilter).andThen((audience) => {
@@ -215,14 +215,14 @@ export interface SentCampaignsResponse {
   /**
    * Composer state 0 renders the exhausted block before any preview exists, so
    * it needs the quota here and not only in a preview response. `resetsAt` comes
-   * from `nextMonthStartIso()` rather than a second boundary computed locally —
+   * from `nextMonthStartIso()` rather than a second boundary computed locally -
    * two month boundaries that disagree by a day is the bug that export prevents.
    */
   quota: SpaceNotificationQuota;
 }
 
 /**
- * Past dispatches plus the current quota — everything the composer needs to
+ * Past dispatches plus the current quota - everything the composer needs to
  * render before the admin has costed anything.
  *
  * Gated on `notification.send`: the history is a record of what an admin did

@@ -7,14 +7,14 @@
  * public-ish" stops being true, and four read paths in db.ts had no status
  * predicate at all.
  *
- * The guarantee is that public visibility is decided by ONE allow-list —
- * `PUBLIC_VOTE_STATUSES` — and that the predicate lives in the SQL:
+ * The guarantee is that public visibility is decided by ONE allow-list -
+ * `PUBLIC_VOTE_STATUSES` - and that the predicate lives in the SQL:
  *
  *   .in('status', ['pending','active','ended','resolving','resolved'])
  *
  * So these assertions inspect the recorded query-builder calls, never the
  * returned rows. A post-fetch filter would satisfy a data-shape assertion while
- * still shipping every draft over the wire — the same bug class
+ * still shipping every draft over the wire - the same bug class
  * treasury-transaction-scoping.test.ts pins down for the treasury ledger.
  */
 
@@ -121,7 +121,7 @@ describe('single-vote reads', () => {
     expect(inSpy).toHaveBeenCalledWith('status', PUBLIC_VOTE_STATUSES);
   });
 
-  it('getVoteByIdUnfiltered issues NO status predicate — it is the internal escape hatch', async () => {
+  it('getVoteByIdUnfiltered issues NO status predicate - it is the internal escape hatch', async () => {
     await getVoteByIdUnfiltered('vote-1');
 
     expect(eq).toHaveBeenCalledWith('id', 'vote-1');
@@ -217,7 +217,7 @@ describe('GET /api/votes status handling', () => {
     );
     const response = await GET(request);
 
-    // A 400 here would confirm the label is real — an existence oracle for the
+    // A 400 here would confirm the label is real - an existence oracle for the
     // review vocabulary. The review status must degrade to "no filter".
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ votes: [] });

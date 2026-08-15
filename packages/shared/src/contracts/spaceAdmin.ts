@@ -2,14 +2,14 @@
  * Contract surface for the space-admin dashboard (issue #75).
  *
  * Deliberately keep these allow-lists separate from database row types. Adding
- * a private database column can therefore never add it to a response — the
+ * a private database column can therefore never add it to a response - the
  * response shape is a decision made here, not a projection of storage.
  *
  * This is the whole phase in one file on purpose: seven later plans import from
  * it and none of them has to reopen a shared file to add a shape.
  *
  * Zod v3 (`^3.23.0`). `parse()` in the server's respond.ts reads `error.issues`,
- * which is the v3 shape — do not migrate this file to v4 syntax in isolation.
+ * which is the v3 shape - do not migrate this file to v4 syntax in isolation.
  */
 
 import { z } from 'zod';
@@ -77,7 +77,7 @@ export const ModerateContentRequestSchema = z.object({
 export const GrantCapabilityRequestSchema = z.object({
   userId: z.string().uuid(),
   capability: CapabilitySchema,
-  /** Provenance for the UI only — the grant row is what confers authority. */
+  /** Provenance for the UI only - the grant row is what confers authority. */
   grantedViaRole: RolePresetSchema.optional(),
   reason: ReasonSchema,
 });
@@ -127,7 +127,7 @@ export const AudienceFilterSchema = z.enum([
   'new_members_30d',
 ]);
 
-/** 60/300 are the composer field hints — `עד 60 תווים` / `עד 300 תווים`. */
+/** 60/300 are the composer field hints - `עד 60 תווים` / `עד 300 תווים`. */
 export const PreviewAudienceRequestSchema = z.object({
   title: z.string().trim().min(1).max(60),
   body: z.string().trim().min(1).max(300),
@@ -138,7 +138,7 @@ export const PreviewAudienceRequestSchema = z.object({
  * All four Receipt rows are always present, zeros included: a missing row reads
  * as "not checked", which is exactly the ambiguity the preview exists to remove.
  *
- * `quotaUsed`/`quotaLimit` are a **calendar-month** window — the UI row reads
+ * `quotaUsed`/`quotaLimit` are a **calendar-month** window - the UI row reads
  * `מכסה חודשית` and the exhausted block names a reset date. Not a rolling day.
  */
 export const AudiencePreviewResponseSchema = z.object({
@@ -184,12 +184,12 @@ export const SpaceNotificationQuotaSchema = z.object({
 
 /**
  * Escalation to a platform admin (SPACE-09). Exempt from the per-space
- * notification quota — a suspended admin must always be able to escalate.
+ * notification quota - a suspended admin must always be able to escalate.
  *
  * Note there is deliberately **no `escalation.raised` audit action**: an
  * escalation writes only to `platform_escalations`. Any authenticated user can
  * raise one, the space audit log is append-only, and rows written there could
- * never be cleaned up — so escalations would be permanent pollution in an
+ * never be cleaned up - so escalations would be permanent pollution in an
  * arbitrary space. Do not add one.
  */
 export const EscalationRequestSchema = z.object({
@@ -217,7 +217,7 @@ export type EscalationResponse = z.infer<typeof EscalationResponseSchema>;
 /**
  * `suppressed` is the k-anonymity floor of 5: a bucket holding 1–4 residents
  * renders `<5` and the client never receives the true number. `unavailable`
- * renders `—`. A real zero is `{ value: 0, status: 'available' }` — the UI must
+ * renders `-`. A real zero is `{ value: 0, status: 'available' }` - the UI must
  * never invent a fallback zero, because a fabricated 0 is indistinguishable
  * from a measured one.
  */
@@ -247,7 +247,7 @@ export type SpaceMetricsResponse = z.infer<typeof SpaceMetricsResponseSchema>;
  * identifier, no DID, and nothing whatsoever derived from `identity_documents`.
  *
  * This list is the enforcement point. Widening it is a privacy decision, not a
- * convenience — the surface copy promises `מסמכי זהות אינם נגישים מלוח זה`.
+ * convenience - the surface copy promises `מסמכי זהות אינם נגישים מלוח זה`.
  */
 export const SpaceMemberSchema = z.object({
   id: z.string().uuid(),
@@ -359,7 +359,7 @@ export const SpaceSummarySchema = z.object({
   /** First 8 chars of the uuid, for the edition meta line. */
   shortId: z.string(),
   suspended: z.boolean(),
-  /** What this viewer holds here — drives the capability manifest and Rule A. */
+  /** What this viewer holds here - drives the capability manifest and Rule A. */
   capabilities: z.array(CapabilitySchema),
 });
 

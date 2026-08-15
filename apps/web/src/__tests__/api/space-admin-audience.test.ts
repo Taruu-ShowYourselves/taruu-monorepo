@@ -1,7 +1,7 @@
 /**
  * SPACE-08, first half: the audience resolver and the preview.
  *
- * The guarantee under test is an equality between two sets — the recipients the
+ * The guarantee under test is an equality between two sets - the recipients the
  * admin was shown and the recipients who are later delivered to. That equality
  * only holds structurally if one function computes both, and it is only
  * *checkable* if that function fingerprints its output. So the load-bearing
@@ -153,7 +153,7 @@ beforeEach(() => {
   );
 });
 
-describe('resolveAudience — the single source of truth for recipients', () => {
+describe('resolveAudience - the single source of truth for recipients', () => {
   it('returns the candidate ids, sorted, so the fingerprint is order-independent', async () => {
     candidatesAre([candidate(3), candidate(1), candidate(2)]);
 
@@ -269,7 +269,7 @@ describe('resolveAudience — the single source of truth for recipients', () => 
 
     const result = await resolveAudience(scopeFor('notification.send'), 'all_members');
 
-    // A silent zero here would render as "0 recipients" — indistinguishable
+    // A silent zero here would render as "0 recipients" - indistinguishable
     // from a space that genuinely has none, which is the ambiguity the whole
     // preview exists to remove.
     expect(result.isErr()).toBe(true);
@@ -277,7 +277,7 @@ describe('resolveAudience — the single source of truth for recipients', () => 
   });
 });
 
-describe('contentHash — what makes the composer staleness rule enforceable', () => {
+describe('contentHash - what makes the composer staleness rule enforceable', () => {
   const base = { title: 'עדכון', body: 'גוף ההודעה', audienceFilter: 'all_members' };
 
   it('is stable for the same triple', async () => {
@@ -327,7 +327,7 @@ describe('POST /api/space-admin/[spaceId]/notifications/preview', () => {
 
   /**
    * The Receipt renders four rows unconditionally, zeros included, because a
-   * missing row reads as "not checked" — which is the exact ambiguity the
+   * missing row reads as "not checked" - which is the exact ambiguity the
    * preview exists to remove. A zero-recipient space must still produce four
    * keys, not three plus an omission.
    */
@@ -381,7 +381,7 @@ describe('POST /api/space-admin/[spaceId]/notifications/preview', () => {
     expect(row.created_by).toBe(SESSION.userId);
   });
 
-  it('returns the persisted row identity — previewToken IS the content hash', async () => {
+  it('returns the persisted row identity - previewToken IS the content hash', async () => {
     const body = await (await postPreview(SPACE_A, previewBody())).json();
     const [, row] = (insertCampaign as Mock).mock.calls[0];
 

@@ -5,7 +5,7 @@
  * renders the response body's `error` on any failure it does not otherwise
  * handle, so a 409 says exactly what conflicted; 05-14's members surface
  * flattened every failure to one generic line, so an admin suspending an
- * already-suspended member was told `הפעולה לא בוצעה ולא נרשמה ביומן` — which
+ * already-suspended member was told `הפעולה לא בוצעה ולא נרשמה ביומן` - which
  * is not merely vaguer than what the server said, it is wrong: the state they
  * asked for already exists and the earlier action *is* in the log.
  *
@@ -13,9 +13,9 @@
  * `server/http/errors.ts` is the whole vocabulary, and only two of its variants
  * are guaranteed to carry a Hebrew sentence:
  *
- *   CONFLICT (409)         — `conflict(reason)` requires the reason.
- *   PAYMENT_REQUIRED (402) — `paymentInvalid(reason)` requires the reason.
- *   FORBIDDEN (403)        — `forbidden(reason?)`: OPTIONAL. Without one the
+ *   CONFLICT (409)         - `conflict(reason)` requires the reason.
+ *   PAYMENT_REQUIRED (402) - `paymentInvalid(reason)` requires the reason.
+ *   FORBIDDEN (403)        - `forbidden(reason?)`: OPTIONAL. Without one the
  *                            body is the English literal `Forbidden`.
  *
  * Everything else is structural English: `Unauthorized`, `Invalid request`,

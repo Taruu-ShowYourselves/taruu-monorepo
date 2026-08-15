@@ -352,6 +352,20 @@
   --np-red: #E0301E;
   --np-red-dark: #B0220F;
   --np-red-ink: #7A1607;
+  /* The blue pencil - the editor's correction mark, and the only colour on the
+     press palette that is neither the paper's ink nor its accent. It carries
+     one meaning: this is a note about the item rather than a position on it
+     (a tile swiped down says "not a topic of consensus"). Set to the app's own
+     primary-dark so the mark is the base system's blue, not a fourth invention. */
+  --np-blue: #1D4ED8;
+  --np-blue-ink: #14328F;
+  /* The one green on the press palette, and it carries exactly one meaning:
+     בעד. The scale's two sides used to be red against ink, which read as
+     "the accent" against "the page" rather than as two positions - a reader
+     had no colour for assent at all. Set to the app's own secondary-dark so
+     it is the base system's green, not a fifth invention. */
+  --np-green: #059669;
+  --np-green-ink: #046C4E;
   --np-paper-edge: rgba(25, 24, 22, 0.12);
   /* Desk: one shade below paper. Workspace surfaces lay a paper sheet on it
      (see .np-desk / .np-sheet in globals.css) so the working page reads as an
@@ -414,6 +428,34 @@
   --np-glass-stroke: var(--np-ink);
   --np-glass-inner: inset 0 1px 0 rgba(255, 255, 255, 0.5);
   --np-glass-shadow: 0 16px 40px -20px rgba(20, 17, 14, 0.35);
+
+  /* Pinned chrome - what a full-height section has to give back.
+     A section sized at a plain 100svh is a screen tall and then floats its
+     last row underneath the nav dock, which is pinned over it rather than
+     laid out above it. Anything claiming the viewport subtracts these.
+     --np-nav-h is the single source for the dock's height (Masthead sets its
+     min-block-size from it).
+
+     --np-desk-dock-h is the collapsed municipality bar's MINIMUM height, and
+     the desk's pre-hydration estimate of it. The bar's real height is set by
+     its content, so MunicipalityDock measures itself and publishes
+     --np-desk-dock-measured on its own section for the desk to prefer.
+     Deliberately two names: the bar sizes itself from this one, so a measured
+     value written back here would raise the floor it just measured. Keep the
+     estimate close or the desk visibly resettles on hydration. */
+  --np-nav-h: clamp(3.75rem, 5vw, 4.5rem);
+  --np-desk-dock-h: 4.25rem;
+}
+
+/* Below this the dock sets in two rows - identity and account above, the nav
+   itself below - so it is taller here, not shorter. See the mobile block in
+   Masthead.module.css, which this must stay in step with: sections reserve
+   this height for the pinned dock, and a token that under-states it puts
+   their last line under the nav. */
+@media (max-width: 767px) {
+  :root {
+    --np-nav-h: 5.25rem;
+  }
 }
 
 /* ============================================

@@ -36,6 +36,9 @@ export type DeskDriftType = CreatePluginType<
   {
     setSpeed: (speed: number) => void;
     pageOver: () => void;
+    hold: () => void;
+    release: () => void;
+    linger: (ms: number) => void;
   },
   Record<string, never>
 >;
@@ -46,6 +49,7 @@ export function DeskDrift(userOptions: DeskDriftOptions): DeskDriftType {
 
   let emblaApi: EmblaCarouselType;
   let timerId = 0;
+  let lingerId = 0;
   let destroyed = false;
   /** The pace we are heading for, and the one actually applied this frame. */
   let targetSpeed = userOptions.speed;
@@ -76,6 +80,7 @@ export function DeskDrift(userOptions: DeskDriftOptions): DeskDriftType {
     destroyed = true;
     if (!emblaApi) return;
     emblaApi.internalEngine().ownerWindow.clearTimeout(timerId);
+    emblaApi.internalEngine().ownerWindow.clearTimeout(lingerId);
     emblaApi.off('pointerDown', handOver).off('pointerUp', resumeOnSettle).off('settle', settle);
     timerId = 0;
   }
@@ -164,6 +169,38 @@ export function DeskDrift(userOptions: DeskDriftOptions): DeskDriftType {
     pageOver: () => {
       handOver();
       resumeOnSettle();
+    },
+    /**
+     * Stop dead, for a reader who is doing something to a tile rather than to
+     * the track.
+     *
+     * A swipe-vote takes the pointer without Embla ever starting a drag (the
+     * tile holds `watchDrag` shut), so the `pointerDown` handover above never
+     * fires and the sway would carry the tile out from under the finger
+     * mid-gesture. `setSpeed(0)` is not enough here: it eases, and a tile that
+     * keeps creeping for a quarter-second is a tile that does not feel held.
+     * Handing the engine its own body back with no target set is an exact
+     * halt - the same thing a drag does.
+     */
+    hold: handOver,
+    release: resume,
+    /**
+     * Travel somewhere, then stay there for a while.
+     *
+     * A reader tuning the dial to an edition is asking to look at it, and the
+     * river does not group its tiles by municipality - the very next tile
+     * along usually belongs to somewhere else, so an immediate resume carried
+     * the chosen edition back off the needle within a couple of seconds. That
+     * read as the dial refusing to hold a station. The sway gives way for the
+     * length of the linger and then picks up where it left off.
+     */
+    linger: (ms: number) => {
+      handOver();
+      const engine = emblaApi.internalEngine();
+      engine.ownerWindow.clearTimeout(lingerId);
+      lingerId = engine.ownerWindow.setTimeout(() => {
+        if (!destroyed) resume();
+      }, ms);
     },
   };
 

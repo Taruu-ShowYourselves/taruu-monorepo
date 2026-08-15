@@ -39,6 +39,8 @@ interface KnessetDeskCopy {
   noticeLede: string;
   noticeNote: string;
   foundersCta: string;
+  /** Across to the roster: this desk is the agenda, that page is the house. */
+  rosterCta: string;
   backLink: string;
   /** Direction-semantic arrow: Hebrew ←, English →. */
   arrow: string;
@@ -59,6 +61,7 @@ const COPY: Record<Locale, KnessetDeskCopy> = {
       'המערכת מושכת את סדר יום המליאה ממאגר המידע הרשמי של הכנסת. בין מושבים, ' +
       'כשאין ישיבה קרובה, הדסק ממתין לסדר היום הבא.',
     foundersCta: 'הצטרפו למייסדים',
+    rosterCta: 'מי מצביע שם? למצבת הכנסת',
     backLink: 'לנושאי הרשויות המקומיות ←',
     arrow: '←',
   },
@@ -77,6 +80,7 @@ const COPY: Record<Locale, KnessetDeskCopy> = {
       'store. Between sessions, with no sitting close at hand, the desk waits ' +
       'for the next agenda.',
     foundersCta: 'Join the founders',
+    rosterCta: 'Who votes there? To the roster',
     backLink: 'To the municipal topics →',
     arrow: '→',
   },
@@ -121,6 +125,13 @@ export default async function KnessetPage({ params }: KnessetPageProps) {
               </h1>
 
               <p className={styles.standfirst}>{t.standfirst}</p>
+
+              {/* The desk answers "what is on the agenda"; the roster answers
+                  "who decides it, and how did they vote last time". */}
+              <a className={styles.rosterLink} href={`${localePrefix(locale)}/government`}>
+                {t.rosterCta}
+                <span aria-hidden> {t.arrow}</span>
+              </a>
             </header>
 
             <div className={styles.ruleHeavy} aria-hidden />

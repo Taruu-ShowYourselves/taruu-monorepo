@@ -66,7 +66,7 @@ const EN_FAQS = [
   {
     question: 'Why not just donate directly?',
     answer:
-      'Because every vote gets its own BAG on bags.fm, and the BAG creates a market. You are not only donating — you hold an asset that represents your support, much like a share. If more people invest, the BAG is worth more. That gives people a reason to share the topic and spread it.',
+      'Because every vote gets its own BAG on bags.fm, and the BAG creates a market. You are not only donating - you hold an asset that represents your support, much like a share. If more people invest, the BAG is worth more. That gives people a reason to share the topic and spread it.',
   },
   {
     question: 'What happens to the money?',

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { NewsButton } from '@/components/press/NewsButton';
-import { useLiveTallies } from '@/hooks';
+import { useLiveTallies } from '@/hooks/useLiveTallies';
 import { useAuth } from '@/providers/AuthProvider';
 import { getStoredMunicipality, LOCALITY_EVENT } from '@/lib/locality';
 import { orderFeed, withPrompts, type WithPrompts } from '@/lib/feed/order';
@@ -21,8 +21,6 @@ interface FeedReaderProps {
 
 interface FeedReaderCopy {
   wordmark: string;
-  editionOf: (home: string) => string;
-  nationalEdition: string;
   progressLabel: string;
   emptyKicker: string;
   emptyTitle: string;
@@ -37,8 +35,6 @@ interface FeedReaderCopy {
 const COPY: Record<Locale, FeedReaderCopy> = {
   he: {
     wordmark: 'תַּרְאוּ',
-    editionOf: (home) => `המהדורה של ${home}`,
-    nationalEdition: 'מהדורה ארצית',
     progressLabel: 'התקדמות במהדורה',
     emptyKicker: 'המהדורה שלי · MY EDITION',
     emptyTitle: 'אין נושאים פתוחים',
@@ -51,8 +47,6 @@ const COPY: Record<Locale, FeedReaderCopy> = {
   },
   en: {
     wordmark: 'Taruu',
-    editionOf: (home) => `The ${home} edition`,
-    nationalEdition: 'National edition',
     progressLabel: 'Progress through the edition',
     emptyKicker: 'MY EDITION · THE FEED',
     emptyTitle: 'No topics are open',
@@ -258,10 +252,6 @@ export function FeedReader({ items, locale }: FeedReaderProps) {
         <Link href={localePath(locale)} className={styles.wordmark}>
           {t.wordmark}
         </Link>
-
-        <span className={styles.barEdition}>
-          {home ? t.editionOf(home) : t.nationalEdition}
-        </span>
 
         <span className={styles.barCount}>
           {topicCount === 0

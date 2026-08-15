@@ -118,7 +118,7 @@ describe("the dashboard's create-vote button carries no price", () => {
   it('still navigates to the create-vote flow, unchanged', () => {
     // Only the label changed; the destination and the flow behind it are
     // outside this slice and untouched. The path now carries the locale
-    // prefix (empty for Hebrew, `/en` otherwise) — same route, addressed for
+    // prefix (empty for Hebrew, `/en` otherwise) - same route, addressed for
     // whichever edition the reader is in.
     expect(dashboardCode).toContain('router.push(`${prefix}/votes/create`)');
   });

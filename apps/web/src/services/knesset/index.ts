@@ -234,3 +234,11 @@ export async function syncKnessetAgenda(): Promise<KnessetSyncResult> {
 
   return result;
 }
+
+/* The roster and the voting record are their own syncs - same upstream
+   host, different services and different cadences. Re-exported here so a
+   caller has one door into the Knesset mirror. */
+export { syncKnessetRoster, officeOfPosition, slugifyName } from './roster';
+export type { RosterSyncResult } from './roster';
+export { syncKnessetRollCalls, prioritizeRollCalls } from './rollcalls';
+export type { RollCallSyncResult } from './rollcalls';

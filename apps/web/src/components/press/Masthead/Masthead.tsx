@@ -14,6 +14,9 @@ import { localeDirections, localePath, localePrefix, localeSwitchPath } from '@/
 
 const WHATSAPP_LINK = WHATSAPP_FOUNDERS_LINK;
 
+/** Slack on the nav's reveal test, in pixels. See the note at its use. */
+const REVEAL_SLACK = 48;
+
 interface MastheadProps {
   locale?: Locale;
 }
@@ -40,15 +43,18 @@ interface MastheadCopy {
   signOut: string;
   foundersGroup: string;
   signIn: string;
-  /** Label of the OTHER edition — what the switcher link shows. */
+  /** Label of the OTHER edition - what the switcher link shows. */
   switchLabel: string;
 }
 
 /**
- * The primary row is places a reader ACTS in - their edition, the open
- * ballots, the national desk. Everything explanatory, financial or
- * institutional is one click away in the "more" menu rather than competing
- * with them for the same glance.
+ * The primary row is places a reader ACTS in - their edition, what the public
+ * has already decided, the national desk. The mandate register stands where
+ * the ballot list used to: an open ballot is reachable from every desk and
+ * every feed card, while the register of decisions had no door of its own.
+ * The full list keeps one, in "more" beside the agenda. Everything
+ * explanatory, financial or institutional stays a click away there rather
+ * than competing for the same glance.
  */
 const COPY: Record<Locale, MastheadCopy> = {
   he: {
@@ -62,7 +68,7 @@ const COPY: Record<Locale, MastheadCopy> = {
     livePulse: 'דופק חי',
     nav: [
       { label: 'הפיד', href: 'feed' },
-      { label: 'הצבעות', href: 'votes' },
+      { label: 'המנדט האזרחי', href: 'mandate' },
       { label: 'כנסת ישראל', href: 'knesset' },
     ],
     more: 'עוד',
@@ -71,8 +77,8 @@ const COPY: Record<Locale, MastheadCopy> = {
       {
         label: 'להבין',
         items: [
-          { label: 'מהי תַּרְאוּ?', href: '#what-is-taruu' },
-          { label: 'איך זה עובד', href: 'how-it-works' },
+          { label: 'מהי תַּרְאוּ?', href: 'what-is-taruu' },
+          { label: 'מצבת הכנסת', href: 'government' },
           { label: 'שאלות נפוצות', href: 'faq' },
         ],
       },
@@ -88,6 +94,7 @@ const COPY: Record<Locale, MastheadCopy> = {
         label: 'בעיתון',
         items: [
           { label: 'סדר היום', href: 'explore' },
+          { label: 'כל ההצבעות', href: 'votes' },
           { label: 'חנות', href: 'store' },
           { label: 'אודות', href: 'about' },
         ],
@@ -115,7 +122,7 @@ const COPY: Record<Locale, MastheadCopy> = {
     livePulse: 'Live pulse',
     nav: [
       { label: 'The Feed', href: 'feed' },
-      { label: 'Votes', href: 'votes' },
+      { label: 'The civic mandate', href: 'mandate' },
       { label: 'The Knesset', href: 'knesset' },
     ],
     more: 'More',
@@ -123,8 +130,8 @@ const COPY: Record<Locale, MastheadCopy> = {
       {
         label: 'Understand',
         items: [
-          { label: 'What is Taruu?', href: '#what-is-taruu' },
-          { label: 'How it works', href: 'how-it-works' },
+          { label: 'What is Taruu?', href: 'what-is-taruu' },
+          { label: 'The roster', href: 'government' },
           { label: 'FAQ', href: 'faq' },
         ],
       },
@@ -140,6 +147,7 @@ const COPY: Record<Locale, MastheadCopy> = {
         label: 'In the paper',
         items: [
           { label: 'The agenda', href: 'explore' },
+          { label: 'All votes', href: 'votes' },
           { label: 'Store', href: 'store' },
           { label: 'About', href: 'about' },
         ],
@@ -392,7 +400,12 @@ export function Masthead({ locale = 'he' }: MastheadProps) {
       // Measure pin state off the untransformed header - the dock's own rect
       // moves with the hide transform and would feed back into the check.
       const pinned = header.getBoundingClientRect().bottom <= 0;
-      const revealed = reveal.getBoundingClientRect().top <= dock.offsetHeight;
+      // The page rests on section edges, and the edge it rests on puts the
+      // desk's top within a pixel or two of the dock's own height - a test
+      // for exactly that height lost the race by three pixels and left the
+      // reader on the desk with no nav until the next swipe.
+      const revealed =
+        reveal.getBoundingClientRect().top <= dock.offsetHeight + REVEAL_SLACK;
       setDockHidden(pinned && !revealed);
     };
     const schedule = () => {
@@ -418,9 +431,18 @@ export function Masthead({ locale = 'he' }: MastheadProps) {
           <span suppressHydrationWarning>{formatDateline(new Date(), locale)}</span>
           <span>{t.edition}</span>
           <span>
-            {t.region}
-            {' · '}
-            <Link href={localeSwitchPath(pathname ?? localePath(locale), otherLocale)} lang={otherLocale}>
+            {/* Region and separator are the droppable half: on a phone they
+                yield, while the locale switch stays - it is the only door to
+                the other edition anywhere on the page. */}
+            <span className={styles.earsRegion}>
+              {t.region}
+              {' · '}
+            </span>
+            <Link
+              href={localeSwitchPath(pathname ?? localePath(locale), otherLocale)}
+              lang={otherLocale}
+              className={styles.localeSwitch}
+            >
               {t.switchLabel}
             </Link>
           </span>
@@ -442,6 +464,7 @@ export function Masthead({ locale = 'he' }: MastheadProps) {
 
       <div
         ref={dockRef}
+        data-nav-dock
         className={`${styles.navDock} ${dockHidden ? styles.navDockHidden : ''}`}
       >
         <nav className={styles.nav} aria-label={t.mainNavAriaLabel}>
@@ -449,27 +472,32 @@ export function Masthead({ locale = 'he' }: MastheadProps) {
             {t.wordmark}<span aria-hidden>.</span>
           </Link>
 
-          <ul className={styles.navList}>
-            <li>
-              <Link
-                href={`${localePath(locale)}#live-dashboard`}
-                className={styles.liveDashboardLink}
-              >
-                <i aria-hidden />
-                {t.livePulse}
-              </Link>
-            </li>
-            {t.nav.map((n) => (
-              <li key={n.href}>
-                <Link href={navHref(locale, n.href)} className={styles.navLink}>
-                  {n.label}
+          {/* "עוד" sits OUTSIDE the scroller, not as its last item: parked
+              inside it, the row of links scrolled underneath the trigger and
+              the two collided mid-glyph. The scroller now ends at its own
+              edge and the door to the other nine destinations stands beside
+              it, at every width. */}
+          <div className={styles.navCenter}>
+            <ul className={styles.navList}>
+              <li>
+                <Link
+                  href={`${localePath(locale)}#live-dashboard`}
+                  className={styles.liveDashboardLink}
+                >
+                  <i aria-hidden />
+                  {t.livePulse}
                 </Link>
               </li>
-            ))}
-            <li>
-              <MoreMenu locale={locale} />
-            </li>
-          </ul>
+              {t.nav.map((n) => (
+                <li key={n.href}>
+                  <Link href={navHref(locale, n.href)} className={styles.navLink}>
+                    {n.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <MoreMenu locale={locale} />
+          </div>
 
           {showAccount ? (
             <AccountCluster locale={locale} />

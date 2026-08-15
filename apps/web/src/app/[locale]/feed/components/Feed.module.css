@@ -46,7 +46,6 @@
   text-decoration: none;
 }
 
-.barEdition,
 .barCount {
   font-family: var(--np-font-meta);
   font-size: var(--text-xs);
@@ -54,12 +53,6 @@
   letter-spacing: 0.08em;
   color: var(--np-ink-faint);
   font-variant-numeric: tabular-nums;
-}
-
-.barEdition {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .progress {
@@ -106,6 +99,11 @@
 
 .cardSingle {
   --decks: 1;
+}
+
+/* Topic without a background deck: front and ballot only. */
+.cardPair {
+  --decks: 2;
 }
 
 .shell {
@@ -608,6 +606,17 @@
   color: var(--np-ink-faint);
 }
 
+/* The zero-tally editorial line - stands in for the whole results block. */
+.noVotesNote {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  color: var(--np-ink-soft);
+  margin: 0;
+}
+
 .ballotActions,
 .suggestActions {
   display: flex;
@@ -639,12 +648,19 @@
   padding: var(--space-2) var(--space-3);
   background: transparent;
   border: var(--np-rule-hair) solid var(--np-paper-edge);
-  border-radius: var(--np-radius-pill);
+  /* Card radius, not pill - the pill silhouette is reserved for pills. */
+  border-radius: var(--np-radius-card);
   cursor: pointer;
   color: inherit;
   transition:
     border-color var(--np-dur-snap) var(--np-ease),
     background var(--np-dur-snap) var(--np-ease);
+}
+
+/* On ink the paper-edge hairline all but vanishes - the control must still
+   print an outline at rest, not only under the pointer. */
+.frameInvert .advance {
+  border-color: color-mix(in srgb, var(--np-paper) 40%, transparent);
 }
 
 .advance:hover,

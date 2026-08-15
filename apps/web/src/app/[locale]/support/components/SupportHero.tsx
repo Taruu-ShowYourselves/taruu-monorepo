@@ -27,7 +27,7 @@ const COPY: Record<Locale, SupportHeroCopy> = {
     headline: 'Have a question?',
     headlineRed: 'There is an answer.',
     standfirst:
-      'Everything you wanted to know about voting, verification, money and privacy, in one place. Did not find it? Write to us on WhatsApp — we are real people.',
+      'Everything you wanted to know about voting, verification, money and privacy, in one place. Did not find it? Write to us on WhatsApp - we are real people.',
   },
 };
 

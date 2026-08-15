@@ -63,6 +63,8 @@
   //   0 * * * *     → /api/cron/resolve-votes
   //   */10 * * * *  → /api/cron/mint-nfts
   //   0 */6 * * *   → /api/cron/knesset-agenda
+  //   30 3 * * *    → /api/cron/knesset-roster
+  //   20 */2 * * *  → /api/cron/knesset-rollcalls
   // Requires the CRON_SECRET secret to be set (wrangler secret put CRON_SECRET).
   // NOTE: the schedules API rejected these at deploy (account-level cron gate on
   // this account). worker.ts's scheduled handler IS deployed - add the four
@@ -71,8 +73,15 @@
   // "triggers": {
   //   "crons": ["*/15 * * * *", "0 * * * *", "*/10 * * * *", "0 */6 * * *"]
   // },
-  // Only the day-order sync runs on the Worker. Document summaries moved to
+  // Only the day-order sync is registered here. Document summaries moved to
   // agents/knesset-ranker (Agent SDK, no API key) - see docs/KNESSET.md.
+  //
+  // The two government-mirror crons are routed in worker.ts but deliberately
+  // NOT listed below: this account's cron gate rejected a multi-schedule
+  // deploy once already (see the note above), and adding them here would fail
+  // the whole deploy rather than the one trigger. Add "30 3 * * *" and
+  // "20 */2 * * *" in the dashboard (Workers > taruu-web > Settings >
+  // Triggers > Cron), or move them into this array once the gate is lifted.
   "triggers": {
     "crons": ["0 */6 * * *"]
   },

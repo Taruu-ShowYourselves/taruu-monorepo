@@ -1,5 +1,5 @@
 /**
- * GET /api/space-admin/{spaceId}/notifications — past dispatches and the quota.
+ * GET /api/space-admin/{spaceId}/notifications - past dispatches and the quota.
  *
  * Feeds the composer's history list and, before any preview exists, composer
  * state 0: the exhausted-quota block needs `{used}/{limit}` and a reset date to

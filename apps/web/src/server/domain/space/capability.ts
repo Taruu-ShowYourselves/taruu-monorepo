@@ -1,10 +1,10 @@
 /**
- * Space capability vocabulary — pure. The single source of truth for what a
+ * Space capability vocabulary - pure. The single source of truth for what a
  * grant can say. Roles are presets expanded at grant time; nothing here is
  * ever consulted to decide whether a request is allowed (that is the grant
  * row), and `granted_via_role` is provenance for the UI, never authority.
  *
- * No IO, no framework, no `@/lib` — this module is imported by the HTTP edge,
+ * No IO, no framework, no `@/lib` - this module is imported by the HTTP edge,
  * by use-cases, and by tests, and must stay loadable from all three.
  */
 
@@ -12,11 +12,11 @@
  * The closed vocabulary: exactly eleven actions, one per row of the capability
  * manifest in 05-UI-SPEC.md "Surface 1", in that order.
  *
- * Deliberately absent — do not add either:
+ * Deliberately absent - do not add either:
  *
  * 1. No `space.read` (or any "you may open the dashboard" capability).
- *    Reaching the shell is *membership* — holding at least one grant in the
- *    space — resolved server-side by `resolveMembership()`, not by a twelfth
+ *    Reaching the shell is *membership* - holding at least one grant in the
+ *    space - resolved server-side by `resolveMembership()`, not by a twelfth
  *    capability. The UI manifest renders one ✓/✕ row per member of this array,
  *    so a twelfth entry would be a twelfth row the spec does not have.
  *
@@ -58,7 +58,7 @@ export const CAPABILITY_LABELS_HE: Record<Capability, string> = {
 
 /**
  * Named bundles applied at grant time. A preset is a convenience for the
- * granting admin — it writes N capability rows and stamps each with its
+ * granting admin - it writes N capability rows and stamps each with its
  * provenance. It is never read back to decide authority.
  */
 export const ROLE_PRESETS = {

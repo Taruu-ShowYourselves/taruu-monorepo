@@ -8,7 +8,7 @@ interface DraftInput {
 
 /**
  * Gemini emits reasoning as ordinary parts flagged `thought`. They must be
- * dropped rather than rendered — a draft that leaks the model's deliberation
+ * dropped rather than rendered - a draft that leaks the model's deliberation
  * into a Facebook post is worse than no draft at all.
  */
 interface GeminiPart {

@@ -290,6 +290,27 @@ export const newsletterLimiter = createRateLimiter('newsletter', {
 });
 
 /**
+ * Rate limiter for citizen reviews of Knesset members.
+ * 5 writes per minute per user - a person can amend their own review, but a
+ * script cannot walk the roster leaving one on all 120 seats.
+ */
+export const memberReviewLimiter = createRateLimiter('member-review', {
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 5,
+});
+
+/**
+ * Rate limiter for setting a desk topic aside.
+ * 20 writes per minute per user - the gesture is a swipe on a river of tiles,
+ * so a reader working through an edition legitimately fires it far faster than
+ * they would a review, but not fast enough to walk the whole desk in a minute.
+ */
+export const topicAsideLimiter = createRateLimiter('topic-aside', {
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 20,
+});
+
+/**
  * Helper function to create a 429 response with rate limit headers.
  */
 export function createRateLimitResponse(

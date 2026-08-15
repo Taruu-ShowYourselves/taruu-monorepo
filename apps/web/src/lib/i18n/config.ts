@@ -28,7 +28,7 @@ export function localePath(locale: string, path = '/'): string {
 }
 
 /**
- * Same page, other locale — for the language switcher. Strips whatever
+ * Same page, other locale - for the language switcher. Strips whatever
  * locale prefix the current pathname carries (the default locale carries
  * none) and re-roots the bare path in the target locale.
  */

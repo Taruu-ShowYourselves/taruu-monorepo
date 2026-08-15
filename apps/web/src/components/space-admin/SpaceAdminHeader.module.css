@@ -1,5 +1,5 @@
 /* ============================================================
- * SpaceAdminHeader — page masthead for every space-admin surface.
+ * SpaceAdminHeader - page masthead for every space-admin surface.
  * Brutalist tech-press: kicker, 900-weight headline, mono edition meta.
  * ============================================================ */
 
@@ -46,7 +46,7 @@
   overflow-wrap: anywhere;
 }
 
-/* Suspension banner. Ink block: paper text only — there is no compliant
+/* Suspension banner. Ink block: paper text only - there is no compliant
    red text on ink (see kicker.module.css). */
 .suspended {
   display: flex;

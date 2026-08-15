@@ -4,6 +4,7 @@
    call site. */
 'use client';
 
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   isMunicipality,
@@ -13,6 +14,10 @@ import { reactionSentiment } from '@/components/press/reactions';
 import type { BillTitle } from '@/lib/knesset/billTitle';
 import { topicHeadline } from './deskData';
 import type { DeskTopicVariant } from './deskBento';
+import { getAsideTopics, restoreTopic, setTopicAside } from './deskAside';
+import { ShareTopicButton } from './ShareTopicButton';
+import { useVoteSwipe } from './useVoteSwipe';
+import type { SwipeIntent } from './voteSwipe';
 import styles from './ConsensusDesk.module.css';
 import { localePrefix, type Locale } from '@/lib/i18n';
 
@@ -85,9 +90,20 @@ export interface DeskRanking {
   rankedAt: string | null;
 }
 
+/**
+ * Days left on a topic, or -1 for one whose date has passed.
+ *
+ * The clamp used to be `Math.max(0, …)`, which turned every expired topic into
+ * a zero and printed "מסתיים היום" over a vote that had closed days ago. That
+ * is the desk telling a reader they still have until tonight to vote on
+ * something they can no longer vote on. A closed topic says it is closed.
+ */
 function daysRemaining(endDate: string): number {
-  const ms = new Date(endDate).getTime() - Date.now();
-  return Math.max(0, Math.ceil(ms / 86_400_000));
+  const at = new Date(endDate).getTime();
+  if (!Number.isFinite(at)) return -1;
+  const ms = at - Date.now();
+  if (ms <= 0) return -1;
+  return Math.ceil(ms / 86_400_000);
 }
 
 const he = (n: number) => n.toLocaleString('he-IL');
@@ -125,13 +141,36 @@ interface RowCopy {
   postLink: string;
   /* Tile body */
   muniProfileTitle: (municipality: string) => string;
-  leadingNow: string;
-  noBallots: string;
+  /* The sovereign scale */
+  sovereignLocal: string;
+  sovereignNational: string;
+  sovereignFor: string;
+  sovereignAgainst: string;
+  sovereignAbstain: string;
+  /** Voices counted so far - the weight the reader is about to move. */
+  sovereignTally: (count: string) => string;
+  /** Printed where the tally would be, on a topic nobody has voted on yet. */
+  sovereignOpening: string;
+  sovereignBarTitle: (forPct: number, againstPct: number) => string;
+  sovereignEmptyTitle: string;
   participants: (count: string) => string;
   daysLeft: (days: number) => string;
   leadCta: string;
   /** Direction-semantic CTA glyph: mirrored between RTL and LTR. */
   ctaArrow: string;
+  /* The swipe-vote */
+  /** Printed on the tile's own edge while it is being pushed that way. */
+  swipeFor: string;
+  swipeAgainst: string;
+  swipeAside: string;
+  /** How to use a tile, printed once the reader has it under a finger. */
+  swipeHint: string;
+  swipeCastFor: string;
+  swipeCastAgainst: string;
+  /** The set-aside state, and the way back out of it. */
+  asideTitle: string;
+  asideNote: string;
+  asideUndo: string;
 }
 
 const COPY: Record<Locale, RowCopy> = {
@@ -164,12 +203,30 @@ const COPY: Record<Locale, RowCopy> = {
     sourceHeatTitle: 'מדד חום: תגובות וריאקציות על הפוסטים המקוריים',
     postLink: 'לפוסט ←',
     muniProfileTitle: (municipality) => `פרופיל רשות - ${municipality}`,
-    leadingNow: 'מוביל עכשיו',
-    noBallots: 'טרם נפתחו קולות',
+    sovereignLocal: 'הרוב המקומי',
+    sovereignNational: 'הרוב הארצי',
+    sovereignFor: 'בעד',
+    sovereignAgainst: 'נגד',
+    sovereignAbstain: 'נמנע',
+    sovereignTally: (count) => `${count} קולות נספרו`,
+    sovereignOpening: 'הקול הראשון קובע את הכיוון',
+    sovereignBarTitle: (forPct, againstPct) =>
+      `עמדת הרוב: ${forPct}% בעד, ${againstPct}% נגד`,
+    sovereignEmptyTitle: 'טרם נספרו קולות בנושא הזה',
     participants: (count) => `${count} משתתפים`,
-    daysLeft: (days) => (days === 0 ? 'מסתיים היום' : `נותרו ${days} ימים`),
+    daysLeft: (days) =>
+      days < 0 ? 'ההצבעה נסגרה' : days === 1 ? 'מסתיים היום' : `נותרו ${days} ימים`,
     leadCta: 'הצביעו · VOTE',
     ctaArrow: '←',
+    swipeFor: 'בעד',
+    swipeAgainst: 'נגד',
+    swipeAside: 'לא נושא לקונצנזוס',
+    swipeHint: 'החזיקו רגע לאחיזה · ימינה בעד · שמאלה נגד · 3 שניות לאישור',
+    swipeCastFor: 'בעד · לקלפי',
+    swipeCastAgainst: 'נגד · לקלפי',
+    asideTitle: 'לא נושא לקונצנזוס',
+    asideNote: 'ירד מהמהדורה שלכם. נספר כדי לשפר את בחירת הנושאים - לא כהצבעה, ובלי לפרסם מי אמר.',
+    asideUndo: 'החזרת הנושא',
   },
   en: {
     approvingTitle: 'Approving reactions on the original posts: like, love, haha, wow',
@@ -203,12 +260,30 @@ const COPY: Record<Locale, RowCopy> = {
     sourceHeatTitle: 'Heat index: comments and reactions on the original posts',
     postLink: 'To the post →',
     muniProfileTitle: (municipality) => `Municipality profile - ${municipality}`,
-    leadingNow: 'Leading now',
-    noBallots: 'No ballots cast yet',
+    sovereignLocal: 'The local majority',
+    sovereignNational: 'The national majority',
+    sovereignFor: 'For',
+    sovereignAgainst: 'Against',
+    sovereignAbstain: 'Abstain',
+    sovereignTally: (count) => `${count} voices counted`,
+    sovereignOpening: 'The first voice sets the direction',
+    sovereignBarTitle: (forPct, againstPct) =>
+      `The majority's standing: ${forPct}% for, ${againstPct}% against`,
+    sovereignEmptyTitle: 'No voices counted on this topic yet',
     participants: (count) => `${count} participants`,
-    daysLeft: (days) => (days === 0 ? 'Ends today' : `${days} days left`),
+    daysLeft: (days) =>
+      days < 0 ? 'Voting closed' : days === 1 ? 'Ends today' : `${days} days left`,
     leadCta: 'Cast your ballot · VOTE',
     ctaArrow: '→',
+    swipeFor: 'For',
+    swipeAgainst: 'Against',
+    swipeAside: 'Not a consensus matter',
+    swipeHint: 'Hold a moment to grip · left for · right against · 3s to confirm',
+    swipeCastFor: 'For · to the ballot',
+    swipeCastAgainst: 'Against · to the ballot',
+    asideTitle: 'Not a consensus matter',
+    asideNote: 'Dropped from your edition. Counted to improve which topics run - never as a vote, never attributed.',
+    asideUndo: 'Put it back',
   },
 };
 
@@ -218,6 +293,12 @@ const COPY: Record<Locale, RowCopy> = {
  * One shared row so the lead tile's full strip and a brief's one-liner report
  * the same measured facts in the same language.
  */
+/* The glyphs are furniture, not figures - faint ink keeps them behind their
+   numbers. One inline token rather than a stylesheet rule: the strip's
+   stylesheet belongs to the desk rework. Type is inherited from the strip
+   (.aiStats / .sourceLine), already meta. */
+const glyphStyle = { color: 'var(--np-ink-faint)' } as const;
+
 function Sentiment({ source, locale = 'he' }: { source: DeskSource; locale?: Locale }) {
   const t = COPY[locale];
   const { approving, objecting } = reactionSentiment(source.reactions);
@@ -225,15 +306,15 @@ function Sentiment({ source, locale = 'he' }: { source: DeskSource; locale?: Loc
   return (
     <span className={styles.reactions}>
       <span className={styles.reaction} title={t.approvingTitle}>
-        <span aria-hidden>👍</span>
+        <span aria-hidden style={glyphStyle}>▲</span>
         {he(approving)}
       </span>
       <span className={styles.reaction} title={t.objectingTitle}>
-        <span aria-hidden>👎</span>
+        <span aria-hidden style={glyphStyle}>▼</span>
         {he(objecting)}
       </span>
       <span className={styles.reaction} title={t.commentsTitle}>
-        <span aria-hidden>💬</span>
+        <span aria-hidden style={glyphStyle}>❙</span>
         {he(source.commentsCount)}
       </span>
     </span>
@@ -248,13 +329,162 @@ function Sentiment({ source, locale = 'he' }: { source: DeskSource; locale?: Loc
  * find the hot one. As a bar on the top rule it is legible at a glance and
  * costs no extra line.
  */
+/**
+ * The two sides of a ballot, as percentages of everything cast.
+ *
+ * Every topic on both desks opens with the same three options - בעד / נגד /
+ * נמנע - so the standing is genuinely a balance and not a bar chart of
+ * arbitrary choices. Matching on the words rather than on position because
+ * `toDeskTopic` sorts options by votes: whichever side is winning would
+ * otherwise be labelled "for".
+ *
+ * The fallback matters more than it looks. A topic seeded with different
+ * options must still print something honest, so the two heaviest options
+ * become the two sides in order.
+ */
+/**
+ * How long the swipe lesson runs.
+ *
+ * The lesson is a demonstration now, not three lit pills: a ghost sheet
+ * performs the gesture on the tile - leans right and holds, leans left and
+ * holds, dips down - with the matching cue lighting as it goes. The CSS
+ * sequence in ConsensusDesk.module.css (np-teach-ghost + the cue delays) is
+ * hard-coupled to this number: change either and the other must follow, or
+ * the lesson is cut off mid-gesture.
+ */
+const TUTOR_MS = 6200;
+
+const FOR_TEXT = /^(בעד|for)$/i;
+const AGAINST_TEXT = /^(נגד|against)$/i;
+const ABSTAIN_TEXT = /^(נמנע|abstain)$/i;
+
+interface SovereignStanding {
+  forPct: number;
+  againstPct: number;
+  abstainPct: number;
+  total: number;
+  /** The ballot options behind the two sides - what a swipe actually casts. */
+  forOption: DeskOption | undefined;
+  againstOption: DeskOption | undefined;
+}
+
+export function standingOf(options: DeskOption[]): SovereignStanding {
+  const total = options.reduce((sum, o) => sum + o.votes, 0);
+  const named = (re: RegExp) => options.find((o) => re.test(o.text.trim()));
+  const unnamed = options.filter(
+    (o) => !FOR_TEXT.test(o.text.trim()) && !AGAINST_TEXT.test(o.text.trim())
+  );
+  const forOption = named(FOR_TEXT) ?? unnamed[0];
+  const againstOption = named(AGAINST_TEXT) ?? unnamed[1];
+  const abstainOption = named(ABSTAIN_TEXT);
+
+  return {
+    forPct: forOption?.pct ?? 0,
+    againstPct: againstOption?.pct ?? 0,
+    abstainPct: abstainOption?.pct ?? 0,
+    total,
+    forOption,
+    againstOption,
+  };
+}
+
+/**
+ * The sovereign scale - the tile's headline instrument.
+ *
+ * It replaced a stack of label/bar/percentage rows, which read as a poll
+ * result: something that had already happened somewhere else and was being
+ * reported here. A balance reads as a thing under load. The two sides grow
+ * toward each other from opposite edges of one heavy rule, the numbers are set
+ * at display weight rather than as captions, and on a topic nobody has voted
+ * on the bar prints empty with its fulcrum showing - which is the whole point,
+ * because that is the moment a single ballot moves it furthest.
+ */
+function SovereignScale({
+  options,
+  national,
+  locale,
+}: {
+  options: DeskOption[];
+  /** Knesset topics answer to the national sovereign, not a municipal one. */
+  national: boolean;
+  locale: Locale;
+}) {
+  const t = COPY[locale];
+  const { forPct, againstPct, abstainPct, total } = standingOf(options);
+  const open = total > 0;
+
+  return (
+    <div className={styles.sovereign}>
+      <p className={styles.sovereignHead}>
+        <span className={styles.sovereignLabel}>
+          <span aria-hidden className={styles.sovereignTick} />
+          {national ? t.sovereignNational : t.sovereignLocal}
+        </span>
+        <span className={styles.sovereignTally}>
+          {open ? t.sovereignTally(he(total)) : t.sovereignOpening}
+        </span>
+      </p>
+
+      {/* An untouched topic prints two zeros rather than two dashes: at display
+          weight an em-dash reads as a stray rule, and a zero is both honest and
+          the whole invitation - nobody has moved this yet. */}
+      <p className={styles.sovereignSides} data-empty={!open || undefined}>
+        <span className={styles.sovereignSide} data-side="for">
+          <b>{forPct}%</b>
+          <i>{t.sovereignFor}</i>
+        </span>
+        <span className={styles.sovereignSide} data-side="against">
+          <b>{againstPct}%</b>
+          <i>{t.sovereignAgainst}</i>
+        </span>
+      </p>
+
+      <span
+        className={styles.sovereignBar}
+        data-open={open || undefined}
+        role="img"
+        aria-label={
+          open ? t.sovereignBarTitle(forPct, againstPct) : t.sovereignEmptyTitle
+        }
+      >
+        {/* Both sides are painted from their own edge inward, so the seam
+            between them is the reading - not the length of either bar. */}
+        <span
+          className={styles.sovereignForFill}
+          style={{ inlineSize: `${forPct}%` }}
+          aria-hidden
+        />
+        <span
+          className={styles.sovereignAgainstFill}
+          style={{ inlineSize: `${againstPct}%` }}
+          aria-hidden
+        />
+        {abstainPct > 0 ? (
+          <span className={styles.sovereignAbstainMark} aria-hidden>
+            {t.sovereignAbstain} {abstainPct}%
+          </span>
+        ) : null}
+        <span className={styles.sovereignFulcrum} aria-hidden />
+      </span>
+    </div>
+  );
+}
+
 function SlugLine({
   index,
   heat,
+  action,
   locale = 'he',
 }: {
   index: number;
   heat: number | null;
+  /**
+   * Tile chrome parked at the far end of the rule. The meta line would be the
+   * more natural home for a control that quotes its figures, but that line is
+   * dropped entirely on short rows and compact tiles - the slug rule is the one
+   * piece of furniture every variant prints.
+   */
+  action?: React.ReactNode;
   locale?: Locale;
 }) {
   const t = COPY[locale];
@@ -286,6 +516,8 @@ function SlugLine({
           {heat}°
         </span>
       )}
+
+      {action}
     </p>
   );
 }
@@ -514,6 +746,22 @@ export function RankingLine({
   );
 }
 
+/**
+ * A push made by someone the desk cannot yet count.
+ *
+ * The tile hands the whole gesture over rather than a flag, so the gate can
+ * print the position back and send the reader on to the ballot it belongs to
+ * once they are signed in.
+ */
+export interface VoteAuthRequest {
+  topic: DeskTopic;
+  intent: SwipeIntent;
+  /** The ballot option the side maps to; absent for `aside`. */
+  optionId?: string;
+  /** The headline as the tile printed it - the gate quotes it back. */
+  headline: string;
+}
+
 interface DeskTopicRowProps {
   topic: DeskTopic;
   /** Municipality the topic belongs to - shown as a chip inside the card. */
@@ -525,8 +773,34 @@ interface DeskTopicRowProps {
   ranking?: DeskRanking | null;
   /** Bento cell this card has to fill. Defaults to the 1×1 brief. */
   variant?: DeskTopicVariant;
-  /** Opens the quick ballot without leaving the desk. */
-  onOpen?: (topic: DeskTopic) => void;
+  /**
+   * Opens the quick ballot without leaving the desk. `optionId` is the side a
+   * swipe carried in, and the ballot opens on its confirmation step - the push
+   * is the choice, so asking for it again would make the gesture decorative.
+   */
+  onOpen?: (topic: DeskTopic, optionId?: string) => void;
+  /**
+   * Play the swipe lesson on this tile: the three edge cues, lit in turn.
+   *
+   * The gesture is otherwise undiscoverable - the cues only appear once a tile
+   * is already in hand, which is no use to a reader who does not know there is
+   * anything to take hold of. Exactly one tile is ever asked, once per reader;
+   * DeskStream picks which.
+   */
+  tutor?: boolean;
+  /**
+   * Called the first time this tile is substantially on screen, so the stream
+   * can hand the lesson to a tile the reader can actually see. Passed only
+   * while the lesson is unclaimed - its absence is what stops the tile
+   * watching itself for no reason.
+   */
+  onTutorVisible?: (index: number) => void;
+  /**
+   * Handed a push made by a reader with no account, instead of letting it
+   * land. Present only for guests - its absence is what says the desk may
+   * count this reader, so a signed-in tile never pays for the check.
+   */
+  onRequireAuth?: (request: VoteAuthRequest) => void;
   locale: Locale;
 }
 
@@ -539,17 +813,18 @@ export function DeskTopicRow({
   ranking = null,
   variant = 'brief',
   onOpen,
+  tutor = false,
+  onTutorVisible,
+  onRequireAuth,
   locale,
 }: DeskTopicRowProps) {
   const t = COPY[locale];
   const days = daysRemaining(topic.endDate);
-  const hasBallots = topic.options.some((o) => o.votes > 0);
   const isLead = variant === 'lead';
-  const isBrief = variant === 'brief';
+  // `wide` is a brief lying down - same copy, a 2×1 cell instead of a 1×1. Only
+  // the stylesheet knows the difference.
+  const isBrief = variant === 'brief' || variant === 'wide';
 
-  // The brief tile prints the leading position only; the full split is one
-  // click away and does not fit a 1×1 cell without pushing the card open.
-  const meters = isBrief ? topic.options.slice(0, 1) : topic.options;
   // Editorial heat where the desk ranked the item, engagement heat otherwise.
   const heat = ranking?.hotness ?? topic.source?.hotness ?? null;
   const parts = topic.titleParts ?? null;
@@ -567,20 +842,124 @@ export function DeskTopicRow({
   // rationale is the only per-topic sentence we have; where it exists it is
   // the standfirst, and the evidence strip stops repeating it.
   const standfirst = ranking?.rationale ?? topic.description;
-  const open = () => {
-    if (onOpen) onOpen(topic);
-    else window.location.assign(`${localePrefix(locale)}/votes/${topic.id}`);
-  };
+  const open = useCallback(
+    (optionId?: string) => {
+      if (onOpen) onOpen(topic, optionId);
+      else {
+        // No dialog on a server desk. `?option=` is the same deep link the
+        // ballot already restores after a sign-in round-trip, so the swipe
+        // lands the reader on the confirmation step either way.
+        const query = optionId ? `?option=${encodeURIComponent(optionId)}` : '';
+        window.location.assign(`${localePrefix(locale)}/votes/${topic.id}${query}`);
+      }
+    },
+    [locale, onOpen, topic]
+  );
+
+  /* Set aside is the reader's own edition, held on their device - so it can
+     only be read after mount, or the server and the client would print
+     different tiles. */
+  const [aside, setAside] = useState(false);
+  useEffect(() => {
+    setAside(getAsideTopics().includes(topic.id));
+  }, [topic.id]);
+
+  const standing = standingOf(topic.options);
+  const { forOption, againstOption } = standing;
+  const commit = useCallback(
+    (cast: SwipeIntent) => {
+      const optionId =
+        cast === 'aside' ? undefined : (cast === 'for' ? forOption : againstOption)?.id;
+
+      /* A reader the desk cannot count is stopped here rather than at the
+         ballot: the gesture has already played out on the tile, so the gate
+         opens holding what they said instead of dropping it and asking them
+         to say it again on another screen. */
+      if (onRequireAuth) {
+        onRequireAuth({ topic, intent: cast, optionId, headline });
+        return;
+      }
+
+      if (cast === 'aside') {
+        setTopicAside(topic.id);
+        setAside(true);
+        return;
+      }
+      open(optionId);
+    },
+    [againstOption, forOption, headline, onRequireAuth, open, topic]
+  );
+
+  const swipe = useVoteSwipe<HTMLLIElement>({
+    onCommit: commit,
+    rtl: locale === 'he',
+    disabled: aside,
+  });
+
+  /* ---- The swipe lesson ------------------------------------------------
+     Offered to the stream the first time this tile is properly on screen.
+     0.6 rather than any sliver: the lesson lights three cues pinned to three
+     edges, and a tile with one edge showing would teach a gesture pointing
+     off the side of the desk. The observer disconnects the moment it offers,
+     claimed or not - a tile scrolling in and out must not keep bidding. */
+  useEffect(() => {
+    const el = swipe.ref.current;
+    if (!onTutorVisible || !el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting || entry.intersectionRatio < 0.6) return;
+        /* Intersection is geometry, not sight: the tabbed desk keeps its
+           hidden edition laid out under visibility:hidden, and its tiles
+           intersect like anyone else's. A tile nobody can see must not bid -
+           it would play the one lesson a reader gets behind a hidden panel
+           and mark them taught. (checkVisibility is everywhere this ships;
+           the guard degrades to the old behaviour where it is not.) */
+        if (entry.target.checkVisibility?.() === false) return;
+        observer.disconnect();
+        onTutorVisible(index);
+      },
+      { threshold: [0.6] }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [onTutorVisible, index, swipe.ref]);
+
+  /* The lesson is over when it has been read once, or the moment the reader
+     touches the tile - somebody already pushing it does not need telling. */
+  const [teaching, setTeaching] = useState(false);
+  useEffect(() => {
+    if (!tutor) return;
+    setTeaching(true);
+    const done = setTimeout(() => setTeaching(false), TUTOR_MS);
+    return () => clearTimeout(done);
+  }, [tutor]);
+
+  useEffect(() => {
+    if (swipe.phase !== 'idle') setTeaching(false);
+  }, [swipe.phase]);
 
   return (
     <li
+      ref={swipe.ref}
       className={`${styles.topicCard} ${
         isLead
           ? styles.topicCardLead
           : variant === 'feature'
             ? styles.topicCardFeature
-            : ''
+            : variant === 'wide'
+              ? styles.topicCardWide
+              : styles.topicCardBrief
       }`}
+      data-swipe={swipe.phase === 'idle' ? undefined : swipe.phase}
+      data-swipe-tutor={teaching || undefined}
+      data-swipe-intent={swipe.intent ?? undefined}
+      data-swipe-ready={(swipe.ready && swipe.intent) || undefined}
+      data-swipe-hold={swipe.hold ?? undefined}
+      data-aside={aside || undefined}
+      /* Lenis owns the page's scroll; while a tile has the pointer it must
+         not also be feeding it. */
+      data-lenis-prevent={swipe.phase === 'armed' ? '' : undefined}
     >
       {topic.artUrl ? (
         /* Decorative plate under the type; plain <img> on purpose - the file
@@ -597,7 +976,28 @@ export function DeskTopicRow({
         />
       ) : null}
 
-      <SlugLine index={index} heat={heat} locale={locale} />
+      <SlugLine
+        index={index}
+        heat={heat}
+        locale={locale}
+        action={
+          /* The share carries this tile's counted facts, so it is built from
+             the same standing the scale below prints rather than re-read. */
+          <ShareTopicButton
+            topicId={topic.id}
+            locale={locale}
+            facts={{
+              headline,
+              authority: municipality,
+              forPct: standing.forPct,
+              againstPct: standing.againstPct,
+              ballots: standing.total,
+              participants: topic.participantCount,
+              daysLeft: days,
+            }}
+          />
+        }
+      />
 
       {/* The edition sits with the slug rule, not with the copy: on a two-row
           tile the headline centres in the tile's slack, and a chip carried
@@ -621,7 +1021,7 @@ export function DeskTopicRow({
           ) : null}
 
           <h3 className={styles.topicTitle}>
-            <button type="button" className={styles.topicLink} onClick={open}>
+            <button type="button" className={styles.topicLink} onClick={() => open()}>
               {headline}
             </button>
           </h3>
@@ -636,35 +1036,13 @@ export function DeskTopicRow({
         </div>
 
         <div className={styles.topicFoot}>
-          {hasBallots ? (
-            <>
-              {isBrief ? (
-                <span className={styles.meterKicker}>{t.leadingNow}</span>
-              ) : null}
-              <ul className={styles.meterList}>
-                {meters.map((option) => (
-                  <li key={option.id} className={styles.meterRow}>
-                    <span className={styles.meterLabel}>{option.text}</span>
-                    <span className={styles.meterTrack}>
-                      <span
-                        className={styles.meterFill}
-                        style={{ inlineSize: `${option.pct}%` }}
-                        aria-hidden
-                      />
-                    </span>
-                    <span className={styles.meterPct}>{option.pct}%</span>
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : (
-            /* Printed on every unopened topic, so it earns one tight mono line
-               and not a sentence - eight identical paragraphs down a desk read
-               as noise rather than as an invitation. */
-            <p className={styles.noBallots}>
-              <span aria-hidden>▍</span> {t.noBallots}
-            </p>
-          )}
+          {/* Printed open or closed: a topic with no ballots yet is not a tile
+              with a missing instrument, it is a scale at rest. */}
+          <SovereignScale
+            options={topic.options}
+            national={!isMunicipality(municipality)}
+            locale={locale}
+          />
 
           <p className={styles.topicMeta}>
             <span>{t.participants(he(topic.participantCount))}</span>
@@ -723,13 +1101,89 @@ export function DeskTopicRow({
           )}
 
           {isLead ? (
-            <button type="button" className={styles.leadCta} onClick={open}>
+            <button type="button" className={styles.leadCta} onClick={() => open()}>
               {t.leadCta}
               <span aria-hidden>{t.ctaArrow}</span>
             </button>
           ) : null}
         </div>
       </div>
+
+      {/* The lesson's ghost: a translucent sheet over the tile that performs
+          the swipe - lean right, hold, lean left, hold, dip down - so the
+          reader is shown the card moving rather than told about it. Its own
+          element on purpose: the tile's transform belongs to the gesture and
+          the reveal (both inline), and a keyframe on the tile itself would
+          out-rank and fight them. */}
+      {teaching ? <span className={styles.tutorGhost} aria-hidden /> : null}
+
+      {/* The three answers, each printed on the edge it lives on, and lit as
+          the tile is pushed toward it. Decorative: the gesture is a shortcut
+          past the headline button, and everything here is said again in the
+          ballot it opens. */}
+      <div className={styles.swipeCues} aria-hidden>
+        <span className={styles.swipeCue} data-cue="for">
+          {t.swipeFor}
+        </span>
+        <span className={styles.swipeCue} data-cue="against">
+          {t.swipeAgainst}
+        </span>
+        <span className={styles.swipeCue} data-cue="aside">
+          {t.swipeAside}
+        </span>
+        <span className={styles.swipeHint}>{t.swipeHint}</span>
+      </div>
+
+      {/* Pushed far enough that letting go casts it: the tile stops being a
+          tinted headline and becomes the answer, in one colour, at the size
+          of the thing being said. Nothing is counted until the reader lets
+          go - this is the tile telling them what will happen if they do. */}
+      <span className={styles.swipeWash} aria-hidden>
+        {swipe.intent === 'for'
+          ? t.swipeFor
+          : swipe.intent === 'against'
+            ? t.swipeAgainst
+            : t.swipeAside}
+      </span>
+
+      {/* The be-sure dial: 3, 2, 1 while the push is held at full distance.
+          The sweep runs off --hold-t, painted by the hook; the digit is keyed
+          so each second re-enters rather than mutating in place. Decorative
+          for the same reason as the cues - the dialog remains the ballot. */}
+      {swipe.hold !== null ? (
+        <span className={styles.holdDial} aria-hidden>
+          <svg className={styles.holdRing} viewBox="0 0 48 48">
+            <circle className={styles.holdRingTrack} cx="24" cy="24" r="21" />
+            <circle className={styles.holdRingSweep} cx="24" cy="24" r="21" />
+          </svg>
+          <b key={swipe.hold} className={styles.holdDigit}>
+            {swipe.hold}
+          </b>
+        </span>
+      ) : null}
+
+      {swipe.phase === 'cast' && swipe.intent && swipe.intent !== 'aside' ? (
+        <p className={styles.swipeStamp} data-cue={swipe.intent}>
+          {swipe.intent === 'for' ? t.swipeCastFor : t.swipeCastAgainst}
+        </p>
+      ) : null}
+
+      {aside ? (
+        <div className={styles.asidePanel}>
+          <p className={styles.asideTitle}>{t.asideTitle}</p>
+          <p className={styles.asideNote}>{t.asideNote}</p>
+          <button
+            type="button"
+            className={styles.asideUndo}
+            onClick={() => {
+              restoreTopic(topic.id);
+              setAside(false);
+            }}
+          >
+            {t.asideUndo}
+          </button>
+        </div>
+      ) : null}
     </li>
   );
 }

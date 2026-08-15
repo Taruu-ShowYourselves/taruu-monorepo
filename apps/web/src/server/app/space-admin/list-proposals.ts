@@ -49,8 +49,8 @@ const displayName = (first: string | null, last: string | null): string =>
 
 /**
  * `selfSubmitted` is resolved on the server against the scope's own user id.
- * The UI renders `הצעה שהגשתם — ההכרעה שמורה למנהל אחר.` in place of the
- * decision buttons, and the server independently refuses the decision — the
+ * The UI renders `הצעה שהגשתם - ההכרעה שמורה למנהל אחר.` in place of the
+ * decision buttons, and the server independently refuses the decision - the
  * flag is a courtesy to the client, never the control.
  */
 export function toProposalSummary(row: ProposalRow, viewerId: string): ProposalSummary {

@@ -1,4 +1,16 @@
+/* The homepage gives every section a 100svh floor and the page now rests on
+   section edges, so a desk that packs its content at the top leaves a third
+   of the screen empty under it at every stop. */
 .desk {
+  display: grid;
+  /* The column is named, and named as a fraction that may be squeezed to
+     nothing. An implicit `auto` track takes the width of its content, and this
+     desk's content asks for `--np-container` whatever the screen is - so under
+     1600px the track stood wider than the section, `.inner`'s auto margins
+     centred the desk inside the track rather than the screen, and the whole
+     column sat pushed off the start edge with the headline cut by it. */
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
   background: var(--np-paper);
   color: var(--np-ink);
   padding-inline: var(--np-gutter);
@@ -6,6 +18,7 @@
 }
 
 .inner {
+  inline-size: 100%;
   max-width: var(--np-container);
   margin-inline: auto;
 }
@@ -13,8 +26,13 @@
 /* ============================================================
  * SECTION HEADER
  * ============================================================ */
+/* Every other desk on the page reads down the centre line - the locality
+   desk, the join section, the intro. A header ranged to the start was the one
+   thing still hanging off the edge. */
 .header {
   max-width: 56rem;
+  margin-inline: auto;
+  text-align: center;
 }
 
 .kicker {
@@ -38,7 +56,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  align-self: flex-start;
+  align-self: center;
   margin-block-start: var(--space-3);
   padding: 0.25em 0.8em;
   border: var(--np-rule-hair) solid var(--np-ink);
@@ -73,7 +91,9 @@
   font-size: clamp(var(--text-base), 0.5vw + 0.9rem, var(--text-xl));
   line-height: 1.45;
   color: var(--np-ink-soft);
-  max-width: 44rem;
+  max-width: 52ch;
+  margin-inline: auto;
+  text-wrap: pretty;
 }
 
 .ruleHeavy {
@@ -123,6 +143,12 @@ a.topicMuni:hover { background: var(--np-red); }
   position: relative;
   flex: 0 0 auto;
   inline-size: clamp(20rem, 38vw, 27rem);
+  /* The ballot arms by long-press, which is also the browser's cue for text
+     selection and the iOS callout - declined on the tile at rest, not just
+     once [data-swipe] lands, because the press that arms it starts here. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -184,9 +210,19 @@ a.topicMuni:hover { background: var(--np-red); }
   background: var(--np-ink);
 }
 
-/* The tall 1×2 column: a second story at brief typography, full standing. */
+/* The full-height 1×3 column: a second story at brief typography, full
+   standing. */
 .topicCardFeature {
-  grid-row: span 2;
+  grid-row: span 3;
+  border-block-start-width: var(--np-rule-heavy);
+}
+
+/* A brief lying down. The second column is the whole point of the variant -
+   it is the shape that keeps a stretch from being a lead and a queue of
+   squares - and it applies at every measure now that the desk is three rows
+   wherever it prints. */
+.topicCardWide {
+  grid-column: span 2;
   border-block-start-width: var(--np-rule-heavy);
 }
 
@@ -309,64 +345,10 @@ a.topicMuni:hover { background: var(--np-red); }
   display: none;
 }
 
-/* Below the desktop breakpoint the desk sets as a vertical two-column bento:
-   rows size to their own copy, so there is no slack to distribute and nothing
-   to centre - stack from the top, and drop the lead to the same evidence
-   depth as its neighbours so one tile does not tower over its row. */
-@media (max-width: 800px) {
-  /* The lead takes the full measure as an ink block; the feature folds to a
-     1×1 brief - a two-row column has no meaning when rows are content-sized. */
-  .topicCardLead {
-    grid-row: auto;
-    grid-column: 1 / -1;
-  }
-
-  .topicCardFeature {
-    grid-row: auto;
-  }
-
-  .topicCard {
-    inline-size: auto;
-  }
-
-  .topicBody {
-    justify-content: flex-start;
-  }
-
-  .topicCardLead .topicHead,
-  .topicCardFeature .topicHead {
-    flex: 0 0 auto;
-    justify-content: flex-start;
-  }
-
-  /* The feature reads as a brief here. */
-  .topicCardFeature .topicDesc {
-    -webkit-line-clamp: 2;
-  }
-  .topicCardFeature .topicTitle {
-    -webkit-line-clamp: 3;
-  }
-
-  .evidenceWide {
-    display: none;
-  }
-
-  .evidenceNarrow {
-    display: block;
-  }
-
-  /* Cards share one row height here, so the tallest sets the empty space in
-     every other card. The lead reads at brief length to keep that slack small. */
-  .topicCardLead .topicTitle {
-    font-size: clamp(var(--text-xl), 2vw, var(--text-3xl));
-    -webkit-line-clamp: 3;
-  }
-
-  .topicDescLead {
-    font-size: var(--text-base);
-    -webkit-line-clamp: 2;
-  }
-}
+/* The narrow-width desk lives at the foot of this file - see "PHONE DESK". A
+   media query adds no specificity, so overrides written here lost to the
+   plain `.topicDesc` / `.topicCardLead .topicTitle` rules further down and
+   never took effect. */
 
 /* ============================================================
  * SLUG LINE - running number, heat bar, degrees
@@ -473,10 +455,18 @@ a.topicMuni:hover { background: var(--np-red); }
   /* Even ranked headlines run long in Hebrew; balancing beats a last line
      carrying one orphaned word under a 900-weight grotesque. */
   text-wrap: balance;
-  /* Long Knesset bill titles must not eat the tile. */
+  /* Long Knesset bill titles must not eat the tile. The `lh` cap rides
+     beside every clamp in this file: modern Chromium computes this legacy
+     -webkit-box combination to plain `flow-root` (measured - see the note in
+     the short-desktop block), so every clamp here is decorative and the cap
+     is what actually holds the line. The +0.25em is not slack for another
+     line - a line is 1.1em - it is the tile's border-box padding plus the
+     ink Heebo hangs below a 1.1 line box, so the cut lands under the last
+     line's descenders instead of through them. */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  max-block-size: calc(2lh + 0.25em);
   overflow: hidden;
   /* The headline is the one thing in the head that never gives ground. As a
      plain flex item it was shrinking below its own clamp height - the box
@@ -488,11 +478,13 @@ a.topicMuni:hover { background: var(--np-red); }
 .topicCardLead .topicTitle {
   font-size: clamp(var(--text-2xl), 2.9vw, var(--text-4xl));
   -webkit-line-clamp: 4;
+  max-block-size: calc(4lh + 0.25em);
 }
 
 /* A brief gets two lines; the two-row tiles can afford four. */
 .topicCardFeature .topicTitle {
   -webkit-line-clamp: 4;
+  max-block-size: calc(4lh + 0.25em);
 }
 
 .topicLink {
@@ -545,11 +537,13 @@ a.topicMuni:hover { background: var(--np-red); }
 
 .topicDesc {
   -webkit-line-clamp: 2;
+  max-block-size: calc(2lh + 0.25em);
 }
 
 /* The lead tile has the room to carry the standfirst, not just a teaser. */
 .topicDescLead {
   -webkit-line-clamp: 5;
+  max-block-size: calc(5lh + 0.25em);
   font-size: var(--text-lg);
 }
 
@@ -719,6 +713,222 @@ a.topicMuni:hover { background: var(--np-red); }
   border-block-end-color: var(--np-red);
 }
 
+/* ============================================================
+ * THE SOVEREIGN SCALE
+ *
+ * The tile's headline instrument, and the one piece of it sized like a
+ * headline. It replaced a stack of label/track/percentage rows, which read as
+ * a poll result - something already decided elsewhere and reported here. A
+ * balance reads as a thing under load: two sides growing toward each other
+ * from opposite edges of one heavy rule, with a fulcrum showing at the middle.
+ *
+ * The empty state is the important one. Every topic on the desk currently
+ * opens with nothing cast, and that is exactly when one ballot moves the beam
+ * furthest, so the bar prints at rest with its fulcrum rather than hiding.
+ * ============================================================ */
+.sovereign {
+  display: grid;
+  gap: var(--space-1);
+  margin-block-end: var(--space-2);
+}
+
+.sovereignHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 0;
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.sovereignLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  color: var(--np-ink);
+  text-transform: uppercase;
+}
+
+.sovereignTick {
+  inline-size: 0.55em;
+  block-size: 0.55em;
+  background: var(--np-red);
+}
+
+.sovereignTally {
+  color: var(--np-ink-faint);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  /* The tally is the quieter half of the line and gives ground first. */
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sovereignSides {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.sovereignSide {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35em;
+}
+
+/* Display weight, not caption weight: the number is the loudest thing in the
+   foot of the tile. */
+.sovereignSide b {
+  font-family: var(--np-font-display);
+  font-size: clamp(var(--text-xl), 2.2vw, var(--text-3xl));
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.sovereignSide i {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  font-style: normal;
+  letter-spacing: 0.1em;
+  color: var(--np-ink-soft);
+}
+
+.sovereignSide[data-side='for'] b {
+  color: var(--np-green);
+}
+
+.sovereignSide[data-side='against'] b {
+  color: var(--np-ink);
+}
+
+/* Nothing cast yet: the numbers are true but they are not a standing, so they
+   print at the weight of a placeholder rather than of a result. */
+.sovereignSides[data-empty] b,
+.sovereignSides[data-empty] i {
+  color: var(--np-ink-faint);
+}
+
+.topicCardLead .sovereignSides[data-empty] b,
+.topicCardLead .sovereignSides[data-empty] i {
+  color: color-mix(in srgb, var(--np-paper) 42%, var(--np-ink));
+}
+
+.sovereignBar {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  block-size: 0.85rem;
+  border: var(--np-rule) solid var(--np-ink);
+  background: var(--np-paper-2);
+  overflow: hidden;
+}
+
+/* Each side is painted from its own edge inward, so what the eye reads is the
+   seam between them rather than the length of either one. RTL: `for` grows
+   from the right, `against` from the left. */
+.sovereignForFill {
+  background: var(--np-green);
+  animation: heat-wipe var(--np-dur) var(--np-ease) both;
+  transform-origin: right center;
+}
+
+.sovereignAgainstFill {
+  background: var(--np-ink);
+  animation: heat-wipe var(--np-dur) var(--np-ease) both;
+  transform-origin: left center;
+}
+
+/* The beam's resting point. On an open topic it is the reference the two
+   fills are read against; on an untouched one it is the whole instrument. */
+.sovereignFulcrum {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 50%;
+  inline-size: var(--np-rule-heavy);
+  translate: 50% 0;
+  background: var(--np-ink);
+  opacity: 0.28;
+}
+
+.sovereignBar[data-open] .sovereignFulcrum {
+  opacity: 0.14;
+}
+
+.sovereignAbstainMark {
+  position: absolute;
+  inset-block: 0;
+  inset-inline: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--np-font-mono);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--np-ink-faint);
+  pointer-events: none;
+}
+
+/* ---- Ink-block overrides: the lead prints paper-on-ink ---- */
+.topicCardLead .sovereignLabel {
+  color: var(--np-paper);
+}
+
+.topicCardLead .sovereignTally,
+.topicCardLead .sovereignSide i,
+.topicCardLead .sovereignAbstainMark {
+  color: color-mix(in srgb, var(--np-paper) 58%, var(--np-ink));
+}
+
+/* The lead prints on ink, and #059669 on near-black is a shade under the
+   contrast a display-weight number needs. It lifts toward the paper rather
+   than changing hue - still the same green, just legible on a black tile. */
+.topicCardLead .sovereignSide[data-side='for'] b {
+  color: color-mix(in srgb, var(--np-green) 62%, var(--np-paper));
+}
+
+.topicCardLead .sovereignSide[data-side='against'] b {
+  color: var(--np-paper);
+}
+
+.topicCardLead .sovereignBar {
+  border-color: color-mix(in srgb, var(--np-paper) 45%, var(--np-ink));
+  background: color-mix(in srgb, var(--np-ink) 78%, var(--np-paper));
+}
+
+.topicCardLead .sovereignAgainstFill {
+  background: var(--np-paper);
+}
+
+.topicCardLead .sovereignFulcrum {
+  background: var(--np-paper);
+}
+
+/* The 2x2 tile can carry the instrument at full size. */
+.topicCardLead .sovereignSide b {
+  font-size: clamp(var(--text-3xl), 3.4vw, var(--text-5xl));
+}
+
+.topicCardLead .sovereignBar {
+  block-size: 1.15rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sovereignForFill,
+  .sovereignAgainstFill {
+    animation: none;
+  }
+}
+
 /* Consensus meters - same furniture as the Participate spec sheet */
 .meterList {
   list-style: none;
@@ -806,6 +1016,129 @@ a.topicMuni:hover { background: var(--np-red); }
   color: var(--np-red-ink);
 }
 
+/* ------------------------------------------------------------------
+ * Share the ballot.
+ *
+ * Rides the far end of the slug rule - the one line every tile variant keeps,
+ * at every width. It sits in the tile's own furniture rather than floating
+ * over the type, which also keeps the target off the middle of a swipe
+ * surface.
+ * ------------------------------------------------------------------ */
+.shareTopic {
+  position: relative;
+  /* Above the headline's stretched hit sheet (.topicLink::after, z-index 1):
+     the share must answer its own tap, not open the topic. */
+  z-index: 2;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+  padding: 0;
+  color: var(--np-ink);
+  background: var(--np-paper-box);
+  border: var(--np-rule-hair) solid var(--np-paper-edge);
+  border-radius: 50%;
+  cursor: pointer;
+  transition:
+    color var(--np-dur-snap) var(--np-ease),
+    background-color var(--np-dur-snap) var(--np-ease),
+    border-color var(--np-dur-snap) var(--np-ease);
+}
+
+/* The chip stays a chip; the target does not. A 28px control on a surface
+   that answers to being pushed needs more slack than it can afford to print -
+   the invisible halo brings the touch target to ~44px without moving a
+   pixel of furniture. */
+.shareTopic::before {
+  content: '';
+  position: absolute;
+  inset: -0.55rem;
+  border-radius: 50%;
+}
+
+.shareTopic:hover,
+.shareTopic:focus-visible {
+  color: var(--np-paper);
+  background: var(--np-red);
+  border-color: var(--np-red);
+}
+
+/* The lead tile is printed the other way round - paper on ink - so a filled
+   paper chip would read as a hole punched in it. */
+.topicCardLead .shareTopic {
+  color: var(--np-paper);
+  background: transparent;
+  border-color: color-mix(in srgb, var(--np-paper) 42%, transparent);
+}
+
+.topicCardLead .shareTopic:hover,
+.topicCardLead .shareTopic:focus-visible {
+  color: var(--np-ink);
+  background: var(--np-paper);
+  border-color: var(--np-paper);
+}
+
+.topicCardLead .shareSaid {
+  color: color-mix(in srgb, var(--np-paper) 78%, var(--np-ink));
+}
+
+.shareTopic:focus-visible {
+  outline: var(--np-rule) solid var(--np-red);
+  outline-offset: 2px;
+}
+
+.shareTopic svg {
+  inline-size: 0.85rem;
+  block-size: 0.85rem;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+}
+
+.shareFill {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* The outcome is announced, not drawn over the tile: the message is read by a
+   screen reader and printed beside the button, where there is room for it. */
+.shareSaid {
+  position: absolute;
+  inset-inline-end: calc(100% + 0.4rem);
+  inset-block-start: 50%;
+  translate: 0 -50%;
+  white-space: nowrap;
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  color: var(--np-red-ink);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--np-dur-snap) var(--np-ease);
+}
+
+.shareTopic[data-said] .shareSaid {
+  opacity: 1;
+}
+
+/* The tap is acknowledged by the chip itself, before the share sheet or the
+   clipboard report back. Transform only, so the halo and the live region
+   hold still while the chip swells. */
+.shareTopic[data-pop] {
+  animation: share-pop 260ms var(--np-ease) both;
+}
+
+@keyframes share-pop {
+  45% { scale: 1.18; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shareTopic[data-pop] { animation: none; }
+}
+
 /* The lead tile ends in a door, not a dead edge. */
 .leadCta {
   align-self: flex-start;
@@ -837,13 +1170,16 @@ a.topicMuni:hover { background: var(--np-red); }
 /* ============================================================
  * EMPTY STATE + FOOTER
  * ============================================================ */
+/* An empty desk is the first thing a new municipality sees, so it is set as a
+   centred notice rather than a wide box with its copy pinned to one corner. */
 .emptyState {
   border: var(--np-rule) solid var(--np-ink);
   background: var(--np-paper-box);
   padding: clamp(var(--space-6), 3vw, var(--space-12));
   display: grid;
   gap: var(--space-3);
-  justify-items: start;
+  justify-items: center;
+  text-align: center;
 }
 
 .emptyLede {
@@ -864,6 +1200,1162 @@ a.topicMuni:hover { background: var(--np-red); }
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
-  justify-content: flex-start;
+  justify-content: center;
   margin-block-start: clamp(var(--space-4), 2vw, var(--space-6));
+}
+
+/* ============================================================
+ * THE SWIPE - a tile is a ballot you can push.
+ *
+ * Hold a tile and push it: toward its own בעד edge, toward its נגד edge, or
+ * down to say this is not a matter of consensus at all. The gesture lives in
+ * useVoteSwipe.ts; everything here is what the reader sees while they do it.
+ *
+ * Two rules the palette has to keep. The tint is the answer's own colour -
+ * the red the scale already paints בעד with, the ink it paints נגד with, and
+ * the blue pencil for a note that is not a position at all - so the tile
+ * turning under a thumb is the same argument as the bar on it, not a fourth
+ * colour language. And it is a *mix*, computed in JS into --swipe-mix and
+ * poured through color-mix here: at 20% through the push the tile has barely
+ * warmed, at 100% it is saying the thing out loud.
+ *
+ * The lift is what makes it feel picked up rather than smeared: the armed
+ * tile leaves the page (float shadow, a glow in its own colour) and rises
+ * above its neighbours. It cannot leave the carousel - .viewport clips - so
+ * the z-index is only against the other tiles, and stays well under the
+ * page's own floating chrome.
+ * ============================================================ */
+.topicCard[data-swipe] {
+  /* The transform itself is set inline by the hook, not here: the desk's
+     reveal animation already leaves an inline transform on every tile, and an
+     inline declaration beats any rule in this file. --swipe-x/y/rot still
+     carry the values so anything else in the sheet can read the push. */
+  z-index: 4;
+  cursor: grabbing;
+  user-select: none;
+  -webkit-touch-callout: none;
+  /* The gesture owns the pointer; the browser must not also be panning. */
+  touch-action: none;
+}
+
+.topicCard[data-swipe='armed'] {
+  box-shadow: var(--np-shadow-float);
+  /* The pick-up: the press landing is announced with a small rise. `scale`
+     is its own property, so it composes with the inline transform the push
+     writes instead of fighting it. */
+  scale: 1.02;
+  transition:
+    box-shadow var(--np-dur) var(--np-ease),
+    scale 160ms var(--np-ease),
+    background-color var(--np-dur-snap) var(--np-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topicCard[data-swipe='armed'] {
+    scale: none;
+  }
+}
+
+/* Released short of the commit distance: the tile falls back to its cell.
+   Only this return is animated - following a finger cannot be. */
+.topicCard:not([data-swipe]) {
+  transition:
+    transform 260ms var(--lc-ease-brand),
+    scale 160ms var(--np-ease),
+    box-shadow var(--np-dur) var(--np-ease),
+    background-color var(--np-dur-snap) var(--np-ease);
+}
+
+/* ---- The three answers, in their own colours ---- */
+.topicCard[data-swipe-intent='for'] {
+  --swipe-tint: var(--np-green);
+  --swipe-glow: 0 14px 38px -16px rgba(5, 150, 105, 0.5);
+}
+
+/* נגד is the ink the page is printed in, and a tile mixed all the way to it
+   is a tile whose own headline has gone. Half-ink is as far as the tint goes:
+   the paper visibly gains weight, the type survives, and the undiluted ink
+   arrives with the wash - by which point the wash carries the word itself. */
+.topicCard[data-swipe-intent='against'] {
+  --swipe-tint: color-mix(in srgb, var(--np-ink) 55%, var(--np-paper));
+  --swipe-glow: 0 14px 38px -16px rgba(20, 17, 14, 0.5);
+}
+
+.topicCard[data-swipe-intent='aside'] {
+  --swipe-tint: var(--np-blue);
+  --swipe-glow: 0 14px 38px -16px rgba(29, 78, 216, 0.45);
+}
+
+.topicCard[data-swipe][data-swipe-intent] {
+  background: color-mix(
+    in srgb,
+    var(--swipe-tint) var(--swipe-mix, 0%),
+    var(--np-paper-box)
+  );
+  border-block-start-color: var(--swipe-tint);
+  box-shadow: var(--np-shadow-float), var(--swipe-glow);
+}
+
+/* The lead is already an ink block, so a tint mixed toward paper-box would
+   bleach it. It mixes from its own ground instead, and נגד - which is the
+   ink it is printed in - has to lighten to be visible at all. */
+.topicCardLead[data-swipe][data-swipe-intent] {
+  background: color-mix(in srgb, var(--swipe-tint) var(--swipe-mix, 0%), var(--np-ink));
+}
+
+/* The lead is already the ink block, so lightening it toward paper made נגד
+   read as the tile fading out - the opposite of what pushing it means. It
+   goes the other way instead: down into the darkest ink on the palette, with
+   the red rule left on top so the tile still reads as the lead story. */
+.topicCardLead[data-swipe-intent='against'] {
+  --swipe-tint: color-mix(in srgb, var(--np-ink) 55%, var(--np-red-ink));
+}
+
+.topicCardLead[data-swipe][data-swipe-intent='against'] {
+  border-block-start-color: var(--np-red);
+}
+
+/* ---- Edge cues: what each direction says, printed where it lives ---- */
+.swipeCues {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--np-dur) var(--np-ease);
+}
+
+.topicCard[data-swipe] .swipeCues {
+  opacity: 1;
+}
+
+.swipeCue {
+  position: absolute;
+  padding: 0.25em 0.6em;
+  border: var(--np-rule) solid currentColor;
+  border-radius: var(--np-radius-pill);
+  font-family: var(--np-font-meta);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: var(--np-ink-faint);
+  background: color-mix(in srgb, var(--np-paper) 82%, transparent);
+  transition:
+    color var(--np-dur-snap) var(--np-ease),
+    background-color var(--np-dur-snap) var(--np-ease),
+    transform var(--np-dur-snap) var(--np-ease);
+}
+
+/* Physical edges, not logical ones: the reader is pushing a direction with
+   their hand, and `for` is pinned to whichever edge the RTL/LTR gesture in
+   voteSwipe.ts sends them toward. */
+.swipeCue[data-cue='for'] {
+  inset-block-start: 50%;
+  right: var(--space-3);
+  transform: translateY(-50%);
+}
+
+.swipeCue[data-cue='against'] {
+  inset-block-start: 50%;
+  left: var(--space-3);
+  transform: translateY(-50%);
+}
+
+.swipeCue[data-cue='aside'] {
+  inset-block-end: var(--space-3);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+:global([dir='ltr']) .swipeCue[data-cue='for'] {
+  right: auto;
+  left: var(--space-3);
+}
+
+:global([dir='ltr']) .swipeCue[data-cue='against'] {
+  left: auto;
+  right: var(--space-3);
+}
+
+/* The one being pushed toward lights up in its answer's colour. */
+.topicCard[data-swipe-intent='for'] .swipeCue[data-cue='for'],
+.topicCard[data-swipe-intent='against'] .swipeCue[data-cue='against'],
+.topicCard[data-swipe-intent='aside'] .swipeCue[data-cue='aside'] {
+  color: var(--np-paper);
+  background: var(--swipe-tint);
+}
+
+.topicCard[data-swipe-intent='for'] .swipeCue[data-cue='for'] {
+  transform: translateY(-50%) scale(1.12);
+}
+
+.topicCard[data-swipe-intent='against'] .swipeCue[data-cue='against'] {
+  transform: translateY(-50%) scale(1.12);
+}
+
+.topicCard[data-swipe-intent='aside'] .swipeCue[data-cue='aside'] {
+  transform: translateX(-50%) scale(1.12);
+}
+
+/* How to work a tile, said once - only while one is actually in hand. */
+.swipeHint {
+  position: absolute;
+  inset-block-start: var(--space-3);
+  left: 50%;
+  transform: translateX(-50%);
+  max-inline-size: 90%;
+  text-align: center;
+  font-family: var(--np-font-meta);
+  font-size: var(--text-xs);
+  color: var(--np-ink-faint);
+  text-wrap: balance;
+}
+
+.topicCardLead .swipeHint {
+  color: color-mix(in srgb, var(--np-paper) 62%, var(--np-ink));
+}
+
+.topicCard[data-swipe-intent] .swipeHint {
+  opacity: 0;
+}
+
+/* A brief is too small to carry the instructions over its own headline. */
+.topicCardBrief .swipeHint,
+.topicCardWide .swipeHint {
+  display: none;
+}
+
+/* ---- The wash: past the commit distance, the tile IS the answer ---- */
+.swipeWash {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  padding: var(--space-2);
+  text-align: center;
+  background: var(--swipe-tint, var(--np-green));
+  color: var(--np-paper);
+  font-family: var(--np-font-display);
+  /* Sized per shape below, not by container query: `container-type` on the
+     tile would put containment on a grid cell the bento is already sizing. */
+  font-size: clamp(var(--text-xl), 8vw, var(--text-3xl));
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--np-dur-snap) var(--np-ease);
+}
+
+.topicCard[data-swipe-ready] .swipeWash {
+  opacity: 1;
+}
+
+/* The word is the size of the cell it is filling: a 2x2 lead says it at
+   masthead weight, a tall feature at headline weight, a 1x1 brief at the
+   largest size that still fits inside 9rem. */
+.topicCardLead .swipeWash {
+  font-size: clamp(var(--text-3xl), 6vw, var(--text-7xl));
+}
+
+.topicCardFeature .swipeWash {
+  font-size: clamp(var(--text-xl), 4vw, var(--text-4xl));
+}
+
+/* Against is printed in the paper's own ink, so the wash needs the lift the
+   tint override gives the lead - otherwise it is a black rectangle. */
+.topicCard[data-swipe-ready][data-swipe-intent='against'] .swipeWash {
+  background: var(--np-ink);
+  border: var(--np-rule-heavy) solid var(--np-red);
+}
+
+/* ---- The cast: what the tile says as the ballot opens over it ---- */
+.swipeStamp {
+  position: absolute;
+  inset-block-start: 50%;
+  left: 50%;
+  z-index: 3;
+  margin: 0;
+  padding: 0.3em 0.9em;
+  transform: translate(-50%, -50%) rotate(-6deg);
+  border: var(--np-rule-heavy) solid var(--swipe-stamp, var(--np-green));
+  color: var(--swipe-stamp, var(--np-green));
+  background: color-mix(in srgb, var(--np-paper) 88%, transparent);
+  font-family: var(--np-font-display);
+  font-size: clamp(var(--text-base), 2.4vw, var(--text-2xl));
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  animation: swipeStampIn 180ms var(--np-ease) both;
+}
+
+.swipeStamp[data-cue='against'] {
+  --swipe-stamp: var(--np-ink);
+}
+
+@keyframes swipeStampIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-6deg) scale(1.5);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(-6deg) scale(1);
+  }
+}
+
+/* ---- Set aside: the reader's own edition, on their own device ---- */
+/* Recedes rather than desaturates: a grayscale filter took the blue pencil
+   off the one panel whose whole meaning is that it is a note in blue. */
+.topicCard[data-aside] {
+  opacity: 0.82;
+}
+
+.asidePanel {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  text-align: center;
+  background: color-mix(in srgb, var(--np-paper) 92%, var(--np-blue));
+  border-block-start: var(--np-rule-heavy) solid var(--np-blue);
+}
+
+.asideTitle {
+  margin: 0;
+  font-family: var(--np-font-display);
+  font-size: clamp(var(--text-base), 2vw, var(--text-xl));
+  font-weight: 900;
+  color: var(--np-blue-ink);
+}
+
+.asideNote {
+  margin: 0;
+  max-inline-size: 28ch;
+  font-family: var(--np-font-meta);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  color: var(--np-ink-faint);
+}
+
+.asideUndo {
+  padding: 0.4em 1em;
+  border: var(--np-rule) solid var(--np-blue);
+  background: transparent;
+  color: var(--np-blue-ink);
+  font-family: var(--np-font-meta);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color var(--np-dur-snap) var(--np-ease),
+    color var(--np-dur-snap) var(--np-ease);
+}
+
+.asideUndo:hover,
+.asideUndo:focus-visible {
+  background: var(--np-blue);
+  color: var(--np-paper);
+}
+
+/* The short shapes keep the note - "nothing was sent anywhere" is the honest
+   half of what setting a topic aside does, and dropping it on the smallest
+   tiles would leave the claim only where there was room for it. It just gets
+   set at the size a 1x1 can hold. */
+.topicCardBrief .asidePanel,
+.topicCardWide .asidePanel {
+  gap: var(--space-1);
+  padding: var(--space-3);
+}
+
+.topicCardBrief .asideTitle,
+.topicCardWide .asideTitle {
+  font-size: var(--text-base);
+}
+
+.topicCardBrief .asideNote,
+.topicCardWide .asideNote {
+  font-size: 0.66rem;
+  line-height: 1.35;
+}
+
+.topicCardBrief .asideUndo,
+.topicCardWide .asideUndo {
+  padding: 0.3em 0.8em;
+  font-size: var(--text-xs);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topicCard[data-swipe],
+  .topicCard:not([data-swipe]) {
+    transition: none;
+  }
+
+  /* The tile still follows the finger - that is the gesture, not decoration -
+     but it stops tilting (the hook drops the rotation), and the stamp arrives
+     without the punch. */
+  .swipeStamp {
+    animation: none;
+  }
+}
+
+/* ============================================================
+ * PHONE DESK - the narrow-width tile.
+ *
+ * Below 800px the desk is a three-row bento at phone measure, swiped rather
+ * than scrolled (DeskCarousel.module.css sets the track: three rows over
+ * 100svh, columns at 46vw). A stretch tiles as four shapes rather than the two
+ * the two-row desktop desk can afford - a 2x2 lead, a 2x1 lying under it, a
+ * full-height 1x3 column beside them, three 1x1 briefs down the next.
+ *
+ * What changes with them is the copy budget. A row is ~216px here, so a brief
+ * is a 1x1 of about 9rem by 13rem: headline, standfirst, and nothing else.
+ * Each shape gets the depth its cell can actually hold, which is the whole
+ * reason the variants exist - see deskBento.ts.
+ *
+ * Last block in the file on purpose: a media query carries no specificity, so
+ * these have to out-order the plain rules above to land.
+ * ============================================================ */
+@media (max-width: 800px) {
+  /* ---- The phone track is two rows (DeskCarousel.module.css), so the one
+     shape taller than the track caps its span or it would open an implicit
+     third row and break the mosaic. --- */
+  .topicCardFeature {
+    grid-row: span 2;
+  }
+
+  /* No shape lies down on a phone: a two-column tile is 110vw+ of card - it
+     literally cannot fit one view. The lead keeps its presence as the full
+     height of the track instead; the wide folds back to a plain cell. */
+  .topicCardLead,
+  .topicCardWide {
+    grid-column: span 1;
+  }
+
+  .topicCardLead {
+    grid-row: span 2;
+  }
+
+  /* The track's grid column sets the width. */
+  .topicCard {
+    inline-size: auto;
+    padding: var(--space-3);
+    gap: var(--space-2);
+  }
+
+  .topicBody {
+    gap: var(--space-2);
+  }
+
+  .topicMuni {
+    padding: 0.15em 0.5em;
+    font-size: var(--text-xs);
+  }
+
+  .slugNo {
+    font-size: var(--text-base);
+  }
+
+  /* A 1x1 brief has room for a headline and a standfirst; anything more prints
+     through the bottom border. Every clamp here carries its `lh` cap - see
+     the note on the base .topicTitle. */
+  .topicTitle {
+    font-size: clamp(1rem, 4.4vw, 1.25rem);
+    -webkit-line-clamp: 2;
+    max-block-size: calc(2lh + 0.25em);
+  }
+
+  .topicDesc {
+    font-size: var(--text-sm);
+    -webkit-line-clamp: 2;
+    max-block-size: calc(2lh + 0.25em);
+  }
+
+  /* Lying down, the 2x1 has the same height as a brief and twice the measure,
+     so the lines are longer rather than more numerous. */
+  .topicCardWide .topicTitle {
+    font-size: clamp(1.15rem, 5vw, 1.5rem);
+    -webkit-line-clamp: 2;
+    max-block-size: calc(2lh + 0.25em);
+  }
+
+  .topicCardWide .topicDesc {
+    -webkit-line-clamp: 3;
+    max-block-size: calc(3lh + 0.25em);
+  }
+
+  /* The full-height column is the one narrow tile with slack to spend. */
+  .topicCardFeature .topicTitle {
+    -webkit-line-clamp: 6;
+    max-block-size: calc(6lh + 0.25em);
+  }
+
+  .topicCardFeature .topicDesc {
+    -webkit-line-clamp: 8;
+    max-block-size: calc(8lh + 0.25em);
+  }
+
+  /* The lead is two columns wide and two rows tall - on the two-row track
+     that is the whole screen, and it can carry display type at display
+     size. */
+  .topicCardLead .topicTitle {
+    font-size: clamp(1.6rem, 7.4vw, 2.4rem);
+    -webkit-line-clamp: 4;
+    max-block-size: calc(4lh + 0.25em);
+  }
+
+  .topicDescLead {
+    font-size: var(--text-sm);
+    -webkit-line-clamp: 4;
+    max-block-size: calc(4lh + 0.25em);
+  }
+
+  /* Label / bar / percentage cannot hold three columns in the ~9rem of tile a
+     brief has inside its padding - the bar was crushed to a few pixels between
+     two pieces of text. The bar takes the full width on its own row instead. */
+  .meterRow {
+    grid-template-columns: 1fr auto;
+    gap: var(--space-1) var(--space-2);
+  }
+
+  .meterTrack {
+    grid-row: 2;
+    grid-column: 1 / -1;
+  }
+
+  /* The wide evidence strip needs a full-measure tile to sit in. */
+  .evidenceWide {
+    display: none;
+  }
+
+  .evidenceNarrow {
+    display: block;
+  }
+
+  /* The short tiles buy their last few pixels back from their own margins
+     rather than from the scale. */
+  .topicCardBrief,
+  .topicCardWide {
+    padding: var(--space-2);
+    gap: var(--space-1);
+  }
+
+  /* ---- The scale, compact.
+     A 1x1 is ~13rem tall, and the instrument is the thing it exists to carry,
+     so everything else gives ground to it rather than the other way round. */
+  .topicCardBrief .sovereignSide b,
+  .topicCardWide .sovereignSide b {
+    font-size: var(--text-lg);
+  }
+
+  .topicCardBrief .sovereignBar,
+  .topicCardWide .sovereignBar {
+    block-size: 0.65rem;
+  }
+
+  /* The tally is the first thing to go: the scale still reads without it, and
+     "0 קולות" in 9rem of tile is the least useful line on the card. */
+  .topicCardBrief .sovereignTally {
+    display: none;
+  }
+
+  /* ---- What a 1x1 holds on the two-row track: headline, one breath of
+     standfirst, the balance. The old three-row cells (~187px) could not
+     afford the standfirst at all; at ~250px it earns its two lines back,
+     which is what turns a wall of bare titles into topics a reader can tell
+     apart. The attribution still waits inside the tile's own sheet. */
+  .topicCardBrief .sourceLine,
+  .topicCardWide .sourceLine {
+    display: none;
+  }
+
+  /* Same trade as the wide desk: the instrument kicker before half a
+     headline. */
+  .topicCardBrief .billKicker,
+  .topicCardWide .billKicker {
+    display: none;
+  }
+
+  /* Lying down, the 2x1 keeps one line of standing. */
+  .topicCardWide .topicDesc {
+    -webkit-line-clamp: 1;
+    max-block-size: calc(1lh + 0.25em);
+  }
+
+  /* Participants · days · heat rank wraps to a second line in 9rem, and that
+     line is the one that pushed the tile past its cell. The rank is the least
+     of the three - it is already printed on the slug rule above as degrees. */
+  .topicCardBrief .metaHeat {
+    display: none;
+  }
+
+  .topicCardBrief .topicMeta {
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+}
+
+/* ============================================================
+ * SHORT ROWS - the phone held sideways.
+ *
+ * The narrow track is `100svh` minus the chrome, with a floor under it
+ * (DeskCarousel.module.css). On a landscape phone that floor is what the
+ * track gets, and three rows of it are the shortest cells the bento ever
+ * hands a tile - shorter than the ~210px the copy budget in the PHONE DESK
+ * block above was measured against. Two shapes printed through their own
+ * borders there: the lead by 30px, the wide by 19px.
+ *
+ * So the two shapes that carry the most copy give some back. This is a
+ * height guard rather than a floor raise on purpose - it belongs to the tile,
+ * so the tiles stay honest at whatever height the track ends up being, and
+ * nobody has to remember to keep two files in agreement.
+ *
+ * Last block in the file, for the same reason the PHONE DESK one is: a media
+ * query carries no specificity and has to out-order the rules it corrects.
+ * ============================================================ */
+@media (max-width: 800px) and (max-height: 620px) {
+  /* The lead keeps its standfirst, at a teaser's depth rather than a lead's. */
+  .topicCardLead .topicDescLead {
+    -webkit-line-clamp: 1;
+    max-block-size: calc(1lh + 0.25em);
+    font-size: var(--text-base);
+  }
+
+  /* The brief's two lines of standfirst are a portrait-phone allowance; a
+     landscape row cannot hold them. */
+  .topicCardBrief .topicDesc {
+    display: none;
+  }
+
+  /* The attribution line is what a 187px lead cannot afford. It is the one
+     thing on the tile that is repeated in full inside the sheet the headline
+     opens, so losing it here costs the reader nothing they cannot reach. */
+  .topicCardLead .evidenceNarrow {
+    display: none;
+  }
+
+  /* The scale is the instrument, so it is the last thing to shrink - but a
+     lead's display-weight numbers are set for a 440px cell, not a 187px one. */
+  .topicCardLead .sovereignSide b {
+    font-size: var(--text-2xl);
+  }
+
+  .topicCardLead .sovereignBar {
+    block-size: 0.85rem;
+  }
+
+  .topicCardLead .sovereign {
+    gap: var(--space-1);
+  }
+
+  /* A 2x1 at this height is a headline and a scale. The standfirst was
+     already down to one line; that line is what goes, and the instrument
+     closes up the last few pixels rather than the headline giving up a line. */
+  .topicCardWide .topicDesc {
+    display: none;
+  }
+
+  .topicCardWide .sovereign {
+    gap: 0;
+  }
+
+  .topicCardWide .sovereignBar {
+    block-size: 0.5rem;
+  }
+}
+
+
+/* ============================================================
+ * WIDE DESK - the copy budget of a three-row bento above 800px.
+ *
+ * The desk used to be two rows here, which gave a 1x1 brief half a screen -
+ * around 390px - and the desktop type above was written for that. At three
+ * rows the same tile is ~227px on a laptop and ~252px on a 1080p monitor,
+ * which is the PHONE's row height, so it needs the phone's budget rather than
+ * the desktop one: measured, every brief overflowed its cell by 57-87px and
+ * clipped its own count mid-glyph. The lead and the feature are unaffected -
+ * a 2x2 is still ~475px and the full-height column ~720px, and both measure
+ * zero overflow - so only the small shapes give anything up.
+ *
+ * Last block in the file, and it has to be: a media query carries no
+ * specificity, so an override written up beside the other desktop rules loses
+ * to the plain `.topicDesc` further down. That is the same trap the PHONE
+ * DESK block is parked here to avoid, and it caught this one first time round
+ * - the lead went on clipping with the five-line rule quietly winning.
+ * ============================================================ */
+@media (min-width: 801px) {
+  /* Three lines, not five: the 2x2 lost ~300px when the third row arrived. */
+  .topicCardLead .topicDescLead {
+    -webkit-line-clamp: 3;
+    max-block-size: calc(3lh + 0.25em);
+  }
+
+  /* Headline and count, which is the whole job of a tile this size. The
+     standfirst is what goes - a clipped one told the reader less than no
+     standfirst at all, because it ended mid-word under the meters. */
+  .topicCardBrief .topicDesc,
+  .topicCardWide .topicDesc {
+    display: none;
+  }
+
+  /* The bill's instrument kicker goes with it. Measured, kicker + two-line
+     headline came to 67px of head in a cell that gives the head 56 - and the
+     head's own overflow answered by slicing the second line through the
+     middle. The instrument is still on the qualifier and in the sheet the
+     headline opens; half a line of headline is information about nothing. */
+  .topicCardBrief .billKicker,
+  .topicCardWide .billKicker {
+    display: none;
+  }
+
+  .topicCardBrief,
+  .topicCardWide {
+    gap: var(--space-2);
+    padding: var(--space-3);
+  }
+
+  .topicCardBrief .topicBody,
+  .topicCardWide .topicBody {
+    gap: var(--space-2);
+  }
+
+  /* The desktop font-size rule further up this file loses to the plain
+     `.topicTitle` below it - media queries carry no specificity - so the
+     headline was still setting at 2vw, ~30px, and running to three lines in a
+     tile with room for two. Restated here, where it wins. */
+  .topicCardBrief .topicTitle,
+  .topicCardWide .topicTitle {
+    font-size: var(--text-lg);
+    -webkit-line-clamp: 2;
+    max-block-size: calc(2lh + 0.25em);
+  }
+
+  /* The instrument and the meta line are what a 1x1 has left after the
+     headline, and measured they came to 136px of a 227px tile on their own.
+     The source credit is the one thing here a reader can get from the topic's
+     own page, so it is what goes; the count and the scale stay. */
+  .topicCardBrief .sourceLine,
+  .topicCardWide .sourceLine {
+    display: none;
+  }
+
+  .topicCardBrief .sovereign,
+  .topicCardWide .sovereign {
+    gap: var(--space-1);
+    margin-block-end: var(--space-1);
+  }
+}
+
+/* A short desktop - a laptop at 720, or a window sharing the screen with
+   something else - cuts the same three rows to ~168px each. Even the headline
+   and the count together do not fit, so the lead gives up another line and the
+   small tiles close up what is left. Keyed on height, because height is what
+   the row is cut from: the tiles are full width and comfortable at this
+   measure. */
+/* The lead's standfirst is capped by height rather than by line count, and
+   that is deliberate. `-webkit-line-clamp` is inert on these tiles - the
+   headline and the standfirst both compute to `display: flow-root` rather than
+   `-webkit-box`, so every clamp in this file is decorative on the desk and the
+   copy simply ran until the card clipped it mid-line. A max-block-size needs
+   no `-webkit-box` to work. This is why every clamp in the file now carries a
+   matching `lh` cap. The old value here was 2.8em - deliberately "under two
+   lines", which cut the second line's descenders off; `2lh` is exactly two
+   line boxes, so the cut lands on the line edge. */
+@media (min-width: 801px) and (max-height: 1000px) {
+  .topicCardLead .topicDescLead {
+    max-block-size: calc(2lh + 0.25em);
+    overflow: hidden;
+  }
+
+  /* The participants-and-days line goes before the standfirst does. It is the
+     one thing on the lead that is said twice - the instrument beside it
+     already carries the count - so dropping it costs the reader nothing and
+     buys back the ~26px the standfirst needs. */
+  .topicCardLead .topicMeta {
+    display: none;
+  }
+
+  /* The last few pixels come out of the box rather than the copy: four gaps
+     at 12px against four at 8px is the difference between a standfirst and
+     no standfirst, and nobody reads the white space. */
+  .topicCardLead {
+    gap: var(--space-2);
+  }
+}
+
+@media (min-width: 801px) and (max-height: 800px) {
+  /* A 2x2 is ~350px here. The headline, the count and the scale are the
+     story; the standfirst does not survive alongside them. */
+  .topicCardLead .topicDescLead {
+    display: none;
+  }
+
+  .topicCardLead .topicTitle {
+    font-size: var(--text-2xl);
+  }
+
+  .topicCardBrief .topicMeta,
+  .topicCardWide .topicMeta {
+    display: none;
+  }
+
+  .topicCardBrief,
+  .topicCardWide {
+    padding-block: var(--space-1);
+    gap: var(--space-1);
+  }
+
+  /* Last out of the lead, and only here: the discovery strip is the tile's
+     evidence, and a desk that prints a claim without it is worse than one
+     that prints fewer claims. At ~350px there is no room left to be right in. */
+  .topicCardLead .aiCallout {
+    display: none;
+  }
+
+  .topicCardBrief .topicTitle,
+  .topicCardWide .topicTitle {
+    font-size: var(--text-base);
+  }
+
+  .topicCardBrief,
+  .topicCardWide {
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-3);
+  }
+}
+
+/* ============================================================
+ * THE SWIPE LESSON - shown once, on one tile the reader can see.
+ *
+ * Everything above only appears once a tile is already in hand, which teaches
+ * nobody: a reader arriving at the desk has no way of knowing the tiles answer
+ * to being pushed at all. So one tile demonstrates it - which tile is decided
+ * in DeskStream by whichever is properly on screen, and it happens once per
+ * reader.
+ *
+ * The cues move, not the card. useVoteSwipe writes the push straight onto the
+ * element's inline `transform` and the desk's reveal animation leaves its own
+ * there too; a keyframe on the tile would win over both (animations outrank
+ * inline declarations) and the tile would jump out of whatever position the
+ * reveal had left it in. Lighting the three pills in turn says the same thing
+ * and touches nothing the gesture owns.
+ * ============================================================ */
+.topicCard[data-swipe-tutor] .swipeCues {
+  opacity: 1;
+}
+
+/* Each cue leans toward the edge it is pinned to, holds lit, and settles.
+   Separate keyframes per direction because each cue's resting transform is
+   its own centring - translateY(-50%) on the two sides, translateX(-50%)
+   underneath - and a shared one would knock them off their edges. */
+@keyframes np-teach-right {
+  0%, 12%, 84%, 100% {
+    transform: translateY(-50%) scale(1);
+    color: var(--np-ink-faint);
+    background: color-mix(in srgb, var(--np-paper) 82%, transparent);
+  }
+  22%, 74% {
+    transform: translateY(-50%) translateX(0.7rem) scale(1.12);
+    color: var(--np-paper);
+    background: var(--np-green);
+  }
+}
+
+@keyframes np-teach-left {
+  0%, 12%, 84%, 100% {
+    transform: translateY(-50%) scale(1);
+    color: var(--np-ink-faint);
+    background: color-mix(in srgb, var(--np-paper) 82%, transparent);
+  }
+  22%, 74% {
+    transform: translateY(-50%) translateX(-0.7rem) scale(1.12);
+    color: var(--np-paper);
+    background: color-mix(in srgb, var(--np-ink) 55%, var(--np-paper));
+  }
+}
+
+@keyframes np-teach-down {
+  0%, 12%, 84%, 100% {
+    transform: translateX(-50%) scale(1);
+    color: var(--np-ink-faint);
+    background: color-mix(in srgb, var(--np-paper) 82%, transparent);
+  }
+  22%, 74% {
+    transform: translateX(-50%) translateY(0.7rem) scale(1.12);
+    color: var(--np-paper);
+    background: var(--np-blue);
+  }
+}
+
+/* Right, then left, then down - one at a time, so the reader is told three
+   things in sequence rather than shown a tile flashing in three colours.
+   Each runs 1.4s and stays lit for the middle ~770ms of it. That hold is the
+   point: at the 290ms the first draft gave it, a cue was lit for less time
+   than it takes to look at, and the lesson read as a flicker rather than as
+   three answers. The delays track the ghost sheet's own phases (np-teach-ghost
+   below): the cue lights while the ghost is leaning toward it. The last cue
+   starts at 4.3s and ends at 5.7s, inside the 6.2s TUTOR_MS in
+   DeskTopicRow.tsx - change any of the three and the others have to follow,
+   or the lesson is cut off mid-gesture. */
+.topicCard[data-swipe-tutor] .swipeCue {
+  animation-duration: 1.4s;
+  animation-timing-function: var(--np-ease);
+  animation-fill-mode: both;
+}
+
+.topicCard[data-swipe-tutor] .swipeCue[data-cue='for'] {
+  animation-name: np-teach-right;
+  animation-delay: 0.45s;
+}
+
+.topicCard[data-swipe-tutor] .swipeCue[data-cue='against'] {
+  animation-name: np-teach-left;
+  animation-delay: 2.35s;
+}
+
+.topicCard[data-swipe-tutor] .swipeCue[data-cue='aside'] {
+  animation-name: np-teach-down;
+  animation-delay: 4.3s;
+}
+
+/* The sides swap with the writing direction - voteSwipe.ts sends בעד toward
+   the reader's leading edge - so the lesson has to swap with them. */
+:global([dir='ltr']) .topicCard[data-swipe-tutor] .swipeCue[data-cue='for'] {
+  animation-name: np-teach-left;
+}
+
+:global([dir='ltr']) .topicCard[data-swipe-tutor] .swipeCue[data-cue='against'] {
+  animation-name: np-teach-right;
+}
+
+/* A brief hides the hint line because it has no room over its own headline,
+   but during the lesson it is the only sentence that says what the pills are
+   for - so it prints, and the tile carries it for those few seconds. */
+.topicCard[data-swipe-tutor] .swipeHint {
+  display: block;
+  animation: np-teach-hint 6.2s var(--np-ease) both;
+}
+
+@keyframes np-teach-hint {
+  0% { opacity: 0; }
+  8%, 88% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ------------------------------------------------------------------
+ * The lesson's ghost - a sheet over the tile that performs the gesture.
+ *
+ * The pills say which edge means what; the ghost shows the card being
+ * pushed. It leans right and holds in the green it would cast, comes back,
+ * leans left in the objection's ink, comes back, dips down in the set-aside
+ * blue, and settles. Its phases are what the cue delays above are timed to,
+ * and the whole run is TUTOR_MS (6.2s) in DeskTopicRow.tsx.
+ *
+ * Its own element rather than a keyframe on the tile: the tile's transform
+ * is inline (the gesture and the reveal both write it) and an animation
+ * would out-rank both.
+ * ------------------------------------------------------------------ */
+.tutorGhost {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  border-radius: inherit;
+  background: transparent;
+  animation: np-teach-ghost 6.2s var(--np-ease) both;
+}
+
+@keyframes np-teach-ghost {
+  0%,
+  6% {
+    transform: translate(0, 0) rotate(0deg);
+    background: transparent;
+  }
+  /* Lean right - the בעד side - and hold there. */
+  19%,
+  29% {
+    transform: translateX(9%) rotate(2deg);
+    background: color-mix(in srgb, var(--np-green) 34%, transparent);
+  }
+  /* Back to rest between answers, so the three read as three. */
+  37% {
+    transform: translate(0, 0) rotate(0deg);
+    background: transparent;
+  }
+  /* Lean left - נגד. */
+  50%,
+  60% {
+    transform: translateX(-9%) rotate(-2deg);
+    background: color-mix(in srgb, var(--np-ink) 30%, transparent);
+  }
+  68% {
+    transform: translate(0, 0) rotate(0deg);
+    background: transparent;
+  }
+  /* Dip down - not a consensus matter. */
+  79%,
+  85% {
+    transform: translateY(8%) rotate(0deg);
+    background: color-mix(in srgb, var(--np-blue) 30%, transparent);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+    background: transparent;
+  }
+}
+
+/* The sides swap with the writing direction, like the cues above. */
+:global([dir='ltr']) .tutorGhost {
+  animation-name: np-teach-ghost-ltr;
+}
+
+@keyframes np-teach-ghost-ltr {
+  0%,
+  6% {
+    transform: translate(0, 0) rotate(0deg);
+    background: transparent;
+  }
+  19%,
+  29% {
+    transform: translateX(-9%) rotate(-2deg);
+    background: color-mix(in srgb, var(--np-green) 34%, transparent);
+  }
+  37% {
+    transform: translate(0, 0) rotate(0deg);
+    background: transparent;
+  }
+  50%,
+  60% {
+    transform: translateX(9%) rotate(2deg);
+    background: color-mix(in srgb, var(--np-ink) 30%, transparent);
+  }
+  68% {
+    transform: translate(0, 0) rotate(0deg);
+    background: transparent;
+  }
+  79%,
+  85% {
+    transform: translateY(8%) rotate(0deg);
+    background: color-mix(in srgb, var(--np-blue) 30%, transparent);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+    background: transparent;
+  }
+}
+
+/* ------------------------------------------------------------------
+ * The be-sure dial - 3, 2, 1 while a push is held at full distance.
+ *
+ * useVoteSwipe paints the sweep into --hold-t (0 to 1) every 50ms and hands
+ * React only the digit; the cast lands when the count runs out, and letting
+ * go earlier springs the tile back having said nothing. The dial sits over
+ * the wash, which is already saying WHAT will be cast - the dial says WHEN.
+ * ------------------------------------------------------------------ */
+.holdDial {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  /* The wash is already printing the answer across the middle of the tile;
+     the dial counts underneath it rather than on top of the word. */
+  place-items: end center;
+  padding-block-end: 9%;
+  pointer-events: none;
+}
+
+.holdRing {
+  grid-area: 1 / 1;
+  inline-size: clamp(3.5rem, 34%, 5.5rem);
+  aspect-ratio: 1;
+  transform: rotate(-90deg);
+}
+
+.holdRingTrack,
+.holdRingSweep {
+  fill: none;
+  stroke-width: 3;
+}
+
+.holdRingTrack {
+  stroke: color-mix(in srgb, var(--np-paper) 38%, transparent);
+}
+
+.holdRingSweep {
+  stroke: var(--np-paper);
+  stroke-linecap: round;
+  /* r=21 → circumference 2π·21 ≈ 131.95. The sweep fills as --hold-t rises;
+     the 80ms linear transition smooths the 50ms paint ticks into a glide. */
+  stroke-dasharray: 131.95;
+  stroke-dashoffset: calc(131.95 * (1 - var(--hold-t, 0)));
+  transition: stroke-dashoffset 80ms linear;
+}
+
+.holdDigit {
+  grid-area: 1 / 1;
+  font-family: var(--np-font-display);
+  font-weight: 900;
+  font-style: normal;
+  font-size: clamp(var(--text-xl), 4vw, var(--text-3xl));
+  line-height: 1;
+  color: var(--np-paper);
+  text-shadow: 0 1px 8px rgba(20, 17, 14, 0.35);
+  animation: np-hold-digit 240ms var(--np-ease) both;
+}
+
+@keyframes np-hold-digit {
+  0% {
+    opacity: 0;
+    transform: scale(1.45);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Reduced motion is not no lesson - it is the same lesson without the travel.
+   All three cues light at once and hold, which still says "three directions,
+   these three answers" to a reader who cannot be shown the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .tutorGhost {
+    animation: none;
+  }
+
+  .holdRingSweep {
+    transition: none;
+  }
+
+  .holdDigit {
+    animation: none;
+  }
+
+  .topicCard[data-swipe-tutor] .swipeCue {
+    animation: none;
+    color: var(--np-paper);
+  }
+
+  .topicCard[data-swipe-tutor] .swipeCue[data-cue='for'] {
+    background: var(--np-green);
+  }
+
+  .topicCard[data-swipe-tutor] .swipeCue[data-cue='against'] {
+    background: color-mix(in srgb, var(--np-ink) 55%, var(--np-paper));
+  }
+
+  .topicCard[data-swipe-tutor] .swipeCue[data-cue='aside'] {
+    background: var(--np-blue);
+  }
+
+  .topicCard[data-swipe-tutor] .swipeHint {
+    animation: none;
+  }
 }

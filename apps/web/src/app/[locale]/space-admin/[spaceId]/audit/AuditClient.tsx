@@ -30,11 +30,11 @@ import { localePrefix } from '@/lib/i18n';
 import type { Locale } from '@/lib/i18n';
 
 /**
- * Surface 6 — the audit history.
+ * Surface 6 - the audit history.
  *
  * THE SURFACE IS READ-ONLY, AND IT SHOWS. There is no row action column, no
  * edit control, no delete control, and no confirmation component imported into
- * this file at all — the standfirst above it says the log cannot be changed,
+ * this file at all - the standfirst above it says the log cannot be changed,
  * and a control that appeared to change it would make that sentence a lie
  * before the server ever got the chance to refuse.
  *
@@ -46,7 +46,7 @@ import type { Locale } from '@/lib/i18n';
  * PAGING IS KEYSET-ONLY, and the reason is in the data rather than in taste:
  * the log is append-only and continuously written, so an index-based page two
  * would repeat rows it had already shown and skip rows it never would. The
- * same fact is why there is no record count anywhere on this surface — one
+ * same fact is why there is no record count anywhere on this surface - one
  * would be expensive to compute and stale by the time it arrived. The meta
  * line says how many rows are on screen, which is a fact about the screen.
  */
@@ -59,7 +59,7 @@ import type { Locale } from '@/lib/i18n';
  * The chips, the default, the guard and the trail codec live in `./filters`, a
  * module with no `'use client'` directive, because `page.tsx` reads all of them
  * on the server. Re-exported here for the call sites that already import them
- * from this file — but a Server Component must import from `./filters`
+ * from this file - but a Server Component must import from `./filters`
  * directly, or React hands it a client reference and the call throws. See that
  * file's header.
  */
@@ -103,9 +103,9 @@ interface AuditCopy {
   yes: string;
   no: string;
   /**
-   * Copy for every action the phase writes. Not in the copy deck — the deck
+   * Copy for every action the phase writes. Not in the copy deck - the deck
    * specifies the audit COLUMNS and leaves the vocabulary to the
-   * implementation — so these are written in the deck's voice, past tense,
+   * implementation - so these are written in the deck's voice, past tense,
    * using its words (`הצעה`, `הרשאה`, `התראה`, `להשעות`).
    *
    * An action with no entry renders its stored identifier rather than a
@@ -134,7 +134,7 @@ const COPY: Record<Locale, AuditCopy> = {
     clearFilters: 'ניקוי סינון',
     oldestHint: 'זו הרשומה הישנה ביותר.',
     newestHint: 'אתם בתחילת היומן.',
-    loadError: 'לא הצלחנו לטעון את היומן. הרשומות עצמן לא נפגעו — נסו שוב.',
+    loadError: 'לא הצלחנו לטעון את היומן. הרשומות עצמן לא נפגעו - נסו שוב.',
     emptyHeading: 'היומן ריק',
     emptyBody:
       'כל הכרעה, שינוי הרשאה ומשלוח התראה במרחב יירשמו כאן אוטומטית.',
@@ -193,7 +193,7 @@ const COPY: Record<Locale, AuditCopy> = {
       `יומן הפעולות של המרחב ${spaceName}, מהחדש לישן. כל שורה כוללת מועד, מבצע/ת הפעולה, סוג הפעולה, האובייקט, המעבר בין המצבים והנימוק.`,
     rowsMeta: (count) => `מוצגות ${count} רשומות`,
     truncation: (count) =>
-      `מוצגות ${count} הרשומות האחרונות. לרשומות ישנות יותר — המשיכו בדפדוף.`,
+      `מוצגות ${count} הרשומות האחרונות. לרשומות ישנות יותר - המשיכו בדפדוף.`,
     dateLocale: 'he-IL',
   },
   en: {
@@ -202,7 +202,7 @@ const COPY: Record<Locale, AuditCopy> = {
     clearFilters: 'Clear filters',
     oldestHint: 'This is the oldest entry.',
     newestHint: 'You are at the head of the log.',
-    loadError: 'We could not load the log. The entries themselves are intact — try again.',
+    loadError: 'We could not load the log. The entries themselves are intact - try again.',
     emptyHeading: 'The log is empty',
     emptyBody:
       'Every decision, capability change and notification dispatch in this space will be recorded here automatically.',
@@ -256,7 +256,7 @@ const COPY: Record<Locale, AuditCopy> = {
       paymentId: 'Payment ID',
       amountAgorot: 'Amount in agorot',
     },
-    // English mirrors of `CAPABILITY_LABELS_HE` — same keys, deck voice.
+    // English mirrors of `CAPABILITY_LABELS_HE` - same keys, deck voice.
     capabilityLabels: {
       'proposal.read': 'Review proposals',
       'proposal.approve': 'Approve and publish proposals',
@@ -284,21 +284,21 @@ const stateValue = (t: AuditCopy, key: string, value: unknown): string => {
   if (key === 'capability' && typeof value === 'string') {
     return t.capabilityLabels[value] ?? value;
   }
-  if (value === null || value === undefined) return '—';
+  if (value === null || value === undefined) return '-';
   return String(value);
 };
 
 /**
- * A state payload as one readable line. Nothing is dropped — this is the
+ * A state payload as one readable line. Nothing is dropped - this is the
  * record of what changed, and a summary that omits a field is a summary of a
  * different event. Long ones clamp and open in the row expansion.
  */
 const describeState = (t: AuditCopy, payload: unknown): string => {
-  if (payload === null || payload === undefined) return '—';
+  if (payload === null || payload === undefined) return '-';
   if (typeof payload !== 'object') return String(payload);
 
   const entries = Object.entries(payload as Record<string, unknown>);
-  if (entries.length === 0) return '—';
+  if (entries.length === 0) return '-';
 
   return entries
     .map(([key, value]) => `${t.stateKeys[key] ?? key}: ${stateValue(t, key, value)}`)
@@ -332,7 +332,7 @@ export interface AuditClientProps {
   /**
    * The cursors of the pages before this one, oldest-first. It rides in the
    * URL so that going back a page is a real navigation rather than browser
-   * history the surface cannot see — and so a page deep in the log stays
+   * history the surface cannot see - and so a page deep in the log stays
    * linkable and reproducible for a screenshot.
    */
   trail: readonly string[];
@@ -391,7 +391,7 @@ export function AuditClient({
   /**
    * The actor options come from the page on screen. There is no endpoint that
    * lists a space's admins, and the one that lists its MEMBERS is gated on a
-   * different capability — an audit reader who does not hold it would get a
+   * different capability - an audit reader who does not hold it would get a
    * refusal instead of a filter. Deriving from the visible rows keeps the
    * control honest about what it can offer, and `ניקוי סינון` is always
    * present once a filter is applied, so a narrowed list can never trap

@@ -20,7 +20,7 @@ import styles from './page.module.css';
 import { localePrefix } from '@/lib/i18n';
 
 /**
- * Surface 1 — סקירה, the space overview.
+ * Surface 1 - סקירה, the space overview.
  *
  * A Server Component that calls `getSpaceOverview`, THE SAME USE-CASE THE API
  * ROUTE CALLS. It reaches no repository and opens no database client of its
@@ -30,7 +30,7 @@ import { localePrefix } from '@/lib/i18n';
  * of the two doors into the same data.
  *
  * Rule A governs what renders: a figure the admin holds no capability for
- * arrives as `null` and is ABSENT — never a zero, never a dash. The capability
+ * arrives as `null` and is ABSENT - never a zero, never a dash. The capability
  * manifest below is what keeps that from being mysterious.
  */
 
@@ -141,8 +141,8 @@ export default async function SpaceOverviewPage({ params }: SpaceOverviewPagePro
       redirect(`${localePrefix(locale)}/sign-in?redirect=${encodeURIComponent(base)}`);
     }
 
-    // Refused: NoPermissionPanel — rendered by EscalationDialog, which owns the
-    // CTA it needs — and deliberately NO SpaceAdminHeader and no nav. An admin
+    // Refused: NoPermissionPanel - rendered by EscalationDialog, which owns the
+    // CTA it needs - and deliberately NO SpaceAdminHeader and no nav. An admin
     // who holds nothing here must not learn the space's name, its slug or its
     // type from the page that just refused them, and links to five surfaces
     // they cannot open would be a menu of denials.
@@ -241,7 +241,7 @@ export default async function SpaceOverviewPage({ params }: SpaceOverviewPagePro
 
             <div className={styles.panelActions}>
               {/* Renders `לכל ההצעות ←` (or `All proposals →`). The arrow goes
-                  through `trailing`, which marks it aria-hidden — a glyph never
+                  through `trailing`, which marks it aria-hidden - a glyph never
                   carries meaning. */}
               <NewsButton variant="outline" href={`${base}/proposals`} trailing={t.arrow}>
                 {t.allProposals}

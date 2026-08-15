@@ -1,15 +1,15 @@
 /**
- * Aggregate-only statistics — SPACE-07.
+ * Aggregate-only statistics - SPACE-07.
  *
  * The k-anonymity floor itself lives in SQL (migration 20260802000013): a
  * bucket of 1-4 is nulled before it leaves the database. This file does not
  * re-implement that rule in TypeScript and does not claim to test it. What it
- * tests is the API contract on top of it — that a suppressed figure, a genuine
+ * tests is the API contract on top of it - that a suppressed figure, a genuine
  * zero and an uncomputable figure are three distinguishable things on the wire,
  * and that no shape in the response could ever carry a single resident.
  *
- * The suppression case deliberately stubs a *hostile* row — a true value beside
- * a `suppressed` status, which the shipped SQL never produces — because the
+ * The suppression case deliberately stubs a *hostile* row - a true value beside
+ * a `suppressed` status, which the shipped SQL never produces - because the
  * mapping's job is to be the second place the floor holds, not the first.
  */
 
@@ -151,9 +151,9 @@ describe('GET /api/space-admin/[spaceId]/metrics', () => {
    * Two things make the RPC return no row. One: the space row is deleted
    * between authorization and the query. Two: the SQL's
    * `WHERE EXISTS (SELECT 1 FROM s)` guard fires for a space whose
-   * municipality_code is NULL. The second is not reachable through this route —
+   * municipality_code is NULL. The second is not reachable through this route -
    * authorize() refuses to mint a scope without a municipality code, so such a
-   * space is a 403 long before the RPC runs — but the guard is what stops the
+   * space is a 403 long before the RPC runs - but the guard is what stops the
    * SQL fabricating a `0 / available`, and this mapping is what stops a
    * mid-request delete becoming a 500. Neither is dead code.
    */
@@ -209,15 +209,15 @@ describe('the response is exactly the contract, and has no room for a resident',
   });
 
   /**
-   * The guarantee is structural — the RPC returns nine scalars and the mapping
-   * builds four figures — so this regex should be impossible to trip. That is
+   * The guarantee is structural - the RPC returns nine scalars and the mapping
+   * builds four figures - so this regex should be impossible to trip. That is
    * the point: it fails loudly the day someone widens the shape.
    */
   it.each([
     ['a populated space', metricsRow()],
     ['a suppressed space', metricsRow({ registered_residents: 3, registered_residents_status: 'suppressed' })],
     ['an empty space', null],
-  ])('never serializes anything resident-shaped — %s', async (_name, row) => {
+  ])('never serializes anything resident-shaped - %s', async (_name, row) => {
     rpcResult = { data: row, error: null };
     const res = await GET_METRICS(
       req(`/api/space-admin/${SPACE_A}/metrics`),

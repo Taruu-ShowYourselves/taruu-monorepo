@@ -23,6 +23,8 @@ interface MuniIndexCopy {
   searchPlaceholder: string;
   searchNoOptions: string;
   noMatch: string;
+  activeHeading: string;
+  dormantHeading: string;
 }
 
 const COPY: Record<Locale, MuniIndexCopy> = {
@@ -37,6 +39,8 @@ const COPY: Record<Locale, MuniIndexCopy> = {
     searchPlaceholder: 'הקלידו שם רשות…',
     searchNoOptions: 'הרשות עוד לא על הלוח',
     noMatch: 'אין רשות בשם הזה על הלוח - עדיין. הרשימה מתרחבת עם כל מהדורה.',
+    activeHeading: 'על הלוח עכשיו',
+    dormantHeading: 'שאר הרשויות במרשם',
   },
   en: {
     muniProfileTitlePrefix: 'Municipality profile - ',
@@ -49,6 +53,8 @@ const COPY: Record<Locale, MuniIndexCopy> = {
     searchPlaceholder: 'Type a municipality name…',
     searchNoOptions: 'That municipality is not on the board yet',
     noMatch: 'No municipality by that name on the board - yet. The list grows with every edition.',
+    activeHeading: 'On the board now',
+    dormantHeading: 'The rest of the gazetteer',
   },
 };
 
@@ -117,6 +123,24 @@ export function MuniIndex({ rows, hasData, locale = 'he' }: MuniIndexProps) {
     return rows.filter((r) => r.name.includes(needle));
   }, [rows, query]);
 
+  /* Only desks with live counts earn a full listing row - most of the ~250
+     localities carry no topics yet, and printing each as a counted row makes
+     the index seven screens of zeros. The dormant rest are still on the map,
+     as a names-only gazetteer. An empty edition (no data at all) has no
+     active desks by definition. */
+  const active = useMemo(
+    () =>
+      hasData ? filtered.filter((r) => r.openVotes > 0 || r.ballots > 0) : [],
+    [filtered, hasData]
+  );
+  const dormant = useMemo(
+    () =>
+      hasData
+        ? filtered.filter((r) => r.openVotes === 0 && r.ballots === 0)
+        : filtered,
+    [filtered, hasData]
+  );
+
   return (
     <section
       id="muni-index"
@@ -159,11 +183,41 @@ export function MuniIndex({ rows, hasData, locale = 'he' }: MuniIndexProps) {
             {t.noMatch}
           </p>
         ) : (
-          <ul className={styles.list}>
-            {filtered.map((row) => (
-              <MuniIndexRow key={row.name} row={row} hasData={hasData} locale={locale} />
-            ))}
-          </ul>
+          <>
+            {active.length > 0 ? (
+              <>
+                <h3 className={styles.groupLabel}>{t.activeHeading}</h3>
+                <ul className={styles.list}>
+                  {active.map((row) => (
+                    <MuniIndexRow
+                      key={row.name}
+                      row={row}
+                      hasData={hasData}
+                      locale={locale}
+                    />
+                  ))}
+                </ul>
+              </>
+            ) : null}
+            {dormant.length > 0 ? (
+              <>
+                <h3 className={styles.groupLabel}>{t.dormantHeading}</h3>
+                <ul className={styles.gazetteer}>
+                  {dormant.map((row) => (
+                    <li key={row.name} className={styles.gazItem}>
+                      <Link
+                        href={municipalityHref(row.name)}
+                        className={styles.gazLink}
+                        title={`${t.muniProfileTitlePrefix}${row.name}`}
+                      >
+                        {row.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+          </>
         )}
       </div>
     </section>

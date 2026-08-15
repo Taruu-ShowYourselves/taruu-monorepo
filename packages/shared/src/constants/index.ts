@@ -24,14 +24,14 @@ export const MERCH_MAX_QTY_PER_LINE = 10;
 export const TOKEN_RATE = 1;
 
 /**
- * Founders' WhatsApp group — the single persistent join CTA (קבוצת המייסדים)
+ * Founders' WhatsApp group - the single persistent join CTA (קבוצת המייסדים)
  * across the site. Centralized so the invite can be rotated in one place.
  */
 export const WHATSAPP_FOUNDERS_LINK =
   'https://chat.whatsapp.com/FITvea9IVsn2Ljie1yCrAc';
 
 /**
- * The desk's public address — where a reader writes to a person rather than
+ * The desk's public address - where a reader writes to a person rather than
  * to a form. Distinct from `support@` (transactional, quoted in the legal
  * pages) on purpose: this one is the masthead's.
  */
@@ -56,7 +56,7 @@ export const GPS_ACCURACY_THRESHOLD = 100;
 
 // Israeli municipalities (sample list)
 // GENERATED from taruu-agents discovery/seeds/municipalities.il.json
-// (name_he with NAME_ALIASES applied) — every Israeli local authority the
+// (name_he with NAME_ALIASES applied) - every Israeli local authority the
 // discovery fleet covers. Regenerate when the seed changes; do not hand-edit.
 export const MUNICIPALITIES = [
   'אבו בסמה',
@@ -325,7 +325,7 @@ export * from './geo';
 export type Municipality = (typeof MUNICIPALITIES)[number];
 
 /**
- * National scope pseudo-municipality — votes carrying this municipality_id
+ * National scope pseudo-municipality - votes carrying this municipality_id
  * are Knesset-agenda topics (majority decision at the national desk), not
  * local ones. Kept out of MUNICIPALITIES so municipal pickers never list it.
  */

@@ -1,16 +1,16 @@
 /**
- * The ₪50 creation fee at approval — SPACE-05, issue #75.
+ * The ₪50 creation fee at approval - SPACE-05, issue #75.
  *
  * This file covers exactly one thing: the interaction between the decision and
  * `CreationFeePort`. Who gets billed, when the charge fires relative to the
  * publish, what a decline leaves behind, and which decisions never charge at
- * all. The guard chain itself — capability, scope, self-review, the reason
- * field — belongs to space-admin-decide.test.ts and is not repeated here.
+ * all. The guard chain itself - capability, scope, self-review, the reason
+ * field - belongs to space-admin-decide.test.ts and is not repeated here.
  *
  * The port is stubbed, so what this proves is ordering and argument
  * correctness. That a retried approval actually collapses onto one `payments`
  * row is the UNIQUE constraint's guarantee, not this file's; what is asserted
- * here is the precondition for it — that both attempts ask for the same thing.
+ * here is the precondition for it - that both attempts ask for the same thing.
  */
 
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';

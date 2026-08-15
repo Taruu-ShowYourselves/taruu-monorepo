@@ -1,5 +1,5 @@
 /**
- * POST /api/space-admin/{spaceId}/notifications/send — dispatch a costed campaign.
+ * POST /api/space-admin/{spaceId}/notifications/send - dispatch a costed campaign.
  *
  * Thin imperative shell: session → zod parse → use-case → respond. There is no
  * burst gate here on purpose: the monthly quota is a count of campaign rows
@@ -24,7 +24,7 @@ export async function POST(
 
   const { spaceId } = await params;
 
-  // after() needs a live request scope (unavailable in unit tests) — fall back
+  // after() needs a live request scope (unavailable in unit tests) - fall back
   // to fire-and-forget so the push fan-out never blocks or breaks the response.
   // Copied verbatim from `app/api/votes/route.ts`.
   const defer = (task: () => Promise<void>) => {

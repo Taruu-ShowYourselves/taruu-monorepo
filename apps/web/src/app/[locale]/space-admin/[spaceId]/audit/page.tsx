@@ -20,7 +20,7 @@ import styles from './page.module.css';
 import { localePrefix } from '@/lib/i18n';
 
 /**
- * Surface 6 — `/space-admin/{spaceId}/audit`.
+ * Surface 6 - `/space-admin/{spaceId}/audit`.
  *
  * The page calls `listSpaceAudit`, the authorized use-case, which resolves
  * `audit.read` before it reaches anything. It does NOT call the repository
@@ -36,7 +36,7 @@ import { localePrefix } from '@/lib/i18n';
 const HEADING_ID = 'space-admin-audit-heading';
 
 const STANDFIRST =
-  'היומן הוא רשומה בלתי ניתנת לשינוי. אי אפשר לערוך או למחוק ממנו רשומה — גם לא מנהל־על, וגם לא כשהרשאות מושעות.';
+  'היומן הוא רשומה בלתי ניתנת לשינוי. אי אפשר לערוך או למחוק ממנו רשומה - גם לא מנהל־על, וגם לא כשהרשאות מושעות.';
 
 type SearchParams = Record<string, string | string[] | undefined>;
 

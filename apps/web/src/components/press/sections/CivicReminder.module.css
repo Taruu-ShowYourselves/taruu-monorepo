@@ -44,22 +44,21 @@
   pointer-events: none;
 }
 
+/* A statement and the door it opens, stacked on the centre line: split across
+   the spread the sentence hung off one edge and its call-to-action off the
+   other, with the whole width of the page between them. */
 .inner {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(18rem, 0.5fr);
-  grid-template-areas: 'headline action';
-  /* Keep the call-to-action aligned to the visual centre of the statement,
-     rather than to its baseline at the bottom of this editorial spread. */
-  align-items: center;
-  gap: clamp(1.25rem, 3vw, 3.5rem);
+  justify-items: center;
+  gap: clamp(1.25rem, 3vh, 2.25rem);
   inline-size: 100%;
   max-inline-size: var(--np-container);
   margin-inline: auto;
+  text-align: center;
 }
 
 .headline {
-  grid-area: headline;
-  max-inline-size: 18ch;
+  max-inline-size: 20ch;
   margin: 0;
   font-family: var(--np-font-display);
   font-size: clamp(2.5rem, 4.2vw, 5rem);
@@ -75,9 +74,8 @@
 }
 
 .action {
-  grid-area: action;
   display: grid;
-  align-content: center;
+  justify-items: center;
 }
 
 .cta {
@@ -107,33 +105,43 @@
   background: var(--np-red);
 }
 
+/* Narrower still: the measure tightens so the centred lines read as a column
+   rather than as a paragraph that happens to be centred, and the button stops
+   stretching to the gutter. */
 @media (max-width: 800px) {
   .section {
     block-size: 50svh;
     min-block-size: 23rem;
-    padding-block: clamp(1.75rem, 4vh, 2.5rem);
+    padding-block: clamp(2.5rem, 8vh, 4.5rem);
+    padding-inline: clamp(var(--space-6), 8vw, var(--space-12));
   }
 
   .inner {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      'headline'
-      'action';
-    align-items: start;
+    gap: clamp(var(--space-6), 6vh, var(--space-12));
   }
 
   .headline {
-    max-inline-size: 13ch;
+    /* Narrow enough that the ragged edges stay symmetrical: a 15ch line set
+       centre reads as a column, a 20ch one reads as a paragraph that happens
+       to be centred. */
+    max-inline-size: 15ch;
+    margin-inline: auto;
+    text-align: center;
     font-size: clamp(2.2rem, 10.5vw, 3.6rem);
     line-height: 0.98;
   }
 
   .action {
-    inline-size: 100%;
+    inline-size: auto;
   }
 
+  /* Sized to its own words rather than to the column - space-between has
+     nothing to distribute once the button stops being full width. */
   .cta {
-    min-block-size: 2.9rem;
+    justify-content: center;
+    gap: 0.85rem;
+    min-block-size: 3rem;
+    padding-inline: 1.6rem;
     font-size: clamp(0.9rem, 4vw, 1.05rem);
   }
 }

@@ -9,6 +9,11 @@ import { localePath, localePrefix } from '@/lib/i18n';
 
 const WHATSAPP_LINK = WHATSAPP_FOUNDERS_LINK;
 
+/* Mirrors LAUNCH_AT in Countdown.tsx - the fixed national launch moment
+   (04.08.26, midnight Israel time). A fixed date means server and client
+   reach the same verdict, so SSR never flashes the wrong composition. */
+const LAUNCH_AT = Date.parse('2026-08-04T00:00:00+03:00');
+
 interface ColophonProps {
   locale?: Locale;
 }
@@ -17,6 +22,8 @@ interface ColophonCopy {
   kicker: string;
   subHead: string;
   subHeadRed: string;
+  subHeadRedLive: string;
+  liveFlag: string;
   wordmark: string;
   tagline: string;
   foundersCta: string;
@@ -45,6 +52,8 @@ const COPY: Record<Locale, ColophonCopy> = {
     kicker: 'הישארו מעודכנים · SUBSCRIBE',
     subHead: 'אל תפספסו את',
     subHeadRed: 'ההצבעה הראשונה.',
+    subHeadRedLive: 'ההצבעה הבאה.',
+    liveFlag: 'ההצבעה פתוחה · LIVE',
     wordmark: 'תַּרְאוּ',
     tagline: 'עיתון אזרחי. מודדים, מאמתים, מנגישים.',
     foundersCta: 'קבוצת המייסדים',
@@ -71,6 +80,8 @@ const COPY: Record<Locale, ColophonCopy> = {
     kicker: 'Stay updated · הישארו מעודכנים',
     subHead: 'Don’t miss',
     subHeadRed: 'the first vote.',
+    subHeadRedLive: 'the next vote.',
+    liveFlag: 'Voting is open · LIVE',
     wordmark: 'Taruu',
     tagline: 'A civic newspaper. We measure, we verify, we make it public.',
     foundersCta: 'The founders’ group',
@@ -97,16 +108,21 @@ const COPY: Record<Locale, ColophonCopy> = {
 
 export function Colophon({ locale = 'he' }: ColophonProps) {
   const t = COPY[locale];
+  const launched = Date.now() >= LAUNCH_AT;
   return (
     <footer id="subscribe" className={styles.colophon}>
       {/* Subscribe */}
       <div className={styles.subscribe}>
         <div className={styles.subLeft}>
           <span className={styles.kicker}><span aria-hidden className={styles.tick} />{t.kicker}</span>
-          <h2 className={styles.subHead}>{t.subHead} <span className={styles.red}>{t.subHeadRed}</span></h2>
+          <h2 className={styles.subHead}>{t.subHead} <span className={styles.red}>{launched ? t.subHeadRedLive : t.subHeadRed}</span></h2>
         </div>
         <div className={styles.subRight}>
-          <CountdownClock className={styles.countdown} locale={locale} />
+          {launched ? (
+            <span className={styles.liveFlag}>{t.liveFlag}</span>
+          ) : (
+            <CountdownClock className={styles.countdown} locale={locale} />
+          )}
           <SubscribeForm locale={locale} />
         </div>
       </div>
@@ -124,7 +140,7 @@ export function Colophon({ locale = 'he' }: ColophonProps) {
             rel="noopener noreferrer"
             variant="red"
             size="sm"
-            className={styles.foundersCta}
+            className={`${styles.foundersCta} ${styles.btnOnInk}`}
             trailing={<span aria-hidden>{t.arrow}</span>}
           >
             {t.foundersCta}

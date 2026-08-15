@@ -10,7 +10,7 @@ import 'server-only';
  * Neither path deletes anything. Suspension sets a nullable column on the
  * suspension record and on the member's active grants; reinstatement clears
  * them again. The member's audit history is untouched by both, which is the
- * property SPACE-09 is actually about — the acceptance criterion is not "access
+ * property SPACE-09 is actually about - the acceptance criterion is not "access
  * stops" but "access stops and the record survives".
  */
 

@@ -160,7 +160,7 @@ export function PilotArrivalClient() {
             <>
               <h1>הקול של <em>{linkedMunicipality?.municipalityId ?? 'הרשויות המשתתפות'}</em> עולה למבחן.</h1>
               <p className={styles.lead}>
-                עשר רשויות נמדדו כבעלות המעורבות האזרחית הגבוהה בארץ. חמשת הנושאים שנרשמו בכל רשות פתוחים עכשיו לצפייה — ולהצבעה לתושביה בלבד.
+                עשר רשויות נמדדו כבעלות המעורבות האזרחית הגבוהה בארץ. חמשת הנושאים שנרשמו בכל רשות פתוחים עכשיו לצפייה - ולהצבעה לתושביה בלבד.
               </p>
               {linkedMunicipality ? <Topics municipality={linkedMunicipality} /> : <p className={styles.note}>הגעתם בלי קישור קבוצה? אפשר לבחור רשות פיילוט בשלב הבא.</p>}
               <NewsButton variant="red" size="lg" onClick={() => setStep('role')} trailing={<span aria-hidden>←</span>}>המשיכו לפיילוט</NewsButton>
@@ -181,12 +181,12 @@ export function PilotArrivalClient() {
           )}
           {step === 'consent' && (
             <>
-              <h1>שיתוף מיקום — <em>הפעם הוא נשלח אלינו.</em></h1>
+              <h1>שיתוף מיקום - <em>הפעם הוא נשלח אלינו.</em></h1>
               <p className={styles.lead}>המיקום נשלח פעם אחת כדי לאמת את הרשות המשתתפת. הוא נשמר רק לתיעוד הפיילוט, לא משמש לפרסום ולא נחשף למשתתפים אחרים.</p>
               <div className={styles.consent}><span>מה נשלח</span><strong>קואורדינטות GPS ורמת דיוק</strong><span>למה</span><strong>אימות שיוך לרשות</strong></div>
               <div className={styles.actions}>
                 <NewsButton variant="red" size="lg" disabled={locating} onClick={locate}>{locating ? 'בודקים מיקום…' : 'אשרו ושתפו מיקום'}</NewsButton>
-                <button className={styles.textButton} onClick={() => setStep('confirm')}>בלי מיקום — אבחר ידנית</button>
+                <button className={styles.textButton} onClick={() => setStep('confirm')}>בלי מיקום - אבחר ידנית</button>
               </div>
             </>
           )}
@@ -197,7 +197,7 @@ export function PilotArrivalClient() {
               <div className={styles.municipalities}>
                 {municipalities.map((municipality) => (
                   <button key={municipality.municipalityId} className={selectedMuni === municipality.municipalityId ? styles.muniSelected : styles.muni} onClick={() => setSelectedMuni(municipality.municipalityId)}>
-                    <span>{selectedMuni === municipality.municipalityId ? '✓' : '○'}</span><strong>{municipality.municipalityId}</strong><small>מקום {municipality.rank ?? '—'} · {municipality.votes.length} נושאים</small>
+                    <span>{selectedMuni === municipality.municipalityId ? '✓' : '○'}</span><strong>{municipality.municipalityId}</strong><small>מקום {municipality.rank ?? '-'} · {municipality.votes.length} נושאים</small>
                   </button>
                 ))}
               </div>

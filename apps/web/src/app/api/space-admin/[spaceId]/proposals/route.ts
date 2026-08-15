@@ -1,5 +1,5 @@
 /**
- * GET /api/space-admin/{spaceId}/proposals — the review queue.
+ * GET /api/space-admin/{spaceId}/proposals - the review queue.
  *
  * Thin imperative shell: session → zod parse → use-case → respond. The space
  * predicate never appears here; it is read off the `SpaceScope` the use-case

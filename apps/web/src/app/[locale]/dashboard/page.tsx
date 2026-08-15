@@ -534,6 +534,8 @@ export default function DashboardPage() {
   if (isLoading || dataLoading) {
     return (
       <div className={styles.loadingContainer}>
+        <span className={styles.loadingWordmark}>תַּרְאוּ.</span>
+        <span className={styles.loadingKicker}>{t.mastheadKicker}</span>
         <PressLoader />
         <p className={styles.loadingText}>{t.loading}</p>
       </div>

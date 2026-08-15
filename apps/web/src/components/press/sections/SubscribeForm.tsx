@@ -6,6 +6,8 @@ import { NewsButton } from '@/components/press/NewsButton';
 import { pressShake } from '@/components/press/PressForm/PressForm';
 import type { Locale } from '@/lib/i18n';
 import styles from './SubscribeForm.module.css';
+/* The footer's on-ink hover override lives with the footer that needs it. */
+import colophonStyles from './Colophon.module.css';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -210,16 +212,21 @@ export function SubscribeForm({ locale = 'he' }: SubscribeFormProps) {
         </p>
       ) : (
         <form ref={formRef} className={styles.form} onSubmit={submit} noValidate>
-          <div className={styles.fieldBlock} data-rise>
-            <div className={styles.fieldMast}>
-              <span className={styles.fieldKicker}>
-                <span aria-hidden className={styles.cursor} />
-                {t.fieldKicker}
-              </span>
-              <span className={styles.validity} data-on={valid || undefined} aria-hidden>
-                OK
-              </span>
-            </div>
+          <div className={styles.fieldMast} data-rise>
+            <span className={styles.fieldKicker}>
+              <span aria-hidden className={styles.cursor} />
+              {t.fieldKicker}
+            </span>
+            <span
+              className={styles.validity}
+              data-show={email.length > 0 || undefined}
+              data-on={valid || undefined}
+              aria-hidden
+            >
+              OK
+            </span>
+          </div>
+          <div className={styles.slab} data-rise>
             <div className={styles.inputFrame}>
               <input
                 className={styles.input}
@@ -239,9 +246,13 @@ export function SubscribeForm({ locale = 'he' }: SubscribeFormProps) {
               />
               <span aria-hidden className={styles.bar} />
             </div>
-          </div>
-          <div className={styles.action} data-rise>
-            <NewsButton type="submit" variant="red" size="lg" disabled={state === 'loading'}>
+            <NewsButton
+              type="submit"
+              variant="red"
+              size="lg"
+              className={colophonStyles.btnOnInk}
+              disabled={state === 'loading'}
+            >
               {state === 'loading' ? <span className={styles.sending}>{t.sending}</span> : t.submit}
             </NewsButton>
           </div>

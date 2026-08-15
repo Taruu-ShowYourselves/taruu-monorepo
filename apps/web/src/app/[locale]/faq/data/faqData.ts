@@ -96,7 +96,7 @@ export const faqData: FAQItem[] = [
   },
 ];
 
-/** English mirror of `faqData` — same ids and categories, translated copy. */
+/** English mirror of `faqData` - same ids and categories, translated copy. */
 export const faqDataEn: FAQItem[] = [
   {
     id: 'what-is-taru',

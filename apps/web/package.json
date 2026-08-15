@@ -2,6 +2,7 @@
   "name": "@sync/web",
   "version": "1.0.0",
   "private": true,
+  "sideEffects": ["*.css", "**/*.css"],
   "scripts": {
     "predev": "node scripts/copy-ocr-assets.mjs",
     "dev": "next dev --turbopack",

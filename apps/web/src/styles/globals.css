@@ -8,311 +8,328 @@
 @import './tokens.css';
 @import './tailwind.css';
 
-/* ============================================
- * CSS RESET & BASE STYLES
- * ============================================ */
+/* Element resets and base type live in @layer base so that Tailwind's
+ * utilities - @layer utilities, declared after base in tailwind.css - can win
+ * against them. Unlayered CSS still beats both, so every CSS Module and the
+ * np- and lc- utility classes further down this file keep the last word; only
+ * the bare-element resets moved.
+ *
+ * Without this the universal reset's `padding: 0` and the button reset
+ * silently defeated every padding, background and border utility in
+ * src/components/uikit - an unlayered rule outranks a layered one whatever
+ * its specificity - which is why those components rendered unpadded and
+ * unboxed on every page built out of them.
+ */
+@layer base {
+  /* ============================================
+   * CSS RESET & BASE STYLES
+   * ============================================ */
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html {
-  /* Direction is set by layout.tsx based on locale */
-  scroll-behavior: smooth;
-  scrollbar-width: none;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  font-size: 16px;
-}
-
-/* Form controls and buttons don't reliably inherit smoothing from html on
- * every engine - pin it so UI chrome renders as crisply as copy. */
-button,
-input,
-textarea,
-select {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* Lenis smooth scroll */
-html.lenis,
-html.lenis body {
-  height: auto;
-}
-
-.lenis.lenis-smooth {
-  scroll-behavior: auto !important;
-}
-
-.lenis.lenis-smooth [data-lenis-prevent] {
-  overscroll-behavior: contain;
-}
-
-.lenis.lenis-stopped {
-  overflow: hidden;
-}
-
-.lenis.lenis-smooth iframe {
-  pointer-events: none;
-}
-
-body {
-  font-family: var(--font-primary);
-  font-size: var(--text-base);
-  font-weight: var(--font-weight-regular);
-  line-height: var(--leading-normal);
-  /* Press ink as the inherited default; ink/red blocks set paper on their
-   * container and headings/paragraphs now inherit it (see below). */
-  color: var(--np-ink);
-  background-color: var(--color-background);
-  min-height: 100vh;
-  overflow-x: hidden;
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Film-grain texture over the whole page - unifies sections with a subtle
- * print feel. Pure data-URI SVG noise: zero requests, GPU-composited. */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-max);
-  pointer-events: none;
-  opacity: 0.035;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-}
-
-/* High-quality resampling everywhere - `-webkit-optimize-contrast` forces a
- * cheap sharpening path that aliases downscaled photos; `auto` lets the GPU
- * use its full trilinear/anisotropic pipeline instead. */
-img,
-svg,
-video {
-  image-rendering: auto;
-}
-
-/* Anisotropic-friendly rendering for media that gets transformed/scaled:
- * promote to its own GPU layer so filtering happens in the compositor. */
-.aniso,
-img[data-aniso] {
-  transform: translateZ(0);
-  backface-visibility: hidden;
-}
-
-/* ============================================
- * TYPOGRAPHY BASE
- * ============================================ */
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: var(--font-secular-one), var(--font-primary);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--leading-tight);
-  /* Inherit container colour so headings render correctly on ink/red blocks. */
-  color: inherit;
-}
-
-/* Logo specific font */
-.logo-text {
-  font-family: var(--font-secular-one), var(--font-primary);
-  font-weight: 400;
-}
-
-/* Fluid headings - mobile-first, scale smoothly to the type ramp */
-h1 {
-  font-size: clamp(var(--text-4xl), 3.5vw + 1.6rem, var(--text-6xl));
-  letter-spacing: var(--tracking-tight);
-}
-
-h2 {
-  font-size: clamp(var(--text-3xl), 2.6vw + 1.3rem, var(--text-5xl));
-  letter-spacing: var(--tracking-tight);
-}
-
-h3 {
-  font-size: clamp(var(--text-2xl), 1.8vw + 1.1rem, var(--text-4xl));
-}
-
-h4 {
-  font-size: clamp(var(--text-xl), 1.2vw + 1rem, var(--text-3xl));
-}
-
-h5 {
-  font-size: var(--text-2xl);
-}
-
-h6 {
-  font-size: var(--text-xl);
-}
-
-p {
-  font-family: var(--font-secondary);
-  font-size: var(--text-lg);
-  line-height: var(--leading-relaxed);
-  /* Inherit container colour so paragraphs render correctly on ink/red blocks
-   * (cream pages inherit ink from body; ink blocks inherit paper). */
-  color: inherit;
-}
-
-a {
-  color: var(--color-primary);
-  text-decoration: none;
-  transition: color var(--duration-fast) var(--ease-default);
-}
-
-a:hover {
-  color: var(--color-primary-dark);
-}
-
-a:focus-visible {
-  outline: var(--focus-ring-width) solid var(--focus-ring-color);
-  outline-offset: var(--focus-ring-offset);
-  border-radius: var(--radius-sm);
-}
-
-strong,
-b {
-  font-weight: var(--font-weight-bold);
-}
-
-em,
-i {
-  font-style: italic;
-}
-
-small {
-  font-size: var(--text-sm);
-}
-
-/* ============================================
- * LAYOUT UTILITIES
- * ============================================ */
-
-.container {
-  width: 100%;
-  max-width: var(--container-7xl);
-  margin-inline: auto;
-  padding-inline: var(--space-6);
-}
-
-@media (min-width: 768px) {
-  .container {
-    padding-inline: var(--space-8);
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
   }
-}
 
-@media (min-width: 1024px) {
-  .container {
-    padding-inline: var(--space-12);
+  html {
+    /* Direction is set by layout.tsx based on locale */
+    scroll-behavior: smooth;
+    /* No rubber band at either end: the page is a sequence of full screens and
+       a bounce past the last one reads as a broken layout, not as elasticity. */
+    overscroll-behavior-y: none;
+    scrollbar-width: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-size: 16px;
   }
-}
 
-/* ============================================
- * SELECTION STYLES
- * ============================================ */
+  /* Form controls and buttons don't reliably inherit smoothing from html on
+   * every engine - pin it so UI chrome renders as crisply as copy. */
+  button,
+  input,
+  textarea,
+  select {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-::selection {
-  background-color: var(--color-primary-200);
-  color: var(--color-primary-900);
-}
+  /* Lenis smooth scroll */
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
 
-/* ============================================
- * SCROLLBAR STYLES
- * ============================================ */
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
 
-html::-webkit-scrollbar,
-body::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
-}
+  .lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+  }
 
-/* ============================================
- * FOCUS STYLES
- * ============================================ */
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
 
-:focus {
-  outline: none;
-}
+  .lenis.lenis-smooth iframe {
+    pointer-events: none;
+  }
 
-:focus-visible {
-  outline: var(--focus-ring-width) solid var(--focus-ring-color);
-  outline-offset: var(--focus-ring-offset);
-}
+  body {
+    font-family: var(--font-primary);
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-regular);
+    line-height: var(--leading-normal);
+    /* Press ink as the inherited default; ink/red blocks set paper on their
+     * container and headings/paragraphs now inherit it (see below). */
+    color: var(--np-ink);
+    background-color: var(--color-background);
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
 
-/* ============================================
- * BUTTON RESET
- * ============================================ */
+  /* Film-grain texture over the whole page - unifies sections with a subtle
+   * print feel. Pure data-URI SVG noise: zero requests, GPU-composited. */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-max);
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+  }
 
-button {
-  font-family: inherit;
-  font-size: inherit;
-  line-height: inherit;
-  color: inherit;
-  background: none;
-  border: none;
-  cursor: pointer;
-}
+  /* High-quality resampling everywhere - `-webkit-optimize-contrast` forces a
+   * cheap sharpening path that aliases downscaled photos; `auto` lets the GPU
+   * use its full trilinear/anisotropic pipeline instead. */
+  img,
+  svg,
+  video {
+    image-rendering: auto;
+  }
 
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
+  /* Anisotropic-friendly rendering for media that gets transformed/scaled:
+   * promote to its own GPU layer so filtering happens in the compositor. */
+  .aniso,
+  img[data-aniso] {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
 
-/* ============================================
- * IMAGE RESET
- * ============================================ */
+  /* ============================================
+   * TYPOGRAPHY BASE
+   * ============================================ */
 
-img,
-picture,
-video,
-canvas,
-svg {
-  display: block;
-  max-width: 100%;
-  height: auto;
-}
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-secular-one), var(--font-primary);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--leading-tight);
+    /* Inherit container colour so headings render correctly on ink/red blocks. */
+    color: inherit;
+  }
 
-/* ============================================
- * FORM RESET
- * ============================================ */
+  /* Logo specific font */
+  .logo-text {
+    font-family: var(--font-secular-one), var(--font-primary);
+    font-weight: 400;
+  }
 
-input,
-textarea,
-select {
-  font-family: inherit;
-  font-size: inherit;
-  line-height: inherit;
-  color: inherit;
-}
+  /* Fluid headings - mobile-first, scale smoothly to the type ramp */
+  h1 {
+    font-size: clamp(var(--text-4xl), 3.5vw + 1.6rem, var(--text-6xl));
+    letter-spacing: var(--tracking-tight);
+  }
 
-/* ============================================
- * LIST RESET
- * ============================================ */
+  h2 {
+    font-size: clamp(var(--text-3xl), 2.6vw + 1.3rem, var(--text-5xl));
+    letter-spacing: var(--tracking-tight);
+  }
 
-ul,
-ol {
-  list-style: none;
-}
+  h3 {
+    font-size: clamp(var(--text-2xl), 1.8vw + 1.1rem, var(--text-4xl));
+  }
 
-/* ============================================
- * TABLE RESET
- * ============================================ */
+  h4 {
+    font-size: clamp(var(--text-xl), 1.2vw + 1rem, var(--text-3xl));
+  }
 
-table {
-  border-collapse: collapse;
-  border-spacing: 0;
+  h5 {
+    font-size: var(--text-2xl);
+  }
+
+  h6 {
+    font-size: var(--text-xl);
+  }
+
+  p {
+    font-family: var(--font-secondary);
+    font-size: var(--text-lg);
+    line-height: var(--leading-relaxed);
+    /* Inherit container colour so paragraphs render correctly on ink/red blocks
+     * (cream pages inherit ink from body; ink blocks inherit paper). */
+    color: inherit;
+  }
+
+  a {
+    color: var(--color-primary);
+    text-decoration: none;
+    transition: color var(--duration-fast) var(--ease-default);
+  }
+
+  a:hover {
+    color: var(--color-primary-dark);
+  }
+
+  a:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+    border-radius: var(--radius-sm);
+  }
+
+  strong,
+  b {
+    font-weight: var(--font-weight-bold);
+  }
+
+  em,
+  i {
+    font-style: italic;
+  }
+
+  small {
+    font-size: var(--text-sm);
+  }
+
+  /* ============================================
+   * LAYOUT UTILITIES
+   * ============================================ */
+
+  .container {
+    width: 100%;
+    max-width: var(--container-7xl);
+    margin-inline: auto;
+    padding-inline: var(--space-6);
+  }
+
+  @media (min-width: 768px) {
+    .container {
+      padding-inline: var(--space-8);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      padding-inline: var(--space-12);
+    }
+  }
+
+  /* ============================================
+   * SELECTION STYLES
+   * ============================================ */
+
+  ::selection {
+    background-color: var(--color-primary-200);
+    color: var(--color-primary-900);
+  }
+
+  /* ============================================
+   * SCROLLBAR STYLES
+   * ============================================ */
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  /* ============================================
+   * FOCUS STYLES
+   * ============================================ */
+
+  :focus {
+    outline: none;
+  }
+
+  :focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  /* ============================================
+   * BUTTON RESET
+   * ============================================ */
+
+  button {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  /* ============================================
+   * IMAGE RESET
+   * ============================================ */
+
+  img,
+  picture,
+  video,
+  canvas,
+  svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* ============================================
+   * FORM RESET
+   * ============================================ */
+
+  input,
+  textarea,
+  select {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+  }
+
+  /* ============================================
+   * LIST RESET
+   * ============================================ */
+
+  ul,
+  ol {
+    list-style: none;
+  }
+
+  /* ============================================
+   * TABLE RESET
+   * ============================================ */
+
+  table {
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
 }
 
 /* ============================================
@@ -448,7 +465,7 @@ table {
   padding-inline: var(--np-gutter);
 }
 
-/* Desk + sheet — WORKSPACE surfaces only (dashboard, settings, verification,
+/* Desk + sheet - WORKSPACE surfaces only (dashboard, settings, verification,
  * the create flow, space-admin). The editorial pages deliberately do NOT use
  * these: there the newspaper IS the page, and a sheet inside a masthead would
  * frame the frame.
