@@ -55,7 +55,7 @@ function FlowGlyph({ kind }: { kind: 'vote' | 'fund' | 'impact' }) {
  * Red mechanical arrow connector (CSS-driven color, hard strokes).
  *
  * Drawn pointing left, which is forward in RTL. The English edition reads the
- * other way, so it mirrors — an arrow that points backwards down the flow is
+ * other way, so it mirrors - an arrow that points backwards down the flow is
  * worse than no arrow.
  */
 function Arrow({ flip }: { flip: boolean }) {

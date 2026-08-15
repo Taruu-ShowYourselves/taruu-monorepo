@@ -12,7 +12,7 @@ const META: Record<Locale, Metadata> = {
       'האפליקציה של תַּרְאוּ תהיה זמינה ב-App Store וב-Google Play לקראת ההצבעה הראשונה. הצטרפו לקבוצת המייסדים ותהיו הראשונים לדעת כשהיא יוצאת.',
   },
   en: {
-    title: 'Taruu in your pocket — coming soon',
+    title: 'Taruu in your pocket - coming soon',
     description:
       'The Taruu app will be available on the App Store and Google Play ahead of the first vote. Join the founders’ group and be the first to know when it ships.',
   },

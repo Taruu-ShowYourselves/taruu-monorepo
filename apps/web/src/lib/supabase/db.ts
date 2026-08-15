@@ -751,7 +751,7 @@ export async function getVoteById(voteId: string): Promise<Vote | null> {
  *
  * This bypasses the PUBLIC_VOTE_STATUSES allow-list and will return proposals
  * that are still under review. It may only be called from a server-side
- * use-case that has already authorized the caller — a space reviewer holding
+ * use-case that has already authorized the caller - a space reviewer holding
  * the relevant capability, a cron/resolution job, or the vote's own submitter.
  * Never call it from a route that serves an unauthenticated reader.
  */
@@ -822,7 +822,7 @@ export async function getVotesByMunicipality(
     query = query.eq('status', status);
   } else {
     // No explicit status means "everything a resident may see", not
-    // "everything" — without this the listing would surface review-state
+    // "everything" - without this the listing would surface review-state
     // proposals the moment one can be written.
     query = query.in('status', PUBLIC_VOTE_STATUSES);
   }
@@ -834,6 +834,47 @@ export async function getVotesByMunicipality(
     return [];
   }
   return data || [];
+}
+
+/**
+ * Every ballot the public has finished with, tallies included.
+ *
+ * The mirror of `getActiveVotesWithOptions` for the far end of a topic's life:
+ * once a vote closes it stops being a question and becomes a decision, and the
+ * civic mandate is nothing but the list of those decisions. `resolving` and
+ * `resolved` are in the window because a closed count does not stop being the
+ * public's answer while the authority is being told about it.
+ *
+ * Degrades to an empty list rather than throwing, like its active twin: a
+ * mandate with nothing on it is a true statement about a young ledger, and a
+ * failed page is not.
+ */
+export async function getDecidedVotesWithOptions(): Promise<
+  (Vote & { options: VoteOption[]; source: VoteSource | null })[]
+> {
+  const { data, error } = await supabaseAdmin
+    .from('votes')
+    .select(`
+      *,
+      vote_options (*),
+      vote_sources (*)
+    `)
+    .in('status', ['ended', 'resolving', 'resolved'])
+    .order('end_date', { ascending: false });
+
+  if (error) {
+    console.error('Failed to get decided votes with options:', error);
+    return [];
+  }
+
+  return (data || []).map((row: any) => {
+    const { vote_options, vote_sources, ...vote } = row;
+    return {
+      ...vote,
+      options: vote_options || [],
+      source: (Array.isArray(vote_sources) ? vote_sources[0] : vote_sources) ?? null,
+    };
+  });
 }
 
 export async function getActiveVotesWithOptions(
@@ -1023,9 +1064,9 @@ export async function getKnessetRankingsByVoteIds(
 /**
  * Vote ids of the hottest ranked, still-active Knesset votes. The client
  * can't know which votes are hot before it has the rankings, so "give me
- * the top N" has to be answered server-side — picking N votes by
+ * the top N" has to be answered server-side - picking N votes by
  * created_at and ranking those was how a routine item became the front
- * page. Degrades to [] on failure — ranking is never load-bearing.
+ * page. Degrades to [] on failure - ranking is never load-bearing.
  */
 export async function getTopRankedKnessetVoteIds(
   limit: number
@@ -1478,7 +1519,7 @@ export async function countUserVoteParticipations(userId: string): Promise<numbe
 /**
  * Count the number of votes created by a user.
  *
- * Creator-scoped, so this is not a cross-user leak — but it feeds a "votes
+ * Creator-scoped, so this is not a cross-user leak - but it feeds a "votes
  * created" statistic, and an unsubmitted draft or a rejected submission is not
  * an achievement. Those two are excluded from the count only; the listing below
  * stays unfiltered so the submitter can still see and act on them.

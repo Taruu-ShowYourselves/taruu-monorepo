@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
   const query = parse(ListQuerySchema, {
     municipality: params.get('municipality') ?? undefined,
     // normalise BEFORE validating: a review status arriving here becomes
-    // undefined — "no filter" — and falls back to the allow-list. Validating
+    // undefined - "no filter" - and falls back to the allow-list. Validating
     // first would make ?status=in_review a 400 whose very existence confirms
     // the label is real, an existence oracle for the review vocabulary.
     status: normalizeStatusFilter(params.get('status')) ?? undefined,
@@ -49,7 +49,7 @@ const CreateVoteBodySchema = CreateVoteRequestSchema.omit({ municipality: true }
 
 /**
  * POST /api/votes
- * Submit a proposal for review. Requires authentication; requires no payment —
+ * Submit a proposal for review. Requires authentication; requires no payment -
  * the ₪50 creation fee is charged when a space admin approves (issue #75).
  * Notification fan-out runs after the response via `after()`.
  */

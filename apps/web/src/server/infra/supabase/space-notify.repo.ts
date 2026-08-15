@@ -7,8 +7,8 @@ import 'server-only';
  *
  * First, the quota is counted here, from `space_notification_campaigns` rows.
  * It is not a rate limiter. `lib/rate-limit.ts` falls back to an in-process
- * `Map` whenever `UPSTASH_REDIS_REST_URL`/`_TOKEN` are unset — which they are
- * in this deployment — and on Cloudflare Workers that map is per-isolate, so N
+ * `Map` whenever `UPSTASH_REDIS_REST_URL`/`_TOKEN` are unset - which they are
+ * in this deployment - and on Cloudflare Workers that map is per-isolate, so N
  * isolates would each hand out a full monthly quota to the same space.
  *
  * Second, no query here touches the device-token table. Channel state belongs
@@ -41,7 +41,7 @@ export type NewDelivery = InsertTables<'space_notification_deliveries'>;
  * The losing side of a concurrent send, and of a retry after one succeeded.
  *
  * Lives here rather than in the use-case because the conditional UPDATE below
- * is what detects the condition — the same placement `DECISION_CONFLICT_HE` has
+ * is what detects the condition - the same placement `DECISION_CONFLICT_HE` has
  * in `space-decision.repo.ts`.
  */
 export const SEND_CONFLICT_HE = 'ההתראה כבר נשלחה.';
@@ -63,14 +63,14 @@ const CAMPAIGN_COLUMNS =
  * on the database clock: PostgREST filter values are literals, so the boundary
  * cannot be an SQL expression and has to be computed here. UTC on both sides,
  * so the two agree. The window is a **calendar month** and not a rolling 24
- * hours — the composer copy reads `מכסה חודשית` and the exhausted block names a
+ * hours - the composer copy reads `מכסה חודשית` and the exhausted block names a
  * reset date, which only means anything against a month boundary.
  */
 export function currentMonthStartIso(now: Date = new Date()): string {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
 }
 
-/** When the quota resets — the `המכסה מתאפסת ב־{date}` instant. */
+/** When the quota resets - the `המכסה מתאפסת ב־{date}` instant. */
 export function nextMonthStartIso(now: Date = new Date()): string {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
 }
@@ -78,7 +78,7 @@ export function nextMonthStartIso(now: Date = new Date()): string {
 /**
  * The candidate pool for one audience filter, before opt-outs are applied.
  *
- * Opt-out filtering deliberately does NOT happen here — it happens inside
+ * Opt-out filtering deliberately does NOT happen here - it happens inside
  * `resolveAudience`, so that no caller can obtain a candidate list and forget
  * it. This function's job is the space predicate and nothing else.
  *
@@ -132,7 +132,7 @@ export function listAudienceCandidates(
  * calendar month. Backed by `idx_space_campaign_quota (space_id, sent_at)
  * WHERE sent_at IS NOT NULL`.
  *
- * Counted from rows rather than from a request-rate limiter on purpose — see
+ * Counted from rows rather than from a request-rate limiter on purpose - see
  * the module header. A previewed-but-unsent campaign costs nothing; only
  * `sent_at` consumes quota.
  */
@@ -153,7 +153,7 @@ export function countCampaignsSentThisMonth(
   );
 }
 
-/** `spaces.notification_monthly_quota` — the ceiling the count above is read against. */
+/** `spaces.notification_monthly_quota` - the ceiling the count above is read against. */
 export function readSpaceQuota(scope: SpaceScope): ResultAsync<number, AppError> {
   const query = supabaseAdmin
     .from('spaces')
@@ -194,7 +194,7 @@ export function insertCampaign(
  *
  * The space predicate is in the SQL rather than checked after the fetch, so a
  * campaign id from another space comes back `null` and the caller returns the
- * same opaque 403 as every other denial — never a 404, which would confirm the
+ * same opaque 403 as every other denial - never a 404, which would confirm the
  * id exists somewhere.
  */
 export function findCampaignInScope(
@@ -223,7 +223,7 @@ export function findCampaignInScope(
  * concurrent sends cannot both proceed: the loser matches zero rows and gets a
  * 409 rather than a second dispatch. `markMerchOrderPaid` has used this idiom
  * in this codebase since the merch rail shipped, and `transitionProposal`
- * repeats it for decisions — a read-then-write or an advisory lock would be
+ * repeats it for decisions - a read-then-write or an advisory lock would be
  * worse here, because Supabase arrives through a pooler from Workers where
  * session-scoped lock semantics are not dependable.
  *
@@ -310,7 +310,7 @@ export function insertDeliveries(rows: NewDelivery[]): ResultAsync<void, AppErro
  *
  * The delivered and suppressed figures the caller derives from these rows come
  * from `audience_size` / `excluded_opted_out`, which the send has already
- * proved equal to the delivery log — it refuses unless the audience still
+ * proved equal to the delivery log - it refuses unless the audience still
  * fingerprints identically, then writes exactly that many rows. Recounting the
  * log instead would mean materialising every delivery row of twenty campaigns
  * to render a header list.

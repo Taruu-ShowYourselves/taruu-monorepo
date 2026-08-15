@@ -23,7 +23,7 @@ const FORE_VAR = '--np-parallax-fore';
  * section crosses the viewport.
  *
  * The hook writes offsets to custom properties rather than transforming
- * anything itself, because both layers are pseudo-elements — that keeps every
+ * anything itself, because both layers are pseudo-elements - that keeps every
  * section's backdrop entirely in its own stylesheet and leaves this file with
  * one job: turning scroll position into two numbers.
  *
@@ -38,7 +38,7 @@ export function useParallaxBackdrop<T extends HTMLElement>(
   const reducedMotion = useReducedMotion();
 
   // 0 when the section's top meets the bottom of the viewport, 1 when its
-  // bottom leaves the top — the full pass, not just the part that is on screen.
+  // bottom leaves the top - the full pass, not just the part that is on screen.
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ['start end', 'end start'],

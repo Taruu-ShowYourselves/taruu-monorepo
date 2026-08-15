@@ -61,7 +61,38 @@ interface ConsensusDeskClientProps {
   desks: MunicipalityDesk[];
   /** Civic stats for every municipality - what the dock's dial reads. */
   stats: MunicipalityCivicStats[];
+  /**
+   * Country-wide heat rank per topic id, computed on the server over the
+   * FULL ledger before the print run was cut. Computing it here over the
+   * capped desks inflated every badge below the first cut - and printed a
+   * different '#N בחום' than /feed, which ranks the uncapped ledger.
+   */
+  heatRanks: Record<string, number>;
+  /**
+   * True open-topic count per municipality, pre-cap - the dial's fallback
+   * figure when the stats read has no row. Counting the capped entries here
+   * understated every municipality that ran more than the print run.
+   */
+  openTopicCounts: Record<string, number>;
   locale: Locale;
+  /**
+   * This desk is scenery, not the desk.
+   *
+   * The intro's legitimacy beat hangs the real carousel behind its copy, which
+   * puts a second one in the document. The page's landmarks have to stay
+   * singular: `#consensus-desk` is what the Knesset page links back to, and
+   * `[data-nav-reveal]` is the element the masthead waits for before pinning
+   * its nav. A decorative copy that answered to either would take both, and it
+   * sits at the very top of the page.
+   */
+  decorative?: boolean;
+  /**
+   * Rendered inside the tabbed desk section, which owns the landmarks, the
+   * headline furniture and the 100svh frame. Embedded, this component is the
+   * stream and its dial and nothing else - the section chrome would be a
+   * second header inside somebody else's header.
+   */
+  embedded?: boolean;
 }
 
 /**
@@ -69,11 +100,27 @@ interface ConsensusDeskClientProps {
  * card names its municipality (chip → profile page). The reader's stored
  * locality (GeoGate) puts their own city's topics first.
  */
-export function ConsensusDeskClient({ desks, stats, locale }: ConsensusDeskClientProps) {
+export function ConsensusDeskClient({
+  desks,
+  stats,
+  heatRanks,
+  openTopicCounts,
+  locale,
+  decorative = false,
+  embedded = false,
+}: ConsensusDeskClientProps) {
   const t = COPY[locale];
   const [home, setHome] = useState<string | null>(null);
-  /* Which tile is at the head of the river. The dock names its municipality,
-     and the dial steers the river back through this same index. */
+  /* Which edition the dock is set to, and where the dial sends the river.
+     Set by the dial alone.
+
+     It used to follow the carousel, and the desk moving under it was enough
+     to re-point the whole instrument: the river is one continuous stream of
+     tiles from twenty authorities, so a single push sideways re-tuned the
+     needle, swapped the name and re-ran three animated figures - the toolbar
+     went off on its own while the reader was only looking at the next tile.
+     The tiles each name their own municipality; the dock answers for the one
+     the reader chose. */
   const [activeIndex, setActiveIndex] = useState(0);
   const carousel = useRef<DeskCarouselControls | null>(null);
 
@@ -85,9 +132,10 @@ export function ConsensusDeskClient({ desks, stats, locale }: ConsensusDeskClien
   }, []);
 
   // Single stream of cards. heatRank is the pure country-wide heat position
-  // (the badge); display order blends heat with distance from the reader's
-  // municipality - home first, then surroundings (e.g. a קריית טבעון reader
-  // sees the עמק before תל אביב), fading to national heat with no locality.
+  // (the badge), computed on the server over the uncapped ledger; display
+  // order blends heat with distance from the reader's municipality - home
+  // first, then surroundings (e.g. a קריית טבעון reader sees the עמק before
+  // תל אביב), fading to national heat with no locality.
   const entries = useMemo(() => {
     const flat = desks.flatMap((desk) =>
       desk.topics.map((topic) => ({ topic, municipality: desk.municipality }))
@@ -96,10 +144,6 @@ export function ConsensusDeskClient({ desks, stats, locale }: ConsensusDeskClien
     const byHeat = [...unique].sort(
       (a, b) => (b.topic.source?.hotness ?? -1) - (a.topic.source?.hotness ?? -1)
     );
-    const heatRank = new Map<string, number>();
-    byHeat.forEach(({ topic }, i) => {
-      if (topic.source) heatRank.set(topic.id, i + 1);
-    });
 
     const geoByName = new Map(MUNICIPALITY_GEO.map((m) => [m.name, m]));
     const homeGeo = home ? geoByName.get(home) : undefined;
@@ -120,8 +164,8 @@ export function ConsensusDeskClient({ desks, stats, locale }: ConsensusDeskClien
 
     return [...byHeat]
       .sort((a, b) => localityScore(b) - localityScore(a))
-      .map((e) => ({ ...e, heatRank: heatRank.get(e.topic.id) }));
-  }, [desks, home]);
+      .map((e) => ({ ...e, heatRank: heatRanks[e.topic.id] }));
+  }, [desks, heatRanks, home]);
 
   /* Every edition on the desk, in the order the river runs them - the dial
      leads with these before it offers the municipalities with nothing open. */
@@ -131,25 +175,14 @@ export function ConsensusDeskClient({ desks, stats, locale }: ConsensusDeskClien
   );
 
   /* What the desk can vouch for on its own, for municipalities the stats read
-     could not answer for. */
-  const deskTopicCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const { municipality } of entries) {
-      counts[municipality] = (counts[municipality] ?? 0) + 1;
-    }
-    return counts;
-  }, [entries]);
+     could not answer for: the server's pre-cap count, not a tally of the
+     capped entries - the dial announces open topics, not printed tiles. */
+  const deskTopicCounts = openTopicCounts;
 
   /* Re-ordering the river (the reader's locality arrives after mount) leaves
      the old index pointing at an unrelated tile. Fall back to the head. */
   const activeMunicipality =
     entries[activeIndex]?.municipality ?? entries[0]?.municipality ?? '';
-
-  // Stable identity: DeskCarousel takes this into the dep array of the
-  // callback it subscribes to Embla with.
-  const handleActiveIndex = useCallback((index: number) => {
-    setActiveIndex(index);
-  }, []);
 
   const travelTo = useCallback(
     (municipality: string) => {
@@ -163,10 +196,73 @@ export function ConsensusDeskClient({ desks, stats, locale }: ConsensusDeskClien
     [entries]
   );
 
+  /* Scenery needs a river, not the whole river: eight tiles loop seamlessly
+     behind the intro's copy, and the other fifty were pure DOM and RSC
+     payload rendered twice per page. */
+  const shown = decorative ? entries.slice(0, 8) : entries;
+
+  const emptyState = (
+    <div className={styles.emptyState}>
+      <p className={styles.emptyLede}>{t.emptyLede}</p>
+      <p className={styles.emptyNote}>{t.emptyNote}</p>
+      <NewsButton
+        href="#act-now"
+        variant="red"
+        size="md"
+        trailing={<span aria-hidden>{t.ctaArrow}</span>}
+      >
+        {t.proposeCta}
+      </NewsButton>
+    </div>
+  );
+
+  /* The desk reports nothing back: the dial steers it, not the other way
+     round. */
+  const stream = (
+    <DeskStream
+      label={t.carouselLabel}
+      locale={locale}
+      entries={shown}
+      controlsRef={carousel}
+      decorative={decorative}
+    />
+  );
+
+  if (decorative) {
+    /* Scenery keeps the section shell for its measure and padding, and
+       nothing else: no landmarks, no header, no dial - and out of the
+       accessibility tree entirely, which the full copy never was. */
+    return (
+      <section className={styles.desk} aria-hidden>
+        <div className={styles.inner}>{shown.length === 0 ? null : stream}</div>
+      </section>
+    );
+  }
+
+  if (embedded) {
+    /* The tabbed section owns the frame; this is its filling. */
+    return shown.length === 0 ? (
+      emptyState
+    ) : (
+      <>
+        {stream}
+        <MunicipalityDock
+          active={activeMunicipality}
+          deskOrder={deskOrder}
+          deskTopicCounts={deskTopicCounts}
+          stats={stats}
+          home={home}
+          onSelect={travelTo}
+          locale={locale}
+        />
+      </>
+    );
+  }
+
   return (
     <section
       id="consensus-desk"
-      data-nav-reveal
+      data-nav-reveal=""
       className={styles.desk}
       aria-labelledby="consensus-desk-headline"
     >
@@ -186,28 +282,11 @@ export function ConsensusDeskClient({ desks, stats, locale }: ConsensusDeskClien
 
         <div className={styles.ruleHeavy} aria-hidden />
 
-        {entries.length === 0 ? (
-          <div className={styles.emptyState}>
-            <p className={styles.emptyLede}>{t.emptyLede}</p>
-            <p className={styles.emptyNote}>{t.emptyNote}</p>
-            <NewsButton
-              href="#act-now"
-              variant="red"
-              size="md"
-              trailing={<span aria-hidden>{t.ctaArrow}</span>}
-            >
-              {t.proposeCta}
-            </NewsButton>
-          </div>
+        {shown.length === 0 ? (
+          emptyState
         ) : (
           <>
-            <DeskStream
-              label={t.carouselLabel}
-              locale={locale}
-              entries={entries}
-              onActiveIndexChange={handleActiveIndex}
-              controlsRef={carousel}
-            />
+            {stream}
 
             <MunicipalityDock
               active={activeMunicipality}

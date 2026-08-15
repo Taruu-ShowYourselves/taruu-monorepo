@@ -8,12 +8,12 @@ const METADATA: Record<Locale, Metadata> = {
   he: {
     title: 'פרופיל מועצה ציבורי | תַּרְאוּ',
     description:
-      'אוכלוסייה רשמית, קהילת תַּרְאוּ, מנהלים, משתמשים משלמים והצבעות — עם מקורות וזמני עדכון.',
+      'אוכלוסייה רשמית, קהילת תַּרְאוּ, מנהלים, משתמשים משלמים והצבעות - עם מקורות וזמני עדכון.',
   },
   en: {
     title: 'Public council profile | Taruu',
     description:
-      'Official population, the Taruu community, managers, paying users and votes — with sources and update times.',
+      'Official population, the Taruu community, managers, paying users and votes - with sources and update times.',
   },
 };
 

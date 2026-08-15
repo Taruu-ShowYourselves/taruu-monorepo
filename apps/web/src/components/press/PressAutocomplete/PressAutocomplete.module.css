@@ -30,3 +30,13 @@
 .hint {
   color: var(--np-ink-faint);
 }
+
+/* House arrow in place of MUI's chevron. MUI still rotates the indicator
+   180° while the listbox is open, which turns ↓ into ↑ for free. */
+.caret {
+  font-family: var(--np-font-meta);
+  font-size: var(--text-base);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--np-ink);
+}

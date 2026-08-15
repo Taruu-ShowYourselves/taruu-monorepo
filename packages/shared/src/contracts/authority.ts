@@ -1,5 +1,5 @@
 /**
- * Authority network contracts — the kinds of local authority, how they border
+ * Authority network contracts - the kinds of local authority, how they border
  * one another, who holds their offices, and what residents make of them.
  *
  * Kept apart from council.ts, which is the public-metrics profile. These are
@@ -156,7 +156,7 @@ export const SubmitOfficialReviewSchema = z.object({
 
 export type SubmitOfficialReview = z.infer<typeof SubmitOfficialReviewSchema>;
 
-/** A review as the public sees it — with no author attached. */
+/** A review as the public sees it - with no author attached. */
 export const PublicOfficialReviewSchema = z.object({
   id: z.string().uuid(),
   rating: z.number().int().min(1).max(5),

@@ -11,7 +11,7 @@ import styles from './ProposalDetailPanel.module.css';
  * The proposal detail panel (Surface 2, D18 + D25).
  *
  * It is a `<tr>` immediately after the proposal's row, holding a single
- * `<td colSpan>` — the same device as the responsive row disclosure, reused at
+ * `<td colSpan>` - the same device as the responsive row disclosure, reused at
  * every width rather than only on narrow screens. Table semantics survive, and
  * on this surface the panel IS the row disclosure: the generic details toggle
  * is not additionally rendered, so there is exactly one expansion per row.
@@ -25,7 +25,7 @@ import styles from './ProposalDetailPanel.module.css';
  * that capability still opens the panel and still reads the proposal; the four
  * controls are simply absent (Rule A), never present-but-inert.
  *
- * The decision actions stay in the ROW, not here — approve, return and reject
+ * The decision actions stay in the ROW, not here - approve, return and reject
  * must be reachable without expanding anything.
  */
 
@@ -44,7 +44,7 @@ interface ContentControl {
 /**
  * All four are `kind="audited"`: each has its inverse in this same panel, so
  * none of them is irreversible from this dashboard. Hide/unhide and flag/unflag
- * are mutually exclusive at render time — a hidden item never offers hide.
+ * are mutually exclusive at render time - a hidden item never offers hide.
  */
 const CONTENT_CONTROLS: Record<ContentAction, ContentControl> = {
   hide: {
@@ -90,7 +90,7 @@ const REASON_PLACEHOLDER =
  * cannot describe would lose the typed reason silently. Phrased to match the
  * deck's own error voice.
  */
-const ACTION_FAILED_HE = 'הפעולה לא הושלמה. נסו שוב; אם זה חוזר — פנו למנהל־על.';
+const ACTION_FAILED_HE = 'הפעולה לא הושלמה. נסו שוב; אם זה חוזר - פנו למנהל־על.';
 
 export interface ProposalDetailPanelProps {
   proposal: ProposalDetail;
@@ -104,7 +104,7 @@ export interface ProposalDetailPanelProps {
   columnCount: number;
   /**
    * Collapse the panel. Beyond the plan's prop list because the keyboard
-   * contract — `Escape` collapses and returns focus to the title button — is
+   * contract - `Escape` collapses and returns focus to the title button - is
    * unimplementable without a way to tell the owner of `expandedKey`.
    */
   onCollapse: () => void;
@@ -261,7 +261,7 @@ export function ProposalDetailPanel({
 
           <hr className={styles.rule} />
 
-          {/* Rule A: without the capability these are absent, not greyed out —
+          {/* Rule A: without the capability these are absent, not greyed out -
               and the panel above still renders, so the proposal is readable. */}
           {canModerate ? (
             <div className={styles.controls}>

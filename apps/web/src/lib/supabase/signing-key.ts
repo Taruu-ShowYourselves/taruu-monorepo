@@ -47,11 +47,11 @@ function readPrivateJwk(): PrivateJwk {
   if (!parsed.d) {
     // A JWK without `d` is the PUBLIC half. Signing with it is impossible, and
     // the mistake is easy to make when copying between the two.
-    throw new Error('SUPABASE_TP_PRIVATE_JWK has no "d" — that is a public key, not a private one');
+    throw new Error('SUPABASE_TP_PRIVATE_JWK has no "d" - that is a public key, not a private one');
   }
   if (!parsed.kid) {
     // Supabase requires a kid header to select the verification key.
-    throw new Error('SUPABASE_TP_PRIVATE_JWK has no "kid" — Supabase needs it to pick the key');
+    throw new Error('SUPABASE_TP_PRIVATE_JWK has no "kid" - Supabase needs it to pick the key');
   }
 
   return parsed;

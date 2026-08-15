@@ -7,7 +7,7 @@ import {
   type AuthorityRelation,
   type OfficeHolder,
 } from '@sync/shared/contracts';
-import { supabaseAdmin } from '@/lib/supabase/server';
+import { hasServiceRole, supabaseAdmin } from '@/lib/supabase/server';
 
 /**
  * One authority's office holders, and the network of authorities around it.
@@ -28,6 +28,8 @@ import { supabaseAdmin } from '@/lib/supabase/server';
 
 export const authorityOfficeHolders = cache(
   async (identifier: string): Promise<OfficeHolder[]> => {
+    if (!hasServiceRole()) return [];
+
     const { data, error } = await supabaseAdmin.rpc(
       'council_office_holders_public',
       { council_identifier: identifier }
@@ -76,6 +78,8 @@ const isRelation = (value: string): value is AuthorityRelation =>
 
 export const authorityNetwork = cache(
   async (identifier: string): Promise<AuthorityLink[]> => {
+    if (!hasServiceRole()) return [];
+
     const { data, error } = await supabaseAdmin.rpc('council_network_public', {
       council_identifier: identifier,
     });

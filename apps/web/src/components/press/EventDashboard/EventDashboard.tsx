@@ -182,14 +182,19 @@ function totalBallots(vote: LiveVote) {
   return vote.options.reduce((sum, option) => sum + option.voteCount, 0);
 }
 
+// One formatter for the life of the module: the clock re-renders the whole
+// dashboard every second, and constructing an Intl.DateTimeFormat is the
+// expensive half of formatting - the locale-data lookup, not the format call.
+const CLOCK_FORMAT = new Intl.DateTimeFormat('he-IL', {
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false,
+  timeZone: 'Asia/Jerusalem',
+});
+
 function formatClock(date: Date) {
-  return new Intl.DateTimeFormat('he-IL', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-    timeZone: 'Asia/Jerusalem',
-  }).format(date);
+  return CLOCK_FORMAT.format(date);
 }
 
 export function EventDashboard({ locale = 'he' }: EventDashboardProps) {

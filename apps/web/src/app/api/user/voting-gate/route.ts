@@ -5,17 +5,18 @@ import { getActiveVerificationRun, getUserById } from '@/lib/supabase/db';
 import { hasVerifiedResidency } from '@/services/verification/eligibility';
 
 /**
- * GET /api/user/voting-gate — what the reader still owes the ballot box.
+ * GET /api/user/voting-gate - what the reader still owes the ballot box.
  *
  * The surfaces that explain the gate cannot compute it. `identityScore` rides
- * on the session profile, but residency is worth 40 of the 80 points and its
+ * on the session profile, but residency is an independent hard eligibility
+ * requirement of the ballot (issue #71) and its
  * signal (a completed programme OR one successful check-in) lives in
  * `verification_runs`, which no client screen loads. ParticipationFlow learned
  * that the hard way: it once gated on `checkInsCompleted`, which is undefined
  * there, and turned away residents the server was perfectly willing to accept.
  *
  * So the arithmetic is done here, once, by the same helpers the enforcement
- * point uses — and the client is left with nothing to guess. This still
+ * point uses - and the client is left with nothing to guess. This still
  * decides nothing: POST /api/votes/[id]/participate remains the only authority.
  */
 export async function GET(request: NextRequest) {

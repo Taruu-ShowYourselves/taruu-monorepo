@@ -1,5 +1,5 @@
 /* ============================================================
- * Space-admin shell. Masthead is not sticky, so `main` takes no top offset —
+ * Space-admin shell. Masthead is not sticky, so `main` takes no top offset -
  * and in particular no offset computed from the undefined masthead-height
  * custom property three legacy stylesheets still reference (D2: invalid
  * calc(), silently dropped declaration).

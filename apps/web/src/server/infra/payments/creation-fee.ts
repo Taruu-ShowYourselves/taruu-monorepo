@@ -3,7 +3,7 @@ import 'server-only';
 /**
  * The creation fee, implemented against the rails that exist today.
  *
- * WHAT THIS DOES: records that ₪50 is owed by the submitter — one `payments`
+ * WHAT THIS DOES: records that ₪50 is owed by the submitter - one `payments`
  * row, `type: 'vote_creation'`, `status: 'pending'`, keyed so a retry reuses it.
  *
  * WHAT THIS DOES NOT DO: move money. Nothing is captured, no provider is
@@ -14,7 +14,7 @@ import 'server-only';
  * WHAT CHANGES WHEN PAY-06 LANDS: the body of `charge` in this file, and
  * nothing else. The port interface, `decide-proposal.ts`, the audit row and the
  * approve dialog's copy are all already written against the eventual behaviour
- * — a token charge that either captures or declines. PAY-06 swaps the insert
+ * - a token charge that either captures or declines. PAY-06 swaps the insert
  * for a capture and starts returning `'captured'`; every caller is unchanged.
  *
  * PAY-06 also inherits a reconciliation job it cannot skip: an approval whose
@@ -38,7 +38,7 @@ import type {
 
 /**
  * SEC-04: server-side and deterministic, `{userId}:{type}:{voteId}`. A clock
- * reading or a fresh uuid is forbidden here — the `payments.idempotency_key`
+ * reading or a fresh uuid is forbidden here - the `payments.idempotency_key`
  * UNIQUE constraint is what makes a retried approval reuse the original row
  * instead of recording a second obligation, and a key that varies from call to
  * call disables that constraint entirely.
@@ -57,7 +57,7 @@ const toCharge = (row: Payment): CreationFeeCharge => ({
  *
  * `dbError` is a 500 and reads to the admin as "the dashboard broke". This is
  * the charge step, and the approve dialog has copy written for exactly one
- * outcome — the fee could not be requested, nothing was published, nothing was
+ * outcome - the fee could not be requested, nothing was published, nothing was
  * collected. A 402 carries that; a 500 does not.
  */
 const chargeFailed = (): AppError => paymentInvalid('התשלום נכשל');
@@ -98,7 +98,7 @@ export function createCreationFeePort(): CreationFeePort {
           .orElse(() =>
             // Two approvals racing both read null and both insert; the loser
             // hits the UNIQUE constraint. That is the idempotency key doing its
-            // job, not a failure — re-read and return the row that won, so the
+            // job, not a failure - re-read and return the row that won, so the
             // caller sees one obligation instead of a spurious 402.
             findExisting(idempotency_key).andThen((row) =>
               row

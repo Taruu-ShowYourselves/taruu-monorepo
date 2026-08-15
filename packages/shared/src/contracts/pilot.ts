@@ -5,7 +5,7 @@
  * from database row types, and the whole phase sits in one file so later plans
  * import without reopening anything shared.
  *
- * Zod v3 (`^3.23.0`) — respond.ts reads `error.issues`; do not migrate this
+ * Zod v3 (`^3.23.0`) - respond.ts reads `error.issues`; do not migrate this
  * file to v4 syntax in isolation.
  */
 
@@ -46,7 +46,7 @@ const CoordsSchema = z.object({
 // ---------------------------------------------------------------------------
 
 /**
- * Coordinates are refused unless the explicit consent flag rides with them —
+ * Coordinates are refused unless the explicit consent flag rides with them -
  * the pilot flow, unlike GeoGate, sends location to the server, and that
  * promise difference is enforced structurally before any repo sees the body.
  */

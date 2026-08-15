@@ -39,7 +39,7 @@ export function CountFigure({
   value,
   locale,
   className,
-  dash = '—',
+  dash = '-',
   suffix,
   signed,
 }: CountFigureProps) {

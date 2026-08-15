@@ -1,11 +1,11 @@
 /**
- * Municipality geo data — centroids for GPS → municipality resolution.
+ * Municipality geo data - centroids for GPS → municipality resolution.
  * Self-contained (no external geocoding API): nearest-centroid matching
  * within a sanity radius. Coordinates are stable public geographic facts.
  */
 
 export interface MunicipalityGeo {
-  /** Canonical municipality name — matches votes.municipality_id. */
+  /** Canonical municipality name - matches votes.municipality_id. */
   name: string;
   lat: number;
   lng: number;
@@ -35,6 +35,48 @@ export const MUNICIPALITY_GEO: MunicipalityGeo[] = [
   { name: 'לוד', lat: 31.9467, lng: 34.8903, aliases: ['lod'] },
   { name: 'רעננה', lat: 32.1848, lng: 34.8713, aliases: ['raanana'] },
   { name: 'קריית טבעון', lat: 32.722, lng: 35.1235, aliases: ['קרית טבעון', 'טבעון', 'kiryat tivon'] },
+  // Enclave and periphery cities. These have to be listed once the regional
+  // councils below are: nearest-centroid matching has no notion of enclaves,
+  // so a reader in שדרות was otherwise 0.7km from שער הנגב's seat and got
+  // assigned the council that surrounds their city instead of the city
+  // itself. Every name is the canonical MUNICIPALITIES string.
+  { name: 'שדרות', lat: 31.525, lng: 34.596, aliases: ['sderot'] },
+  { name: 'עכו', lat: 32.928, lng: 35.077, aliases: ['akko', 'acre'] },
+  { name: 'נהריה', lat: 33.006, lng: 35.098, aliases: ['nahariya'] },
+  { name: 'עפולה', lat: 32.61, lng: 35.289, aliases: ['afula'] },
+  { name: 'נצרת', lat: 32.699, lng: 35.303, aliases: ['nazareth'] },
+  { name: 'קרית אתא', lat: 32.811, lng: 35.113, aliases: ['קריית אתא', 'kiryat ata'] },
+  { name: 'קרית מוצקין', lat: 32.837, lng: 35.078, aliases: ['קריית מוצקין', 'kiryat motzkin'] },
+  { name: 'קרית ביאליק', lat: 32.827, lng: 35.086, aliases: ['קריית ביאליק', 'kiryat bialik'] },
+  { name: 'קרית ים', lat: 32.846, lng: 35.069, aliases: ['קריית ים', 'kiryat yam'] },
+  { name: 'יקנעם עילית', lat: 32.659, lng: 35.11, aliases: ['יקנעם', 'yokneam'] },
+  { name: 'מגדל העמק', lat: 32.678, lng: 35.24, aliases: ['migdal haemek'] },
+  { name: 'טבריה', lat: 32.795, lng: 35.531, aliases: ['tiberias'] },
+  { name: 'כרמיאל', lat: 32.919, lng: 35.295, aliases: ['karmiel'] },
+  { name: 'מעלות-תרשיחא', lat: 33.016, lng: 35.271, aliases: ['מעלות', 'maalot'] },
+  { name: 'בית שאן', lat: 32.497, lng: 35.496, aliases: ['beit shean'] },
+  // Regional councils (מועצות אזוריות) - coordinates are approximate council
+  // seats / territorial centroids (Hebrew Wikipedia). They exist so the desks'
+  // distance ordering can see these authorities instead of giving their topics
+  // a flat unknown-penalty.
+  { name: 'עמק יזרעאל', lat: 32.65, lng: 35.29, aliases: ['מועצה אזורית עמק יזרעאל', 'יזרעאל', 'emek yizrael'] },
+  { name: 'זבולון', lat: 32.79, lng: 35.12, aliases: ['מועצה אזורית זבולון', 'zvulun'] },
+  { name: 'מגידו', lat: 32.61, lng: 35.09, aliases: ['מועצה אזורית מגידו', 'megiddo'] },
+  { name: 'משגב', lat: 32.86, lng: 35.26, aliases: ['מועצה אזורית משגב', 'misgav'] },
+  { name: 'הגליל התחתון', lat: 32.71, lng: 35.41, aliases: ['מועצה אזורית הגליל התחתון', 'גליל תחתון', 'lower galilee'] },
+  { name: 'עמק חפר', lat: 32.34, lng: 34.91, aliases: ['מועצה אזורית עמק חפר', 'emek hefer'] },
+  { name: 'מטה יהודה', lat: 31.76, lng: 35.0, aliases: ['מועצה אזורית מטה יהודה', 'mate yehuda'] },
+  { name: 'הגלבוע', lat: 32.55, lng: 35.4, aliases: ['מועצה אזורית הגלבוע', 'גלבוע', 'gilboa'] },
+  { name: 'חוף הכרמל', lat: 32.68, lng: 34.96, aliases: ['מועצה אזורית חוף הכרמל', 'hof hacarmel'] },
+  { name: 'דרום השרון', lat: 32.13, lng: 34.91, aliases: ['מועצה אזורית דרום השרון', 'drom hasharon'] },
+  { name: 'מטה אשר', lat: 32.97, lng: 35.09, aliases: ['מועצה אזורית מטה אשר', 'mate asher'] },
+  { name: 'שער הנגב', lat: 31.52, lng: 34.6, aliases: ['מועצה אזורית שער הנגב', 'shaar hanegev'] },
+  { name: 'הגליל העליון', lat: 33.19, lng: 35.57, aliases: ['מועצה אזורית הגליל העליון', 'גליל עליון', 'upper galilee'] },
+  { name: 'עמק הירדן', lat: 32.71, lng: 35.58, aliases: ['מועצה אזורית עמק הירדן', 'emek hayarden'] },
+  { name: 'עמק המעיינות', lat: 32.49, lng: 35.52, aliases: ['מועצה אזורית עמק המעיינות', 'עמק בית שאן', 'emek hamaayanot'] },
+  { name: 'גולן', lat: 32.99, lng: 35.69, aliases: ['מועצה אזורית גולן', 'רמת הגולן', 'golan'] },
+  { name: 'אשכול', lat: 31.3, lng: 34.43, aliases: ['מועצה אזורית אשכול', 'eshkol'] },
+  { name: 'גזר', lat: 31.89, lng: 34.92, aliases: ['מועצה אזורית גזר', 'gezer'] },
 ];
 
 /** Max distance (km) for GPS nearest-centroid match before we give up. */

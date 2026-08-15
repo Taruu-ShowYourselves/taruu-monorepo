@@ -2,13 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { AnimatePresence, motion } from 'framer-motion';
 import { safeRedirect } from '@/lib/safeRedirect';
 import { useAuth } from '@/providers/AuthProvider';
+import { useReducedMotion } from '@/hooks';
 import { NewsButton } from '@/components/press/NewsButton';
 import { PressInput } from '@/components/press/PressInput/PressInput';
 import { Stepper } from '@/components/press/Stepper/Stepper';
 import { MUNICIPALITIES } from '@sync/shared';
 import { cn } from '@/lib/cn';
+import { chime, primeChime } from '@/lib/feedback/chime';
 import { PressLoader } from '@/components/press/PressMachine';
 import styles from './page.module.css';
 
@@ -34,6 +37,19 @@ export default function OnboardingPage() {
   const [rating, setRating] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const reduced = useReducedMotion();
+
+  /* Step-swap choreography: the outgoing sheet lifts away, the incoming one
+     settles from below. Under reduced motion the props vanish and, with no
+     exit defined, AnimatePresence swaps instantly. */
+  const stepMotion = reduced
+    ? {}
+    : {
+        initial: { opacity: 0, y: 8 },
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 0, y: -8 },
+        transition: { duration: 0.2, ease: [0.2, 0, 0, 1] as const },
+      };
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -49,6 +65,9 @@ export default function OnboardingPage() {
   const handleComplete = async () => {
     if (!selectedMunicipality) return;
 
+    // Autoplay policy: the audio context may only start inside the gesture —
+    // wake it now so the fanfare can fire after the async save resolves.
+    primeChime();
     setLoading(true);
     try {
       // Save municipality to backend
@@ -64,6 +83,10 @@ export default function OnboardingPage() {
       if (!response.ok) {
         throw new Error('Failed to save profile');
       }
+
+      // Completion redirects immediately — the fanfare is the whole success
+      // state, so it plays only once the profile is actually saved.
+      chime('fanfare');
 
       const postAuth = safeRedirect(
         sessionStorage.getItem('taruu.post_auth_redirect'),
@@ -82,6 +105,8 @@ export default function OnboardingPage() {
   if (isLoading) {
     return (
       <div className={styles.loadingContainer}>
+        <span className={styles.loadingWordmark}>תַּרְאוּ.</span>
+        <span className={styles.loadingKicker}>קליטת חבר · ONBOARDING</span>
         <PressLoader />
         <p>טוען…</p>
       </div>
@@ -95,8 +120,9 @@ export default function OnboardingPage() {
 
         <Stepper steps={STEPS} current={step - 1} className={styles.stepper} />
 
+        <AnimatePresence mode="wait" initial={false}>
         {step === 1 && (
-          <section className={styles.step}>
+          <motion.section key="step-1" className={styles.step} {...stepMotion}>
             <span className={styles.kicker}>
               <span aria-hidden className={styles.kickerTick} />
               קליטת חבר · ONBOARDING
@@ -145,17 +171,20 @@ export default function OnboardingPage() {
                 variant="red"
                 size="lg"
                 className={styles.primaryBtn}
-                onClick={() => setStep(2)}
+                onClick={() => {
+                  chime('tick');
+                  setStep(2);
+                }}
                 trailing={<span aria-hidden>←</span>}
               >
                 לשלב הראשון
               </NewsButton>
             </div>
-          </section>
+          </motion.section>
         )}
 
         {step === 2 && (
-          <section className={styles.step}>
+          <motion.section key="step-2" className={styles.step} {...stepMotion}>
             <span className={styles.kicker}>
               <span aria-hidden className={styles.kickerTick} />
               בחירת רשות · LOCALE
@@ -215,18 +244,21 @@ export default function OnboardingPage() {
                 variant="red"
                 size="lg"
                 className={styles.primaryBtn}
-                onClick={() => setStep(3)}
+                onClick={() => {
+                  chime('tick');
+                  setStep(3);
+                }}
                 disabled={!selectedMunicipality}
                 trailing={<span aria-hidden>←</span>}
               >
                 המשך
               </NewsButton>
             </div>
-          </section>
+          </motion.section>
         )}
 
         {step === 3 && (
-          <section className={styles.step}>
+          <motion.section key="step-3" className={styles.step} {...stepMotion}>
             <span className={styles.kicker}>
               <span aria-hidden className={styles.kickerTick} />
               שביעות רצון · BASELINE
@@ -298,8 +330,9 @@ export default function OnboardingPage() {
                 {loading ? 'שומר…' : rating === null ? 'דילוג וסיום' : 'סיום והתחלה'}
               </NewsButton>
             </div>
-          </section>
+          </motion.section>
         )}
+        </AnimatePresence>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { NewsButton } from '@/components/press/NewsButton';
-import { useLiveTallies } from '@/hooks';
+import { useLiveTallies } from '@/hooks/useLiveTallies';
 import { useAuth } from '@/providers/AuthProvider';
 import { getStoredMunicipality, LOCALITY_EVENT } from '@/lib/locality';
 import { orderFeed, withPrompts, type WithPrompts } from '@/lib/feed/order';

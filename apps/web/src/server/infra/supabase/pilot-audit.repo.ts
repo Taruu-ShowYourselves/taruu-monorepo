@@ -1,6 +1,6 @@
 /**
  * Append-only pilot audit trail. Insert is the only operation this module
- * exposes — the table itself refuses UPDATE/DELETE/TRUNCATE via trigger.
+ * exposes - the table itself refuses UPDATE/DELETE/TRUNCATE via trigger.
  */
 
 import { ResultAsync } from 'neverthrow';

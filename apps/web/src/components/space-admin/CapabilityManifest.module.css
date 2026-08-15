@@ -1,10 +1,10 @@
 /* ============================================================
- * CapabilityManifest — eleven mono rows, one per capability.
+ * CapabilityManifest - eleven mono rows, one per capability.
  *
  * Two-colour discipline holds here too: a withheld row is FAINT INK, never
  * red. Red is reserved (tick glyphs, the one page-primary, focus rings, the
  * invalid-field rule, the irreversible plate rule, tally fill, the `בבדיקה`
- * chip) and "you were not granted this" is none of those — it is an ordinary
+ * chip) and "you were not granted this" is none of those - it is an ordinary
  * fact about the account, not an alarm.
  * ============================================================ */
 
@@ -50,7 +50,7 @@
   white-space: nowrap;
 }
 
-/* Faint ink: 4.96:1 on paper, 5.2:1 on paper-box — AA for normal text. */
+/* Faint ink: 4.96:1 on paper, 5.2:1 on paper-box - AA for normal text. */
 .stateWithheld {
   font-weight: 500;
   color: var(--np-ink-faint);

@@ -88,7 +88,7 @@ const COPY: Record<Locale, CouncilCopy> = {
     errorBody:
       'לא הצלחנו לטעון את נתוני המועצה. אפשר לנסות שוב בעוד כמה דקות.',
     intro:
-      'תמונה ציבורית של האוכלוסייה הרשמית והקהילה הפעילה בתַּרְאוּ. הנתונים מצרפיים בלבד — ללא פרטים על אנשים.',
+      'תמונה ציבורית של האוכלוסייה הרשמית והקהילה הפעילה בתַּרְאוּ. הנתונים מצרפיים בלבד - ללא פרטים על אנשים.',
     generatedAt: (date) => `תמונת מצב נוצרה ב־${date}`,
     metricsAria: 'מדדי המועצה',
     emptyAria: 'מועצה ללא פעילות',
@@ -131,7 +131,7 @@ const COPY: Record<Locale, CouncilCopy> = {
     errorBody:
       'We could not load the council figures. Try again in a few minutes.',
     intro:
-      "A public picture of the official population and the active community on Taruu. The figures are aggregate only — no details about individuals.",
+      "A public picture of the official population and the active community on Taruu. The figures are aggregate only - no details about individuals.",
     generatedAt: (date) => `Snapshot generated on ${date}`,
     metricsAria: 'Council metrics',
     emptyAria: 'Council with no activity',
@@ -187,7 +187,7 @@ function MetricCard({
       </div>
       <p className={styles.metricValue}>
         {metric.value === null
-          ? '—'
+          ? '-'
           : new Intl.NumberFormat(t.dateLocale).format(metric.value)}
       </p>
       {metric.status === 'unavailable' ? (

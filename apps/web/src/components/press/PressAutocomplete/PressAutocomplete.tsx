@@ -43,7 +43,8 @@ const inputSx = {
     color: 'var(--np-ink)',
     background:
       'linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0) 45%), var(--np-paper-box)',
-    borderRadius: 'var(--np-radius-card)',
+    /* Radius is reserved for cards; a field is newsprint chrome and sits flat. */
+    borderRadius: 0,
     boxShadow: 'var(--np-shadow-soft)',
     minHeight: '3rem',
     transition: 'box-shadow 200ms cubic-bezier(0.2,0,0,1), transform 200ms cubic-bezier(0.2,0,0,1)',
@@ -134,6 +135,11 @@ export function PressAutocomplete({
         isOptionEqualToValue={(a, b) => a.value === b.value}
         noOptionsText={noOptionsText ?? t.noOptions}
         fullWidth
+        popupIcon={
+          <span aria-hidden className={styles.caret}>
+            ↓
+          </span>
+        }
         slotProps={{ paper: { sx: paperSx } }}
         sx={inputSx}
         renderInput={(params) => (

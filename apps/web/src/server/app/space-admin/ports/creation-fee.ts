@@ -12,7 +12,7 @@ import 'server-only';
  * implementation without decide-proposal.ts changing at all.
  *
  * The port is an interface rather than a function so the decision use-case can
- * take it through `deps` and a test can substitute a failing one — a charge
+ * take it through `deps` and a test can substitute a failing one - a charge
  * that declines is a behaviour this surface has to get right, and it must be
  * reachable without a payment provider.
  */

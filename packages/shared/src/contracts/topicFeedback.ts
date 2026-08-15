@@ -1,8 +1,8 @@
 /**
- * Topic feedback — what a reader says about a topic instead of voting on it.
+ * Topic feedback - what a reader says about a topic instead of voting on it.
  *
  * The desk offers three gestures on a tile: right is בעד, left is נגד, and
- * down is neither. Down means "this is not a matter of consensus" — a
+ * down is neither. Down means "this is not a matter of consensus" - a
  * judgement about whether the question belongs on the desk at all, which is a
  * different kind of claim from a ballot and is deliberately not stored as one.
  * It never enters a tally, never costs a point, and never appears in a result.
@@ -21,7 +21,7 @@ import { z } from 'zod';
  * identifying content by construction.
  */
 export const SetAsideReasonSchema = z.enum([
-  /** Belongs to a council, a court or a ministry — not to a public vote. */
+  /** Belongs to a council, a court or a ministry - not to a public vote. */
   'not_consensus',
   /** Already settled, or overtaken by events. */
   'already_decided',
@@ -41,7 +41,7 @@ export const SetTopicAsideSchema = z.object({
 export type SetTopicAside = z.infer<typeof SetTopicAsideSchema>;
 
 /**
- * What comes back. A count and the caller's own standing — never a roster of
+ * What comes back. A count and the caller's own standing - never a roster of
  * who set what aside, which is not a public fact about anybody.
  */
 export const TopicAsideStandingSchema = z.object({

@@ -111,6 +111,34 @@
   border: var(--np-rule) solid var(--np-red);
   padding: var(--space-3) var(--space-4);
   margin: 0 0 var(--space-5);
+  overflow: hidden;
+  /* Two beats: the row opens first (so the CTA below slides instead of
+     jumping), then the banner stamps in over the cleared space. */
+  animation:
+    errorRoom var(--np-dur-snap) var(--np-ease) both,
+    errorStamp var(--np-dur-snap) var(--np-ease) var(--np-dur-snap) backwards;
+}
+@keyframes errorRoom {
+  from {
+    max-block-size: 0;
+    padding-block: 0;
+    margin-block-end: 0;
+    border-block-width: 0;
+  }
+  to {
+    /* Comfortably above a two-line banner; keeps the slide near-linear. */
+    max-block-size: 8rem;
+  }
+}
+@keyframes errorStamp {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* Google OAuth - hard-edge NewsButton-style block, full-width. */
@@ -162,6 +190,19 @@
   align-items: center;
   justify-content: center;
 }
+/* While the OAuth redirect is in flight the glyph breathes: the only sign of
+   life the page can give before the browser leaves it. */
+.googleGlyphPending {
+  animation: glyphPulse var(--np-dur) var(--np-ease) infinite alternate;
+}
+@keyframes glyphPulse {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.4;
+  }
+}
 .googleLabel {
   display: inline-flex;
   align-items: center;
@@ -210,18 +251,39 @@
   border-block-start: var(--np-rule-hair) solid var(--np-ink);
 }
 
+/* Ghost button: the secondary path deserves a target, not bare text. */
 .switchLink {
   align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   font-family: var(--np-font-mono);
   font-size: var(--text-base);
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--np-ink);
   text-decoration: none;
-  padding-block: var(--space-2);
+  background: transparent;
+  border: var(--np-rule-hair) solid var(--np-ink);
+  padding: var(--space-2) var(--space-5);
+  transition: background-color var(--np-dur-snap) var(--np-ease);
 }
 .switchLink:hover {
-  color: var(--np-red);
+  background: var(--np-paper-box);
+}
+.switchLink:focus-visible {
+  outline: var(--np-rule) solid var(--np-red);
+  outline-offset: 2px;
+}
+.switchArrow {
+  transition: translate var(--np-dur-snap) var(--np-ease);
+}
+/* `translate` is physical: forward is +X in LTR, -X in RTL. */
+.switchLink:hover .switchArrow {
+  translate: 2px 0;
+}
+:global([dir='rtl']) .switchLink:hover .switchArrow {
+  translate: -2px 0;
 }
 
 .features {
@@ -250,6 +312,24 @@
   line-height: 1;
 }
 
+/* Narrow phones: three chips cannot share a 390px row without orphan-wrapping,
+   so they become a full-width index - one entry per hairline-separated row. */
+@media (max-width: 480px) {
+  .features {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 0;
+  }
+  .feature {
+    display: flex;
+    inline-size: 100%;
+    padding-block: var(--space-3);
+  }
+  .feature + .feature {
+    border-block-start: var(--np-rule-hair) solid var(--np-ink);
+  }
+}
+
 .trust {
   margin: var(--space-6) 0 0;
   font-family: var(--np-font-mono);
@@ -262,8 +342,18 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .googleBtn {
+  .googleBtn,
+  .switchLink,
+  .switchArrow {
     transition: none;
+  }
+  .error,
+  .googleGlyphPending {
+    animation: none;
+  }
+  .switchLink:hover .switchArrow,
+  :global([dir='rtl']) .switchLink:hover .switchArrow {
+    translate: none;
   }
 }
 
@@ -287,6 +377,10 @@
     max-inline-size: 34rem;
     border: 0;
     border-inline-end: var(--np-rule-heavy) solid var(--np-ink);
+    /* A pane in a split fills its column edge-to-edge; card chrome (radius,
+       float shadow) would read as an element sitting on something. */
+    border-radius: 0;
+    box-shadow: none;
     justify-content: center;
     padding: var(--space-16) var(--space-12) var(--space-16);
   }

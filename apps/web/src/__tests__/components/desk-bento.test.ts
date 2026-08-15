@@ -62,37 +62,25 @@ describe('slotVariant', () => {
   });
 
   /**
-   * A stretch tiles without holes only if its spans add up to whole columns -
-   * and it has to do so at BOTH row counts, because the same sequence is
-   * rendered into a two-row bento on the desktop desk and a three-row one on
-   * the phone, with `wide` taking a different shape in each.
+   * A stretch tiles without holes only if its spans add up to whole columns.
+   * The desk is three rows at every measure - it was two above 800px until the
+   * desktop bento turned out to be a lead block followed by a queue of
+   * identical squares - so one row count is the whole contract now.
    *
-   * These two cases are the contract deskBento.ts documents; break either and
-   * `grid-auto-flow: column dense` starts leaving gaps in the mosaic.
+   * Break it and `grid-auto-flow: column dense` starts leaving gaps in the
+   * mosaic. The cell counts below have to match the span rules in
+   * ConsensusDesk.module.css; they are the same claim written twice, once
+   * where the browser reads it and once where a test can.
    */
-  it.each([
-    {
-      rows: 'two (desktop)',
-      cellsPerColumn: 2,
-      // `wide` sits as a plain 1x1 here.
-      cells: { lead: 4, feature: 2, wide: 1, brief: 1 },
-      columns: 5,
-    },
-    {
-      rows: 'three (phone)',
-      cellsPerColumn: 3,
-      // `wide` lies across two columns; the feature runs the full height.
-      cells: { lead: 4, feature: 3, wide: 2, brief: 1 },
-      columns: 4,
-    },
-  ])('tiles a stretch into whole columns at $rows rows', ({
-    cellsPerColumn,
-    cells,
-    columns,
-  }) => {
+  it('tiles a stretch into whole columns over three rows', () => {
+    const CELLS_PER_COLUMN = 3;
+    // `wide` lies across two columns; the feature runs the full height.
+    const cells = { lead: 4, feature: 3, wide: 2, brief: 1 };
+
     const stretch = Array.from({ length: 6 }, (_, i) => slotVariant(i));
     const used = stretch.reduce((sum, v) => sum + cells[v], 0);
-    expect(used % cellsPerColumn).toBe(0);
-    expect(used / cellsPerColumn).toBe(columns);
+
+    expect(used % CELLS_PER_COLUMN).toBe(0);
+    expect(used / CELLS_PER_COLUMN).toBe(4);
   });
 });

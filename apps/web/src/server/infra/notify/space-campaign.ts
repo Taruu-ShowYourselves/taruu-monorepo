@@ -2,7 +2,7 @@
  * Campaign push fan-out. Runs OFF the request path: the in-app rows are the
  * source of truth and were already written by the time this is handed to
  * `after()`, so a push failure degrades the delivery rather than losing the
- * notification. Nothing in here throws — the caller has already responded.
+ * notification. Nothing in here throws - the caller has already responded.
  */
 
 import { logger } from '@/lib/logger';
@@ -28,7 +28,7 @@ export async function fanOutCampaignPush(
     // Lazy import, exactly as `vote-created.ts` does it: it keeps the admin
     // client out of the eager import graph of the modules that reach this one,
     // so a unit test can import the route without Supabase env configured.
-    // This is deliberate — do not hoist it.
+    // This is deliberate - do not hoist it.
     const pushRepo = await import('@/server/infra/supabase/push.repo');
 
     // Who could be reached at all. The user-level projection, because the
@@ -75,7 +75,7 @@ export async function fanOutCampaignPush(
       deliveredState = result.sent > 0 ? 'delivered' : 'failed';
     }
 
-    // Written even when nobody was reachable — the `no_active_channel` rows are
+    // Written even when nobody was reachable - the `no_active_channel` rows are
     // what makes the sent receipt's counts reconcile against `audience_size`.
     // An unconditional early return on an empty token list would drop exactly
     // the evidence that explains a short reach.

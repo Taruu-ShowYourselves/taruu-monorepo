@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { NewsButton, VoteWidget, TallyBar } from '@/components/press';
 import { MunicipalityLink } from '@/components/uikit/municipality-link';
-import { useLiveTallies } from '@/hooks';
+import { useLiveTallies } from '@/hooks/useLiveTallies';
 import type { VoteFilter } from './types';
 import type { Locale } from '@/lib/i18n';
 import { localePrefix } from '@/lib/i18n';

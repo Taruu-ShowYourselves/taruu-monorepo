@@ -1,5 +1,5 @@
 /**
- * Engagement hotness — the single scale used everywhere a topic's social
+ * Engagement hotness - the single scale used everywhere a topic's social
  * heat is printed (press desks, live map, API DTOs).
  *
  * Saturating 0–100 score. Comments weigh 3× a reaction (writing > clicking).

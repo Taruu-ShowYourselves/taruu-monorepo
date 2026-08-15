@@ -142,6 +142,7 @@
   text-decoration: none;
   border-block-end: var(--np-rule) solid var(--np-red);
   padding-block-end: 0.15em;
+  transition: color var(--np-dur-snap) var(--np-ease);
 }
 
 .rosterLink:hover {

@@ -209,13 +209,13 @@ export const GOV_COPY: Record<Locale, GovernmentCopy> = {
 
     indexTitle: 'המדד האזרחי',
     indexNote:
-      'אותו סולם של עמוד הרשות, 100− עד 100+, כדי שאפשר יהיה להחזיק עיר וכנסת זו לצד זו. הציון הכולל נשען על שני הצירים שמודדים את הבית — ייצוג ואמון. מעורבות והסכמה מודדות אותנו, הציבור, ומודפסות כהקשר בלבד. ציר שטרם נמדד מודפס כמקף — אף פעם לא כאפס.',
+      'אותו סולם של עמוד הרשות, 100− עד 100+, כדי שאפשר יהיה להחזיק עיר וכנסת זו לצד זו. הציון הכולל נשען על שני הצירים שמודדים את הבית - ייצוג ואמון. מעורבות והסכמה מודדות אותנו, הציבור, ומודפסות כהקשר בלבד. ציר שטרם נמדד מודפס כמקף - אף פעם לא כאפס.',
     scoreRepresentation: 'ייצוג',
     scoreEngagement: 'מעורבות',
     scoreAgreement: 'הסכמה',
     scoreTrust: 'אמון',
     methodRepresentation:
-      'מתוך הנושאים שבהם גם הציבור כאן וגם המליאה הכריעו — באיזה שיעור ההכרעות נפגשו.',
+      'מתוך הנושאים שבהם גם הציבור כאן וגם המליאה הכריעו - באיזה שיעור ההכרעות נפגשו.',
     methodEngagement:
       'שיעור האזרחים הרשומים שכבר הצביעו על שאלה לאומית לפחות פעם אחת.',
     methodAgreement:
@@ -227,7 +227,7 @@ export const GOV_COPY: Record<Locale, GovernmentCopy> = {
 
     matchedTitle: 'הבית מול הציבור',
     matchedNote:
-      'כל שורה היא אותו פריט מסדר היום, פעמיים: איך הצביע כאן הציבור ואיך הצביעה המליאה. פריט שהוצבע יותר מפעם אחת נמדד לפי ההצבעה האחרונה — זו שהכריעה.',
+      'כל שורה היא אותו פריט מסדר היום, פעמיים: איך הצביע כאן הציבור ואיך הצביעה המליאה. פריט שהוצבע יותר מפעם אחת נמדד לפי ההצבעה האחרונה - זו שהכריעה.',
     publicLabel: 'הציבור',
     houseLabel: 'המליאה',
     forLabel: 'בעד',
@@ -242,10 +242,10 @@ export const GOV_COPY: Record<Locale, GovernmentCopy> = {
 
     rosterTitle: 'מצבת הכנסת',
     rosterNote:
-      'כל מי שהכנסת מפרסמת כמכהן, עם הציון שלו — לרבות שרים שאינם חברי כנסת, שמחזיקים תיק בלי מושב. הרשימה אינה נבחרת בידינו.',
+      'כל מי שהכנסת מפרסמת כמכהן, עם הציון שלו - לרבות שרים שאינם חברי כנסת, שמחזיקים תיק בלי מושב. הרשימה אינה נבחרת בידינו.',
     rosterEmptyTitle: 'המצבת טרם פורסמה',
     rosterEmptyBody:
-      'סנכרון המצבת מהמקור הרשמי של הכנסת עוד לא רץ. כשירוץ, כל חבר וחברת כנסת יקבלו עמוד וציון — אוטומטית.',
+      'סנכרון המצבת מהמקור הרשמי של הכנסת עוד לא רץ. כשירוץ, כל חבר וחברת כנסת יקבלו עמוד וציון - אוטומטית.',
 
     cabinetTitle: 'הממשלה',
     cabinetNote: 'מי מחזיק בתיק, לפי הפרסום הרשמי של הכנסת.',
@@ -268,7 +268,7 @@ export const GOV_COPY: Record<Locale, GovernmentCopy> = {
     memberScoreParticipation: 'נוכחות',
     memberScoreTrust: 'אמון',
     memberMethodAlignment:
-      'מתוך הנושאים שבהם הציבור כאן הכריע והוא הצביע — באיזה שיעור הוא הצביע כמו הציבור.',
+      'מתוך הנושאים שבהם הציבור כאן הכריע והוא הצביע - באיזה שיעור הוא הצביע כמו הציבור.',
     memberMethodParticipation:
       'שיעור ההצבעות השמיות בכהונה שבהן נרשמה לו עמדה. הנתון נמדד מול ההצבעות שכבר מסונכרנות אצלנו.',
     memberMethodTrust: 'ממוצע הדירוגים שאזרחים מאומתים נתנו לו כאן.',
@@ -398,7 +398,7 @@ export const GOV_COPY: Record<Locale, GovernmentCopy> = {
 
     indexTitle: 'The civic index',
     indexNote:
-      'The same scale as an authority page, −100 to +100, so a city and the Knesset can be held side by side. The overall score rests on the two axes that measure the chamber — representation and trust. Engagement and agreement measure us, the public, and are printed as context only. An axis that has not been measured prints as a dash — never as a zero.',
+      'The same scale as an authority page, −100 to +100, so a city and the Knesset can be held side by side. The overall score rests on the two axes that measure the chamber - representation and trust. Engagement and agreement measure us, the public, and are printed as context only. An axis that has not been measured prints as a dash - never as a zero.',
     scoreRepresentation: 'Representation',
     scoreEngagement: 'Engagement',
     scoreAgreement: 'Agreement',
@@ -415,7 +415,7 @@ export const GOV_COPY: Record<Locale, GovernmentCopy> = {
 
     matchedTitle: 'The chamber against the public',
     matchedNote:
-      'Each row is the same agenda item twice: how the public voted here, and how the chamber voted there. An item voted more than once is measured on the last vote — the one that decided it.',
+      'Each row is the same agenda item twice: how the public voted here, and how the chamber voted there. An item voted more than once is measured on the last vote - the one that decided it.',
     publicLabel: 'The public',
     houseLabel: 'The chamber',
     forLabel: 'For',
@@ -430,10 +430,10 @@ export const GOV_COPY: Record<Locale, GovernmentCopy> = {
 
     rosterTitle: 'The roster',
     rosterNote:
-      'Everyone the Knesset publishes as holding office, each with their score — including ministers who are not members, who hold a portfolio without a seat. The list is not curated by us.',
+      'Everyone the Knesset publishes as holding office, each with their score - including ministers who are not members, who hold a portfolio without a seat. The list is not curated by us.',
     rosterEmptyTitle: 'The roster has not been published yet',
     rosterEmptyBody:
-      'The sync from the Knesset’s official source has not run yet. When it does, every member gets a page and a score — automatically.',
+      'The sync from the Knesset’s official source has not run yet. When it does, every member gets a page and a score - automatically.',
 
     cabinetTitle: 'The cabinet',
     cabinetNote: 'Who holds which portfolio, per the Knesset’s own publication.',

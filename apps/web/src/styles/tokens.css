@@ -447,11 +447,14 @@
   --np-desk-dock-h: 4.25rem;
 }
 
-/* The dock is shorter on a phone - see the mobile block in
-   Masthead.module.css, which this must stay in step with. */
+/* Below this the dock sets in two rows - identity and account above, the nav
+   itself below - so it is taller here, not shorter. See the mobile block in
+   Masthead.module.css, which this must stay in step with: sections reserve
+   this height for the pinned dock, and a token that under-states it puts
+   their last line under the nav. */
 @media (max-width: 767px) {
   :root {
-    --np-nav-h: 3.5rem;
+    --np-nav-h: 5.25rem;
   }
 }
 

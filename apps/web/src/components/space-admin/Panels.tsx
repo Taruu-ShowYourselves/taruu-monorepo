@@ -9,7 +9,7 @@ import styles from './Panels.module.css';
 
 /**
  * The three non-happy-path panels, one implementation each. Surfaces must not
- * hand-roll variants of these — the State Matrix names exactly these three.
+ * hand-roll variants of these - the State Matrix names exactly these three.
  */
 
 export interface EmptyPanelProps {
@@ -57,13 +57,13 @@ const ERROR_COPY: Record<Locale, ErrorPanelCopy> = {
   he: {
     kicker: 'שגיאה · ERROR',
     defaultBody:
-      'לא הצלחנו לטעון את הנתונים. הנתונים עצמם לא נפגעו — נסו שוב; אם זה חוזר, פנו למנהל־על.',
+      'לא הצלחנו לטעון את הנתונים. הנתונים עצמם לא נפגעו - נסו שוב; אם זה חוזר, פנו למנהל־על.',
     retryLabel: 'נסו שוב',
   },
   en: {
     kicker: 'SOMETHING WENT WRONG · ERROR',
     defaultBody:
-      'We could not load the data. The data itself is intact — try again; if this recurs, contact a super-admin.',
+      'We could not load the data. The data itself is intact - try again; if this recurs, contact a super-admin.',
     retryLabel: 'Try again',
   },
 };
@@ -109,7 +109,7 @@ export function ErrorPanel({
 export interface NoPermissionPanelProps {
   /**
    * Opens the escalation `ConfirmDialog`. Required, because SPACE-09 makes
-   * `פנייה למנהל־על` a real path rather than a decorative button — and this
+   * `פנייה למנהל־על` a real path rather than a decorative button - and this
    * is the one control rendered regardless of capability, including to a
    * suspended admin holding nothing at all.
    */
@@ -129,7 +129,7 @@ export function NoPermissionPanel({ onEscalate, className }: NoPermissionPanelPr
       <h2 className={styles.heading}>אין לכם גישה לחלק הזה</h2>
       <p className={styles.body}>
         החשבון שלכם לא מחזיק את ההרשאה הנדרשת במרחב הזה, או שהגישה הושעתה. אם זו
-        טעות — פנו למנהל־על.
+        טעות - פנו למנהל־על.
       </p>
       <div className={styles.actions}>
         <NewsButton variant="outline" onClick={onEscalate}>

@@ -7,9 +7,17 @@ import {
 import {
   KnessetDesk,
   ConsensusDesk,
-  CivicReminder,
+  DeskTabs,
   Colophon,
+  HowToJoin,
+  IsraelMapDesk,
 } from '@/components/press/sections';
+import {
+  BeatMandateStage,
+  BeatScoresStage,
+} from '@/components/press/CinematicIntro/stages/BeatStages';
+import { CinematicIntro } from '@/components/press/CinematicIntro/CinematicIntro';
+import { LocalityDesk } from '@/components/press/GeoGate/LocalityDesk';
 import type { Locale } from '@/lib/i18n';
 
 // The homepage carries live civic data, but "live" is the client's job: the
@@ -30,20 +38,38 @@ export default async function HomePage({ params }: HomePageProps) {
   return (
     <HomepageExperience
       locale={locale}
-      introStory="thesis"
+      /* One screen, then the desks. The four claims it used to carry are now
+         below both of them; see the note on the page body. */
+      introStory="opening"
       liveDashboard={<EventDashboard locale={locale} />}
     >
-      {/* Three beats, in the order a resident needs them: the intro says what
-          this is, the two desks show what is actually open in their town and
-          in the Knesset, and the reminder says who all of it is addressed to.
+      {/* The order a resident needs, which is evidence first and argument
+          second. The intro is now one screen - the wordmark, the reminder the
+          paper exists to make, and the mechanism in one sentence - and then
+          the reader is in the desk.
+
+          The two desks are one tabbed section now - מועצות מקומיות and ממשלה -
+          and the section is exactly one viewport of river: no headline above
+          the tiles, no second desk queued below them. A reader flips editions
+          instead of scrolling past one to reach the other.
+
+          LocalityDesk follows the desk because that is where its effect is
+          legible: the tabbed river above it re-orders the moment a town is
+          chosen. It replaced a modal that asked the same question at the
+          door, before the reader had seen anything the answer changes.
+
+          The four claims come after both desks. Argument in front of the
+          evidence is a pitch; the same four sentences after two desks of live
+          topics are the reader asking "so what happens with these" and being
+          answered. HowToJoin closes the page: how to take part is the last
+          thing, once they have seen what there is to take part in.
 
           The case for the mechanism is deliberately absent. WhatIsTaruu (three
           branches of government, the diagnosis) and CivicMandate (the
           declaration) argue in the register of a prospectus, and a resident
           arriving to see what is open in their town does not need to be argued
           into it first. Both are intact on the investor edition at /pitchdeck,
-          which is also where the intro keeps all three of its acts - this page
-          opens straight on the thesis.
+          which is also where the intro keeps all three of its acts.
 
           Masthead and Ticker are furniture, not a beat: the nav has to be
           above the first thing a reader might act on, so it leads the site
@@ -53,9 +79,29 @@ export default async function HomePage({ params }: HomePageProps) {
         <main>
           <Masthead locale={locale} />
           <Ticker locale={locale} />
-          <ConsensusDesk locale={locale} />
-          <KnessetDesk locale={locale} />
-          <CivicReminder locale={locale} />
+          <DeskTabs
+            locale={locale}
+            localPanel={<ConsensusDesk locale={locale} embedded />}
+            nationalPanel={<KnessetDesk locale={locale} embedded />}
+          />
+          <LocalityDesk locale={locale} />
+          <CinematicIntro
+            locale={locale}
+            story="beats"
+            beatStages={[
+              <BeatScoresStage key="scores" locale={locale} />,
+              <BeatMandateStage key="mandate" locale={locale} />,
+            ]}
+            deskBackdrop={<ConsensusDesk locale={locale} decorative />}
+          />
+          {/* CivicReminder is gone from this page: its sentence is now the
+              opening headline, and a page that closes by repeating its own
+              masthead is a page padding itself. It still closes /pitchdeck
+              and /what-is-taruu, where the reminder is the destination. */}
+          <HowToJoin locale={locale} />
+          {/* The weather map closes the page: every open municipal topic
+              pinned to its town, right before the colophon. */}
+          <IsraelMapDesk locale={locale} />
         </main>
         <Colophon locale={locale} />
       </div>

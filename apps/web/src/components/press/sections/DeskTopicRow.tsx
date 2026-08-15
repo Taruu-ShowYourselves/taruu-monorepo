@@ -15,6 +15,7 @@ import type { BillTitle } from '@/lib/knesset/billTitle';
 import { topicHeadline } from './deskData';
 import type { DeskTopicVariant } from './deskBento';
 import { getAsideTopics, restoreTopic, setTopicAside } from './deskAside';
+import { ShareTopicButton } from './ShareTopicButton';
 import { useVoteSwipe } from './useVoteSwipe';
 import type { SwipeIntent } from './voteSwipe';
 import styles from './ConsensusDesk.module.css';
@@ -202,15 +203,15 @@ const COPY: Record<Locale, RowCopy> = {
     sourceHeatTitle: 'מדד חום: תגובות וריאקציות על הפוסטים המקוריים',
     postLink: 'לפוסט ←',
     muniProfileTitle: (municipality) => `פרופיל רשות - ${municipality}`,
-    sovereignLocal: 'הריבון המקומי',
-    sovereignNational: 'הריבון הארצי',
+    sovereignLocal: 'הרוב המקומי',
+    sovereignNational: 'הרוב הארצי',
     sovereignFor: 'בעד',
     sovereignAgainst: 'נגד',
     sovereignAbstain: 'נמנע',
     sovereignTally: (count) => `${count} קולות נספרו`,
     sovereignOpening: 'הקול הראשון קובע את הכיוון',
     sovereignBarTitle: (forPct, againstPct) =>
-      `עמדת הריבון: ${forPct}% בעד, ${againstPct}% נגד`,
+      `עמדת הרוב: ${forPct}% בעד, ${againstPct}% נגד`,
     sovereignEmptyTitle: 'טרם נספרו קולות בנושא הזה',
     participants: (count) => `${count} משתתפים`,
     daysLeft: (days) =>
@@ -220,11 +221,11 @@ const COPY: Record<Locale, RowCopy> = {
     swipeFor: 'בעד',
     swipeAgainst: 'נגד',
     swipeAside: 'לא נושא לקונצנזוס',
-    swipeHint: 'גררו · ימינה בעד · שמאלה נגד',
+    swipeHint: 'החזיקו רגע לאחיזה · ימינה בעד · שמאלה נגד · 3 שניות לאישור',
     swipeCastFor: 'בעד · לקלפי',
     swipeCastAgainst: 'נגד · לקלפי',
     asideTitle: 'לא נושא לקונצנזוס',
-    asideNote: 'ירד מהמהדורה שלכם. נספר כדי לשפר את בחירת הנושאים — לא כהצבעה, ובלי לפרסם מי אמר.',
+    asideNote: 'ירד מהמהדורה שלכם. נספר כדי לשפר את בחירת הנושאים - לא כהצבעה, ובלי לפרסם מי אמר.',
     asideUndo: 'החזרת הנושא',
   },
   en: {
@@ -259,15 +260,15 @@ const COPY: Record<Locale, RowCopy> = {
     sourceHeatTitle: 'Heat index: comments and reactions on the original posts',
     postLink: 'To the post →',
     muniProfileTitle: (municipality) => `Municipality profile - ${municipality}`,
-    sovereignLocal: 'The local sovereign',
-    sovereignNational: 'The national sovereign',
+    sovereignLocal: 'The local majority',
+    sovereignNational: 'The national majority',
     sovereignFor: 'For',
     sovereignAgainst: 'Against',
     sovereignAbstain: 'Abstain',
     sovereignTally: (count) => `${count} voices counted`,
     sovereignOpening: 'The first voice sets the direction',
     sovereignBarTitle: (forPct, againstPct) =>
-      `The sovereign's standing: ${forPct}% for, ${againstPct}% against`,
+      `The majority's standing: ${forPct}% for, ${againstPct}% against`,
     sovereignEmptyTitle: 'No voices counted on this topic yet',
     participants: (count) => `${count} participants`,
     daysLeft: (days) =>
@@ -277,11 +278,11 @@ const COPY: Record<Locale, RowCopy> = {
     swipeFor: 'For',
     swipeAgainst: 'Against',
     swipeAside: 'Not a consensus matter',
-    swipeHint: 'Push · left for · right against',
+    swipeHint: 'Hold a moment to grip · left for · right against · 3s to confirm',
     swipeCastFor: 'For · to the ballot',
     swipeCastAgainst: 'Against · to the ballot',
     asideTitle: 'Not a consensus matter',
-    asideNote: 'Dropped from your edition. Counted to improve which topics run — never as a vote, never attributed.',
+    asideNote: 'Dropped from your edition. Counted to improve which topics run - never as a vote, never attributed.',
     asideUndo: 'Put it back',
   },
 };
@@ -292,6 +293,12 @@ const COPY: Record<Locale, RowCopy> = {
  * One shared row so the lead tile's full strip and a brief's one-liner report
  * the same measured facts in the same language.
  */
+/* The glyphs are furniture, not figures - faint ink keeps them behind their
+   numbers. One inline token rather than a stylesheet rule: the strip's
+   stylesheet belongs to the desk rework. Type is inherited from the strip
+   (.aiStats / .sourceLine), already meta. */
+const glyphStyle = { color: 'var(--np-ink-faint)' } as const;
+
 function Sentiment({ source, locale = 'he' }: { source: DeskSource; locale?: Locale }) {
   const t = COPY[locale];
   const { approving, objecting } = reactionSentiment(source.reactions);
@@ -299,15 +306,15 @@ function Sentiment({ source, locale = 'he' }: { source: DeskSource; locale?: Loc
   return (
     <span className={styles.reactions}>
       <span className={styles.reaction} title={t.approvingTitle}>
-        <span aria-hidden>👍</span>
+        <span aria-hidden style={glyphStyle}>▲</span>
         {he(approving)}
       </span>
       <span className={styles.reaction} title={t.objectingTitle}>
-        <span aria-hidden>👎</span>
+        <span aria-hidden style={glyphStyle}>▼</span>
         {he(objecting)}
       </span>
       <span className={styles.reaction} title={t.commentsTitle}>
-        <span aria-hidden>💬</span>
+        <span aria-hidden style={glyphStyle}>❙</span>
         {he(source.commentsCount)}
       </span>
     </span>
@@ -335,6 +342,18 @@ function Sentiment({ source, locale = 'he' }: { source: DeskSource; locale?: Loc
  * options must still print something honest, so the two heaviest options
  * become the two sides in order.
  */
+/**
+ * How long the swipe lesson runs.
+ *
+ * The lesson is a demonstration now, not three lit pills: a ghost sheet
+ * performs the gesture on the tile - leans right and holds, leans left and
+ * holds, dips down - with the matching cue lighting as it goes. The CSS
+ * sequence in ConsensusDesk.module.css (np-teach-ghost + the cue delays) is
+ * hard-coupled to this number: change either and the other must follow, or
+ * the lesson is cut off mid-gesture.
+ */
+const TUTOR_MS = 6200;
+
 const FOR_TEXT = /^(בעד|for)$/i;
 const AGAINST_TEXT = /^(נגד|against)$/i;
 const ABSTAIN_TEXT = /^(נמנע|abstain)$/i;
@@ -454,10 +473,18 @@ function SovereignScale({
 function SlugLine({
   index,
   heat,
+  action,
   locale = 'he',
 }: {
   index: number;
   heat: number | null;
+  /**
+   * Tile chrome parked at the far end of the rule. The meta line would be the
+   * more natural home for a control that quotes its figures, but that line is
+   * dropped entirely on short rows and compact tiles - the slug rule is the one
+   * piece of furniture every variant prints.
+   */
+  action?: React.ReactNode;
   locale?: Locale;
 }) {
   const t = COPY[locale];
@@ -489,6 +516,8 @@ function SlugLine({
           {heat}°
         </span>
       )}
+
+      {action}
     </p>
   );
 }
@@ -717,6 +746,22 @@ export function RankingLine({
   );
 }
 
+/**
+ * A push made by someone the desk cannot yet count.
+ *
+ * The tile hands the whole gesture over rather than a flag, so the gate can
+ * print the position back and send the reader on to the ballot it belongs to
+ * once they are signed in.
+ */
+export interface VoteAuthRequest {
+  topic: DeskTopic;
+  intent: SwipeIntent;
+  /** The ballot option the side maps to; absent for `aside`. */
+  optionId?: string;
+  /** The headline as the tile printed it - the gate quotes it back. */
+  headline: string;
+}
+
 interface DeskTopicRowProps {
   topic: DeskTopic;
   /** Municipality the topic belongs to - shown as a chip inside the card. */
@@ -734,6 +779,28 @@ interface DeskTopicRowProps {
    * is the choice, so asking for it again would make the gesture decorative.
    */
   onOpen?: (topic: DeskTopic, optionId?: string) => void;
+  /**
+   * Play the swipe lesson on this tile: the three edge cues, lit in turn.
+   *
+   * The gesture is otherwise undiscoverable - the cues only appear once a tile
+   * is already in hand, which is no use to a reader who does not know there is
+   * anything to take hold of. Exactly one tile is ever asked, once per reader;
+   * DeskStream picks which.
+   */
+  tutor?: boolean;
+  /**
+   * Called the first time this tile is substantially on screen, so the stream
+   * can hand the lesson to a tile the reader can actually see. Passed only
+   * while the lesson is unclaimed - its absence is what stops the tile
+   * watching itself for no reason.
+   */
+  onTutorVisible?: (index: number) => void;
+  /**
+   * Handed a push made by a reader with no account, instead of letting it
+   * land. Present only for guests - its absence is what says the desk may
+   * count this reader, so a signed-in tile never pays for the check.
+   */
+  onRequireAuth?: (request: VoteAuthRequest) => void;
   locale: Locale;
 }
 
@@ -746,6 +813,9 @@ export function DeskTopicRow({
   ranking = null,
   variant = 'brief',
   onOpen,
+  tutor = false,
+  onTutorVisible,
+  onRequireAuth,
   locale,
 }: DeskTopicRowProps) {
   const t = COPY[locale];
@@ -794,17 +864,30 @@ export function DeskTopicRow({
     setAside(getAsideTopics().includes(topic.id));
   }, [topic.id]);
 
-  const { forOption, againstOption } = standingOf(topic.options);
+  const standing = standingOf(topic.options);
+  const { forOption, againstOption } = standing;
   const commit = useCallback(
     (cast: SwipeIntent) => {
+      const optionId =
+        cast === 'aside' ? undefined : (cast === 'for' ? forOption : againstOption)?.id;
+
+      /* A reader the desk cannot count is stopped here rather than at the
+         ballot: the gesture has already played out on the tile, so the gate
+         opens holding what they said instead of dropping it and asking them
+         to say it again on another screen. */
+      if (onRequireAuth) {
+        onRequireAuth({ topic, intent: cast, optionId, headline });
+        return;
+      }
+
       if (cast === 'aside') {
         setTopicAside(topic.id);
         setAside(true);
         return;
       }
-      open((cast === 'for' ? forOption : againstOption)?.id);
+      open(optionId);
     },
-    [againstOption, forOption, open, topic.id]
+    [againstOption, forOption, headline, onRequireAuth, open, topic]
   );
 
   const swipe = useVoteSwipe<HTMLLIElement>({
@@ -812,6 +895,49 @@ export function DeskTopicRow({
     rtl: locale === 'he',
     disabled: aside,
   });
+
+  /* ---- The swipe lesson ------------------------------------------------
+     Offered to the stream the first time this tile is properly on screen.
+     0.6 rather than any sliver: the lesson lights three cues pinned to three
+     edges, and a tile with one edge showing would teach a gesture pointing
+     off the side of the desk. The observer disconnects the moment it offers,
+     claimed or not - a tile scrolling in and out must not keep bidding. */
+  useEffect(() => {
+    const el = swipe.ref.current;
+    if (!onTutorVisible || !el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting || entry.intersectionRatio < 0.6) return;
+        /* Intersection is geometry, not sight: the tabbed desk keeps its
+           hidden edition laid out under visibility:hidden, and its tiles
+           intersect like anyone else's. A tile nobody can see must not bid -
+           it would play the one lesson a reader gets behind a hidden panel
+           and mark them taught. (checkVisibility is everywhere this ships;
+           the guard degrades to the old behaviour where it is not.) */
+        if (entry.target.checkVisibility?.() === false) return;
+        observer.disconnect();
+        onTutorVisible(index);
+      },
+      { threshold: [0.6] }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [onTutorVisible, index, swipe.ref]);
+
+  /* The lesson is over when it has been read once, or the moment the reader
+     touches the tile - somebody already pushing it does not need telling. */
+  const [teaching, setTeaching] = useState(false);
+  useEffect(() => {
+    if (!tutor) return;
+    setTeaching(true);
+    const done = setTimeout(() => setTeaching(false), TUTOR_MS);
+    return () => clearTimeout(done);
+  }, [tutor]);
+
+  useEffect(() => {
+    if (swipe.phase !== 'idle') setTeaching(false);
+  }, [swipe.phase]);
 
   return (
     <li
@@ -826,8 +952,10 @@ export function DeskTopicRow({
               : styles.topicCardBrief
       }`}
       data-swipe={swipe.phase === 'idle' ? undefined : swipe.phase}
+      data-swipe-tutor={teaching || undefined}
       data-swipe-intent={swipe.intent ?? undefined}
       data-swipe-ready={(swipe.ready && swipe.intent) || undefined}
+      data-swipe-hold={swipe.hold ?? undefined}
       data-aside={aside || undefined}
       /* Lenis owns the page's scroll; while a tile has the pointer it must
          not also be feeding it. */
@@ -848,7 +976,28 @@ export function DeskTopicRow({
         />
       ) : null}
 
-      <SlugLine index={index} heat={heat} locale={locale} />
+      <SlugLine
+        index={index}
+        heat={heat}
+        locale={locale}
+        action={
+          /* The share carries this tile's counted facts, so it is built from
+             the same standing the scale below prints rather than re-read. */
+          <ShareTopicButton
+            topicId={topic.id}
+            locale={locale}
+            facts={{
+              headline,
+              authority: municipality,
+              forPct: standing.forPct,
+              againstPct: standing.againstPct,
+              ballots: standing.total,
+              participants: topic.participantCount,
+              daysLeft: days,
+            }}
+          />
+        }
+      />
 
       {/* The edition sits with the slug rule, not with the copy: on a two-row
           tile the headline centres in the tile's slack, and a chip carried
@@ -960,6 +1109,14 @@ export function DeskTopicRow({
         </div>
       </div>
 
+      {/* The lesson's ghost: a translucent sheet over the tile that performs
+          the swipe - lean right, hold, lean left, hold, dip down - so the
+          reader is shown the card moving rather than told about it. Its own
+          element on purpose: the tile's transform belongs to the gesture and
+          the reveal (both inline), and a keyframe on the tile itself would
+          out-rank and fight them. */}
+      {teaching ? <span className={styles.tutorGhost} aria-hidden /> : null}
+
       {/* The three answers, each printed on the edge it lives on, and lit as
           the tile is pushed toward it. Decorative: the gesture is a shortcut
           past the headline button, and everything here is said again in the
@@ -988,6 +1145,22 @@ export function DeskTopicRow({
             ? t.swipeAgainst
             : t.swipeAside}
       </span>
+
+      {/* The be-sure dial: 3, 2, 1 while the push is held at full distance.
+          The sweep runs off --hold-t, painted by the hook; the digit is keyed
+          so each second re-enters rather than mutating in place. Decorative
+          for the same reason as the cues - the dialog remains the ballot. */}
+      {swipe.hold !== null ? (
+        <span className={styles.holdDial} aria-hidden>
+          <svg className={styles.holdRing} viewBox="0 0 48 48">
+            <circle className={styles.holdRingTrack} cx="24" cy="24" r="21" />
+            <circle className={styles.holdRingSweep} cx="24" cy="24" r="21" />
+          </svg>
+          <b key={swipe.hold} className={styles.holdDigit}>
+            {swipe.hold}
+          </b>
+        </span>
+      ) : null}
 
       {swipe.phase === 'cast' && swipe.intent && swipe.intent !== 'aside' ? (
         <p className={styles.swipeStamp} data-cue={swipe.intent}>

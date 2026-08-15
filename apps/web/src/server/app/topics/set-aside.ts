@@ -2,7 +2,7 @@
  * Use-case: a reader setting a topic aside as not a matter of consensus.
  *
  * The desk's third gesture. It is not a ballot and this module is careful to
- * keep it from becoming one — nothing here touches points, tallies, GPS or the
+ * keep it from becoming one - nothing here touches points, tallies, GPS or the
  * chain, and the read it returns is a count plus the caller's own standing,
  * never a list of who said what.
  *

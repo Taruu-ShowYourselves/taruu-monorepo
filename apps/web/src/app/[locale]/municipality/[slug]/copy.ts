@@ -182,7 +182,7 @@ export const COPY: Record<Locale, MunicipalityCopy> = {
 
     indexTitle: 'המדד האזרחי',
     indexNote:
-      'כל הציונים על אותו סולם, 100− עד 100+, כדי שאפשר יהיה להשוות ביניהם במבט אחד. הקו האנכי הכהה על הפס הוא החציון הארצי. ציון שטרם נמדד מודפס כמקף — אף פעם לא כאפס.',
+      'כל הציונים על אותו סולם, 100− עד 100+, כדי שאפשר יהיה להשוות ביניהם במבט אחד. הקו האנכי הכהה על הפס הוא החציון הארצי. ציון שטרם נמדד מודפס כמקף - אף פעם לא כאפס.',
     scoreOverall: 'ציון כולל',
     scoreEngagement: 'מעורבות',
     scoreCooperation: 'הסכמה',
@@ -232,16 +232,16 @@ export const COPY: Record<Locale, MunicipalityCopy> = {
       `אף הצבעה ב${name} לא קיבלה עדיין קול. הנושאים שמחכים לקול הראשון נמצאים בלשונית «נושאים פתוחים».`,
     emptyTopicsTitle: 'השולחן ריק',
     emptyTopicsBody: (name) =>
-      `אין כרגע נושא פתוח ב${name}. נושא נפתח כשתושב מעלה אותו — וזה יכול להיות אתם.`,
+      `אין כרגע נושא פתוח ב${name}. נושא נפתח כשתושב מעלה אותו - וזה יכול להיות אתם.`,
     emptyClosedTitle: 'טרם הוכרעה הצבעה',
     emptyClosedBody: (name) =>
-      `עוד לא נסגרה הצבעה ב${name}. כשתיסגר, התוצאה תודפס כאן במלואה — כולל פילוח הקולות.`,
+      `עוד לא נסגרה הצבעה ב${name}. כשתיסגר, התוצאה תודפס כאן במלואה - כולל פילוח הקולות.`,
 
     stripTitle: 'רשויות נוספות',
     stripNote: 'לפי הציון האזרחי הכולל. רשויות שטרם נמדדו בסוף הרשימה.',
     stripTopics: (n) => (n === 1 ? 'נושא אחד פתוח' : `${n} נושאים פתוחים`),
 
-    closingTitle: 'מה שלא מצביעים עליו — מחליטים במקומכם.',
+    closingTitle: 'מה שלא מצביעים עליו - מחליטים במקומכם.',
     closingBody: (name) =>
       `כל נושא שנפתח ב${name} נספר, נחתם ונשלח למועצה עם מספר הקולות שמאחוריו. פתיחת נושא לוקחת שתי דקות.`,
   },
@@ -292,7 +292,7 @@ export const COPY: Record<Locale, MunicipalityCopy> = {
 
     indexTitle: 'The civic index',
     indexNote:
-      'Every score runs the same −100 to +100 scale, so they can be compared at a glance. The dark tick on each track is the national median. A score that has not been measured prints as a dash — never as a zero.',
+      'Every score runs the same −100 to +100 scale, so they can be compared at a glance. The dark tick on each track is the national median. A score that has not been measured prints as a dash - never as a zero.',
     scoreOverall: 'Overall',
     scoreEngagement: 'Engagement',
     scoreCooperation: 'Agreement',
@@ -342,10 +342,10 @@ export const COPY: Record<Locale, MunicipalityCopy> = {
       `No vote in ${name} has taken a ballot yet. The topics waiting for a first voice are under "Open topics".`,
     emptyTopicsTitle: 'The table is clear',
     emptyTopicsBody: (name) =>
-      `There is no open topic in ${name} right now. A topic opens when a resident raises it — and that can be you.`,
+      `There is no open topic in ${name} right now. A topic opens when a resident raises it - and that can be you.`,
     emptyClosedTitle: 'Nothing decided yet',
     emptyClosedBody: (name) =>
-      `No vote has closed in ${name} yet. When one does, the full result prints here — breakdown included.`,
+      `No vote has closed in ${name} yet. When one does, the full result prints here - breakdown included.`,
 
     stripTitle: 'Other authorities',
     stripNote: 'By overall civic score. Unmeasured authorities sit at the end.',

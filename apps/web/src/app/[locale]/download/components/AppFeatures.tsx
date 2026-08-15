@@ -59,7 +59,7 @@ const COPY: Record<Locale, AppFeaturesCopy> = {
     kicker: 'The specification · SPEC SHEET',
     heading: 'Everything it takes for your voice to',
     headingRed: 'count.',
-    standfirst: 'Taking part in local decisions — verified, transparent and at your fingertips.',
+    standfirst: 'Taking part in local decisions - verified, transparent and at your fingertips.',
     features: [
       {
         title: 'Votes in real time',
@@ -69,17 +69,17 @@ const COPY: Record<Locale, AppFeaturesCopy> = {
       {
         title: 'Location verification',
         description:
-          'Simple GPS verification ensures only local residents vote — no fakes, no duplicates.',
+          'Simple GPS verification ensures only local residents vote - no fakes, no duplicates.',
       },
       {
         title: 'Verified and tamper-proof',
         description:
-          'Every vote is signed and recorded on a public chain open to audit — full transparency, end to end.',
+          'Every vote is signed and recorded on a public chain open to audit - full transparency, end to end.',
       },
       {
         title: 'In Hebrew, on mobile',
         description:
-          'A clean, fully Hebrew interface, built for RTL and for the palm of your hand — shape your community in a few taps.',
+          'A clean, fully Hebrew interface, built for RTL and for the palm of your hand - shape your community in a few taps.',
       },
     ],
   },

@@ -37,7 +37,7 @@ export interface SpaceAdminNavProps {
   active: SpaceAdminNavHref;
   /**
    * Surfaces the admin holds the capability for. A link the admin cannot use
-   * is NOT RENDERED (Interaction Contract 1, Rule A) — never disabled, never
+   * is NOT RENDERED (Interaction Contract 1, Rule A) - never disabled, never
    * greyed. Omit the prop to render all six.
    */
   visibleHrefs?: readonly SpaceAdminNavHref[];

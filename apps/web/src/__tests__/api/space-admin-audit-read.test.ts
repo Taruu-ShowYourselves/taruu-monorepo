@@ -1,11 +1,11 @@
 /**
- * Audit history read — SPACE-04's readable half.
+ * Audit history read - SPACE-04's readable half.
  *
  * The repository under test here is the real one: only `supabaseAdmin` is
  * stubbed, so every assertion about a predicate is an assertion about the query
  * that would have been sent, not about a filter applied after the fetch. That
  * matters most for the space predicate, which must survive every filter
- * combination — a narrowing filter that quietly widened the space would be the
+ * combination - a narrowing filter that quietly widened the space would be the
  * exact cross-space read SPACE-03 forbids.
  */
 
@@ -158,7 +158,7 @@ describe('cursor pagination walks the log without repeating or skipping a row', 
     expect(pageOne.nextCursor).toEqual(expect.any(String));
 
     // The cursor is one opaque URL-safe token, not two column values the client
-    // could assemble — or tamper with — itself.
+    // could assemble - or tamper with - itself.
     expect(pageOne.nextCursor).toMatch(/^[A-Za-z0-9_-]+$/);
 
     const lastOfPageOne = pageOne.rows[1];

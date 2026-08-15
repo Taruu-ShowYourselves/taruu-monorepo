@@ -7,7 +7,7 @@
  * The device remembers immediately so the tile leaves the desk the instant the
  * gesture commits, and the desk is told afterwards over /api/topics/[id]/aside.
  * A reader who is signed out, offline, or behind a failing request still gets
- * their own edition rearranged — the signal is simply not collected, which is
+ * their own edition rearranged - the signal is simply not collected, which is
  * the same outcome this module had before the endpoint existed.
  *
  * The post is deliberately fire-and-forget. Setting a topic aside is not a
