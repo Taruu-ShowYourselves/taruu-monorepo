@@ -76,7 +76,7 @@ const COPY: Record<Locale, LocalityDeskCopy> = {
     kicker: 'מקומי קודם · LOCAL FIRST',
     askHeadline: 'איזו מהדורה נפתח לכם?',
     askLede:
-      'תַּרְאוּ נכתבת יישוב־יישוב: כל נושא, כל הצבעה וכל שקל שייכים לרשות אחת. בחרו את שלכם - וזו המהדורה שתקבלו.',
+      'תַּרְאוּ נכתבת יישוב-יישוב: כל נושא, כל הצבעה וכל שקל שייכים לרשות אחת. בחרו את שלכם - וזו המהדורה שתקבלו.',
     settledKicker: 'המהדורה שלכם · YOUR EDITION',
     settledLede: 'המהדורה של',
     settledNote:
@@ -272,6 +272,9 @@ export function LocalityDesk({ locale = 'he' }: { locale?: Locale }) {
     <section
       className={styles.desk}
       data-locality-gate
+      /* "hold": the pinned dock stands over this section while it is on
+         screen and tucks away elsewhere - see Masthead's sentinel logic. */
+      data-nav-reveal="hold"
       aria-labelledby="locality-desk-headline"
     >
       <div className={styles.inner}>

@@ -391,8 +391,10 @@ export function Masthead({ locale = 'he' }: MastheadProps) {
   useEffect(() => {
     const header = headerRef.current;
     const dock = dockRef.current;
-    const reveal = document.querySelector<HTMLElement>('[data-nav-reveal]');
-    if (!header || !dock || !reveal) return;
+    const reveals = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-nav-reveal]')
+    );
+    if (!header || !dock || reveals.length === 0) return;
 
     let raf = 0;
     const update = () => {
@@ -404,8 +406,21 @@ export function Masthead({ locale = 'he' }: MastheadProps) {
       // desk's top within a pixel or two of the dock's own height - a test
       // for exactly that height lost the race by three pixels and left the
       // reader on the desk with no nav until the next swipe.
-      const revealed =
-        reveal.getBoundingClientRect().top <= dock.offsetHeight + REVEAL_SLACK;
+      //
+      // Two sentinel flavours. The default latches: once the section has
+      // reached the top, the dock stays for the rest of the page (the
+      // pitch deck's behaviour). `data-nav-reveal="hold"` shows the dock
+      // only WHILE that section is under it - the homepage marks the
+      // locality desk and the thesis chapters, so the nav stands over the
+      // sections that ask for it and stays out of the carousel's frame.
+      const threshold = dock.offsetHeight + REVEAL_SLACK;
+      const revealed = reveals.some((el) => {
+        const rect = el.getBoundingClientRect();
+        if (rect.top > threshold) return false;
+        return el.dataset.navReveal === 'hold'
+          ? rect.bottom >= dock.offsetHeight - REVEAL_SLACK
+          : true;
+      });
       setDockHidden(pinned && !revealed);
     };
     const schedule = () => {
