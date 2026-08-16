@@ -130,6 +130,80 @@ export interface Database {
         };
         Relationships: [];
       };
+      newsletter_subscribers: {
+        Row: {
+          id: string;
+          email: string;
+          status: 'active' | 'unsubscribed';
+          source: string | null;
+          source_page: string | null;
+          locale: 'he' | 'en' | null;
+          subscribed_at: string;
+          unsubscribed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          /** Must already be lowercased and trimmed - the table CHECKs it. */
+          email: string;
+          status?: 'active' | 'unsubscribed';
+          source?: string | null;
+          source_page?: string | null;
+          locale?: 'he' | 'en' | null;
+          subscribed_at?: string;
+          unsubscribed_at?: string | null;
+        };
+        Update: {
+          status?: 'active' | 'unsubscribed';
+          source?: string | null;
+          source_page?: string | null;
+          locale?: 'he' | 'en' | null;
+          subscribed_at?: string;
+          unsubscribed_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      /**
+       * The desk's "not a matter of consensus" signal. Never a ballot: no
+       * points, no tally, no chain. One row per reader per topic.
+       */
+      topic_set_aside: {
+        Row: {
+          id: string;
+          vote_id: string;
+          user_id: string;
+          reason:
+            | 'not_consensus'
+            | 'already_decided'
+            | 'unclear'
+            | 'not_my_authority';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          vote_id: string;
+          user_id: string;
+          reason:
+            | 'not_consensus'
+            | 'already_decided'
+            | 'unclear'
+            | 'not_my_authority';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          reason?:
+            | 'not_consensus'
+            | 'already_decided'
+            | 'unclear'
+            | 'not_my_authority';
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       push_tokens: {
         Row: {
           id: string;
@@ -568,6 +642,200 @@ export interface Database {
           text?: string;
           votes?: number;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      knesset_persons: {
+        Row: {
+          person_id: number;
+          first_name: string;
+          last_name: string;
+          full_name: string;
+          gender_desc: string | null;
+          is_current: boolean;
+          slug: string;
+          knesset_num: number | null;
+          faction_name: string | null;
+          source_name: string;
+          source_url: string;
+          as_of: string;
+          source_updated_at: string | null;
+          fetched_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          person_id: number;
+          first_name: string;
+          last_name: string;
+          full_name: string;
+          gender_desc?: string | null;
+          is_current?: boolean;
+          slug: string;
+          knesset_num?: number | null;
+          faction_name?: string | null;
+          source_name: string;
+          source_url: string;
+          as_of: string;
+          source_updated_at?: string | null;
+          fetched_at?: string;
+        };
+        Update: {
+          is_current?: boolean;
+          slug?: string;
+          knesset_num?: number | null;
+          faction_name?: string | null;
+          first_name?: string;
+          last_name?: string;
+          full_name?: string;
+          gender_desc?: string | null;
+          source_name?: string;
+          source_url?: string;
+          as_of?: string;
+          source_updated_at?: string | null;
+          fetched_at?: string;
+        };
+        Relationships: [];
+      };
+      knesset_positions: {
+        Row: {
+          position_row_id: number;
+          person_id: number;
+          office: string;
+          title: string;
+          portfolio: string | null;
+          faction_name: string | null;
+          knesset_num: number | null;
+          start_date: string | null;
+          end_date: string | null;
+          is_current: boolean;
+          source_name: string;
+          source_url: string;
+          as_of: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          position_row_id: number;
+          person_id: number;
+          office: string;
+          title: string;
+          portfolio?: string | null;
+          faction_name?: string | null;
+          knesset_num?: number | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          is_current?: boolean;
+          source_name: string;
+          source_url: string;
+          as_of: string;
+        };
+        Update: {
+          office?: string;
+          title?: string;
+          portfolio?: string | null;
+          faction_name?: string | null;
+          knesset_num?: number | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          is_current?: boolean;
+        };
+        Relationships: [];
+      };
+      knesset_roll_calls: {
+        Row: {
+          roll_call_id: number;
+          knesset_num: number | null;
+          session_id: number | null;
+          sess_item_id: number | null;
+          item_description: string | null;
+          vote_subject: string | null;
+          vote_date: string | null;
+          total_for: number;
+          total_against: number;
+          total_abstain: number;
+          is_accepted: boolean;
+          source_name: string;
+          source_url: string;
+          as_of: string;
+          fetched_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          roll_call_id: number;
+          knesset_num?: number | null;
+          session_id?: number | null;
+          sess_item_id?: number | null;
+          item_description?: string | null;
+          vote_subject?: string | null;
+          vote_date?: string | null;
+          total_for?: number;
+          total_against?: number;
+          total_abstain?: number;
+          is_accepted?: boolean;
+          source_name: string;
+          source_url: string;
+          as_of: string;
+          fetched_at?: string;
+        };
+        Update: {
+          total_for?: number;
+          total_against?: number;
+          total_abstain?: number;
+          is_accepted?: boolean;
+          fetched_at?: string;
+        };
+        Relationships: [];
+      };
+      knesset_roll_call_stances: {
+        Row: {
+          roll_call_id: number;
+          member_key: string;
+          person_id: number | null;
+          member_name: string;
+          faction_name: string | null;
+          stance: string;
+          created_at: string;
+        };
+        Insert: {
+          roll_call_id: number;
+          member_key: string;
+          person_id?: number | null;
+          member_name: string;
+          faction_name?: string | null;
+          stance: string;
+        };
+        Update: {
+          person_id?: number | null;
+          stance?: string;
+          faction_name?: string | null;
+        };
+        Relationships: [];
+      };
+      knesset_member_reviews: {
+        Row: {
+          id: string;
+          person_id: number;
+          user_id: string;
+          rating: number;
+          body: string | null;
+          status: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          person_id: number;
+          user_id: string;
+          rating: number;
+          body?: string | null;
+          status?: string;
+        };
+        Update: {
+          rating?: number;
+          body?: string | null;
+          status?: string;
         };
         Relationships: [];
       };
@@ -1512,6 +1780,7 @@ export interface Database {
           vote_id: string;
           hotness: number;
           relevance: number | null;
+          stakes: number | null;
           media: number | null;
           headline: string | null;
           rationale: string | null;
@@ -1527,6 +1796,7 @@ export interface Database {
           vote_id: string;
           hotness: number;
           relevance?: number | null;
+          stakes?: number | null;
           media?: number | null;
           headline?: string | null;
           rationale?: string | null;
@@ -1542,6 +1812,7 @@ export interface Database {
           vote_id?: string;
           hotness?: number;
           relevance?: number | null;
+          stakes?: number | null;
           media?: number | null;
           headline?: string | null;
           rationale?: string | null;
@@ -1549,6 +1820,42 @@ export interface Database {
           media_evidence?: Record<string, unknown>;
           model?: string | null;
           ranked_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      vote_card_art: {
+        Row: {
+          id: string;
+          vote_id: string;
+          image_url: string | null;
+          prompt: string | null;
+          model: string | null;
+          attempted_at: string;
+          generated_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          vote_id: string;
+          image_url?: string | null;
+          prompt?: string | null;
+          model?: string | null;
+          attempted_at?: string;
+          generated_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          vote_id?: string;
+          image_url?: string | null;
+          prompt?: string | null;
+          model?: string | null;
+          attempted_at?: string;
+          generated_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1571,6 +1878,301 @@ export interface Database {
           code?: string;
           name_he?: string;
           kind?: "municipality" | "national";
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      pilot_municipalities: {
+        Row: {
+          municipality_id: string;
+          rank: number | null;
+          engagement_score: number;
+          engagement_snapshot: Json;
+          status: 'selected' | 'active' | 'paused' | 'completed';
+          curated_by: string;
+          curated_at: string;
+          activated_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          municipality_id: string;
+          rank?: number | null;
+          engagement_score?: number;
+          engagement_snapshot?: Json;
+          status?: 'selected' | 'active' | 'paused' | 'completed';
+          curated_by: string;
+          curated_at?: string;
+          activated_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          municipality_id?: string;
+          rank?: number | null;
+          engagement_score?: number;
+          engagement_snapshot?: Json;
+          status?: 'selected' | 'active' | 'paused' | 'completed';
+          curated_by?: string;
+          curated_at?: string;
+          activated_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      pilot_votes: {
+        Row: {
+          municipality_id: string;
+          vote_id: string;
+          position: number;
+          added_by: string;
+          created_at: string;
+        };
+        Insert: {
+          municipality_id: string;
+          vote_id: string;
+          position: number;
+          added_by: string;
+          created_at?: string;
+        };
+        Update: {
+          municipality_id?: string;
+          vote_id?: string;
+          position?: number;
+          added_by?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      pilot_campaigns: {
+        Row: {
+          id: string;
+          municipality_id: string;
+          created_by: string;
+          group_name: string;
+          group_url: string | null;
+          status: 'draft' | 'ready' | 'posted' | 'archived';
+          current_copy_id: string | null;
+          posted_at: string | null;
+          posted_by: string | null;
+          post_permalink: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          municipality_id: string;
+          created_by: string;
+          group_name: string;
+          group_url?: string | null;
+          status?: 'draft' | 'ready' | 'posted' | 'archived';
+          current_copy_id?: string | null;
+          posted_at?: string | null;
+          posted_by?: string | null;
+          post_permalink?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          municipality_id?: string;
+          created_by?: string;
+          group_name?: string;
+          group_url?: string | null;
+          status?: 'draft' | 'ready' | 'posted' | 'archived';
+          current_copy_id?: string | null;
+          posted_at?: string | null;
+          posted_by?: string | null;
+          post_permalink?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      pilot_campaign_copies: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          version: number;
+          body: string;
+          author: 'llm' | 'human';
+          author_user_id: string;
+          model: string | null;
+          prompt_snapshot: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          campaign_id: string;
+          version: number;
+          body: string;
+          author: 'llm' | 'human';
+          author_user_id: string;
+          model?: string | null;
+          prompt_snapshot?: Json | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          campaign_id?: string;
+          version?: number;
+          body?: string;
+          author?: 'llm' | 'human';
+          author_user_id?: string;
+          model?: string | null;
+          prompt_snapshot?: Json | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      pilot_links: {
+        Row: {
+          code: string;
+          campaign_id: string | null;
+          municipality_id: string;
+          target_path: string;
+          created_by: string;
+          disabled_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          code: string;
+          campaign_id?: string | null;
+          municipality_id: string;
+          target_path?: string;
+          created_by: string;
+          disabled_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          code?: string;
+          campaign_id?: string | null;
+          municipality_id?: string;
+          target_path?: string;
+          created_by?: string;
+          disabled_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      pilot_link_clicks: {
+        Row: {
+          id: number;
+          link_code: string;
+          clicked_at: string;
+          user_agent: string | null;
+          referer: string | null;
+          ip_hash: string | null;
+          country: string | null;
+          is_bot: boolean;
+        };
+        Insert: {
+          link_code: string;
+          clicked_at?: string;
+          user_agent?: string | null;
+          referer?: string | null;
+          ip_hash?: string | null;
+          country?: string | null;
+          is_bot?: boolean;
+        };
+        Update: {
+          link_code?: string;
+          clicked_at?: string;
+          user_agent?: string | null;
+          referer?: string | null;
+          ip_hash?: string | null;
+          country?: string | null;
+          is_bot?: boolean;
+        };
+        Relationships: [];
+      };
+      pilot_registrations: {
+        Row: {
+          id: string;
+          user_id: string;
+          role: 'participant' | 'observer';
+          lat: number | null;
+          lng: number | null;
+          accuracy_m: number | null;
+          location_consent_at: string | null;
+          consent_version: string | null;
+          claimed_municipality_id: string | null;
+          gps_municipality_id: string | null;
+          resolved_municipality_id: string | null;
+          resolution: 'gps' | 'manual' | 'profile' | 'none';
+          ref_code: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          role: 'participant' | 'observer';
+          lat?: number | null;
+          lng?: number | null;
+          accuracy_m?: number | null;
+          location_consent_at?: string | null;
+          consent_version?: string | null;
+          claimed_municipality_id?: string | null;
+          gps_municipality_id?: string | null;
+          resolved_municipality_id?: string | null;
+          resolution?: 'gps' | 'manual' | 'profile' | 'none';
+          ref_code?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          role?: 'participant' | 'observer';
+          lat?: number | null;
+          lng?: number | null;
+          accuracy_m?: number | null;
+          location_consent_at?: string | null;
+          consent_version?: string | null;
+          claimed_municipality_id?: string | null;
+          gps_municipality_id?: string | null;
+          resolved_municipality_id?: string | null;
+          resolution?: 'gps' | 'manual' | 'profile' | 'none';
+          ref_code?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      pilot_audit_log: {
+        Row: {
+          id: string;
+          actor_user_id: string;
+          municipality_id: string | null;
+          action: string;
+          object_type: 'cohort' | 'campaign' | 'copy' | 'link' | 'vote_set';
+          object_id: string | null;
+          prior_state: Json | null;
+          new_state: Json | null;
+          reason: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          actor_user_id: string;
+          municipality_id?: string | null;
+          action: string;
+          object_type: 'cohort' | 'campaign' | 'copy' | 'link' | 'vote_set';
+          object_id?: string | null;
+          prior_state?: Json | null;
+          new_state?: Json | null;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          actor_user_id?: string;
+          municipality_id?: string | null;
+          action?: string;
+          object_type?: 'cohort' | 'campaign' | 'copy' | 'link' | 'vote_set';
+          object_id?: string | null;
+          prior_state?: Json | null;
+          new_state?: Json | null;
+          reason?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -1620,6 +2222,149 @@ export interface Database {
           satisfaction_count: number;
         }[];
       };
+      council_office_holders_public: {
+        Args: {
+          council_identifier: string;
+        };
+        Returns: {
+          holder_id: string;
+          council_code: string;
+          role: string;
+          full_name: string;
+          term_start: string | null;
+          term_end: string | null;
+          /** Never null - the table refuses an unsourced office holder. */
+          source_name: string;
+          source_url: string;
+          as_of: string;
+          review_count: number;
+          rating_average: number | null;
+        }[];
+      };
+      council_network_public: {
+        Args: {
+          council_identifier: string;
+        };
+        Returns: {
+          relation: string;
+          council_code: string;
+          name_he: string;
+          slug_he: string;
+          kind: string;
+          source_name: string | null;
+          source_url: string | null;
+        }[];
+      };
+      knesset_roster_public: {
+        Args: Record<string, never>;
+        Returns: {
+          person_id: number;
+          slug: string;
+          full_name: string;
+          first_name: string;
+          last_name: string;
+          faction_name: string | null;
+          knesset_num: number | null;
+          source_name: string;
+          source_url: string;
+          as_of: string;
+          /** Sitting offices as GovPosition-shaped JSON, highest standing first. */
+          positions: unknown;
+          matched_votes: number;
+          agreed_votes: number;
+          roll_calls: number;
+          recorded_votes: number;
+          review_count: number;
+          rating_average: number | null;
+          /** All four run -100..+100; NULL means not measured. */
+          alignment_score: number | null;
+          participation_score: number | null;
+          trust_score: number | null;
+          overall_score: number | null;
+        }[];
+      };
+      government_civic_stats: {
+        Args: Record<string, never>;
+        Returns: {
+          knesset_num: number | null;
+          members: number;
+          factions: number;
+          open_topics: number;
+          decided_topics: number;
+          ballots_counted: number;
+          platform_users: number;
+          active_participants: number;
+          matched_items: number;
+          agreed_items: number;
+          representation_score: number | null;
+          engagement_score: number | null;
+          cooperation_score: number | null;
+          trust_score: number | null;
+          overall_score: number | null;
+        }[];
+      };
+      knesset_matched_votes_public: {
+        Args: { p_limit?: number };
+        Returns: {
+          vote_id: string;
+          title: string;
+          item_id: number;
+          vote_date: string | null;
+          public_for: number;
+          public_against: number;
+          house_for: number;
+          house_against: number;
+          house_abstain: number;
+          house_accepted: boolean;
+          public_side: string | null;
+          house_side: string | null;
+        }[];
+      };
+      knesset_member_votes_public: {
+        Args: { p_person_id: number };
+        Returns: {
+          vote_id: string;
+          title: string;
+          item_id: number;
+          vote_date: string | null;
+          public_for: number;
+          public_against: number;
+          house_for: number;
+          house_against: number;
+          house_abstain: number;
+          house_accepted: boolean;
+          public_side: string | null;
+          house_side: string | null;
+          member_stance: string | null;
+        }[];
+      };
+      knesset_member_reviews_public: {
+        Args: { p_person_id: number; viewer?: string | null };
+        Returns: {
+          review_id: string;
+          rating: number;
+          body: string | null;
+          status: string;
+          created_at: string;
+          is_mine: boolean;
+        }[];
+      };
+      municipality_civic_stats: {
+        Args: Record<string, never>;
+        Returns: {
+          municipality_code: string;
+          /** Sourced population; NULL where no authoritative figure is loaded. */
+          residents: number | null;
+          platform_users: number;
+          active_participants: number;
+          open_topics: number;
+          /** All four scores run -100..+100; NULL means not measured. */
+          engagement_score: number | null;
+          cooperation_score: number | null;
+          satisfaction_score: number | null;
+          overall_score: number | null;
+        }[];
+      };
       public_council_metrics: {
         Args: {
           council_identifier: string;
@@ -1656,6 +2401,50 @@ export interface Database {
           participation_rate_pct: number | null;
           participation_rate_pct_status: 'available' | 'suppressed' | 'unavailable';
           generated_at: string;
+        }[];
+      };
+      pilot_engagement_ranking: {
+        Args: Record<string, never>;
+        Returns: {
+          municipality_id: string;
+          vote_count: number;
+          post_count: number;
+          comments_count: number;
+          reactions_count: number;
+          score: number;
+        }[];
+      };
+      pilot_link_click_stats: {
+        Args: { p_code: string };
+        Returns: {
+          day: string;
+          total_clicks: number;
+          human_clicks: number;
+          unique_visitors: number;
+        }[];
+      };
+      pilot_campaign_funnel: {
+        Args: { p_campaign: string };
+        Returns: {
+          clicks: number;
+          unique_visitors: number;
+          registrations: number;
+          participants: number;
+          ballots: number;
+        }[];
+      };
+      pilot_overview: {
+        Args: Record<string, never>;
+        Returns: {
+          municipality_id: string;
+          rank: number | null;
+          status: 'selected' | 'active' | 'paused' | 'completed';
+          campaigns: number;
+          posted_campaigns: number;
+          human_clicks: number;
+          registrations: number;
+          participants: number;
+          ballots: number;
         }[];
       };
       can_admin_space: {
@@ -1734,3 +2523,12 @@ export type RoleGrant = Tables<'role_grants'>;
 export type CommunityManagerApplication = Tables<'community_manager_applications'>;
 export type RoleGrantEvent = Tables<'role_grant_events'>;
 export type KnessetRanking = Tables<'knesset_rankings'>;
+export type VoteCardArt = Tables<'vote_card_art'>;
+export type PilotMunicipality = Tables<'pilot_municipalities'>;
+export type PilotVoteRow = Tables<'pilot_votes'>;
+export type PilotCampaignRow = Tables<'pilot_campaigns'>;
+export type PilotCampaignCopyRow = Tables<'pilot_campaign_copies'>;
+export type PilotLinkRow = Tables<'pilot_links'>;
+export type PilotLinkClickRow = Tables<'pilot_link_clicks'>;
+export type PilotRegistrationRow = Tables<'pilot_registrations'>;
+export type PilotAuditRow = Tables<'pilot_audit_log'>;

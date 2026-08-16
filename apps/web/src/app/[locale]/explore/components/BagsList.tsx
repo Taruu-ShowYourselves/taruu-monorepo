@@ -10,6 +10,28 @@ type BagsState =
   | { status: 'error' }
   | { status: 'ready'; bags: TrendingBag[] };
 
+interface BagsListCopy {
+  loadingAriaLabel: string;
+  errorLine: string;
+  emptyLine: string;
+  listAriaLabel: string;
+}
+
+const COPY: Record<Locale, BagsListCopy> = {
+  he: {
+    loadingAriaLabel: 'טוען את שוק ה-BAGS',
+    errorLine: 'לא הצלחנו לטעון את שוק ה-BAGS כרגע.',
+    emptyLine: 'עוד לא נפתחו BAGS. הראשון ייפתח עם ההצבעה הראשונה, ב-04.08.',
+    listAriaLabel: 'חמשת ה-BAGS המובילים',
+  },
+  en: {
+    loadingAriaLabel: 'Loading the BAGS market',
+    errorLine: 'We could not load the BAGS market right now.',
+    emptyLine: 'No BAGS have opened yet. The first opens with the first vote, on 04.08.',
+    listAriaLabel: 'The five leading BAGS',
+  },
+};
+
 interface BagsListProps {
   locale: Locale;
 }
@@ -20,6 +42,7 @@ interface BagsListProps {
  * glass panel; the rest of the page is untouched (CoinMarket pattern).
  */
 export function BagsList({ locale }: BagsListProps) {
+  const t = COPY[locale];
   const [state, setState] = useState<BagsState>({ status: 'loading' });
 
   useEffect(() => {
@@ -47,7 +70,7 @@ export function BagsList({ locale }: BagsListProps) {
 
   if (state.status === 'loading') {
     return (
-      <ul className={styles.bagList} aria-busy="true" aria-label="טוען את שוק ה-BAGS">
+      <ul className={styles.bagList} aria-busy="true" aria-label={t.loadingAriaLabel}>
         {Array.from({ length: 5 }).map((_, i) => (
           <li key={i} className={styles.bagItem}>
             <div className={styles.bagSkelRow}>
@@ -68,7 +91,7 @@ export function BagsList({ locale }: BagsListProps) {
         <span aria-hidden className={styles.bagNoticeGlyph}>
           ✕
         </span>
-        לא הצלחנו לטעון את שוק ה-BAGS כרגע.
+        {t.errorLine}
       </p>
     );
   }
@@ -79,7 +102,7 @@ export function BagsList({ locale }: BagsListProps) {
         <span aria-hidden className={styles.bagNoticeGlyph}>
           ▍
         </span>
-        עוד לא נפתחו BAGS. הראשון ייפתח עם ההצבעה הראשונה, ב-04.08.
+        {t.emptyLine}
       </p>
     );
   }
@@ -90,7 +113,7 @@ export function BagsList({ locale }: BagsListProps) {
   );
 
   return (
-    <ul className={styles.bagList} aria-label="חמשת ה-BAGS המובילים">
+    <ul className={styles.bagList} aria-label={t.listAriaLabel}>
       {state.bags.map((bag, i) => (
         <BagsRow
           key={bag.voteId}

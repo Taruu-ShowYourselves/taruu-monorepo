@@ -3,6 +3,7 @@ import Link from 'next/link';
 import clsx from 'clsx';
 import type { Locale } from '@/lib/i18n';
 import styles from './SpaceAdminNav.module.css';
+import { localePrefix } from '@/lib/i18n';
 
 /**
  * Href suffix of each surface, relative to `/{locale}/space-admin/{spaceId}`.
@@ -36,7 +37,7 @@ export interface SpaceAdminNavProps {
   active: SpaceAdminNavHref;
   /**
    * Surfaces the admin holds the capability for. A link the admin cannot use
-   * is NOT RENDERED (Interaction Contract 1, Rule A) — never disabled, never
+   * is NOT RENDERED (Interaction Contract 1, Rule A) - never disabled, never
    * greyed. Omit the prop to render all six.
    */
   visibleHrefs?: readonly SpaceAdminNavHref[];
@@ -67,7 +68,7 @@ export function SpaceAdminNav({
 
   if (items.length === 0) return null;
 
-  const base = `/${locale}/space-admin/${spaceId}`;
+  const base = `${localePrefix(locale)}/space-admin/${spaceId}`;
 
   return (
     <nav aria-label="ניווט לוח הניהול" className={clsx(styles.nav, className)}>

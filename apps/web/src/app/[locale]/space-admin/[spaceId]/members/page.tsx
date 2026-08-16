@@ -1,5 +1,5 @@
 /**
- * Surface 3 — חברים והרשאות (members and roles).
+ * Surface 3 - חברים והרשאות (members and roles).
  *
  * A Server Component that resolves its own authority on every request. The
  * shell (space identity + the capability set that drives Rule A) comes from
@@ -11,7 +11,7 @@
  * `getSpaceMembers` is the authorized read and the only one this page may
  * reach for. The repository entry point behind it takes a `SpaceScope` this
  * page cannot mint, and importing it would put a database call in front of no
- * authorization at all — which is exactly why the two carry different names.
+ * authorization at all - which is exactly why the two carry different names.
  *
  * The privacy note under the standfirst is not decoration: it is this
  * surface's statement of the SPACE-07 promise, and it is rendered as visible
@@ -33,6 +33,33 @@ import type { AppError } from '@/server/http/errors';
 import { getSessionFromCookies } from '@/services/auth/session';
 import { MembersClient, type MembersSurfaceState } from './MembersClient';
 import styles from './page.module.css';
+import { localePrefix } from '@/lib/i18n';
+
+interface MembersPageCopy {
+  kicker: string;
+  heading: string;
+  standfirst: string;
+  privacyNote: string;
+}
+
+const COPY: Record<Locale, MembersPageCopy> = {
+  he: {
+    kicker: 'חברים והרשאות · MEMBERS',
+    heading: 'חברים והרשאות',
+    standfirst:
+      'רשימת החברים במרחב הזה בלבד, עם הפרטים הדרושים לניהול - ולא יותר מזה.',
+    privacyNote:
+      'מוצגים רק פרטים הנדרשים לניהול. מסמכי זהות אינם נגישים מלוח זה, בשום מסך ובשום ייצוא.',
+  },
+  en: {
+    kicker: 'Members and roles · MEMBERS',
+    heading: 'Members and roles',
+    standfirst:
+      'The members of this space only, with the details administration requires - and nothing more.',
+    privacyNote:
+      'Only details required for administration are shown. Identity documents cannot be reached from this desk - on any screen, in any export.',
+  },
+};
 
 const toSurfaceState = (
   spaceName: string,
@@ -59,12 +86,13 @@ export default async function SpaceMembersPage({
   searchParams,
 }: SpaceMembersPageProps) {
   const { locale, spaceId } = await params;
+  const t = COPY[locale];
   const query = await searchParams;
   const rawSearch = query.search;
   const search = typeof rawSearch === 'string' ? rawSearch.trim() : '';
 
   const session = await getSessionFromCookies();
-  if (!session) redirect(`/${locale}/sign-in`);
+  if (!session) redirect(`${localePrefix(locale)}/sign-in`);
 
   const overview = await getSpaceOverview(session, spaceId);
 
@@ -114,21 +142,16 @@ export default async function SpaceMembersPage({
           <span aria-hidden className={kicker.tick}>
             ■
           </span>
-          חברים והרשאות · MEMBERS
+          {t.kicker}
         </span>
 
         <h2 id="space-members-heading" className={styles.heading}>
-          חברים והרשאות
+          {t.heading}
         </h2>
 
-        <p className={styles.standfirst}>
-          רשימת החברים במרחב הזה בלבד, עם הפרטים הדרושים לניהול — ולא יותר מזה.
-        </p>
+        <p className={styles.standfirst}>{t.standfirst}</p>
 
-        <p className={styles.privacyNote}>
-          מוצגים רק פרטים הנדרשים לניהול. מסמכי זהות אינם נגישים מלוח זה, בשום
-          מסך ובשום ייצוא.
-        </p>
+        <p className={styles.privacyNote}>{t.privacyNote}</p>
 
         <MembersClient
           spaceId={space.id}

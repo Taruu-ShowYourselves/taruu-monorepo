@@ -36,7 +36,7 @@ describe('CAPABILITIES', () => {
     expect(new Set(CAPABILITIES).size).toBe(11);
   });
 
-  it('carries no "space.read" — reaching the shell is membership, not a capability', () => {
+  it('carries no "space.read" - reaching the shell is membership, not a capability', () => {
     expect(CAPABILITIES).not.toContain('space.read' as Capability);
   });
 
@@ -58,7 +58,7 @@ describe('CAPABILITY_LABELS_HE', () => {
     expect(Object.keys(CAPABILITY_LABELS_HE).sort()).toEqual([...CAPABILITIES].sort());
   });
 
-  it('contains no Latin characters — every label is product Hebrew', () => {
+  it('contains no Latin characters - every label is product Hebrew', () => {
     for (const label of Object.values(CAPABILITY_LABELS_HE)) {
       expect(label).not.toMatch(/[A-Za-z]/);
     }

@@ -1,5 +1,5 @@
 /* ============================================================
- * Surface 6 — יומן פעולות (the audit history).
+ * Surface 6 - יומן פעולות (the audit history).
  *
  * Tokens only. The single permitted hardcoded length in this phase is the
  * media-query breakpoint, because CSS media queries cannot read custom
@@ -58,7 +58,7 @@
   gap: var(--space-2);
 }
 
-/* Boxed, hard-cornered, mono — the Segmented visual language, one cell each.
+/* Boxed, hard-cornered, mono - the Segmented visual language, one cell each.
    No red anywhere: an inactive filter is not a warning and an active one is
    not urgent, so the active cell inverts to ink exactly like the sub-nav. */
 .chip {
@@ -126,7 +126,7 @@
   overflow-wrap: anywhere;
 }
 
-/* The object cell's link back to its subject. Ink, red underline on hover —
+/* The object cell's link back to its subject. Ink, red underline on hover -
    the press system spends no blue on links. */
 .objectLink {
   font-family: var(--np-font-mono);
@@ -159,7 +159,7 @@
   gap: var(--space-1);
 }
 
-/* The disclosure. Mono, ink, red underline on hover — never a glyph alone. */
+/* The disclosure. Mono, ink, red underline on hover - never a glyph alone. */
 .disclosure {
   display: inline-flex;
   align-items: center;
@@ -189,7 +189,7 @@
 
 /* One button, one expansion, one accessible name at any given width. The
    label differs by width because the expansion carries more below the
-   breakpoint — the hidden columns join the full reason there. `display: none`
+   breakpoint - the hidden columns join the full reason there. `display: none`
    removes the other label from the accessibility tree, so exactly one of the
    two is ever announced. */
 .wideLabel {

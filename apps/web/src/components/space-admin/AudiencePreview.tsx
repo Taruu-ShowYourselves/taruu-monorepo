@@ -13,13 +13,13 @@ import styles from './AudiencePreview.module.css';
  *
  * 1. ALL FOUR ROWS ALWAYS RENDER, zeros included. The array below is built
  *    literally and is never filtered on truthiness, because a dropped row does
- *    not read as "zero" — it reads as "not checked", which is the precise
+ *    not read as "zero" - it reads as "not checked", which is the precise
  *    ambiguity the preview exists to remove. `AudiencePreviewResponseSchema`
  *    guarantees all four numbers arrive, including on an empty audience.
  *
  * 2. NOTHING HERE COMPUTES AN AUDIENCE. This component receives four counts
  *    and prints them. It holds no user ids, and the composer above it holds
- *    none either — the recipient set is resolved once on the server by
+ *    none either - the recipient set is resolved once on the server by
  *    `resolveAudience`, which the send re-runs and fingerprints against what
  *    was shown. That is what makes "delivered equals previewed" structural
  *    rather than a promise.
@@ -44,10 +44,10 @@ export interface AudiencePreviewProps {
   className?: string;
 }
 
-const STALE_HE = 'ההודעה שונתה אחרי חישוב הקהל — חשבו שוב לפני שליחה.';
+const STALE_HE = 'ההודעה שונתה אחרי חישוב הקהל - חשבו שוב לפני שליחה.';
 
 const footer = (time: string): string =>
-  `התצוגה חושבה ב־${time} · הנמענים שיקבלו בפועל זהים לרשימה שחושבה כאן.`;
+  `התצוגה חושבה ב-${time} · הנמענים שיקבלו בפועל זהים לרשימה שחושבה כאן.`;
 
 /** State 2: the resolver is running. `aria-busy` is set by the caller. */
 export function AudiencePreviewComputing({ className }: { className?: string }) {
@@ -87,8 +87,8 @@ export function AudiencePreview({
         kicker={<ReceiptKicker>קהל יעד · AUDIENCE</ReceiptKicker>}
         rows={[
           { label: 'נמענים מאושרים', value: approvedRecipients, strong: true },
-          { label: 'הוחרגו — ביטלו הסכמה', value: excludedOptedOut },
-          { label: 'הוחרגו — ללא ערוץ פעיל', value: excludedNoChannel },
+          { label: 'הוחרגו - ביטלו הסכמה', value: excludedOptedOut },
+          { label: 'הוחרגו - ללא ערוץ פעיל', value: excludedNoChannel },
           { label: 'מכסה חודשית', value: `${quotaUsed}/${quotaLimit}` },
         ]}
         footer={footer(time)}

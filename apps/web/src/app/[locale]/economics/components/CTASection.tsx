@@ -11,14 +11,50 @@ interface CTASectionProps {
   locale: Locale;
 }
 
-const trustStats = [
-  { value: 'חינם', label: 'עלות הצבעה' },
-  { value: '70%', label: 'לקרן הקהילתית' },
-  { value: 'תעודה', label: 'לכל משתתף' },
-];
+interface CTACopy {
+  kicker: string;
+  headlineLead: string;
+  headlineAccent: string;
+  standfirst: string;
+  foundersCta: string;
+  trustStats: { value: string; label: string }[];
+  /** Direction-semantic arrow: Hebrew ←, English →. */
+  arrow: string;
+}
 
-export function CTASection(_props: CTASectionProps) {
-  void _props;
+const COPY: Record<Locale, CTACopy> = {
+  he: {
+    kicker: 'נפתחים בכל הארץ · 04.08.26',
+    headlineLead: 'מוכנים להפוך קול אחד',
+    headlineAccent: 'לכוח קהילתי?',
+    standfirst:
+      'הצטרפו לקהילת התושבים שבונה את הקרן הראשונה. הצטרפות חינם, בלי התחייבות.',
+    foundersCta: 'קבוצת המייסדים',
+    trustStats: [
+      { value: 'חינם', label: 'עלות הצבעה' },
+      { value: '70%', label: 'לקרן הקהילתית' },
+      { value: 'תעודה', label: 'לכל משתתף' },
+    ],
+    arrow: '←',
+  },
+  en: {
+    kicker: 'OPENING NATIONWIDE · 04.08.26',
+    headlineLead: 'Ready to turn one voice',
+    headlineAccent: 'into community power?',
+    standfirst:
+      'Join the residents building the first fund. Joining is free, with no commitment.',
+    foundersCta: 'The founders group',
+    trustStats: [
+      { value: 'Free', label: 'cost of a vote' },
+      { value: '70%', label: 'to the community fund' },
+      { value: 'Certificate', label: 'for every participant' },
+    ],
+    arrow: '→',
+  },
+};
+
+export function CTASection({ locale }: CTASectionProps) {
+  const t = COPY[locale];
 
   return (
     <section className={styles.cta} aria-labelledby="cta-title">
@@ -26,16 +62,14 @@ export function CTASection(_props: CTASectionProps) {
         <div className={styles.content}>
           <span className={styles.kicker}>
             <span aria-hidden className={styles.kickerTick} />
-            נפתחים בכל הארץ · 04.08.26
+            {t.kicker}
           </span>
 
           <h2 id="cta-title" className={styles.headline}>
-            מוכנים להפוך קול אחד <span className={styles.red}>לכוח קהילתי?</span>
+            {t.headlineLead} <span className={styles.red}>{t.headlineAccent}</span>
           </h2>
 
-          <p className={styles.standfirst}>
-            הצטרפו לקהילת התושבים שבונה את הקרן הראשונה. הצטרפות חינם, בלי התחייבות.
-          </p>
+          <p className={styles.standfirst}>{t.standfirst}</p>
 
           <div className={styles.actions}>
             <NewsButton
@@ -44,14 +78,14 @@ export function CTASection(_props: CTASectionProps) {
               rel="noopener noreferrer"
               variant="red"
               size="lg"
-              trailing={<span aria-hidden>←</span>}
+              trailing={<span aria-hidden>{t.arrow}</span>}
             >
-              קבוצת המייסדים
+              {t.foundersCta}
             </NewsButton>
           </div>
 
           <dl className={styles.stats}>
-            {trustStats.map((stat) => (
+            {t.trustStats.map((stat) => (
               <div key={stat.label} className={styles.statItem}>
                 <dt className={styles.statValue}>{stat.value}</dt>
                 <dd className={styles.statLabel}>{stat.label}</dd>

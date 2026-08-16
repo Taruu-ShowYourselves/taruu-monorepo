@@ -1,5 +1,5 @@
 /**
- * GET /api/space-admin/{spaceId}/proposals/{voteId} — the detail panel.
+ * GET /api/space-admin/{spaceId}/proposals/{voteId} - the detail panel.
  *
  * What `?proposal={id}` deep-links resolve against, including the links an
  * audit-log row carries back to its subject. An id this space cannot resolve

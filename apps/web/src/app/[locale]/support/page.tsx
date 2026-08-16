@@ -5,14 +5,26 @@ import { SupportHero } from './components/SupportHero';
 import { SupportFlow } from './components/SupportFlow';
 import type { Locale } from '@/lib/i18n';
 
-export const metadata: Metadata = {
-  title: 'תמיכה | תַּרְאוּ',
-  description:
-    'יש שאלה? יש תשובה. כל מה שרציתם לדעת על הצבעה, אימות, כסף ופרטיות, במקום אחד. לא מצאתם? כתבו לנו בוואטסאפ.',
+const META: Record<Locale, Metadata> = {
+  he: {
+    title: 'תמיכה | תַּרְאוּ',
+    description:
+      'יש שאלה? יש תשובה. כל מה שרציתם לדעת על הצבעה, אימות, כסף ופרטיות, במקום אחד. לא מצאתם? כתבו לנו בוואטסאפ.',
+  },
+  en: {
+    title: 'Support | Taruu',
+    description:
+      'Have a question? There is an answer. Everything you wanted to know about voting, verification, money and privacy, in one place. Did not find it? Write to us on WhatsApp.',
+  },
 };
 
 interface SupportPageProps {
   params: Promise<{ locale: Locale }>;
+}
+
+export async function generateMetadata({ params }: SupportPageProps): Promise<Metadata> {
+  const { locale } = await params;
+  return META[locale];
 }
 
 export default async function SupportPage({ params }: SupportPageProps) {
@@ -22,7 +34,7 @@ export default async function SupportPage({ params }: SupportPageProps) {
     <>
       <Header locale={locale} />
       <main>
-        <SupportHero />
+        <SupportHero locale={locale} />
         <SupportFlow locale={locale} />
       </main>
       <Footer locale={locale} />

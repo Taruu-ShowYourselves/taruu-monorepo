@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useReducedMotion } from '@/hooks';
+import type { Locale } from '@/lib/i18n';
 import styles from './HowItWorks.module.css';
 
 const EASE = [0.2, 0, 0, 1] as const;
@@ -110,21 +111,77 @@ function Glyph({ name }: { name: IconName }) {
   }
 }
 
-const residentSteps: Step[] = [
-  { number: '1', title: 'אימות זהות', description: 'התחברות עם Google, אימות טלפון ומיקום ב-GPS', icon: 'shield' },
-  { number: '2', title: 'צפייה בהצבעות פעילות', description: 'נושאים בעיר שלך שדורשים הכרעה', icon: 'eye' },
-  { number: '3', title: 'הצבעה בחינם', description: 'בחירת העמדה שאתה מאמין בה', icon: 'vote' },
-  { number: '4', title: 'תעודת מצביע מאומת', description: 'הוכחה דיגיטלית להשתתפות שלך', icon: 'badge' },
-  { number: '5', title: 'מעקב אחר הקרן', description: 'רואים את הכסף נאסף בזמן אמת', icon: 'chart' },
-];
+interface HowItWorksCopy {
+  kicker: string;
+  headlineLead: string;
+  headlineAccent: string;
+  standfirst: string;
+  residentTitle: string;
+  residentBadge: string;
+  residentSteps: Step[];
+  supporterTitle: string;
+  supporterBadge: string;
+  supporterSteps: Step[];
+  feeTitle: string;
+  feeSub: string;
+}
 
-const supporterSteps: Step[] = [
-  { number: '1', title: 'חיבור ארנק', description: 'חיבור ארנק לתמיכה מכל מקום בעולם', icon: 'wallet' },
-  { number: '2', title: 'גילוי נושאים מובילים', description: 'נושאים אזרחיים שחשובים לך', icon: 'globe' },
-  { number: '3', title: 'רכישת BAGS ב-bags.fm', description: 'תמיכה בנושאים שאתה מאמין בהם', icon: 'coin' },
-  { number: '4', title: 'מסחר לפי הסנטימנט', description: 'הערך משקף את מידת התמיכה בנושא', icon: 'trend' },
-  { number: '5', title: 'תעודת תומך קהילתי', description: 'תג שמתקבל בסיום ההצבעה', icon: 'badge' },
-];
+const COPY: Record<Locale, HowItWorksCopy> = {
+  he: {
+    kicker: 'שני מסלולים · TWO TRACKS',
+    headlineLead: 'איך משתתפים: כתושב או',
+    headlineAccent: 'כתומך.',
+    standfirst:
+      'תושב מקומי שמצביע בנושאים של העיר שלו, או תומך חיצוני שמזרים משאבים לנושא שחשוב לו.',
+    residentTitle: 'לתושבים',
+    residentBadge: 'מצביעים מאומתים',
+    residentSteps: [
+      { number: '1', title: 'אימות זהות', description: 'התחברות עם Google, אימות טלפון ומיקום ב-GPS', icon: 'shield' },
+      { number: '2', title: 'צפייה בהצבעות פעילות', description: 'נושאים בעיר שלך שדורשים הכרעה', icon: 'eye' },
+      { number: '3', title: 'הצבעה בחינם', description: 'בחירת העמדה שאתה מאמין בה', icon: 'vote' },
+      { number: '4', title: 'תעודת מצביע מאומת', description: 'הוכחה דיגיטלית להשתתפות שלך', icon: 'badge' },
+      { number: '5', title: 'מעקב אחר הקרן', description: 'רואים את הכסף נאסף בזמן אמת', icon: 'chart' },
+    ],
+    supporterTitle: 'לתומכים',
+    supporterBadge: 'תמיכה מכל העולם',
+    supporterSteps: [
+      { number: '1', title: 'חיבור ארנק', description: 'חיבור ארנק לתמיכה מכל מקום בעולם', icon: 'wallet' },
+      { number: '2', title: 'גילוי נושאים מובילים', description: 'נושאים אזרחיים שחשובים לך', icon: 'globe' },
+      { number: '3', title: 'רכישת BAGS ב-bags.fm', description: 'תמיכה בנושאים שאתה מאמין בהם', icon: 'coin' },
+      { number: '4', title: 'מסחר לפי הסנטימנט', description: 'הערך משקף את מידת התמיכה בנושא', icon: 'trend' },
+      { number: '5', title: 'תעודת תומך קהילתי', description: 'תג שמתקבל בסיום ההצבעה', icon: 'badge' },
+    ],
+    feeTitle: 'מכל עמלות המסחר זורמים לקרן הקהילתית של הרשות',
+    feeSub: '30% מממנים את התחזוקה והפיתוח של הפלטפורמה',
+  },
+  en: {
+    kicker: 'TWO TRACKS',
+    headlineLead: 'How to take part: as a resident or',
+    headlineAccent: 'as a backer.',
+    standfirst:
+      'A local resident voting on their own city\'s topics, or an outside backer sending resources to a topic that matters to them.',
+    residentTitle: 'For residents',
+    residentBadge: 'Verified voters',
+    residentSteps: [
+      { number: '1', title: 'Verify identity', description: 'Sign in with Google, verify phone and GPS location', icon: 'shield' },
+      { number: '2', title: 'See the active votes', description: 'Topics in your city awaiting a decision', icon: 'eye' },
+      { number: '3', title: 'Vote for free', description: 'Choose the position you believe in', icon: 'vote' },
+      { number: '4', title: 'Verified-voter certificate', description: 'Digital proof of your participation', icon: 'badge' },
+      { number: '5', title: 'Follow the fund', description: 'Watch the money gather in real time', icon: 'chart' },
+    ],
+    supporterTitle: 'For backers',
+    supporterBadge: 'Support from anywhere',
+    supporterSteps: [
+      { number: '1', title: 'Connect a wallet', description: 'Connect a wallet to back a topic from anywhere in the world', icon: 'wallet' },
+      { number: '2', title: 'Find the leading topics', description: 'Civic topics that matter to you', icon: 'globe' },
+      { number: '3', title: 'Buy BAGS on bags.fm', description: 'Back the topics you believe in', icon: 'coin' },
+      { number: '4', title: 'Trade on sentiment', description: 'The value reflects how much support a topic carries', icon: 'trend' },
+      { number: '5', title: 'Community-supporter certificate', description: 'A badge issued when the vote ends', icon: 'badge' },
+    ],
+    feeTitle: "of every trading fee flows to the municipality's community fund",
+    feeSub: '30% funds the upkeep and development of the platform',
+  },
+};
 
 function Track({
   icon,
@@ -179,7 +236,8 @@ function Track({
   );
 }
 
-export function HowItWorks() {
+export function HowItWorks({ locale }: { locale: Locale }) {
+  const t = COPY[locale];
   const reduced = useReducedMotion();
 
   return (
@@ -188,30 +246,28 @@ export function HowItWorks() {
         <header className={styles.head}>
           <span className={styles.kicker}>
             <span aria-hidden className={styles.kickerTick} />
-            שני מסלולים · TWO TRACKS
+            {t.kicker}
           </span>
           <h2 id="how-title" className={styles.headline}>
-            איך משתתפים: כתושב או <span className={styles.red}>כתומך.</span>
+            {t.headlineLead} <span className={styles.red}>{t.headlineAccent}</span>
           </h2>
-          <p className={styles.standfirst}>
-            תושב מקומי שמצביע בנושאים של העיר שלו, או תומך חיצוני שמזרים משאבים לנושא שחשוב לו.
-          </p>
+          <p className={styles.standfirst}>{t.standfirst}</p>
         </header>
 
         <div className={styles.tracks}>
           <Track
             icon="shield"
-            title="לתושבים"
-            badge="מצביעים מאומתים"
-            steps={residentSteps}
+            title={t.residentTitle}
+            badge={t.residentBadge}
+            steps={t.residentSteps}
             delay={0.1}
             reduced={reduced}
           />
           <Track
             icon="globe"
-            title="לתומכים"
-            badge="תמיכה מכל העולם"
-            steps={supporterSteps}
+            title={t.supporterTitle}
+            badge={t.supporterBadge}
+            steps={t.supporterSteps}
             delay={0.2}
             reduced={reduced}
           />
@@ -221,10 +277,8 @@ export function HowItWorks() {
         <div className={styles.feeNote}>
           <span className={styles.feeNum}>70%</span>
           <div className={styles.feeBody}>
-            <p className={styles.feeTitle}>
-              מכל עמלות המסחר זורמים לקרן הקהילתית של הרשות
-            </p>
-            <span className={styles.feeSub}>30% מממנים את התחזוקה והפיתוח של הפלטפורמה</span>
+            <p className={styles.feeTitle}>{t.feeTitle}</p>
+            <span className={styles.feeSub}>{t.feeSub}</span>
           </div>
         </div>
       </div>

@@ -25,7 +25,7 @@ describe('REVIEW_VOTE_STATUSES', () => {
     ]);
   });
 
-  it('does not include pending — pending means "scheduled", not "awaiting approval"', () => {
+  it('does not include pending - pending means "scheduled", not "awaiting approval"', () => {
     expect(REVIEW_VOTE_STATUSES).not.toContain('pending');
   });
 });
@@ -42,7 +42,7 @@ describe('isDecidableFrom', () => {
     }
   );
 
-  it('refuses pending — a scheduled vote is published, not awaiting approval', () => {
+  it('refuses pending - a scheduled vote is published, not awaiting approval', () => {
     expect(isDecidableFrom('pending')).toBe(false);
   });
 });
@@ -67,7 +67,7 @@ describe('resolveDecisionTarget', () => {
     );
   });
 
-  it.each(DECISIONS)('is total over the decision set — %s', (decision) => {
+  it.each(DECISIONS)('is total over the decision set - %s', (decision) => {
     expect([
       'active',
       'pending',
@@ -102,12 +102,12 @@ describe('capabilityFor', () => {
     expect(capabilityFor('approve')).toBe('proposal.approve');
   });
 
-  it('rides request_changes along with reject — there is no twelfth capability', () => {
+  it('rides request_changes along with reject - there is no twelfth capability', () => {
     expect(capabilityFor('reject')).toBe('proposal.reject');
     expect(capabilityFor('request_changes')).toBe('proposal.reject');
   });
 
-  it.each(DECISIONS)('returns a member of the capability vocabulary — %s', (decision) => {
+  it.each(DECISIONS)('returns a member of the capability vocabulary - %s', (decision) => {
     expect(isCapability(capabilityFor(decision))).toBe(true);
   });
 });

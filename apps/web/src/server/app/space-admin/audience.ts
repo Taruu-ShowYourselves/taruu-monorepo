@@ -5,7 +5,7 @@ import 'server-only';
  *
  * Preview and send both call this. If they ever resolve the audience
  * differently, SPACE-08's "delivered equals previewed" guarantee is gone, so
- * there is deliberately no second code path — the send re-runs this function
+ * there is deliberately no second code path - the send re-runs this function
  * and compares hashes rather than trusting the client's list.
  */
 
@@ -25,7 +25,7 @@ export interface ResolvedAudience {
   /** sha256 of the sorted ids. The equality SPACE-08 promises, made checkable. */
   readonly hash: string;
   /**
-   * Who was excluded, not just how many — the send writes one `suppressed`
+   * Who was excluded, not just how many - the send writes one `suppressed`
    * delivery row per opted-out candidate so the log accounts for the whole
    * considered set rather than only its included half. The counts below stay
    * because the preview renders numbers; this list exists because the delivery
@@ -77,7 +77,7 @@ async function sha256Hex(input: string): Promise<string> {
 /**
  * Resolve the recipient set for one space and one audience filter.
  *
- * Opt-outs are applied here, before the count the admin is shown — not by the
+ * Opt-outs are applied here, before the count the admin is shown - not by the
  * caller, and not after the send. `excludedNoChannel` counts recipients who
  * will get the in-app row but no push; they stay in `userIds` because the in-app
  * notification is the delivery of record and the push is best effort.
@@ -112,7 +112,7 @@ export function resolveAudience(
  * echoes back at send time, which is what makes the staleness rule enforceable
  * on the server rather than trusted from the client.
  *
- * A bare `Promise`, not a `ResultAsync` — hashing cannot fail in a way a caller
+ * A bare `Promise`, not a `ResultAsync` - hashing cannot fail in a way a caller
  * could act on. Inside a Result chain, lift it with
  * `ResultAsync.fromSafePromise(contentHash(cmd))`.
  */

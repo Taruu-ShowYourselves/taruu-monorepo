@@ -1,5 +1,5 @@
 /**
- * GET /api/space-admin/{spaceId}/members — the members surface.
+ * GET /api/space-admin/{spaceId}/members - the members surface.
  *
  * Thin imperative shell: session → zod parse → use-case → respond. The space
  * predicate never appears here; it is read off the `SpaceScope` the use-case

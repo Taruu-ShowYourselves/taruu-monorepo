@@ -1,5 +1,5 @@
 /* ============================================================
- * ProposalDetailPanel — the expanding row on the proposals surface.
+ * ProposalDetailPanel - the expanding row on the proposals surface.
  *
  * The panel lives inside a table cell that spans every column, so it inherits
  * the table's cell padding and adds only its own internal rhythm. Tokens only:
@@ -54,7 +54,7 @@
 
 /* ---------- Moderation notices ---------- */
 
-/* Red text on paper-2 is `--np-red-ink` — 8.73:1 (D9). Never the accent token,
+/* Red text on paper-2 is `--np-red-ink` - 8.73:1 (D9). Never the accent token,
    which measures below AA for normal text on every paper background. */
 .notice {
   font-family: var(--np-font-mono);
@@ -137,7 +137,7 @@
   gap: var(--space-3);
 }
 
-/* Touch target. These stay `outline` at rest and on hover — an outline control
+/* Touch target. These stay `outline` at rest and on hover - an outline control
    never takes a red or red-dark fill, which is what keeps every destructive
    trigger in this phase structurally rather than chromatically marked. */
 .controlBtn {

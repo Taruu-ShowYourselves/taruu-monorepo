@@ -7,7 +7,7 @@
  * privacy allow-list itself: a display name, a join date, a membership state
  * and the capabilities granted in this space. Nothing derived from an identity
  * document reaches it, and nothing may be added here that the contract does
- * not already name — widening what is shown is a privacy decision made in the
+ * not already name - widening what is shown is a privacy decision made in the
  * contract, not a convenience taken in a cell renderer.
  *
  * Two absences are load-bearing:
@@ -18,8 +18,8 @@
  *      capabilities of someone who cannot act is meaningless and would write
  *      audit rows nobody can interpret later.
  *
- * Suspension itself is a reversible act — it sets a nullable column and
- * reinstatement clears it — so its confirmation is `audited`. The plate
+ * Suspension itself is a reversible act - it sets a nullable column and
+ * reinstatement clears it - so its confirmation is `audited`. The plate
  * reserved for acts the admin cannot undo from this dashboard belongs to
  * approve, reject and send, and this surface has none of those.
  */
@@ -52,6 +52,7 @@ import {
   type Capability,
   type RolePreset,
 } from '@/server/domain/space/capability';
+import type { Locale } from '@/lib/i18n';
 import styles from './page.module.css';
 
 // ---------------------------------------------------------------------------
@@ -81,6 +82,7 @@ export interface MembersClientProps {
   canRevoke: boolean;
   canSuspend: boolean;
   state: MembersSurfaceState;
+  locale?: Locale;
 }
 
 // ---------------------------------------------------------------------------
@@ -102,63 +104,302 @@ interface DialogCopy {
   placeholder?: string;
 }
 
-const REASON_PLACEHOLDER =
-  'למה הכרעתם כך? הנימוק נשמר ביומן ואי אפשר לערוך אותו אחר כך.';
+interface MembersDialogDeck {
+  grant: {
+    heading: string;
+    body: (name: string, capability: string) => string;
+    confirmLabel: string;
+    announcement: (name: string) => string;
+  };
+  revoke: {
+    heading: string;
+    body: (name: string, capability: string) => string;
+    consequence: string;
+    confirmLabel: string;
+    announcement: (name: string) => string;
+  };
+  suspend: {
+    heading: (name: string) => string;
+    body: string;
+    consequence: string;
+    confirmLabel: string;
+    announcement: (name: string) => string;
+  };
+  reinstate: {
+    heading: (name: string) => string;
+    body: string;
+    confirmLabel: string;
+    announcement: (name: string) => string;
+  };
+}
 
-/**
- * The FALLBACK when the failure carries no sentence of its own — a network
- * error, or a status whose body is structural English. No string in the copy
- * deck covers it (the deck's error sentence is about a failed *load*), so this
- * one is written in its voice: what did not happen, and where to go if it
- * repeats.
- *
- * A 409 does carry a sentence, and it is rendered instead of this one. Those
- * sentences are the repository's own — `החבר/ה כבר מושעה/ית במרחב הזה.`,
- * `ההרשאה כבר אינה פעילה.` — and this line would contradict them: they mean
- * the state already exists, while this one says nothing happened and nothing
- * was recorded. See `serverSentence` for which codes qualify.
- */
-const ACTION_FAILED_HE =
-  'הפעולה לא בוצעה ולא נרשמה ביומן. נסו שוב; אם זה חוזר — פנו למנהל־על.';
+interface MembersCopy {
+  reasonPlaceholder: string;
+  /**
+   * The FALLBACK when the failure carries no sentence of its own - a network
+   * error, or a status whose body is structural English. No string in the copy
+   * deck covers it (the deck's error sentence is about a failed *load*), so
+   * this one is written in its voice: what did not happen, and where to go if
+   * it repeats.
+   *
+   * A 409 does carry a sentence, and it is rendered instead of this one. Those
+   * sentences are the repository's own - `החבר/ה כבר מושעה/ית במרחב הזה.`,
+   * `ההרשאה כבר אינה פעילה.` - and this line would contradict them: they mean
+   * the state already exists, while this one says nothing happened and nothing
+   * was recorded. See `serverSentence` for which codes qualify.
+   */
+  actionFailed: string;
+  pendingLabel: string;
+  capabilityLabels: Record<Capability, string>;
+  roleLabels: Record<RolePreset, string>;
+  dialog: MembersDialogDeck;
+  columnMember: string;
+  columnJoined: string;
+  columnCapabilities: string;
+  columnStatus: string;
+  columnActions: string;
+  hideDetails: string;
+  showDetails: string;
+  chipSuspended: string;
+  chipActive: string;
+  actionReinstate: string;
+  actionManage: string;
+  actionSuspend: string;
+  detailJoined: string;
+  detailCapabilities: string;
+  detailNoCapabilities: string;
+  detailMemberId: string;
+  searchLabel: string;
+  searchPlaceholder: string;
+  emptyHeading: string;
+  emptyBody: string;
+  noMatchHeading: string;
+  noMatchBody: string;
+  clearSearch: string;
+  tableDescription: (spaceName: string) => string;
+  totalMembers: (total: number) => string;
+  editorHeading: (name: string) => string;
+  roleLabel: string;
+  rolePlaceholder: string;
+  presetNote: string;
+  granted: string;
+  notGranted: string;
+  revokeCapability: string;
+  grantCapability: string;
+  close: string;
+}
 
-const dialogCopy = (action: PendingAction): DialogCopy => {
-  switch (action.kind) {
-    case 'grant':
-      return {
+const COPY: Record<Locale, MembersCopy> = {
+  he: {
+    reasonPlaceholder:
+      'למה הכרעתם כך? הנימוק נשמר ביומן ואי אפשר לערוך אותו אחר כך.',
+    actionFailed:
+      'הפעולה לא בוצעה ולא נרשמה ביומן. נסו שוב; אם זה חוזר - פנו למנהל-על.',
+    pendingLabel: '…שומר',
+    capabilityLabels: CAPABILITY_LABELS_HE,
+    roleLabels: ROLE_PRESET_LABELS_HE,
+    dialog: {
+      grant: {
         heading: 'להעניק את ההרשאה?',
-        body: `${action.member.displayName} יוכל/תוכל מעכשיו: ${CAPABILITY_LABELS_HE[action.capability]} — במרחב הזה בלבד.`,
+        body: (name, capability) =>
+          `${name} יוכל/תוכל מעכשיו: ${capability} - במרחב הזה בלבד.`,
         confirmLabel: 'העניקו הרשאה',
-        announcement: `ההרשאה הוענקה ל־${action.member.displayName}.`,
-        placeholder: REASON_PLACEHOLDER,
-      };
-    case 'revoke':
-      return {
+        announcement: (name) => `ההרשאה הוענקה ל-${name}.`,
+      },
+      revoke: {
         heading: 'לשלול את ההרשאה?',
-        body: `${action.member.displayName} יאבד/תאבד מיד את היכולת: ${CAPABILITY_LABELS_HE[action.capability]}.`,
+        body: (name, capability) => `${name} יאבד/תאבד מיד את היכולת: ${capability}.`,
         consequence: 'הפעולה נכנסת לתוקף מיד ונרשמת ביומן לצמיתות.',
         confirmLabel: 'שללו הרשאה',
-        announcement: `ההרשאה נשללה מ־${action.member.displayName}.`,
-        placeholder: REASON_PLACEHOLDER,
-      };
-    case 'suspend':
-      return {
-        heading: `להשעות את ${action.member.displayName} במרחב?`,
+        announcement: (name) => `ההרשאה נשללה מ-${name}.`,
+      },
+      suspend: {
+        heading: (name) => `להשעות את ${name} במרחב?`,
         body: 'הגישה למרחב הזה נחסמת מיד. אפשר לבטל את ההשעיה בהמשך.',
         consequence: 'ההיסטוריה, ההחלטות והתיעוד נשמרים במלואם ואינם נמחקים.',
         confirmLabel: 'השעו במרחב',
-        announcement: `${action.member.displayName} הושעה/תה במרחב. ההיסטוריה נשמרה.`,
-        placeholder: REASON_PLACEHOLDER,
-      };
-    case 'reinstate':
-      return {
-        heading: `לבטל את ההשעיה של ${action.member.displayName}?`,
+        announcement: (name) => `${name} הושעה/תה במרחב. ההיסטוריה נשמרה.`,
+      },
+      reinstate: {
+        heading: (name) => `לבטל את ההשעיה של ${name}?`,
         // Literally true, and deliberately narrow: reinstatement restores the
         // grants the suspension itself took, matched on the suspension's own
         // timestamp. A capability revoked before the suspension stays revoked.
         body: 'הגישה למרחב הזה תחזור מיד, עם אותן הרשאות שהיו לפני ההשעיה.',
         confirmLabel: 'בטלו השעיה',
-        announcement: `ההשעיה של ${action.member.displayName} בוטלה.`,
-        placeholder: REASON_PLACEHOLDER,
+        announcement: (name) => `ההשעיה של ${name} בוטלה.`,
+      },
+    },
+    columnMember: 'חבר/ה',
+    columnJoined: 'הצטרפ/ה',
+    columnCapabilities: 'הרשאות',
+    columnStatus: 'סטטוס',
+    columnActions: 'פעולות',
+    hideDetails: 'הסתר',
+    showDetails: 'הצג פרטים',
+    chipSuspended: 'מושעה/ית',
+    chipActive: 'פעיל/ה',
+    actionReinstate: 'ביטול השעיה',
+    actionManage: 'ניהול הרשאות',
+    actionSuspend: 'השעיה במרחב',
+    detailJoined: 'הצטרפ/ה',
+    detailCapabilities: 'הרשאות',
+    detailNoCapabilities: 'אין הרשאות במרחב הזה',
+    detailMemberId: 'מזהה חבר/ה',
+    searchLabel: 'חיפוש חבר/ה',
+    searchPlaceholder: '…שם או מזהה',
+    emptyHeading: 'אין עדיין חברים במרחב',
+    emptyBody: 'כשתושבים יצטרפו למרחב הזה, הם יופיעו כאן.',
+    noMatchHeading: 'לא נמצאו חברים תואמים',
+    noMatchBody: 'נסו שם אחר, או נקו את החיפוש.',
+    clearSearch: 'ניקוי חיפוש',
+    tableDescription: (spaceName) =>
+      `חברי המרחב ${spaceName} וההרשאות שלהם. כל שורה כוללת שם, מועד הצטרפות, מצב חברות והרשאות שהוענקו.`,
+    totalMembers: (total) => `${total} חברים במרחב`,
+    editorHeading: (name) => `ניהול הרשאות - ${name}`,
+    roleLabel: 'תפקיד',
+    rolePlaceholder: '…בחרו תפקיד',
+    presetNote: 'התפקיד כולל את ההרשאות הבאות. כל הרשאה מוענקת בנפרד ובאישור נפרד.',
+    granted: 'מוענק',
+    notGranted: 'לא מוענק',
+    revokeCapability: 'שלילת הרשאה',
+    grantCapability: 'הענקת הרשאה',
+    close: 'סגירה',
+  },
+  en: {
+    reasonPlaceholder:
+      'Why did you decide this way? The reason is recorded in the log and cannot be edited later.',
+    actionFailed:
+      'The action was not carried out and nothing was recorded in the log. Try again; if it recurs - contact a super-admin.',
+    pendingLabel: 'Saving…',
+    capabilityLabels: {
+      'proposal.read': 'Review proposals',
+      'proposal.approve': 'Approve and publish proposals',
+      'proposal.reject': 'Reject proposals',
+      'member.read': 'View the member list',
+      'member.suspend': 'Suspend members in the space',
+      'grant.create': 'Grant permissions',
+      'grant.revoke': 'Revoke permissions',
+      'content.moderate': 'Moderate content',
+      'metrics.read': 'View aggregate metrics',
+      'notification.send': 'Send notifications to residents',
+      'audit.read': 'View the audit log',
+    },
+    roleLabels: {
+      space_admin: 'Space admin',
+      space_reviewer: 'Proposal reviewer',
+      space_moderator: 'Content moderator',
+      space_communicator: 'Notifications officer',
+      space_observer: 'Observer',
+    },
+    dialog: {
+      grant: {
+        heading: 'Grant this permission?',
+        body: (name, capability) =>
+          `${name} will now be able to: ${capability} - in this space only.`,
+        confirmLabel: 'Grant permission',
+        announcement: (name) => `The permission was granted to ${name}.`,
+      },
+      revoke: {
+        heading: 'Revoke this permission?',
+        body: (name, capability) =>
+          `${name} will immediately lose the ability to: ${capability}.`,
+        consequence:
+          'The action takes effect immediately and is permanently recorded in the log.',
+        confirmLabel: 'Revoke permission',
+        announcement: (name) => `The permission was revoked from ${name}.`,
+      },
+      suspend: {
+        heading: (name) => `Suspend ${name} in this space?`,
+        body: 'Access to this space is blocked immediately. The suspension can be lifted later.',
+        consequence:
+          'History, decisions and records are retained in full and are not deleted.',
+        confirmLabel: 'Suspend in space',
+        announcement: (name) =>
+          `${name} was suspended in this space. Their history was retained.`,
+      },
+      reinstate: {
+        heading: (name) => `Lift the suspension of ${name}?`,
+        body: 'Access to this space is restored immediately, with the same permissions held before the suspension.',
+        confirmLabel: 'Lift suspension',
+        announcement: (name) => `The suspension of ${name} was lifted.`,
+      },
+    },
+    columnMember: 'Member',
+    columnJoined: 'Joined',
+    columnCapabilities: 'Permissions',
+    columnStatus: 'Status',
+    columnActions: 'Actions',
+    hideDetails: 'Hide',
+    showDetails: 'Show details',
+    chipSuspended: 'Suspended',
+    chipActive: 'Active',
+    actionReinstate: 'Lift suspension',
+    actionManage: 'Manage permissions',
+    actionSuspend: 'Suspend in space',
+    detailJoined: 'Joined',
+    detailCapabilities: 'Permissions',
+    detailNoCapabilities: 'No permissions in this space',
+    detailMemberId: 'Member ID',
+    searchLabel: 'Member search',
+    searchPlaceholder: 'Name or ID…',
+    emptyHeading: 'No members in this space yet',
+    emptyBody: 'When residents join this space, they will appear here.',
+    noMatchHeading: 'No matching members found',
+    noMatchBody: 'Try another name, or clear the search.',
+    clearSearch: 'Clear search',
+    tableDescription: (spaceName) =>
+      `Members of the ${spaceName} space and their permissions. Each row includes a name, join date, membership status and the permissions granted.`,
+    totalMembers: (total) => `${total} members in this space`,
+    editorHeading: (name) => `Manage permissions - ${name}`,
+    roleLabel: 'Role',
+    rolePlaceholder: 'Choose a role…',
+    presetNote:
+      'This role includes the following permissions. Each permission is granted separately, with its own confirmation.',
+    granted: 'Granted',
+    notGranted: 'Not granted',
+    revokeCapability: 'Revoke permission',
+    grantCapability: 'Grant permission',
+    close: 'Close',
+  },
+};
+
+const dialogCopy = (action: PendingAction, t: MembersCopy): DialogCopy => {
+  const name = action.member.displayName;
+  switch (action.kind) {
+    case 'grant':
+      return {
+        heading: t.dialog.grant.heading,
+        body: t.dialog.grant.body(name, t.capabilityLabels[action.capability]),
+        confirmLabel: t.dialog.grant.confirmLabel,
+        announcement: t.dialog.grant.announcement(name),
+        placeholder: t.reasonPlaceholder,
+      };
+    case 'revoke':
+      return {
+        heading: t.dialog.revoke.heading,
+        body: t.dialog.revoke.body(name, t.capabilityLabels[action.capability]),
+        consequence: t.dialog.revoke.consequence,
+        confirmLabel: t.dialog.revoke.confirmLabel,
+        announcement: t.dialog.revoke.announcement(name),
+        placeholder: t.reasonPlaceholder,
+      };
+    case 'suspend':
+      return {
+        heading: t.dialog.suspend.heading(name),
+        body: t.dialog.suspend.body,
+        consequence: t.dialog.suspend.consequence,
+        confirmLabel: t.dialog.suspend.confirmLabel,
+        announcement: t.dialog.suspend.announcement(name),
+        placeholder: t.reasonPlaceholder,
+      };
+    case 'reinstate':
+      return {
+        heading: t.dialog.reinstate.heading(name),
+        body: t.dialog.reinstate.body,
+        confirmLabel: t.dialog.reinstate.confirmLabel,
+        announcement: t.dialog.reinstate.announcement(name),
+        placeholder: t.reasonPlaceholder,
       };
   }
 };
@@ -210,10 +451,7 @@ const toRequest = (spaceId: string, action: PendingAction, reason: string): Requ
 
 const SEARCH_DEBOUNCE_MS = 300;
 
-const PRESET_OPTIONS = (Object.keys(ROLE_PRESETS) as RolePreset[]).map((preset) => ({
-  value: preset,
-  label: ROLE_PRESET_LABELS_HE[preset],
-}));
+const PRESET_VALUES = Object.keys(ROLE_PRESETS) as RolePreset[];
 
 export function MembersClient({
   spaceId,
@@ -222,11 +460,18 @@ export function MembersClient({
   canRevoke,
   canSuspend,
   state,
+  locale = 'he',
 }: MembersClientProps) {
+  const t = COPY[locale];
   const router = useRouter();
   const pathname = usePathname();
   const detailsIdBase = useId();
   const editorId = useId();
+
+  const presetOptions = PRESET_VALUES.map((preset) => ({
+    value: preset,
+    label: t.roleLabels[preset],
+  }));
 
   const [term, setTerm] = useState(search);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -284,26 +529,26 @@ export function MembersClient({
         });
         if (!response.ok) {
           // The dialog stays open with the reason intact and shows the
-          // server's own sentence where it has one — a 409 here means the
+          // server's own sentence where it has one - a 409 here means the
           // state already exists, which the generic line would deny.
           const payload: unknown = await response.json().catch(() => null);
-          setFailure(serverSentence(payload) ?? ACTION_FAILED_HE);
+          setFailure(serverSentence(payload) ?? t.actionFailed);
           return;
         }
         setAction(null);
-        setAnnouncement(dialogCopy(pending).announcement);
+        setAnnouncement(dialogCopy(pending, t).announcement);
         setFlashKey(pending.member.id);
         startTransition(() => router.refresh());
       } catch {
-        setFailure(ACTION_FAILED_HE);
+        setFailure(t.actionFailed);
       } finally {
         setSubmitting(false);
       }
     },
-    [router, spaceId]
+    [router, spaceId, t]
   );
 
-  const activeCopy = action ? dialogCopy(action) : null;
+  const activeCopy = action ? dialogCopy(action, t) : null;
 
   const dialog =
     action && activeCopy ? (
@@ -319,7 +564,7 @@ export function MembersClient({
         confirmLabel={activeCopy.confirmLabel}
         placeholder={activeCopy.placeholder}
         pending={submitting}
-        pendingLabel="…שומר"
+        pendingLabel={t.pendingLabel}
         error={failure}
         onConfirm={(reason) => {
           void runAction(action, reason);
@@ -335,7 +580,7 @@ export function MembersClient({
 
   // The refused surface is `EscalationDialog`'s own `no-permission` shape: it
   // renders `NoPermissionPanel` and owns the escalation path behind its CTA.
-  // The decision dialog above is not reachable here — none of its four actions
+  // The decision dialog above is not reachable here - none of its four actions
   // has a trigger on a page with no table.
   if (state.kind === 'denied') {
     return <EscalationDialog spaceId={spaceId} trigger="no-permission" />;
@@ -362,7 +607,7 @@ export function MembersClient({
   const columns: readonly PressTableColumn<SpaceMember>[] = [
     {
       key: 'member',
-      header: 'חבר/ה',
+      header: t.columnMember,
       primary: true,
       cell: (member) => {
         const isExpanded = expanded === member.id;
@@ -380,7 +625,7 @@ export function MembersClient({
               }
               onClick={() => setExpanded(isExpanded ? null : member.id)}
             >
-              {isExpanded ? 'הסתר' : 'הצג פרטים'}
+              {isExpanded ? t.hideDetails : t.showDetails}
               <span aria-hidden>{isExpanded ? ' ▴' : ' ▾'}</span>
             </button>
           </div>
@@ -389,7 +634,7 @@ export function MembersClient({
     },
     {
       key: 'joined',
-      header: 'הצטרפ/ה',
+      header: t.columnJoined,
       secondary: true,
       cell: (member) => (
         <span className={styles.mono}>
@@ -399,27 +644,27 @@ export function MembersClient({
     },
     {
       key: 'capabilities',
-      header: 'הרשאות',
+      header: t.columnCapabilities,
       secondary: true,
-      // A count, never a raw capability identifier. The Hebrew labels live in
-      // the row disclosure and in the management panel.
+      // A count, never a raw capability identifier. The localized labels live
+      // in the row disclosure and in the management panel.
       cell: (member) => (
         <span className={styles.mono}>{member.capabilities.length}</span>
       ),
     },
     {
       key: 'status',
-      header: 'סטטוס',
+      header: t.columnStatus,
       cell: (member) =>
         member.suspended ? (
-          <StatusChip tone="suspended">מושעה/ית</StatusChip>
+          <StatusChip tone="suspended">{t.chipSuspended}</StatusChip>
         ) : (
-          <StatusChip>פעיל/ה</StatusChip>
+          <StatusChip>{t.chipActive}</StatusChip>
         ),
     },
     {
       key: 'actions',
-      header: 'פעולות',
+      header: t.columnActions,
       omitFromDetails: true,
       cell: (member) => (
         <div className={styles.rowActions}>
@@ -430,7 +675,7 @@ export function MembersClient({
                 size="sm"
                 onClick={() => setAction({ kind: 'reinstate', member })}
               >
-                ביטול השעיה
+                {t.actionReinstate}
               </NewsButton>
             ) : null
           ) : (
@@ -443,7 +688,7 @@ export function MembersClient({
                   aria-controls={editorFor === member.id ? editorId : undefined}
                   onClick={() => openEditor(member)}
                 >
-                  ניהול הרשאות
+                  {t.actionManage}
                 </NewsButton>
               ) : null}
               {canSuspend ? (
@@ -452,7 +697,7 @@ export function MembersClient({
                   size="sm"
                   onClick={() => setAction({ kind: 'suspend', member })}
                 >
-                  השעיה במרחב
+                  {t.actionSuspend}
                 </NewsButton>
               ) : null}
             </>
@@ -465,19 +710,19 @@ export function MembersClient({
   const renderExpansion = (member: SpaceMember) => (
     <div id={`${detailsIdBase}-${member.id}`} className={styles.details}>
       <dl className={styles.detailsList}>
-        <dt>הצטרפ/ה</dt>
+        <dt>{t.detailJoined}</dt>
         <dd>{new Date(member.joinedAt).toLocaleDateString('he-IL')}</dd>
 
-        <dt>הרשאות</dt>
+        <dt>{t.detailCapabilities}</dt>
         <dd>
           {member.capabilities.length === 0
-            ? 'אין הרשאות במרחב הזה'
+            ? t.detailNoCapabilities
             : member.capabilities
-                .map((capability) => CAPABILITY_LABELS_HE[capability])
+                .map((capability) => t.capabilityLabels[capability])
                 .join(' · ')}
         </dd>
 
-        <dt>מזהה חבר/ה</dt>
+        <dt>{t.detailMemberId}</dt>
         <dd>
           <span dir="ltr" className={styles.latin}>
             {member.id}
@@ -497,25 +742,22 @@ export function MembersClient({
       <div className={styles.search}>
         <PressInput
           type="search"
-          label="חיפוש חבר/ה"
-          placeholder="…שם או מזהה"
+          label={t.searchLabel}
+          placeholder={t.searchPlaceholder}
           value={term}
           onChange={(event) => setTerm(event.target.value)}
         />
       </div>
 
       {empty && !searching ? (
-        <EmptyPanel
-          heading="אין עדיין חברים במרחב"
-          body="כשתושבים יצטרפו למרחב הזה, הם יופיעו כאן."
-        />
+        <EmptyPanel heading={t.emptyHeading} body={t.emptyBody} />
       ) : empty ? (
         <EmptyPanel
-          heading="לא נמצאו חברים תואמים"
-          body="נסו שם אחר, או נקו את החיפוש."
+          heading={t.noMatchHeading}
+          body={t.noMatchBody}
           action={
             <NewsButton variant="outline" onClick={() => setTerm('')}>
-              ניקוי חיפוש
+              {t.clearSearch}
             </NewsButton>
           }
         />
@@ -525,7 +767,7 @@ export function MembersClient({
             columns={columns}
             rows={members}
             rowKey={(member) => member.id}
-            description={`חברי המרחב ${spaceName} וההרשאות שלהם. כל שורה כוללת שם, מועד הצטרפות, מצב חברות והרשאות שהוענקו.`}
+            description={t.tableDescription(spaceName)}
             loading={isPending}
             renderExpansion={renderExpansion}
             expandedKey={expanded}
@@ -534,7 +776,7 @@ export function MembersClient({
               member.id === flashKey ? rowFlashClass : undefined
             }
           />
-          <p className={styles.total}>{total} חברים במרחב</p>
+          <p className={styles.total}>{t.totalMembers(total)}</p>
         </>
       )}
 
@@ -545,26 +787,23 @@ export function MembersClient({
           aria-labelledby={`${editorId}-heading`}
         >
           <h3 id={`${editorId}-heading`} className={styles.editorHeading}>
-            ניהול הרשאות — {editorMember.displayName}
+            {t.editorHeading(editorMember.displayName)}
           </h3>
 
           <PressSelect
-            label="תפקיד"
-            placeholder="…בחרו תפקיד"
+            label={t.roleLabel}
+            placeholder={t.rolePlaceholder}
             value={preset}
-            options={PRESET_OPTIONS}
+            options={presetOptions}
             onChange={(event) => setPreset(event.target.value as RolePreset)}
           />
 
           {preset ? (
             <div className={styles.presetPreview}>
-              <p className={styles.presetNote}>
-                התפקיד כולל את ההרשאות הבאות. כל הרשאה מוענקת בנפרד ובאישור
-                נפרד.
-              </p>
+              <p className={styles.presetNote}>{t.presetNote}</p>
               <ul className={styles.presetList}>
                 {expandPreset(preset).map((capability) => (
-                  <li key={capability}>{CAPABILITY_LABELS_HE[capability]}</li>
+                  <li key={capability}>{t.capabilityLabels[capability]}</li>
                 ))}
               </ul>
             </div>
@@ -579,10 +818,10 @@ export function MembersClient({
                     {granted ? '✓' : '✕'}
                   </span>
                   <span className={styles.manifestLabel}>
-                    {CAPABILITY_LABELS_HE[capability]}
+                    {t.capabilityLabels[capability]}
                   </span>
                   <span className={styles.manifestState}>
-                    {granted ? 'מוענק' : 'לא מוענק'}
+                    {granted ? t.granted : t.notGranted}
                   </span>
                   {granted && canRevoke ? (
                     <NewsButton
@@ -592,7 +831,7 @@ export function MembersClient({
                         setAction({ kind: 'revoke', member: editorMember, capability })
                       }
                     >
-                      שלילת הרשאה
+                      {t.revokeCapability}
                     </NewsButton>
                   ) : null}
                   {!granted && canGrant ? (
@@ -609,7 +848,7 @@ export function MembersClient({
                         })
                       }
                     >
-                      הענקת הרשאה
+                      {t.grantCapability}
                     </NewsButton>
                   ) : null}
                 </li>
@@ -618,7 +857,7 @@ export function MembersClient({
           </ul>
 
           <NewsButton variant="outline" onClick={() => setEditorFor(null)}>
-            סגירה
+            {t.close}
           </NewsButton>
         </section>
       ) : null}

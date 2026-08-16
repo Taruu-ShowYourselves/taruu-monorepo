@@ -6,19 +6,25 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
 } from "react";
 import Link from "next/link";
 import { animate, createScope, stagger } from "animejs";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { i18n } from "@/lib/i18n/config";
+import { localePath, localePrefix } from "@/lib/i18n/config";
+import type { Locale } from "@/lib/i18n";
 import { topReactions } from "@/components/press/reactions";
+import { NewsButton } from "@/components/press/NewsButton";
+import { SocialMark } from "@/components/uikit/social-mark";
 import {
+  interleaveByCity,
   ISRAEL_MAP_PATH,
   MAP_VIEWBOX,
-  pointForMunicipality,
   type MapPoint,
 } from "./israel-map";
 import { structureKnessetTitle } from "./knesset-title";
+import { LedgerMark, type LedgerMarkKind } from "./ledgerMarks";
+import { THESIS_BEATS } from "./thesisBeats";
 import styles from "./CinematicIntro.module.css";
 
 interface SignalSource {
@@ -78,7 +84,278 @@ interface PlacedSignal {
   point: MapPoint;
 }
 
+interface IntroCopy {
+  /** Thesis ledger (CivicSignalMap). */
+  metricMunicipalities: string;
+  metricKnessetTopics: string;
+  metricMunicipalTopics: string;
+  metricFacebookGroups: string;
+  metricFacebookPosts: string;
+  metricPeopleInvolved: string;
+  metricBestCity: string;
+  metricPressingKnesset: string;
+  ledgerAria: string;
+  ledgerHeader: string;
+  measuringNow: string;
+  /** Shared measures. */
+  voted: string;
+  postsWord: string;
+  /** Municipal dispatch card. */
+  heatTitle: string;
+  scanned: string;
+  onePost: string;
+  inGroupOf: string;
+  measuredOn: string;
+  facebookSourceLink: string;
+  activeVoteCta: string;
+  /** Direction-semantic "continue" glyph: Hebrew ←, English →. */
+  backGlyph: string;
+  /** Proposal briefs; `{subject}` is replaced with the live title. */
+  briefRegulate: string;
+  briefAffirm: string;
+  briefAdvance: string;
+  /** Brand. */
+  brandName: string;
+  socialsAria: string;
+  /** Label of the *other* locale, shown on the language switch. */
+  localeSwitchLabel: string;
+  localeSwitchAria: string;
+  sectionAria: string;
+  /** The argument, read after the desks rather than in front of them. */
+  beatsSectionAria: string;
+  /** Question scene, split to preserve the animated inline markup. */
+  q1pre: string;
+  q1mark: string;
+  q1mid: string;
+  q1em: string;
+  q1end: string;
+  q2pre: string;
+  q2mark: string;
+  q2mid: string;
+  q2strong: string;
+  participantCountLabel: string;
+  municipalDecisionsLabel: string;
+  nationalDecisionsLabel: string;
+  primaryCta: string;
+  secondaryCta: string;
+  scrollCue: string;
+  /** Comparison scene. */
+  muniPanelTitle: string;
+  mapAria: string;
+  legendActive: string;
+  legendAreas: string;
+  knessetPanelTitle: string;
+  knessetLede: string;
+  relevanceLabel: string;
+  coverageLabel: string;
+  knessetVoteCta: string;
+  officialDocLink: string;
+  mediaSourceLink: string;
+  connecting: string;
+  fullAgendaCta: string;
+  /**
+   * Thesis scene. The splash states the mechanism, but one screen of prose is
+   * a wall - so it is cut into beats the scroll plays one at a time: wordmark,
+   * what we watch, what forms, what it compels. How a resident actually joins
+   * is deliberately not here; it belongs after the desks, once they have seen
+   * what is open in their town (see the HowToJoin section).
+   */
+  thesisLede: string;
+  /**
+   * The offer the wordmark makes, in the brand's own imperative - carried as
+   * two fields because it sets as two lines. As one string the balancer broke
+   * it wherever the measure ran out, which put the opening quote mark at the
+   * end of one line and its pair at the end of the next.
+   */
+  thesisAskLead: string;
+  thesisAskQuote: string;
+  /**
+   * The homepage's one-screen opening. The full and thesis stories keep the
+   * wordmark's offer (lede + ask); the opening story states the paper's
+   * purpose instead - the reminder that used to close the page - and, under
+   * it, the mechanism in one sentence. The reminder reads as the site's
+   * masthead motto, so it is the homepage's h1.
+   */
+  openingHeadline: string;
+  openingStandfirst: string;
+  /**
+   * The splash's one door: the brand's own imperative, pointed at the live
+   * feed. "Vote" describes the mechanism; "show them" is what the reader
+   * came to do.
+   */
+  openingCta: string;
+  /**
+   * Each beat is a claim and, where the claim needs one, the condition it
+   * holds under. Carried as two fields because they are set as two things:
+   * as one string the whole beat ran at display scale, and a sentence with a
+   * clause in it became four lines of 40px type - a wall, on the one screen
+   * that has to be read at a glance.
+   */
+  thesisBeats: readonly { head: string; note?: string }[];
+}
+
+const COPY: Record<Locale, IntroCopy> = {
+  he: {
+    metricMunicipalities: "רשויות במסד הנתונים",
+    metricKnessetTopics: "נושאי כנסת",
+    metricMunicipalTopics: "נושאים עירוניים",
+    metricFacebookGroups: "קבוצות פייסבוק שהתגלו",
+    metricFacebookPosts: "פוסטים שנצפו",
+    metricPeopleInvolved: "אזרחים מעורבים",
+    metricBestCity: "העיר המובילה במעורבות אזרחית",
+    metricPressingKnesset: "הצבעת הכנסת הבוערת",
+    ledgerAria: "שדה הנתונים האזרחי של תראו",
+    ledgerHeader: "תַּרְאוּ מודדת עכשיו",
+    measuringNow: "נמדד עכשיו",
+    voted: "הצביעו",
+    postsWord: "פוסטים",
+    heatTitle: "חום ציבורי - ריאקציות ותגובות במקור",
+    scanned: "סרקנו",
+    onePost: "פוסט אחד",
+    inGroupOf: "בקבוצת הפייסבוק של",
+    measuredOn: "נמדד",
+    facebookSourceLink: "למקור בפייסבוק ↗",
+    activeVoteCta: "להצבעה הפעילה",
+    backGlyph: "←",
+    briefRegulate: "ההצעה מבקשת להסדיר בחקיקה את {subject}.",
+    briefAffirm: "הסעיף מבקש לאשר את {subject}.",
+    briefAdvance: "הסעיף מבקש לקדם את {subject}.",
+    brandName: "תַּרְאוּ",
+    socialsAria: "תַּרְאוּ ברשתות החברתיות",
+    localeSwitchLabel: "EN",
+    localeSwitchAria: "Switch to English",
+    sectionAria: "מרעש ציבורי לסדר יום משותף",
+    beatsSectionAria: "איך תַּרְאוּ הופכת רעש ציבורי למנדט",
+    q1pre: "אם ",
+    q1mark: "מיליון אנשים",
+    q1mid: " מתלוננים ",
+    q1em: "בפייסבוק",
+    q1end: ",",
+    q2pre: "למה ",
+    q2mark: "אף אחד",
+    q2mid: " לא ",
+    q2strong: "שומע אותם?",
+    participantCountLabel: "אזרחים משתתפים",
+    municipalDecisionsLabel: "החלטות אזרחיות (בתהליך) בעניינים אזרחיים",
+    nationalDecisionsLabel: "החלטות אזרחיות (בתהליך) בעניינים מדיניים",
+    primaryCta: "להשתתפות במשאלי העם",
+    secondaryCta: "לסדר היום הציבורי",
+    scrollCue: "גללו",
+    muniPanelTitle: "מוקדי עניין עירוניים",
+    mapAria: "מפת ישראל עם מוקדי שיח ציבורי",
+    legendActive: "מוקד פעיל",
+    legendAreas: "אזורים באוויר",
+    knessetPanelTitle: "סדר היום בכנסת",
+    knessetLede: "הנושאים הארציים שמצטברים עכשיו לקול ציבורי מדיד.",
+    relevanceLabel: "רלוונטיות",
+    coverageLabel: "סיקור",
+    knessetVoteCta: "להצבעה הפעילה ←",
+    officialDocLink: "למסמך הרשמי ↗",
+    mediaSourceLink: "מקור תקשורתי ↗",
+    connecting: "מתחבר למסד הנתונים…",
+    fullAgendaCta: "לכל סדר היום הציבורי",
+    thesisLede:
+      "מאפשרת לאזרחים לבנות ריבונות אזרחית סביב נושאים שבהם הרשות או הממשלה *לא מבצעות את המנדט הציבורי* שהוטל עליהן.",
+    thesisAskLead: "ואומרת לכם",
+    thesisAskQuote: "תראו להם מה אתם *באמת* רוצים",
+    openingHeadline: "אנחנו כאן כדי להזכיר לרשויות שהן *בשירות הציבור*.",
+    openingStandfirst:
+      "אזרחים מצביעים על נושאים שעל הפרק, יוצרים רוב אזרחי ובונים מנדט - מנדט שהרשויות מחויבות לכבד, או לאבד את הלגיטימציה שלהן.",
+    openingCta: "תראו להם",
+    thesisBeats: THESIS_BEATS.he,
+  },
+  en: {
+    metricMunicipalities: "Municipalities in the database",
+    metricKnessetTopics: "Knesset topics",
+    metricMunicipalTopics: "Municipal topics",
+    metricFacebookGroups: "Facebook groups discovered",
+    metricFacebookPosts: "Posts observed",
+    metricPeopleInvolved: "Citizens involved",
+    metricBestCity: "Leading city in civic engagement",
+    metricPressingKnesset: "The most pressing Knesset vote",
+    ledgerAria: "Taruu's civic data field",
+    ledgerHeader: "Taruu is measuring now",
+    measuringNow: "Measuring now",
+    voted: "voted",
+    postsWord: "posts",
+    heatTitle: "Public heat - reactions and comments at the source",
+    scanned: "We scanned",
+    onePost: "one post",
+    inGroupOf: "in the Facebook group of",
+    measuredOn: "Measured",
+    facebookSourceLink: "Source on Facebook ↗",
+    activeVoteCta: "To the active vote",
+    backGlyph: "→",
+    briefRegulate: "The bill seeks to anchor {subject} in legislation.",
+    briefAffirm: "The item seeks to approve {subject}.",
+    briefAdvance: "The item seeks to advance {subject}.",
+    brandName: "Taruu",
+    socialsAria: "Taruu on social networks",
+    localeSwitchLabel: "עברית",
+    localeSwitchAria: "מעבר לעברית",
+    sectionAria: "From public noise to a shared agenda",
+    beatsSectionAria: "How Taruu turns public noise into a mandate",
+    q1pre: "If ",
+    q1mark: "a million people",
+    q1mid: " are complaining on ",
+    q1em: "Facebook",
+    q1end: ",",
+    q2pre: "why does ",
+    q2mark: "no one",
+    q2mid: " ",
+    q2strong: "hear them?",
+    participantCountLabel: "Participating citizens",
+    municipalDecisionsLabel: "Civic decisions in progress on local issues",
+    nationalDecisionsLabel: "Civic decisions in progress on national issues",
+    primaryCta: "To the live topic map",
+    secondaryCta: "To the public agenda",
+    scrollCue: "Scroll",
+    muniPanelTitle: "Municipal focal points",
+    mapAria: "Map of Israel with centers of public discussion",
+    legendActive: "Active hotspot",
+    legendAreas: "areas on air",
+    knessetPanelTitle: "The Knesset agenda",
+    knessetLede: "The national topics now accumulating into a measurable public voice.",
+    relevanceLabel: "Relevance",
+    coverageLabel: "Coverage",
+    knessetVoteCta: "To the active vote →",
+    officialDocLink: "Official document ↗",
+    mediaSourceLink: "Media source ↗",
+    connecting: "Connecting to the database…",
+    fullAgendaCta: "The full public agenda",
+    thesisLede:
+      "lets citizens build civic sovereignty around the issues where the authority or the government *is not delivering the public mandate* it was given.",
+    thesisAskLead: "and says to you",
+    thesisAskQuote: "show them what you *really* want",
+    openingHeadline:
+      "We are here to remind the authorities that they are *in the service of the public*.",
+    openingStandfirst:
+      "Civilians vote on the topics that concern them, form civilian majorities, and build a mandate - one the authorities must honour, or lose their legitimacy.",
+    openingCta: "Show them",
+    thesisBeats: THESIS_BEATS.en,
+  },
+};
+
 const KNESSET_SCOPE = /כנסת|ארצי|ישראל/;
+
+/**
+ * Copy carries its own emphasis: `*like this*` prints in the paper's red.
+ *
+ * The alternative is splitting every sentence into three fields - before,
+ * stressed, after - which turns a translator's job into a jigsaw and makes the
+ * emphasis impossible to move without touching the component.
+ */
+function withEmphasis(text: string): ReactNode[] {
+  return text.split(/\*([^*]+)\*/g).map((part, index) =>
+    index % 2 === 1 ? (
+      <b key={index} className={styles.stress}>
+        {part}
+      </b>
+    ) : (
+      part
+    ),
+  );
+}
 
 /**
  * Far-field slots for the live-city micro-marks behind the thesis. Fixed and
@@ -97,6 +374,21 @@ const DUST_SLOTS = [
   { x: "82%", y: "68%", depth: 0.2 },
   { x: "30%", y: "84%", depth: 0.3 },
   { x: "60%", y: "86%", depth: 0.25 },
+] as const;
+
+/**
+ * The motif behind the opening beat's field.
+ *
+ * Four plates, each naming a different part of the argument the beats make:
+ * the map the topics are read off, the ballot they turn into, the statute the
+ * mandate is enforced through, and the ledger the score accrues in. They sit
+ * far back, at four depths, so the scroll pulls them apart.
+ */
+const MOTIF_PLATES = [
+  { kind: "map", x: "21%", y: "25%", depth: 0.28 },
+  { kind: "ballot", x: "62%", y: "13%", depth: 0.42 },
+  { kind: "statute", x: "26%", y: "70%", depth: 0.34 },
+  { kind: "ledger", x: "58%", y: "56%", depth: 0.24 },
 ] as const;
 
 /**
@@ -133,7 +425,7 @@ function holdHandlers(setPaused: (paused: boolean) => void) {
   };
 }
 
-const voteHref = (id: string) => `/${i18n.defaultLocale}/votes/${id}`;
+const voteHref = (id: string, locale: Locale) => `${localePrefix(locale)}/votes/${id}`;
 
 const heatOf = (signal: SignalVote) => signal.source?.hotness ?? 0;
 
@@ -143,11 +435,101 @@ const byHeat = (a: SignalVote, b: SignalVote) =>
 
 const he = (value: number) => value.toLocaleString("he-IL");
 
+/**
+ * A figure that arrives by counting rather than by appearing.
+ *
+ * The ledger's numbers land from the stats poll a beat after mount, and they
+ * used to snap in - a field of instruments where every reading was suddenly
+ * just there. This walks the shown value to each new target instead, so the
+ * count-up drives BOTH the printed number and the instrument above it (the
+ * animated value feeds LedgerMark, so bars rise, the ring sweeps, the tally
+ * accrues). Reduced motion snaps straight to the target.
+ */
+function useRisingCount(target: number | null): number | null {
+  const [shown, setShown] = useState<number | null>(null);
+  const shownRef = useRef<number | null>(null);
+  shownRef.current = shown;
+
+  useEffect(() => {
+    if (target === null) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setShown(target);
+      return;
+    }
+    const from = shownRef.current ?? 0;
+    if (from === target) return;
+    const started = performance.now();
+    const DURATION_MS = 1500;
+    let frame = requestAnimationFrame(function tick(now: number) {
+      const progress = Math.min(1, (now - started) / DURATION_MS);
+      const eased = 1 - (1 - progress) ** 3;
+      setShown(Math.round(from + (target - from) * eased));
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [target]);
+
+  return target === null ? null : (shown ?? 0);
+}
+
+interface LedgerMetricDef {
+  label: string;
+  value: number | string | null;
+  depth: number;
+  kind: LedgerMarkKind;
+  feature?: boolean;
+}
+
+/** One pinned reading in the field; owns its own count-up. */
+function LedgerMetricMark({
+  metric,
+  index,
+}: {
+  metric: LedgerMetricDef;
+  index: number;
+}) {
+  const numericTarget = typeof metric.value === "number" ? metric.value : null;
+  const live = useRisingCount(numericTarget);
+
+  return (
+    <div
+      className={`${styles.ledgerMetric} ${metric.feature ? styles.ledgerMetricFeature : ""}`}
+      data-thesis-metric
+      data-depth={metric.depth}
+      style={
+        {
+          "--metric-delay": `${index * 0.13}s`,
+          "--depth": metric.depth,
+        } as CSSProperties
+      }
+    >
+      <dt>{metric.label}</dt>
+      {/* The instrument is drawn above the reading, and an uncounted figure
+          draws an empty one - eight empty instruments differ from each other,
+          where eight printings of "measuring now" did not. The instrument
+          takes the SAME live value as the number, so the two grow together. */}
+      <LedgerMark
+        className={styles.ledgerMarkGlyph}
+        kind={metric.kind}
+        value={live}
+      />
+      <dd>
+        {metric.value === null
+          ? "-"
+          : typeof metric.value === "number"
+            ? he(live ?? 0)
+            : metric.value}
+      </dd>
+    </div>
+  );
+}
+
 interface CivicSignalMapProps {
   stats: PublicLedgerStats;
   mapSignals: PlacedSignal[];
   bestCity: string | null;
   pressingKnesset: string | null;
+  t: IntroCopy;
 }
 
 function CivicSignalMap({
@@ -155,44 +537,96 @@ function CivicSignalMap({
   mapSignals,
   bestCity,
   pressingKnesset,
+  t,
 }: CivicSignalMapProps) {
   // depth: how close the mark floats to the reader. Drives scale, blur,
   // opacity and scroll parallax; the loudest numbers sit nearest.
-  const metrics = [
-    { label: "רשויות במסד הנתונים", value: stats.municipalities, depth: 0.6 },
-    { label: "נושאי כנסת", value: stats.knessetTopics, depth: 0.92 },
-    { label: "נושאים עירוניים", value: stats.municipalTopics, depth: 0.75 },
+  //
+  // kind: which instrument draws the figure (see ledgerMarks). One per metric,
+  // never repeated, so the field reads as a bench of instruments rather than
+  // eight printings of the same reading.
+  const metrics: LedgerMetricDef[] = [
     {
-      label: "קבוצות פייסבוק שהתגלו",
+      label: t.metricMunicipalities,
+      value: stats.municipalities,
+      depth: 0.6,
+      kind: 'dots',
+    },
+    {
+      label: t.metricKnessetTopics,
+      value: stats.knessetTopics,
+      depth: 0.92,
+      kind: 'bars',
+    },
+    {
+      label: t.metricMunicipalTopics,
+      value: stats.municipalTopics,
+      depth: 0.75,
+      kind: 'tally',
+    },
+    {
+      label: t.metricFacebookGroups,
       value: stats.facebookGroups,
       depth: 0.35,
+      kind: 'ring',
     },
-    { label: "פוסטים שנצפו", value: stats.facebookPosts, depth: 1 },
-    { label: "אזרחים מעורבים", value: stats.peopleInvolved, depth: 0.45 },
     {
-      label: "העיר המובילה במעורבות אזרחית",
+      label: t.metricFacebookPosts,
+      value: stats.facebookPosts,
+      depth: 1,
+      kind: 'hatch',
+    },
+    {
+      label: t.metricPeopleInvolved,
+      value: stats.peopleInvolved,
+      depth: 0.45,
+      kind: 'trace',
+    },
+    {
+      label: t.metricBestCity,
       value: bestCity,
       feature: true,
       depth: 0.7,
+      kind: 'plate',
     },
     {
-      label: "הצבעת הכנסת הבוערת",
+      label: t.metricPressingKnesset,
       value: pressingKnesset,
       feature: true,
       depth: 0.55,
+      kind: 'plate',
     },
   ];
 
   return (
     <aside
-      className={styles.thesisLedger}
+      className={`${styles.thesisLedger} ${styles.thesisLedgerMotif}`}
       data-thesis-ledger
-      aria-label="שדה הנתונים האזרחי של תראו"
+      aria-label={t.ledgerAria}
       aria-live="polite"
     >
       <header className={styles.ledgerHeader}>
-        <span>תַּרְאוּ מודדת עכשיו</span>
+        <span>{t.ledgerHeader}</span>
       </header>
+
+      <div className={styles.ledgerMotifs} data-beat-stage-primary aria-hidden>
+          {MOTIF_PLATES.map((plate) => (
+            <span
+              className={styles.motifPlate}
+              data-motif={plate.kind}
+              data-thesis-dust
+              data-depth={plate.depth}
+              key={plate.kind}
+              style={
+                {
+                  "--motif-x": plate.x,
+                  "--motif-y": plate.y,
+                  "--depth": plate.depth,
+                } as CSSProperties
+              }
+            />
+        ))}
+      </div>
 
       <div className={styles.ledgerDust} aria-hidden>
         {mapSignals.slice(0, DUST_SLOTS.length).map(({ signal }, index) => {
@@ -217,29 +651,9 @@ function CivicSignalMap({
         })}
       </div>
 
-      <dl className={styles.thesisMetricMap}>
+      <dl className={styles.thesisMetricMap} data-beat-stage-primary>
         {metrics.map((metric, index) => (
-          <div
-            className={`${styles.ledgerMetric} ${metric.feature ? styles.ledgerMetricFeature : ""}`}
-            data-thesis-metric
-            data-depth={metric.depth}
-            key={metric.label}
-            style={
-              {
-                "--metric-delay": `${index * 0.13}s`,
-                "--depth": metric.depth,
-              } as CSSProperties
-            }
-          >
-            <dt>{metric.label}</dt>
-            <dd>
-              {metric.value === null
-                ? "נמדד עכשיו"
-                : typeof metric.value === "number"
-                  ? he(metric.value)
-                  : metric.value}
-            </dd>
-          </div>
+          <LedgerMetricMark metric={metric} index={index} key={metric.label} />
         ))}
       </dl>
     </aside>
@@ -250,7 +664,7 @@ function CivicSignalMap({
  * The counted evidence behind a TOC: the loudest reactions and the comment
  * volume as measured at the source, then how many people already voted here.
  */
-function SignalMetrics({ signal }: { signal: SignalVote }) {
+function SignalMetrics({ signal, t }: { signal: SignalVote; t: IntroCopy }) {
   const source = signal.source;
   const reactions = source ? topReactions(source.reactions, 6) : [];
 
@@ -270,7 +684,7 @@ function SignalMetrics({ signal }: { signal: SignalVote }) {
       )}
       {signal.participantCount > 0 && (
         <span className={styles.tocParticipants}>
-          {he(signal.participantCount)} הצביעו
+          {he(signal.participantCount)} {t.voted}
         </span>
       )}
     </div>
@@ -297,7 +711,11 @@ function officialDate(value: string): string {
 }
 
 /** A compact statement of what an agenda item seeks to advance. */
-function proposalBrief(signal: SignalVote, evidence?: KnessetEvidence): string {
+function proposalBrief(
+  signal: SignalVote,
+  t: IntroCopy,
+  evidence?: KnessetEvidence,
+): string {
   const generated = (
     evidence?.official?.summary ?? evidence?.ranking?.rationale
   )
@@ -315,12 +733,12 @@ function proposalBrief(signal: SignalVote, evidence?: KnessetEvidence): string {
       .replace(/^הצעת חוק\s*/, "")
       .replace(/,?\s*התשפ[^,]*$/u, "")
       .trim();
-    return `ההצעה מבקשת להסדיר בחקיקה את ${subject}.`;
+    return t.briefRegulate.replace("{subject}", () => subject);
   }
   if (title.startsWith("הצהרת אמונים")) {
-    return `הסעיף מבקש לאשר את ${title}.`;
+    return t.briefAffirm.replace("{subject}", () => title);
   }
-  return `הסעיף מבקש לקדם את ${title}.`;
+  return t.briefAdvance.replace("{subject}", () => title);
 }
 
 /**
@@ -340,9 +758,13 @@ function dispatchPosition(point: MapPoint): CSSProperties {
 function MunicipalDispatchContent({
   signal,
   paused,
+  t,
+  locale,
 }: {
   signal: SignalVote;
   paused: boolean;
+  t: IntroCopy;
+  locale: Locale;
 }) {
   return (
     <>
@@ -351,7 +773,7 @@ function MunicipalDispatchContent({
         {signal.source && (
           <b
             className={styles.tocHeat}
-            title="חום ציבורי - ריאקציות ותגובות במקור"
+            title={t.heatTitle}
           >
             🔥 {signal.source.hotness}°
           </b>
@@ -366,33 +788,35 @@ function MunicipalDispatchContent({
             <i aria-hidden /> FACEBOOK GROUP SCAN
           </span>
           <p>
-            סרקנו{" "}
+            {t.scanned}{" "}
             {signal.source.postCount === 1
-              ? "פוסט אחד"
-              : `${he(signal.source.postCount)} פוסטים`}{" "}
-            בקבוצת הפייסבוק של <strong>{signal.municipality}</strong>.
+              ? t.onePost
+              : `${he(signal.source.postCount)} ${t.postsWord}`}{" "}
+            {t.inGroupOf} <strong>{signal.municipality}</strong>.
           </p>
           <div className={styles.tocSourceMeta}>
-            <span>נמדד {sourceDate(signal.source.fetchedAt)}</span>
+            <span>
+              {t.measuredOn} {sourceDate(signal.source.fetchedAt)}
+            </span>
             {signal.source.url && (
               <a
                 href={signal.source.url}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                למקור בפייסבוק ↗
+                {t.facebookSourceLink}
               </a>
             )}
           </div>
         </div>
       )}
 
-      <SignalMetrics signal={signal} />
+      <SignalMetrics signal={signal} t={t} />
 
       <div className={styles.tocFoot}>
-        <Link className={styles.tocCta} href={voteHref(signal.id)}>
-          להצבעה הפעילה
-          <i aria-hidden>←</i>
+        <Link className={styles.tocCta} href={voteHref(signal.id, locale)}>
+          {t.activeVoteCta}
+          <i aria-hidden>{t.backGlyph}</i>
         </Link>
         <span
           className={styles.tocProgress}
@@ -422,14 +846,70 @@ const INTRO_SOCIALS = [
   },
 ] as const;
 
-const INTRO_NAV = [
-  { number: "01", label: "הצבעות", href: "votes" },
-  { number: "02", label: "סדר היום", href: "explore" },
-  { number: "03", label: "כנסת ישראל", href: "knesset" },
-  { number: "04", label: "מהי תַּרְאוּ?", href: "#what-is-taruu" },
-] as const;
+/**
+ * How much of the three-act intro to run.
+ *
+ * `full` is the original story: the question ("if a million people are
+ * complaining on Facebook..."), the live map/agenda comparison, then the
+ * thesis. It argues the case before showing anything, which is what an
+ * investor edition wants and what a resident does not - they arrive to find
+ * out what is open in their town, and four screens of argument stand between
+ * them and it.
+ *
+ * `thesis` opens on the last act alone: the wordmark, the line, and the live
+ * ledger behind it, then the four claims. /pitchdeck runs this.
+ *
+ * `opening` and `beats` are that same act cut in two, because on the homepage
+ * the argument reads better after the evidence than in front of it. `opening`
+ * is the wordmark and what it offers, and nothing else - the reader is one
+ * screen from their own town's desk. `beats` is the four claims with their
+ * backdrops, mounted further down the page in normal flow, once the desks have
+ * shown what is actually open. It carries no brand dock or locale switch:
+ * that chrome belongs to the top of the page, and a second copy of it halfway
+ * down would read as a second page beginning.
+ */
+export type IntroStory = "full" | "thesis" | "opening" | "beats";
 
-export function CinematicIntro() {
+interface CinematicIntroProps {
+  locale?: Locale;
+  story?: IntroStory;
+  /**
+   * One backdrop per thesis beat after the first, server-rendered upstream.
+   *
+   * The beats claim different things - what the public answered, what that
+   * scores, what mandate comes out of it - and each is backed by the part of
+   * the site that makes its claim true. They arrive as nodes because those
+   * parts read the database and this component is a client island; the same
+   * route `liveDashboard` already takes.
+   */
+  beatStages?: ReactNode[];
+  /**
+   * The live desk itself: the real carousel, put behind the legitimacy beat
+   * and blurred back.
+   */
+  deskBackdrop?: ReactNode;
+}
+
+export function CinematicIntro({
+  locale = "he",
+  story: storyVariant = "full",
+  beatStages,
+  deskBackdrop,
+}: CinematicIntroProps) {
+  const t = COPY[locale];
+  /* Everything except `full` opens straight on the thesis act, so they all
+     take the solo timeline; what differs is which beats they print. */
+  const thesisOnly = storyVariant !== "full";
+  const openingOnly = storyVariant === "opening";
+  const beatsOnly = storyVariant === "beats";
+  /* The claims this instance prints. `opening` stops at the wordmark; `beats`
+     starts after it. */
+  const beatLines = openingOnly ? [] : t.thesisBeats;
+  /* How far the backdrop indices shift when the wordmark beat is not here.
+     A backdrop is pinned to the beat it argues for, and `beats` drops one beat
+     off the front of the stack. */
+  const beatOffset = beatsOnly ? 1 : 0;
+  const otherLocale: Locale = locale === "he" ? "en" : "he";
   const rootRef = useRef<HTMLElement>(null);
   const shouldReduceMotion = useReducedMotion();
   const [signals, setSignals] = useState<SignalVote[]>([]);
@@ -451,6 +931,11 @@ export function CinematicIntro() {
   const [knessetEvidence, setKnessetEvidence] = useState<
     Record<string, KnessetEvidence>
   >({});
+  // Fingerprints of the payloads last committed to state. The 30s poll
+  // mostly returns the same country it returned 30 seconds ago, and a fresh
+  // array reference alone re-renders this entire tree to prove it.
+  const signalsFingerprint = useRef<string | null>(null);
+  const evidenceFingerprint = useRef<string | null>(null);
 
   const advanceToLiveMap = () => {
     const root = rootRef.current;
@@ -464,6 +949,25 @@ export function CinematicIntro() {
 
   useEffect(() => {
     const controller = new AbortController();
+
+    // Committed only when the data actually moved. The sync stamp rides
+    // with the signals: it marks the last time the picture changed, not the
+    // last time we asked - a stamp that ticks over identical data is just a
+    // metronome for re-renders.
+    const commitSignals = (votes: SignalVote[], syncedAt: Date | null) => {
+      const fingerprint = JSON.stringify(votes);
+      if (fingerprint === signalsFingerprint.current) return;
+      signalsFingerprint.current = fingerprint;
+      setSignals(votes);
+      if (syncedAt) setLastSignalSync(syncedAt);
+    };
+
+    const commitEvidence = (evidence: Record<string, KnessetEvidence>) => {
+      const fingerprint = JSON.stringify(evidence);
+      if (fingerprint === evidenceFingerprint.current) return;
+      evidenceFingerprint.current = fingerprint;
+      setKnessetEvidence(evidence);
+    };
 
     async function loadSignals() {
       try {
@@ -480,42 +984,45 @@ export function CinematicIntro() {
         if (controller.signal.aborted) return;
         // Stored raw: each desk does its own filtering, ordering and
         // deduping downstream, so neither scope can reorder the other.
-        setSignals(votes);
-        setLastSignalSync(new Date());
+        commitSignals(votes, new Date());
 
         const knessetTopics = votes.filter((vote) =>
           KNESSET_SCOPE.test(vote.municipality),
         ).length;
-        setPublicLedger((current) => ({
-          ...current,
-          knessetTopics,
-          municipalTopics: votes.length - knessetTopics,
-        }));
+        const municipalTopics = votes.length - knessetTopics;
+        // Returning `current` untouched lets React bail out of the render.
+        setPublicLedger((current) =>
+          current.knessetTopics === knessetTopics &&
+          current.municipalTopics === municipalTopics
+            ? current
+            : { ...current, knessetTopics, municipalTopics },
+        );
 
-        const knessetIds = votes
-          .filter((vote) => KNESSET_SCOPE.test(vote.municipality))
-          .map((vote) => vote.id)
-          .slice(0, 20);
-        if (knessetIds.length > 0) {
+        // Evidence for the hottest votes is resolved server-side (`top`):
+        // slicing N ids client-side by arrival order meant the actually
+        // burning vote could miss the evidence set entirely.
+        if (knessetTopics > 0) {
           try {
             const contextResponse = await fetch(
-              `/api/knesset/live-context?ids=${encodeURIComponent(knessetIds.join(","))}`,
+              "/api/knesset/live-context?top=20",
               { signal: controller.signal, cache: "no-store" },
             );
             if (contextResponse.ok && !controller.signal.aborted) {
               const contextPayload = (await contextResponse.json()) as {
                 evidence?: Record<string, KnessetEvidence>;
               };
-              setKnessetEvidence(contextPayload.evidence ?? {});
+              commitEvidence(contextPayload.evidence ?? {});
             }
           } catch {
-            if (!controller.signal.aborted) setKnessetEvidence({});
+            if (!controller.signal.aborted) commitEvidence({});
           }
         }
       } catch {
         if (!controller.signal.aborted) {
-          setSignals([]);
-          setKnessetEvidence({});
+          // No stamp on the wipe: the footer reads "last confirmed sync",
+          // and an outage is not a sync.
+          commitSignals([], null);
+          commitEvidence({});
         }
       }
     }
@@ -569,13 +1076,24 @@ export function CinematicIntro() {
         }
 
         if (!controller.signal.aborted) {
-          setPublicLedger((current) => ({ ...current, ...next }));
+          // Same bail-out as the topic counts: hand React back the object it
+          // already holds unless a number actually moved.
+          setPublicLedger((current) => {
+            const keys = Object.keys(next) as (keyof PublicLedgerStats)[];
+            return keys.some((key) => current[key] !== next[key])
+              ? { ...current, ...next }
+              : current;
+          });
         }
       } catch {
         // Keep the last confirmed aggregate during a transient stats outage.
       }
     }
 
+    // The poll runs in every story, deliberately: the thesis ledger
+    // (CivicSignalMap) sits in the thesis scene that all four stories render,
+    // and it reads the signals, the ledger stats and the Knesset evidence.
+    // The commit guards above are what keep an unchanged answer free.
     void loadSignals();
     void loadPublicLedger();
     const poll = window.setInterval(() => {
@@ -615,18 +1133,15 @@ export function CinematicIntro() {
     [signals, knessetEvidence],
   );
 
-  /** Topics without a resolvable municipality stay off the geographic desk. */
-  const placedMunicipalSignals = useMemo<PlacedSignal[]>(() => {
-    const placed: PlacedSignal[] = [];
-    for (const signal of municipalSignals) {
-      if (!signal.municipality) continue;
-      const point = pointForMunicipality(signal.municipality);
-      if (!point) continue;
-      placed.push({ signal, point });
-      if (placed.length === 24) break;
-    }
-    return placed;
-  }, [municipalSignals]);
+  /**
+   * Topics without a resolvable municipality stay off the geographic desk.
+   * Placement interleaves by city so one loud city's backlog can't fill the
+   * whole window and push every other municipality off the map.
+   */
+  const placedMunicipalSignals = useMemo<PlacedSignal[]>(
+    () => interleaveByCity(municipalSignals, 24),
+    [municipalSignals],
+  );
 
   /** The map draws one clean pin per city while its card rotates every topic. */
   const mapSignals = useMemo<PlacedSignal[]>(() => {
@@ -661,8 +1176,9 @@ export function CinematicIntro() {
     return structureKnessetTitle(
       signal.title,
       knessetEvidence[signal.id]?.official?.itemType,
+      locale,
     ).headline;
-  }, [knessetSignals, knessetEvidence]);
+  }, [knessetSignals, knessetEvidence, locale]);
 
   const municipalWindow = Math.min(placedMunicipalSignals.length, 10);
   const knessetWindow = Math.min(knessetSignals.length, 6);
@@ -682,22 +1198,29 @@ export function CinematicIntro() {
   const holdMuni = useMemo(() => holdHandlers(setMuniPaused), []);
   const holdKnesset = useMemo(() => holdHandlers(setKnessetPaused), []);
 
-  useEffect(
-    () =>
-      rotate(municipalWindow, muniPaused, MUNI_ROTATION_MS, setActiveMuniIndex),
-    [municipalWindow, muniPaused],
-  );
+  // The cursors only page the comparison scene's reading surfaces, and every
+  // thesis-only story cuts that scene (the `!thesisOnly` gate in the JSX).
+  // Left unguarded they re-rendered this whole tree every few seconds to
+  // advance a card nobody was shown.
+  useEffect(() => {
+    if (thesisOnly) return;
+    return rotate(
+      municipalWindow,
+      muniPaused,
+      MUNI_ROTATION_MS,
+      setActiveMuniIndex,
+    );
+  }, [municipalWindow, muniPaused, thesisOnly]);
 
-  useEffect(
-    () =>
-      rotate(
-        knessetWindow,
-        knessetPaused,
-        KNESSET_ROTATION_MS,
-        setActiveKnessetIndex,
-      ),
-    [knessetWindow, knessetPaused],
-  );
+  useEffect(() => {
+    if (thesisOnly) return;
+    return rotate(
+      knessetWindow,
+      knessetPaused,
+      KNESSET_ROTATION_MS,
+      setActiveKnessetIndex,
+    );
+  }, [knessetWindow, knessetPaused, thesisOnly]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -707,10 +1230,25 @@ export function CinematicIntro() {
     let revertGsap = () => {};
 
     const animeScope = createScope({ root }).add(() => {
-      animate("[data-intro-logo]", {
-        translateY: [-18, 0],
+      // Identity is on stage in both stories now, so it animates before the
+      // question-scene gate below. The corner mark is the exception: the
+      // thesis-only intro opens ON the wordmark, and two of them at once reads
+      // as a mistake - there the scrub brings the corner in once the opening
+      // beat has cleared (see the solo timeline).
+      if (!thesisOnly) {
+        animate("[data-intro-logo]", {
+          translateY: [-18, 0],
+          opacity: [0, 1],
+          duration: 900,
+          ease: "outExpo",
+        });
+      }
+
+      animate("[data-intro-locale]", {
+        translateY: [-12, 0],
         opacity: [0, 1],
-        duration: 900,
+        delay: 240,
+        duration: 780,
         ease: "outExpo",
       });
 
@@ -722,13 +1260,9 @@ export function CinematicIntro() {
         ease: "outExpo",
       });
 
-      animate("[data-intro-nav]", {
-        translateY: [8, 0],
-        opacity: [0, 1],
-        delay: stagger(70, { start: 720 }),
-        duration: 650,
-        ease: "outExpo",
-      });
+      // Every target below lives in the question scene, which the thesis-only
+      // intro does not render.
+      if (thesisOnly) return;
 
       animate("[data-question-line]", {
         translateY: ["105%", "0%"],
@@ -772,6 +1306,282 @@ export function CinematicIntro() {
         const question = '[data-scene="question"]';
         const comparison = '[data-scene="comparison"]';
         const thesis = '[data-scene="thesis"]';
+
+        // Depth parallax: the closer a mark floats, the further it travels
+        // under continued scroll, so the field reads as a camera move rather
+        // than a flat layout. Desktop only - below 1100px the metrics
+        // collapse into a static grid that must not shear.
+        const addLedgerDrift = (
+          timeline: gsap.core.Timeline,
+          at: number,
+          duration = 0.85,
+          distance = 78,
+        ) => {
+          if (!window.matchMedia("(min-width: 1101px)").matches) return;
+          timeline.to(
+            "[data-thesis-metric], [data-thesis-dust]",
+            {
+              y: (_index: number, target: Element) =>
+                -distance * Number((target as HTMLElement).dataset.depth ?? "0.5"),
+              duration,
+              ease: "none",
+            },
+            at,
+          );
+        };
+
+        // One act, so there is nothing to slide off first: the thesis is
+        // already on stage and the scroll only plays its own reveal. What it
+        // plays is the beat sequence - each claim rises, holds, and clears for
+        // the next, so the runway (see .thesisOnly) buys reading time rather
+        // than scrolling a static block past the reader.
+        if (thesisOnly) {
+          const beats = gsap.utils.toArray<HTMLElement>("[data-thesis-beat]");
+          // Timeline units per beat. The reveal takes 0.42 and the exit starts
+          // at 0.6, so ~40% of each step is the beat sitting still and legible.
+          const STEP = 1;
+          const lastAt = Math.max(0, beats.length - 1) * STEP;
+
+          /* The opening is a splash, not a runway: everything arrives on
+             load - the survey field rises under the wordmark, the metrics
+             stagger in, the claim prints - and the scroll's only job is to
+             carry the site up over it. It used to hold the field back until
+             the first scroll, which read as a page that had not finished
+             loading rather than a reveal waiting to be earned. */
+          if (openingOnly) {
+            gsap.set(thesis, {
+              visibility: "visible",
+              yPercent: 0,
+              pointerEvents: "auto",
+            });
+
+            const splash = gsap.timeline({
+              defaults: { ease: "power3.out" },
+            });
+            splash
+              .fromTo(
+                "[data-thesis-ledger]",
+                { yPercent: 6, opacity: 0 },
+                { yPercent: 0, opacity: 0.62, duration: 0.9, ease: "power2.out" },
+                0,
+              )
+              .fromTo(
+                "[data-thesis-metric]",
+                { y: -22, opacity: 0 },
+                {
+                  y: 0,
+                  opacity: (_index: number, target: Element) =>
+                    0.38 +
+                    0.62 *
+                      Number((target as HTMLElement).dataset.depth ?? "0.5"),
+                  stagger: 0.07,
+                  duration: 0.55,
+                },
+                0.2,
+              )
+              /* The claim itself - wordmark, headline, standfirst - rises
+                 line by line over the field. */
+              .fromTo(
+                "[data-thesis-beat] > *",
+                { y: 26, opacity: 0 },
+                { y: 0, opacity: 1, stagger: 0.14, duration: 0.75 },
+                0.1,
+              );
+
+            ScrollTrigger.refresh();
+            return;
+          }
+
+          gsap.set(thesis, {
+            visibility: "visible",
+            yPercent: 0,
+            pointerEvents: "auto",
+          });
+          /* A `beats` runway is entered from the section above it, not from a
+             cold start: the reader arrives with the first claim already on
+             stage, so its field has to be standing there too. Choreographed
+             in, the field was still 34% low and half off the bottom of the
+             screen at the moment the first beat came to rest - the beat had
+             no visual at all, and the two after it drifted up under the nav. */
+          /* The opening screen stood on blank paper: its field was choreographed
+             to arrive half a step in, and its runway ends before that. The
+             wordmark is a claim about a live survey of the country, so the
+             survey is under it from the first frame - lighter than on the beat
+             runway, where the field is the subject rather than the ground. */
+          gsap.set(
+            "[data-thesis-ledger]",
+            beatsOnly
+              ? { yPercent: 0, opacity: 1 }
+              : openingOnly
+                ? { yPercent: 0, opacity: 0.62 }
+                : { yPercent: 34, opacity: 0 },
+          );
+          // The first beat is the one on stage at load; the rest wait below.
+          gsap.set(beats.slice(1), { opacity: 0, yPercent: 26 });
+          /* The corner mark is only withheld where the opening wordmark is on
+             stage to hold identity for it. A `beats` instance has no wordmark
+             and no dock of its own, and an `opening` one never scrolls far
+             enough to hand over - hiding it in either case would simply lose
+             it. */
+          const handsOffIdentity = !beatsOnly && beats.length > 1;
+          if (handsOffIdentity) gsap.set("[data-intro-logo]", { opacity: 0, y: -14 });
+
+          /* Where the runway may come to rest, as fractions of the whole
+             scrub. Mid-handoff the exit of one claim prints over the
+             entrance of the next, so a stopped reader has to be carried to
+             the middle of a beat's solo window - entrance done at +0.42,
+             exit not yet started at +0.7. The denominator is the timeline's
+             full length: the paper wash is its longest tail (starts at
+             lastAt + 0.72, runs 0.5). Beat 0 rests at the load state, and
+             the runway's own end is a rest too, so a reader who runs the
+             scrub out is not pulled back from the handoff to the dock. */
+          const RUNWAY_TAIL = 1.22;
+          const beatRests = beats.map((_, index) =>
+            index === 0 ? 0 : (index * STEP + 0.56) / (lastAt + RUNWAY_TAIL),
+          );
+
+          const soloStory = gsap.timeline({
+            defaults: { ease: "power3.inOut" },
+            scrollTrigger: {
+              trigger: scopeRoot,
+              start: "top top",
+              // The beats have to be finished before HomepageExperience starts
+              // docking the site layer over the stage - past that point the
+              // scene is being carried off screen and a beat playing there is
+              // never read. The tail of the runway is the handoff's.
+              //
+              // "78% bottom" resolves to 78% of the runway minus one viewport,
+              // and the runway is 430svh, so this lands the last beat at ~55%
+              // of the section on every screen height. Ending earlier packed
+              // all five beats into the first third and left a dead scroll
+              // behind them.
+              end: "78% bottom",
+              scrub: 0.45,
+              /* Directional, so a slow push settles on the beat the reader
+                 was moving toward instead of bouncing back to the one they
+                 left. A single-beat runway (`opening`) has no handoff to
+                 rest on and stays free. */
+              ...(beats.length > 1 && {
+                snap: {
+                  snapTo: [...beatRests, 1],
+                  duration: 0.3,
+                  directional: true,
+                },
+              }),
+              invalidateOnRefresh: true,
+            },
+          });
+
+          beats.forEach((beat, index) => {
+            const at = index * STEP;
+            if (index > 0) {
+              soloStory.to(
+                beat,
+                { opacity: 1, yPercent: 0, duration: 0.42, ease: "power3.out" },
+                at,
+              );
+            }
+            if (index < beats.length - 1) {
+              // Overlaps the next beat's entrance: ending the exit before the
+              // arrival starts leaves a frame with nothing on stage.
+              soloStory.to(
+                beat,
+                { opacity: 0, yPercent: -26, duration: 0.46, ease: "power2.in" },
+                at + 0.7,
+              );
+            }
+          });
+
+          if (handsOffIdentity) {
+            // The corner mark takes over identity duty once the opening
+            // wordmark starts to clear.
+            soloStory.to(
+              "[data-intro-logo]",
+              { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" },
+              STEP * 0.78,
+            );
+          }
+
+          soloStory
+            // The column drifts slower than the beats swap, so the handoffs
+            // read as movement through a field rather than a slideshow.
+            .to(
+              "[data-thesis-copy]",
+              { y: -54, duration: lastAt + 1, ease: "none" },
+              0,
+            )
+            .fromTo(
+              "[data-thesis-metric]",
+              { y: -22, opacity: 0 },
+              {
+                y: 0,
+                opacity: (_index: number, target: Element) =>
+                  0.38 +
+                  0.62 * Number((target as HTMLElement).dataset.depth ?? "0.5"),
+                stagger: 0.07,
+                duration: 0.5,
+                ease: "power3.out",
+              },
+              // Nothing to reveal where the field was never hidden.
+              beatsOnly || openingOnly ? 0 : STEP * 0.55,
+            )
+            .to(
+              "[data-paper-wash]",
+              {
+                opacity: 1,
+                duration: 0.5,
+              },
+              lastAt + 0.72,
+            );
+
+          // Only a runway that starts cold has a field to bring on.
+          if (!beatsOnly && !openingOnly) {
+            soloStory.to(
+              "[data-thesis-ledger]",
+              { yPercent: 0, opacity: 1, duration: 0.76, ease: "power3.out" },
+              STEP * 0.55,
+            );
+          }
+
+          /* Beat backdrops hand off with the beats they belong to.
+             Stage 1 is the metric field, already revealed above; every stage
+             after it takes the field as its own beat arrives and gives it up
+             as the next one does, so no two backdrops are ever on stage
+             together and the argument keeps one subject at a time. */
+          const stages = gsap.utils.toArray<HTMLElement>("[data-beat-stage]");
+          if (stages.length > 0) {
+            const HANDOFF = 0.3;
+            gsap.set(stages, { opacity: 0 });
+            stages.forEach((stage) => {
+              const beatIndex = Number(stage.dataset.beatStage ?? "0");
+              const arrives = beatIndex * STEP - HANDOFF;
+              soloStory.to(stage, { opacity: 1, duration: 0.4 }, arrives);
+              if (beatIndex < beats.length - 1) {
+                soloStory.to(
+                  stage,
+                  { opacity: 0, duration: 0.4 },
+                  (beatIndex + 1) * STEP - HANDOFF,
+                );
+              }
+            });
+            // The instrument field is the first beat's backdrop, so it clears
+            // when the second beat's does not.
+            soloStory.to(
+              "[data-beat-stage-primary]",
+              { opacity: 0, duration: 0.4 },
+              (2 - beatOffset) * STEP - HANDOFF,
+            );
+          }
+
+          // After the metric entrances settle, so the two never fight over the
+          // same transform - then it runs the length of the beats.
+          // Shallower than it was: at 132 the nearest marks travelled far
+          // enough over four beats to leave the frame at the top.
+          addLedgerDrift(soloStory, STEP * 1.2, lastAt, 90);
+
+          ScrollTrigger.refresh();
+          return;
+        }
 
         gsap.set(question, { visibility: "visible" });
         gsap.set(comparison, {
@@ -833,6 +1643,15 @@ export function CinematicIntro() {
               xPercent: 145,
               yPercent: 24,
               duration: 0.62,
+            },
+            0.7,
+          )
+          .to(
+            "[data-intro-locale]",
+            {
+              yPercent: -220,
+              opacity: 0,
+              duration: 0.5,
             },
             0.7,
           )
@@ -971,15 +1790,6 @@ export function CinematicIntro() {
             },
             3.58,
           )
-          .to(
-            "[data-thesis-rule]",
-            {
-              scaleX: 1,
-              duration: 0.58,
-              ease: "power3.inOut",
-            },
-            3.38,
-          )
           .fromTo(
             "[data-thesis-metric]",
             { y: -22, opacity: 0 },
@@ -1016,24 +1826,9 @@ export function CinematicIntro() {
             4.12,
           );
 
-        // Depth parallax: the closer a mark floats, the further it travels
-        // under continued scroll, so the field reads as a camera move rather
-        // than a flat layout. Desktop only - below 1100px the metrics
-        // collapse into a static grid that must not shear.
-        if (window.matchMedia("(min-width: 1101px)").matches) {
-          story.to(
-            "[data-thesis-metric], [data-thesis-dust]",
-            {
-              y: (_index: number, target: Element) =>
-                -78 * Number((target as HTMLElement).dataset.depth ?? "0.5"),
-              duration: 0.85,
-              ease: "none",
-            },
-            // After the last staggered entrance settles (3.3 + stagger + 0.5)
-            // so the two never fight over the same transform.
-            4.35,
-          );
-        }
+        // After the last staggered entrance settles (3.3 + stagger + 0.5) so
+        // the two never fight over the same transform.
+        addLedgerDrift(story, 4.35);
 
         ScrollTrigger.refresh();
       }, scopeRoot);
@@ -1048,18 +1843,72 @@ export function CinematicIntro() {
       animeScope.revert();
       revertGsap();
     };
-  }, [shouldReduceMotion]);
+  }, [beatOffset, beatsOnly, openingOnly, shouldReduceMotion, thesisOnly]);
 
   return (
     <section
       ref={rootRef}
-      className={`${styles.cinematic} ${shouldReduceMotion ? styles.reduced : ""}`}
-      aria-label="מרעש ציבורי לסדר יום משותף"
+      className={`${styles.cinematic} ${shouldReduceMotion ? styles.reduced : ""} ${
+        thesisOnly ? styles.thesisOnly : ""
+      } ${openingOnly ? styles.openingRunway : ""} ${
+        beatsOnly ? styles.beatsRunway : ""
+      }`}
+      aria-label={beatsOnly ? t.beatsSectionAria : t.sectionAria}
     >
       <div className={styles.stage} data-cinematic-stage>
         <div className={styles.paperTexture} aria-hidden />
         <div className={styles.paperWash} data-paper-wash aria-hidden />
 
+        {/* Identity is furniture for every story, not part of the opening
+            act: the homepage runs the thesis alone and still has to say whose
+            page this is. The `beats` instance is the exception - it sits
+            halfway down a page that already has a masthead. */}
+        {!beatsOnly && (
+          <>
+        <Link
+          className={styles.localeSwitch}
+          href={localePath(otherLocale)}
+          hrefLang={otherLocale}
+          lang={otherLocale}
+          aria-label={t.localeSwitchAria}
+          data-intro-locale
+        >
+          {t.localeSwitchLabel}
+        </Link>
+
+        <div className={styles.introBrand} data-intro-logo>
+          <div className={styles.introLogo} aria-label={t.brandName}>
+            {t.brandName}<span>.</span>
+          </div>
+          <nav
+            className={styles.introSocials}
+            aria-label={t.socialsAria}
+          >
+            {INTRO_SOCIALS.map((social) => (
+              <a
+                data-intro-social
+                href={social.href}
+                key={social.label}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={social.label}
+              >
+                <SocialMark
+                  glyph={social.icon}
+                  fillClassName={styles.socialFill}
+                />
+              </a>
+            ))}
+          </nav>
+
+        </div>
+          </>
+        )}
+
+        {/* The two acts that argue the case before showing the evidence. The
+            homepage skips straight to the thesis; see IntroStory. */}
+        {!thesisOnly && (
+          <>
         <article
           className={`${styles.scene} ${styles.questionScene}`}
           data-scene="question"
@@ -1086,116 +1935,61 @@ export function CinematicIntro() {
             </svg>
           </div>
 
-          <div className={styles.introBrand} data-intro-logo>
-            <div className={styles.introLogo} aria-label="תַּרְאוּ">
-              תַּרְאוּ<span>.</span>
-            </div>
-            <nav
-              className={styles.introSocials}
-              aria-label="תַּרְאוּ ברשתות החברתיות"
-            >
-              {INTRO_SOCIALS.map((social) => (
-                <a
-                  data-intro-social
-                  href={social.href}
-                  key={social.label}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={social.label}
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden>
-                    {social.icon === "instagram" && (
-                      <>
-                        <rect
-                          x="3.1"
-                          y="3.1"
-                          width="17.8"
-                          height="17.8"
-                          rx="5.1"
-                        />
-                        <circle cx="12" cy="12" r="4.1" />
-                        <circle
-                          cx="17.45"
-                          cy="6.65"
-                          r="1"
-                          className={styles.socialFill}
-                        />
-                      </>
-                    )}
-                    {social.icon === "facebook" && (
-                      <path
-                        className={styles.socialFill}
-                        d="M13.6 21v-8h2.75l.42-3.15H13.6V7.83c0-.91.26-1.53 1.6-1.53h1.7V3.48c-.3-.04-1.3-.13-2.48-.13-2.46 0-4.15 1.5-4.15 4.27v2.23H7.5V13h2.77v8h3.33Z"
-                      />
-                    )}
-                    {social.icon === "x" && (
-                      <path
-                        className={styles.socialFill}
-                        d="M4.2 3.5h4.55l4.2 5.56 4.86-5.56h1.98l-5.94 6.8 6.2 8.2H15.5l-4.65-6.15-5.38 6.15H3.5l6.45-7.38L4.2 3.5Zm3.58 1.4H6.95l9.55 12.2h.84L7.78 4.9Z"
-                      />
-                    )}
-                  </svg>
-                </a>
-              ))}
-            </nav>
-
-            <nav className={styles.introQuickNav} aria-label="קישורים מרכזיים">
-              {INTRO_NAV.map((item) => (
-                <Link
-                  key={item.number}
-                  data-intro-nav
-                  href={
-                    item.href.startsWith("#")
-                      ? `/${i18n.defaultLocale}${item.href}`
-                      : `/${i18n.defaultLocale}/${item.href}`
-                  }
-                >
-                  <span>{item.number}</span>
-                  {item.label}
-                  <i aria-hidden>←</i>
-                </Link>
-              ))}
-            </nav>
-          </div>
-
           <div className={styles.questionCopy} data-question-copy>
-            <h1 className={styles.question}>
-              <span
-                className={`${styles.questionSentence} ${styles.questionTopRight}`}
-                data-question-sentence="top"
-              >
-                <i data-question-line>
-                  אם <mark>מיליון אנשים</mark> מתלוננים <em>בפייסבוק</em>,
-                </i>
-              </span>
-              <span
-                className={`${styles.questionSentence} ${styles.questionBottomLeft}`}
-                data-question-sentence="bottom"
-              >
-                <i data-question-line>
-                  למה <mark>אף אחד</mark> לא <strong>שומע אותם?</strong>
-                </i>
-              </span>
-            </h1>
+            <div className={styles.questionLead}>
+              <h1 className={styles.question}>
+                <span
+                  className={`${styles.questionSentence} ${styles.questionTopRight}`}
+                  data-question-sentence="top"
+                >
+                  <i data-question-line>
+                    {t.q1pre}<mark>{t.q1mark}</mark>{t.q1mid}<em>{t.q1em}</em>{t.q1end}
+                  </i>
+                </span>
+                <span
+                  className={`${styles.questionSentence} ${styles.questionBottomLeft}`}
+                  data-question-sentence="bottom"
+                >
+                  <i data-question-line>
+                    {t.q2pre}<mark>{t.q2mark}</mark>{t.q2mid}<strong>{t.q2strong}</strong>
+                  </i>
+                </span>
+              </h1>
 
-            <div className={styles.questionActions} data-question-actions>
-              <button
-                type="button"
-                className={styles.questionPrimary}
-                data-question-action
-                onClick={advanceToLiveMap}
-              >
-                למפת הנושאים החיה
-                <span aria-hidden>↓</span>
-              </button>
-              <Link
-                href={`/${i18n.defaultLocale}/explore`}
-                className={styles.questionSecondary}
-                data-question-action
-              >
-                לסדר היום הציבורי <span aria-hidden>←</span>
-              </Link>
+              <div className={styles.questionActions} data-question-actions>
+                <button
+                  type="button"
+                  className={styles.questionPrimary}
+                  data-question-action
+                  onClick={advanceToLiveMap}
+                >
+                  {t.primaryCta}
+                  <span aria-hidden>↓</span>
+                </button>
+                <Link
+                  href={`${localePrefix(locale)}/explore`}
+                  className={styles.questionSecondary}
+                  data-question-action
+                >
+                  {t.secondaryCta} <span aria-hidden>{t.backGlyph}</span>
+                </Link>
+              </div>
             </div>
+
+            <dl className={styles.questionStats} aria-live="polite">
+              {[
+                [t.participantCountLabel, publicLedger.peopleInvolved],
+                [t.municipalDecisionsLabel, publicLedger.municipalTopics],
+                [t.nationalDecisionsLabel, publicLedger.knessetTopics],
+              ].map(([label, value]) => (
+                <div key={label as string}>
+                  <dt>{label}</dt>
+                  <dd>
+                    {typeof value === "number" ? he(value) : t.measuringNow}
+                  </dd>
+                </div>
+              ))}
+            </dl>
 
             <div className={styles.scrollCue} data-scroll-cue aria-hidden>
               <motion.span
@@ -1206,7 +2000,7 @@ export function CinematicIntro() {
                   ease: "easeInOut",
                 }}
               >
-                גללו
+                {t.scrollCue}
               </motion.span>
               <i data-cursor />
             </div>
@@ -1222,7 +2016,7 @@ export function CinematicIntro() {
               <header className={styles.panelHeader}>
                 <div>
                   <span>MUNICIPAL TOCS / LIVE MAP</span>
-                  <h2>מוקדי עניין עירוניים</h2>
+                  <h2>{t.muniPanelTitle}</h2>
                 </div>
                 <b className={styles.scanning}>
                   LIVE {municipalSignals.length}
@@ -1237,7 +2031,7 @@ export function CinematicIntro() {
                     viewBox={MAP_VIEWBOX}
                     preserveAspectRatio="xMidYMid meet"
                     role="img"
-                    aria-label="מפת ישראל עם מוקדי שיח ציבורי"
+                    aria-label={t.mapAria}
                   >
                     <path className={styles.mapOutline} d={ISRAEL_MAP_PATH} />
 
@@ -1317,8 +2111,10 @@ export function CinematicIntro() {
                         aria-live="polite"
                       >
                         <MunicipalDispatchContent
+                          locale={locale}
                           signal={activeMunicipalSignal}
                           paused={muniPaused}
+                          t={t}
                         />
                       </motion.aside>
                     )}
@@ -1337,8 +2133,10 @@ export function CinematicIntro() {
                       aria-live="polite"
                     >
                       <MunicipalDispatchContent
+                        locale={locale}
                         signal={activeMunicipalSignal}
                         paused={muniPaused}
+                        t={t}
                       />
                     </motion.aside>
                   )}
@@ -1347,9 +2145,11 @@ export function CinematicIntro() {
                 <div className={styles.mapLegend}>
                   <span>
                     <i />
-                    מוקד פעיל
+                    {t.legendActive}
                   </span>
-                  <span>{mapSignals.length} אזורים באוויר</span>
+                  <span>
+                    {mapSignals.length} {t.legendAreas}
+                  </span>
                 </div>
               </div>
             </section>
@@ -1358,14 +2158,12 @@ export function CinematicIntro() {
               <header className={styles.panelHeader}>
                 <div>
                   <span>KNESSET TOCS / LIVE FEED</span>
-                  <h2>סדר היום בכנסת</h2>
+                  <h2>{t.knessetPanelTitle}</h2>
                 </div>
                 <b>{knessetSignals.length.toLocaleString("he-IL")}</b>
               </header>
 
-              <p className={styles.signalLede}>
-                הנושאים הארציים שמצטברים עכשיו לקול ציבורי מדיד.
-              </p>
+              <p className={styles.signalLede}>{t.knessetLede}</p>
 
               <ol
                 className={styles.signalList}
@@ -1379,6 +2177,7 @@ export function CinematicIntro() {
                   const displayTitle = structureKnessetTitle(
                     signal.title,
                     official?.itemType,
+                    locale,
                   );
 
                   return (
@@ -1401,7 +2200,7 @@ export function CinematicIntro() {
                           </div>
                           <b className={styles.signalTitle}>
                             <Link
-                              href={voteHref(signal.id)}
+                              href={voteHref(signal.id, locale)}
                               title={signal.title}
                               aria-label={signal.title}
                             >
@@ -1423,7 +2222,9 @@ export function CinematicIntro() {
                                 ),
                               )}
                               <span>💬 {he(signal.source.commentsCount)}</span>
-                              <span>{he(signal.source.postCount)} פוסטים</span>
+                              <span>
+                                {he(signal.source.postCount)} {t.postsWord}
+                              </span>
                             </>
                           ) : (
                             <>
@@ -1433,10 +2234,14 @@ export function CinematicIntro() {
                                 </b>
                               )}
                               {ranking?.relevance != null && (
-                                <span>רלוונטיות {ranking.relevance}</span>
+                                <span>
+                                  {t.relevanceLabel} {ranking.relevance}
+                                </span>
                               )}
                               {ranking?.media != null && (
-                                <span>סיקור {ranking.media}</span>
+                                <span>
+                                  {t.coverageLabel} {ranking.media}
+                                </span>
                               )}
                               {official?.sessionDate && (
                                 <span>
@@ -1446,12 +2251,14 @@ export function CinematicIntro() {
                             </>
                           )}
                           {signal.participantCount > 0 && (
-                            <span>{he(signal.participantCount)} הצביעו</span>
+                            <span>
+                              {he(signal.participantCount)} {t.voted}
+                            </span>
                           )}
                         </em>
 
                         <p className={styles.signalSummary}>
-                          {proposalBrief(signal, evidence)}
+                          {proposalBrief(signal, t, evidence)}
                         </p>
 
                         {official?.summary && ranking?.rationale && (
@@ -1461,8 +2268,8 @@ export function CinematicIntro() {
                         )}
 
                         <div className={styles.signalLinks}>
-                          <Link href={voteHref(signal.id)}>
-                            להצבעה הפעילה ←
+                          <Link href={voteHref(signal.id, locale)}>
+                            {t.knessetVoteCta}
                           </Link>
                           {official?.docUrl && (
                             <a
@@ -1470,7 +2277,7 @@ export function CinematicIntro() {
                               target="_blank"
                               rel="noopener noreferrer"
                             >
-                              למסמך הרשמי ↗
+                              {t.officialDocLink}
                             </a>
                           )}
                           {ranking?.mediaRefs[0] && (
@@ -1479,7 +2286,7 @@ export function CinematicIntro() {
                               target="_blank"
                               rel="noopener noreferrer"
                             >
-                              מקור תקשורתי ↗
+                              {t.mediaSourceLink}
                             </a>
                           )}
                         </div>
@@ -1489,16 +2296,16 @@ export function CinematicIntro() {
                   );
                 })}
                 {knessetSignals.length === 0 && (
-                  <li className={styles.signalEmpty}>מתחבר למסד הנתונים…</li>
+                  <li className={styles.signalEmpty}>{t.connecting}</li>
                 )}
               </ol>
 
               <Link
                 className={styles.signalCta}
-                href={`/${i18n.defaultLocale}/explore`}
+                href={`${localePrefix(locale)}/explore`}
               >
-                לכל סדר היום הציבורי
-                <i aria-hidden>←</i>
+                {t.fullAgendaCta}
+                <i aria-hidden>{t.backGlyph}</i>
               </Link>
 
               <footer className={styles.scanFooter}>
@@ -1521,28 +2328,132 @@ export function CinematicIntro() {
             </section>
           </div>
         </article>
+          </>
+        )}
 
         <article
           className={`${styles.scene} ${styles.thesisScene}`}
           data-scene="thesis"
         >
+          {/* Beats are stacked on one mark and handed off by the scrub: only
+              one claim holds the stage at a time, so the argument is read in
+              order instead of met as a wall. Under reduced motion the stack
+              unwinds into a column (see .reduced .thesisBeat). */}
           <div className={styles.thesisCopy} data-thesis-copy>
-            <span className={styles.thesisKicker}>עד עכשיו</span>
-            <h2 className={styles.thesisTitle}>
-              עד היום, כל אחד
-              <span>צעק לבד.</span>
-              <em>תַּרְאוּ.</em>
-            </h2>
-            <span className={styles.thesisRule} data-thesis-rule aria-hidden />
-            <p className={styles.thesisLede}>לראשונה הציבור מקבל מבנה לכוחו.</p>
+            {!beatsOnly && (
+              <div className={styles.thesisBeat} data-thesis-beat>
+                <p className={styles.thesisWordmark}>
+                  {t.brandName}
+                  <span>.</span>
+                </p>
+                {openingOnly ? (
+                  <>
+                    {/* The homepage's whole argument, in two sentences: the
+                        purpose at display scale - it is the page's h1, since
+                        the question scene that used to carry one is cut from
+                        this story - and the mechanism at reading scale. */}
+                    <h1 className={styles.openingHeadline}>
+                      {withEmphasis(t.openingHeadline)}
+                    </h1>
+                    <p className={styles.thesisLede}>
+                      {withEmphasis(t.openingStandfirst)}
+                    </p>
+                    {/* The one door out of the splash. The label is the brand's
+                        own imperative rather than "vote": the standfirst has
+                        just said what showing them does. */}
+                    <NewsButton
+                      href={`${localePrefix(locale)}/feed`}
+                      variant="red"
+                      size="lg"
+                      className={styles.openingCta}
+                      trailing={
+                        <span aria-hidden>{locale === "he" ? "←" : "→"}</span>
+                      }
+                    >
+                      {t.openingCta}
+                    </NewsButton>
+                  </>
+                ) : (
+                  <>
+                    <p className={styles.thesisLede}>
+                      {withEmphasis(t.thesisLede)}
+                    </p>
+                    {/* Kicker and line, the paper's own pairing: the lead-in
+                        is set as furniture so the sentence it introduces can
+                        be the thing the reader actually sees. */}
+                    <p className={styles.thesisAsk}>
+                      <span className={styles.thesisAskLead}>
+                        {t.thesisAskLead}
+                      </span>
+                      <span className={styles.thesisAskQuote}>
+                        {withEmphasis(t.thesisAskQuote)}
+                      </span>
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
+
+            {beatLines.map((beat) => (
+              <div className={styles.thesisBeat} data-thesis-beat key={beat.head}>
+                <h2 className={styles.thesisBeatLine}>
+                  {withEmphasis(beat.head)}
+                </h2>
+                {beat.note ? (
+                  <p className={styles.thesisBeatNote}>
+                    {withEmphasis(beat.note)}
+                  </p>
+                ) : null}
+              </div>
+            ))}
           </div>
 
+          {/* The opening screen carries the field too, one plane further back
+              (see .openingRunway .thesisLedger). The wordmark's claim is that
+              a live survey of the country is running behind it; on blank paper
+              that claim had nothing standing under it. */}
           <CivicSignalMap
             stats={publicLedger}
             mapSignals={mapSignals}
             bestCity={bestCivicCity}
             pressingKnesset={pressingKnesset}
+            t={t}
           />
+
+          {/* The desk itself, behind the beat about legitimacy: the same
+              carousel the reader meets further down the page, put back a plane
+              and blurred until it is the room the claim is standing in. The
+              claim is that a civic sovereign forms around these topics, and
+              the topics are the only honest evidence for it. */}
+          {deskBackdrop && (
+            /* `inert`, not just aria-hidden: the desk behind the beat is a real
+               desk, with headline buttons, share controls and municipality
+               links in it. Hidden from the reader but still in the tab order,
+               they would be a dozen invisible stops before the page's first
+               real control. */
+            <div
+              className={styles.beatStage}
+              data-beat-stage={2 - beatOffset}
+              aria-hidden
+              inert
+            >
+              <div className={styles.deskBackdrop}>
+                <div className={styles.deskBackdropInner}>{deskBackdrop}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Then the scores those answers add up to, and the mandate read out
+              of them - one component-built backdrop per remaining beat. */}
+          {beatStages?.map((stage, index) => (
+            <div
+              className={styles.beatStage}
+              data-beat-stage={index + 3 - beatOffset}
+              key={index}
+            >
+              {stage}
+            </div>
+          ))}
         </article>
       </div>
     </section>

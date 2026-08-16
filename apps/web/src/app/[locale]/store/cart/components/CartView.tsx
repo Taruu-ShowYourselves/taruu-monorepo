@@ -19,10 +19,110 @@ import type { CheckoutRequest, CheckoutResponse, ShippingAddress } from '@sync/s
 import type { Locale } from '@/lib/i18n';
 import { QtyStepper } from '../../components/QtyStepper';
 import styles from './CartView.module.css';
+import { localePrefix } from '@/lib/i18n';
 
-const GENERIC_ERROR = 'משהו השתבש אצלנו, לא אצלכם. נסו שוב בעוד רגע.';
-const REQUIRED_MSG = 'צריך למלא את השדה הזה כדי להמשיך.';
-const EMAIL_MSG = 'כתובת האימייל לא נראית תקינה. אפשר לבדוק שוב?';
+interface CartViewCopy {
+  genericError: string;
+  requiredMsg: string;
+  emailMsg: string;
+  kicker: string;
+  emptyText: string;
+  emptyCta: string;
+  headline: string;
+  headlineRed: string;
+  ledgerAria: string;
+  perUnit: (n: number) => string;
+  removeAria: (name: string) => string;
+  summaryKicker: string;
+  subtotalLabel: string;
+  shippingLabel: string;
+  freeLabel: string;
+  totalLabel: string;
+  freeShippingReached: string;
+  freeShippingHint: string;
+  checkoutAria: string;
+  checkoutHead: string;
+  fullNameLabel: string;
+  emailLabel: string;
+  phoneLabel: string;
+  streetLabel: string;
+  cityLabel: string;
+  zipLabel: string;
+  countryNote: string;
+  submitting: string;
+  checkoutCta: (total: number) => string;
+  keepShopping: string;
+  arrow: string;
+}
+
+const COPY: Record<Locale, CartViewCopy> = {
+  he: {
+    genericError: 'משהו השתבש אצלנו, לא אצלכם. נסו שוב בעוד רגע.',
+    requiredMsg: 'צריך למלא את השדה הזה כדי להמשיך.',
+    emailMsg: 'כתובת האימייל לא נראית תקינה. אפשר לבדוק שוב?',
+    kicker: 'העגלה · CART',
+    emptyText: 'העגלה ריקה.',
+    emptyCta: 'למחלקת החנות',
+    headline: 'סקירת',
+    headlineRed: 'ההזמנה.',
+    ledgerAria: 'פריטים בעגלה',
+    perUnit: (n) => `₪${n} ליחידה`,
+    removeAria: (name) => `הסרת ${name}`,
+    summaryKicker: 'סיכום · SUMMARY',
+    subtotalLabel: 'סכום ביניים',
+    shippingLabel: 'משלוח',
+    freeLabel: 'חינם',
+    totalLabel: 'סך הכל לתשלום',
+    freeShippingReached: 'משלוח חינם: חציתם את ₪250.',
+    freeShippingHint: 'משלוח חינם מעל ₪250.',
+    checkoutAria: 'פרטי משלוח',
+    checkoutHead: 'פרטי משלוח',
+    fullNameLabel: 'שם מלא',
+    emailLabel: 'אימייל',
+    phoneLabel: 'טלפון',
+    streetLabel: 'רחוב ומספר',
+    cityLabel: 'עיר',
+    zipLabel: 'מיקוד',
+    countryNote: 'משלוח לישראל בלבד · תשלום מאובטח בשקלים.',
+    submitting: 'רגע…',
+    checkoutCta: (total) => `למעבר לתשלום · ₪${total}`,
+    keepShopping: 'המשך קנייה ↑',
+    arrow: '←',
+  },
+  en: {
+    genericError: 'Something went wrong on our side, not yours. Try again in a moment.',
+    requiredMsg: 'This field is needed to continue.',
+    emailMsg: 'The email address does not look valid. Care to check it?',
+    kicker: 'The Cart · CHECKOUT',
+    emptyText: 'The cart is empty.',
+    emptyCta: 'To the store desk',
+    headline: 'Reviewing the',
+    headlineRed: 'order.',
+    ledgerAria: 'Items in the cart',
+    perUnit: (n) => `₪${n} per unit`,
+    removeAria: (name) => `Remove ${name}`,
+    summaryKicker: 'The Tally · SUMMARY',
+    subtotalLabel: 'Subtotal',
+    shippingLabel: 'Shipping',
+    freeLabel: 'Free',
+    totalLabel: 'Total due',
+    freeShippingReached: 'Free shipping: you have passed ₪250.',
+    freeShippingHint: 'Free shipping over ₪250.',
+    checkoutAria: 'Shipping details',
+    checkoutHead: 'Shipping details',
+    fullNameLabel: 'Full name',
+    emailLabel: 'Email',
+    phoneLabel: 'Phone',
+    streetLabel: 'Street and number',
+    cityLabel: 'City',
+    zipLabel: 'Postal code',
+    countryNote: 'Shipping within Israel only · Secure payment in shekels.',
+    submitting: 'One moment…',
+    checkoutCta: (total) => `Proceed to payment · ₪${total}`,
+    keepShopping: 'Continue shopping ↑',
+    arrow: '→',
+  },
+};
 
 type FormState = Omit<ShippingAddress, 'country'>;
 type FieldErrors = Partial<Record<keyof FormState, string>>;
@@ -48,6 +148,7 @@ export function CartView({ locale }: CartViewProps) {
   const items = useMerchCartStore((s) => s.items);
   const updateQty = useMerchCartStore((s) => s.updateQty);
   const removeItem = useMerchCartStore((s) => s.removeItem);
+  const t = COPY[locale];
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -67,10 +168,10 @@ export function CartView({ locale }: CartViewProps) {
   const validate = (): boolean => {
     const next: FieldErrors = {};
     (Object.keys(EMPTY_FORM) as (keyof FormState)[]).forEach((k) => {
-      if (!form[k].trim()) next[k] = REQUIRED_MSG;
+      if (!form[k].trim()) next[k] = t.requiredMsg;
     });
     if (form.email.trim() && !isEmail(form.email.trim())) {
-      next.email = EMAIL_MSG;
+      next.email = t.emailMsg;
     }
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -82,7 +183,7 @@ export function CartView({ locale }: CartViewProps) {
 
     // Checkout requires sign-in - send guests to sign-in and back to the cart.
     if (!isAuthenticated) {
-      router.push(`/${locale}/sign-in?redirect=/${locale}/store/cart`);
+      router.push(`${localePrefix(locale)}/sign-in?redirect=${localePrefix(locale)}/store/cart`);
       return;
     }
 
@@ -106,7 +207,7 @@ export function CartView({ locale }: CartViewProps) {
       });
 
       if (res.status === 401) {
-        router.push(`/${locale}/sign-in?redirect=/${locale}/store/cart`);
+        router.push(`${localePrefix(locale)}/sign-in?redirect=${localePrefix(locale)}/store/cart`);
         return;
       }
       if (!res.ok) throw new Error('checkout failed');
@@ -116,7 +217,7 @@ export function CartView({ locale }: CartViewProps) {
 
       window.location.href = data.url;
     } catch {
-      setSubmitError(GENERIC_ERROR);
+      setSubmitError(t.genericError);
       setSubmitting(false);
     }
   };
@@ -128,19 +229,19 @@ export function CartView({ locale }: CartViewProps) {
           <header className={styles.head}>
             <span className={styles.kicker}>
               <span aria-hidden className={styles.kickerTick} />
-              העגלה · CART
+              {t.kicker}
             </span>
           </header>
           <div className={styles.ruleHeavy} aria-hidden />
           <div className={styles.empty}>
-            <p className={styles.emptyText}>העגלה ריקה.</p>
+            <p className={styles.emptyText}>{t.emptyText}</p>
             <NewsButton
-              href={`/${locale}/store`}
+              href={`${localePrefix(locale)}/store`}
               variant="red"
               size="lg"
-              trailing={<span aria-hidden>←</span>}
+              trailing={<span aria-hidden>{t.arrow}</span>}
             >
-              למחלקת החנות
+              {t.emptyCta}
             </NewsButton>
           </div>
         </div>
@@ -154,10 +255,10 @@ export function CartView({ locale }: CartViewProps) {
         <header className={styles.head}>
           <span className={styles.kicker}>
             <span aria-hidden className={styles.kickerTick} />
-            העגלה · CART
+            {t.kicker}
           </span>
           <h1 className={styles.headline}>
-            סקירת <span className={styles.red}>ההזמנה.</span>
+            {t.headline} <span className={styles.red}>{t.headlineRed}</span>
           </h1>
         </header>
 
@@ -165,19 +266,19 @@ export function CartView({ locale }: CartViewProps) {
 
         <div className={styles.layout}>
           {/* Ledger */}
-          <section className={styles.ledger} aria-label="פריטים בעגלה">
+          <section className={styles.ledger} aria-label={t.ledgerAria}>
             <ul className={styles.lines}>
               {items.map((i) => (
                 <li key={`${i.productId}:${i.variantId}`} className={styles.line}>
                   <div className={styles.lineMain}>
                     <Link
-                      href={`/${locale}/store/${i.slug}`}
+                      href={`${localePrefix(locale)}/store/${i.slug}`}
                       className={styles.lineName}
                     >
                       {i.name}
                     </Link>
                     <span className={styles.lineVariant}>{i.variantLabel}</span>
-                    <span className={styles.lineUnit}>₪{i.unitPriceILS} ליחידה</span>
+                    <span className={styles.lineUnit}>{t.perUnit(i.unitPriceILS)}</span>
                   </div>
 
                   <div className={styles.lineControls}>
@@ -186,6 +287,7 @@ export function CartView({ locale }: CartViewProps) {
                       onChange={(q) => updateQty(i.productId, i.variantId, q)}
                       min={1}
                       max={MERCH_MAX_QTY_PER_LINE}
+                      locale={locale}
                     />
                     <span className={styles.lineTotal}>
                       ₪{i.unitPriceILS * i.quantity}
@@ -194,7 +296,7 @@ export function CartView({ locale }: CartViewProps) {
                       type="button"
                       className={styles.remove}
                       onClick={() => removeItem(i.productId, i.variantId)}
-                      aria-label={`הסרת ${i.name}`}
+                      aria-label={t.removeAria(i.name)}
                     >
                       ✕
                     </button>
@@ -205,30 +307,30 @@ export function CartView({ locale }: CartViewProps) {
 
             <Receipt
               className={styles.totals}
-              kicker="סיכום · SUMMARY"
+              kicker={t.summaryKicker}
               rows={[
-                { label: 'סכום ביניים', value: `₪${subtotal}` },
+                { label: t.subtotalLabel, value: `₪${subtotal}` },
                 {
-                  label: 'משלוח',
-                  value: shipping === 0 ? 'חינם' : `₪${shipping}`,
+                  label: t.shippingLabel,
+                  value: shipping === 0 ? t.freeLabel : `₪${shipping}`,
                 },
-                { label: 'סך הכל לתשלום', value: `₪${total}`, strong: true },
+                { label: t.totalLabel, value: `₪${total}`, strong: true },
               ]}
               footer={
                 freeShippingReached
-                  ? 'משלוח חינם: חציתם את ₪250.'
-                  : 'משלוח חינם מעל ₪250.'
+                  ? t.freeShippingReached
+                  : t.freeShippingHint
               }
             />
           </section>
 
           {/* Checkout form */}
-          <section className={styles.checkout} aria-label="פרטי משלוח">
-            <h2 className={styles.checkoutHead}>פרטי משלוח</h2>
+          <section className={styles.checkout} aria-label={t.checkoutAria}>
+            <h2 className={styles.checkoutHead}>{t.checkoutHead}</h2>
 
             <div className={styles.formGrid}>
               <PressInput
-                label="שם מלא"
+                label={t.fullNameLabel}
                 value={form.fullName}
                 onChange={(e) => setField('fullName', e.currentTarget.value)}
                 error={errors.fullName}
@@ -236,7 +338,7 @@ export function CartView({ locale }: CartViewProps) {
                 className={styles.span2}
               />
               <PressInput
-                label="אימייל"
+                label={t.emailLabel}
                 type="email"
                 inputMode="email"
                 value={form.email}
@@ -246,7 +348,7 @@ export function CartView({ locale }: CartViewProps) {
                 dir="ltr"
               />
               <PressInput
-                label="טלפון"
+                label={t.phoneLabel}
                 type="tel"
                 inputMode="tel"
                 value={form.phone}
@@ -256,7 +358,7 @@ export function CartView({ locale }: CartViewProps) {
                 dir="ltr"
               />
               <PressInput
-                label="רחוב ומספר"
+                label={t.streetLabel}
                 value={form.street}
                 onChange={(e) => setField('street', e.currentTarget.value)}
                 error={errors.street}
@@ -264,14 +366,14 @@ export function CartView({ locale }: CartViewProps) {
                 className={styles.span2}
               />
               <PressInput
-                label="עיר"
+                label={t.cityLabel}
                 value={form.city}
                 onChange={(e) => setField('city', e.currentTarget.value)}
                 error={errors.city}
                 autoComplete="address-level2"
               />
               <PressInput
-                label="מיקוד"
+                label={t.zipLabel}
                 inputMode="numeric"
                 value={form.zip}
                 onChange={(e) => setField('zip', e.currentTarget.value)}
@@ -285,7 +387,7 @@ export function CartView({ locale }: CartViewProps) {
               <span aria-hidden className={styles.trustMark}>
                 ■
               </span>
-              משלוח לישראל בלבד · תשלום מאובטח בשקלים.
+              {t.countryNote}
             </p>
 
             {submitError ? (
@@ -301,12 +403,12 @@ export function CartView({ locale }: CartViewProps) {
                 size="lg"
                 onClick={handleCheckout}
                 disabled={submitting}
-                trailing={<span aria-hidden>←</span>}
+                trailing={<span aria-hidden>{t.arrow}</span>}
               >
-                {submitting ? 'רגע…' : `למעבר לתשלום · ₪${total}`}
+                {submitting ? t.submitting : t.checkoutCta(total)}
               </NewsButton>
-              <Link href={`/${locale}/store`} className={styles.keepShopping}>
-                המשך קנייה ↑
+              <Link href={`${localePrefix(locale)}/store`} className={styles.keepShopping}>
+                {t.keepShopping}
               </Link>
             </div>
           </section>

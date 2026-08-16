@@ -11,7 +11,7 @@ import styles from './page.module.css';
  * same screen.
  *
  * The mark is a `--space-10` square with a `--np-rule-heavy` border and a
- * `--np-red` top edge, turned by `animation: spin 0.9s steps(8) infinite` —
+ * `--np-red` top edge, turned by `animation: spin 0.9s steps(8) infinite` -
  * a mechanical tick rather than a smooth sweep, and `animation: none` under
  * `prefers-reduced-motion`. Both live beside `.spinner` in `page.module.css`.
  */

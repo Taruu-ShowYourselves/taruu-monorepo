@@ -23,9 +23,10 @@ import {
 } from './filters';
 import { ProposalsClient } from './ProposalsClient';
 import styles from './page.module.css';
+import { localePrefix } from '@/lib/i18n';
 
 /**
- * Surface 2 — `/he/space-admin/{spaceId}/proposals`.
+ * Surface 2 - `/space-admin/{spaceId}/proposals`.
  *
  * This page resolves its own authorization, on every request, through the same
  * use-cases the API routes call. The layout above it renders chrome only and
@@ -85,7 +86,7 @@ export default async function SpaceProposalsPage({
   const query = await searchParams;
 
   const session = await getSessionFromCookies();
-  if (!session) redirect(`/${locale}/sign-in`);
+  if (!session) redirect(`${localePrefix(locale)}/sign-in`);
 
   // Shell identity and the capability set. A membership that does not resolve
   // is the same opaque refusal as a space that does not exist.
@@ -110,7 +111,7 @@ export default async function SpaceProposalsPage({
   const requested = readParam(query.status);
   // The deep link forces the filter to show everything BEFORE expanding.
   // Surface 2 opens on `in_review`, and audit-log subjects are decided
-  // proposals that view excludes — without this the panel would silently fail
+  // proposals that view excludes - without this the panel would silently fail
   // to open on exactly the links that matter.
   const status: ProposalsFilter = deepLinkId
     ? 'all'
@@ -153,7 +154,7 @@ export default async function SpaceProposalsPage({
 
   if (listed.isErr()) {
     // The admin is a member here but holds no `proposal.read`: the page stays
-    // coherent — masthead, header, nav, footer — and the surface itself is the
+    // coherent - masthead, header, nav, footer - and the surface itself is the
     // refusal, with the escalation path on it.
     return (
       <section className={styles.surface} aria-labelledby={HEADING_ID}>

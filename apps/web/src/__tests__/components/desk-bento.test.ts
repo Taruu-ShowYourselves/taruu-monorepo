@@ -4,7 +4,7 @@ import {
   OBJECTING_KINDS,
   reactionSentiment,
 } from '@/components/press/reactions';
-import { slotVariant } from '@/components/press/sections/DeskTopicRow';
+import { slotVariant } from '@/components/press/sections/deskBento';
 
 describe('reactionSentiment', () => {
   it('splits the six reaction kinds into approval and objection', () => {
@@ -48,33 +48,39 @@ describe('reactionSentiment', () => {
 });
 
 describe('slotVariant', () => {
-  it('opens every stretch with the lead, then the feature', () => {
+  it('opens every stretch with the lead, then the wide and the feature', () => {
     expect(slotVariant(0)).toBe('lead');
-    expect(slotVariant(1)).toBe('feature');
+    expect(slotVariant(1)).toBe('wide');
+    expect(slotVariant(2)).toBe('feature');
     expect(slotVariant(6)).toBe('lead');
-    expect(slotVariant(7)).toBe('feature');
+    expect(slotVariant(7)).toBe('wide');
+    expect(slotVariant(8)).toBe('feature');
   });
 
   it('fills the rest of the stretch with briefs', () => {
-    expect([2, 3, 4, 5].map(slotVariant)).toEqual([
-      'brief',
-      'brief',
-      'brief',
-      'brief',
-    ]);
+    expect([3, 4, 5].map(slotVariant)).toEqual(['brief', 'brief', 'brief']);
   });
 
   /**
-   * The bento is two rows deep. A stretch tiles without holes only if its
-   * column spans add up: lead 2, feature 1, and four briefs pairing into 2 -
-   * five full columns, every cell used.
+   * A stretch tiles without holes only if its spans add up to whole columns.
+   * The desk is three rows at every measure - it was two above 800px until the
+   * desktop bento turned out to be a lead block followed by a queue of
+   * identical squares - so one row count is the whole contract now.
+   *
+   * Break it and `grid-auto-flow: column dense` starts leaving gaps in the
+   * mosaic. The cell counts below have to match the span rules in
+   * ConsensusDesk.module.css; they are the same claim written twice, once
+   * where the browser reads it and once where a test can.
    */
-  it('tiles a stretch into whole columns', () => {
-    const CELLS_PER_COLUMN = 2;
-    const cells = { lead: 4, feature: 2, brief: 1 };
+  it('tiles a stretch into whole columns over three rows', () => {
+    const CELLS_PER_COLUMN = 3;
+    // `wide` lies across two columns; the feature runs the full height.
+    const cells = { lead: 4, feature: 3, wide: 2, brief: 1 };
+
     const stretch = Array.from({ length: 6 }, (_, i) => slotVariant(i));
     const used = stretch.reduce((sum, v) => sum + cells[v], 0);
+
     expect(used % CELLS_PER_COLUMN).toBe(0);
-    expect(used / CELLS_PER_COLUMN).toBe(5);
+    expect(used / CELLS_PER_COLUMN).toBe(4);
   });
 });

@@ -1,7 +1,7 @@
 import 'server-only';
 
 /**
- * Aggregate-only statistics (Surface 4) — SPACE-07.
+ * Aggregate-only statistics (Surface 4) - SPACE-07.
  *
  * One capability, one RPC, one mapping. The surface is deliberately incapable
  * of a drill-down: there is no per-resident shape anywhere between the SQL
@@ -12,7 +12,7 @@ import 'server-only';
  * measured figure and may legitimately be zero. `suppressed` means the bucket
  * exists but is smaller than the k-anonymity floor of five. `unavailable` means
  * the figure could not be computed at all. The surface must be able to say the
- * third of those without erroring — the UI renders `—` for exactly that case,
+ * third of those without erroring - the UI renders `-` for exactly that case,
  * and answering with a zero instead would be a fabricated number presented as a
  * measurement.
  */
@@ -57,7 +57,7 @@ const toResponse = (row: SpaceMetricsRow): SpaceMetricsResponse => ({
 /**
  * No row is an answer, not a failure: every figure becomes `unavailable` and
  * the request succeeds. A database error is a different thing entirely and
- * still fails the request — an empty figure that silently means "the query
+ * still fails the request - an empty figure that silently means "the query
  * broke" would be indistinguishable from one that means "nobody has voted yet".
  */
 const noMetrics = (): SpaceMetricsResponse => ({

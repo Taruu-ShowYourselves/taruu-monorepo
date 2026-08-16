@@ -1,27 +1,37 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { MUNICIPALITIES } from '@sync/shared';
-import { Masthead } from '@/components/press';
+import {
+  civicScorePercent,
+  type LocalAuthorityKind,
+  type MunicipalityCivicStats,
+} from '@sync/shared/contracts';
+import { Masthead, NewsButton } from '@/components/press';
+import { Colophon } from '@/components/press/sections';
+import { municipalityHref } from '@/components/uikit/municipality-link';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/uikit/tabs';
+import { AnimateIn } from '@/components/uikit/animate-in';
 import { logger } from '@/lib/logger';
 import {
+  getCardArtByVoteIds,
   getMunicipalityProfile,
   type MunicipalityProfile,
   type MunicipalityVoteSummary,
 } from '@/lib/supabase/db';
-import { NewsButton } from '@/components/press/NewsButton';
-import { AnimateIn } from '@/components/uikit/animate-in';
-import { Badge } from '@/components/uikit/badge';
+import { municipalityCivicStats } from '@/server/read/municipality-stats';
+import { localePrefix, type Locale } from '@/lib/i18n';
+import { BallotTile, type BallotKind } from './BallotTile';
+import { CountFigure } from './CountFigure';
 import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/uikit/card';
-import { MetricBar } from '@/components/uikit/metric-bar';
-import { Progress } from '@/components/uikit/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/uikit/tabs';
-import type { Locale } from '@/lib/i18n';
+  EM_DASH,
+  formatScore,
+  median,
+  percent,
+  scoreBand,
+  trackGeometry,
+} from './civicFigures';
+import { COPY, type MunicipalityCopy } from './copy';
+import styles from './MunicipalityProfile.module.css';
 
 // Aggregations are heavy-ish; refresh every 5 minutes like the homepage desks.
 export const revalidate = 300;
@@ -36,127 +46,219 @@ function resolveMunicipality(slug: string): string | null {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = await params;
+  const { locale, slug } = await params;
+  const t = COPY[locale];
   const name = resolveMunicipality(slug);
-  if (!name) return { title: 'רשות לא נמצאה | תַּרְאוּ' };
-  return {
-    title: `${name} · פרופיל רשות | תַּרְאוּ`,
-    description: `שביעות רצון, מעורבות אזרחית וכל ההצבעות הפתוחות והסגורות ב${name}. נתונים מאומתים, שקופים לכולם.`,
-  };
+  if (!name) return { title: t.notFoundTitle };
+  return { title: t.metaTitle(name), description: t.metaDescription(name) };
 }
 
-const dateFmt = new Intl.DateTimeFormat('he-IL', {
-  day: '2-digit',
-  month: '2-digit',
-  year: '2-digit',
-  timeZone: 'Asia/Jerusalem',
-});
+// ---------------------------------------------------------------------------
+// Figures
+// ---------------------------------------------------------------------------
 
-function formatDate(iso: string | null): string {
-  return iso ? dateFmt.format(new Date(iso)) : '-';
+function formatHours(t: MunicipalityCopy, hours: number): string {
+  if (hours < 1) return t.minutes(Math.round(hours * 60));
+  if (hours < 48) return t.hours(Math.round(hours));
+  return t.days(Math.round(hours / 24));
 }
 
-function formatHours(hours: number): string {
-  if (hours < 1) return `${Math.round(hours * 60)} דק׳`;
-  if (hours < 48) return `${Math.round(hours)} שע׳`;
-  return `${Math.round(hours / 24)} ימים`;
+// ---------------------------------------------------------------------------
+// Units
+// ---------------------------------------------------------------------------
+
+interface RailCellProps {
+  label: string;
+  value: number | null;
+  note: string;
+  locale: string;
+  accent?: 'red' | 'faint';
+  suffix?: string;
 }
 
-function VoteCard({ vote }: { vote: MunicipalityVoteSummary }) {
-  const closed = vote.status === 'ended';
+/** One figure in the index band: mono label, oversized count, faint note. */
+function RailCell({ label, value, note, locale, accent, suffix }: RailCellProps) {
   return (
-    <Card className="flex h-full flex-col">
-      <CardHeader className="flex-row flex-wrap items-start justify-between gap-2">
-        <CardTitle className="min-w-0 flex-1">{vote.title}</CardTitle>
-        <div className="flex shrink-0 items-center gap-2">
-          {closed && vote.winningOption ? (
-            <Badge variant="red">הוכרע: {vote.winningOption}</Badge>
-          ) : null}
-          <Badge variant={closed ? 'default' : 'red'}>
-            {closed ? 'סגורה' : 'פתוחה · LIVE'}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="flex flex-1 flex-col gap-4">
-        {vote.description ? (
-          <p className="font-body text-base leading-relaxed text-ink-soft">
-            {vote.description}
-          </p>
-        ) : null}
-
-        <div className="flex flex-col gap-2">
-          {vote.options.map((option) => (
-            <div key={option.id} className="flex flex-col gap-1">
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="font-mono text-sm font-bold">{option.text}</span>
-                <span className="font-mono text-sm tabular-nums text-ink-soft">
-                  {option.pct}% · {option.votes.toLocaleString('he-IL')}
-                </span>
-              </div>
-              <Progress value={option.pct} className="h-2" aria-label={option.text} />
-            </div>
-          ))}
-          {vote.options.length === 0 ? (
-            <p className="font-mono text-xs text-ink-faint">אין אפשרויות הצבעה.</p>
-          ) : null}
-        </div>
-      </CardContent>
-      <CardFooter className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs text-ink-faint">
-        <span>{vote.totalBallots.toLocaleString('he-IL')} קולות מאומתים</span>
-        <span>נפתחה {formatDate(vote.startDate)}</span>
-        <span>{closed ? 'נסגרה' : 'נסגרת'} {formatDate(vote.endDate)}</span>
-      </CardFooter>
-    </Card>
+    <div className={styles.railCell} data-animate>
+      <span className={styles.railLabel}>{label}</span>
+      <b className={styles.railValue} data-accent={value === null ? 'faint' : accent}>
+        <CountFigure value={value} locale={locale} suffix={suffix} />
+      </b>
+      <span className={styles.railNote}>{note}</span>
+    </div>
   );
+}
+
+interface ScoreCardProps {
+  label: string;
+  score: number | null;
+  medianScore: number | null;
+  method: string;
+  locale: string;
+  t: MunicipalityCopy;
 }
 
 /**
- * Open topic nobody voted on yet - on the table, waiting for a first voice.
- * "Claiming" it is simply being the first to vote.
+ * One signed score on the shared -100..+100 track. Zero is drawn rather than
+ * implied, and the national median is ticked onto the same track - a score
+ * with nothing to stand against is only a number.
  */
-function TopicCard({ vote, locale }: { vote: MunicipalityVoteSummary; locale: Locale }) {
+function ScoreCard({ label, score, medianScore, method, locale, t }: ScoreCardProps) {
+  const band = scoreBand(score);
+  // The bar is drawn as a deviation from zero: where it starts and how far it
+  // runs, not one percentage of the whole scale.
+  const { from, span } = trackGeometry(score);
   return (
-    <Card className="flex h-full flex-col">
-      <CardHeader className="flex-row flex-wrap items-start justify-between gap-2">
-        <CardTitle className="min-w-0 flex-1">{vote.title}</CardTitle>
-        <Badge variant="soft" className="shrink-0 border-dashed">
-          עדיין בלי קולות
-        </Badge>
-      </CardHeader>
-      <CardContent className="flex flex-1 flex-col gap-4">
-        {vote.description ? (
-          <p className="font-body text-base leading-relaxed text-ink-soft">
-            {vote.description}
-          </p>
-        ) : null}
+    <div className={styles.score} data-band={band} data-animate>
+      <div className={styles.scoreHead}>
+        <span className={styles.scoreLabel}>{label}</span>
+        <b className={styles.scoreValue}>
+          {score === null ? (
+            EM_DASH
+          ) : (
+            <CountFigure value={score} locale={locale} signed />
+          )}
+        </b>
+      </div>
 
-        <ul className="flex flex-wrap gap-2">
-          {vote.options.map((option) => (
-            <li
-              key={option.id}
-              className="border border-dashed border-ink-soft px-3 py-1 font-mono text-xs font-bold"
-            >
-              {option.text}
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-      <CardFooter className="flex flex-wrap items-center justify-between gap-3">
-        <NewsButton
-          href={`/${locale}/votes/${vote.id}`}
-          variant="red"
-          size="sm"
-          trailing={<span aria-hidden>←</span>}
-        >
-          הצביעו ראשונים
-        </NewsButton>
-        <span className="font-mono text-xs text-ink-faint">
-          נסגרת {formatDate(vote.endDate)}
-        </span>
-      </CardFooter>
-    </Card>
+      <div className={styles.track}>
+        <span
+          className={styles.trackFill}
+          style={{
+            ['--from' as string]: `${from}%`,
+            ['--span' as string]: `${span}%`,
+          }}
+        />
+        <span aria-hidden className={styles.trackZero} />
+        {medianScore !== null ? (
+          <span
+            aria-hidden
+            className={styles.trackMedian}
+            style={{ ['--at' as string]: `${civicScorePercent(medianScore)}%` }}
+          />
+        ) : null}
+      </div>
+
+      <div className={styles.scaleRow}>
+        <span>{t.scaleMin}</span>
+        <span>0</span>
+        <span>{t.scaleMax}</span>
+      </div>
+
+      <span className={styles.scoreNote}>
+        {score === null
+          ? t.unmeasured
+          : medianScore !== null
+            ? t.medianNote(formatScore(medianScore))
+            : t.medianNone}
+      </span>
+      <p className={styles.scoreMethod}>{method}</p>
+    </div>
   );
 }
+
+interface TempoCellProps {
+  label: string;
+  display: string;
+  /** 0-100 bar position; null prints the hatched "not measured" track. */
+  fill: number | null;
+  caption: string;
+}
+
+function TempoCell({ label, display, fill, caption }: TempoCellProps) {
+  const empty = fill === null;
+  return (
+    <div className={styles.tempoCell} data-animate>
+      <span className={styles.railLabel}>{label}</span>
+      <b className={styles.tempoValue} data-empty={empty ? 'true' : undefined}>
+        {display}
+      </b>
+      <span aria-hidden className={styles.tempoTrack} data-empty={empty ? 'true' : undefined}>
+        <span
+          className={styles.tempoFill}
+          style={{ ['--fill' as string]: `${Math.max(0, Math.min(100, fill ?? 0))}%` }}
+        />
+      </span>
+      <span className={styles.railNote}>{caption}</span>
+    </div>
+  );
+}
+
+interface StretchProps {
+  votes: MunicipalityVoteSummary[];
+  kind: BallotKind;
+  art: Map<string, string>;
+  locale: Locale;
+  t: MunicipalityCopy;
+  emptyTitle: string;
+  emptyBody: string;
+  emptyCta?: { href: string; label: string };
+}
+
+/**
+ * A stretch of ballots, or the reason there are none. The empty state is a
+ * printed notice with a way out of it, not a dashed grey box apologising.
+ */
+function Stretch({
+  votes,
+  kind,
+  art,
+  locale,
+  t,
+  emptyTitle,
+  emptyBody,
+  emptyCta,
+}: StretchProps) {
+  if (votes.length === 0) {
+    return (
+      <div className={styles.empty}>
+        <span className={styles.emptyKicker}>
+          <span aria-hidden className={styles.kickerTick} />
+          {t.emptyKicker}
+        </span>
+        <h3 className={styles.emptyTitle}>{emptyTitle}</h3>
+        <p className={styles.emptyBody}>{emptyBody}</p>
+        {emptyCta ? (
+          <NewsButton
+            href={emptyCta.href}
+            variant="ink"
+            size="sm"
+            trailing={<span aria-hidden>{t.arrow}</span>}
+          >
+            {emptyCta.label}
+          </NewsButton>
+        ) : null}
+      </div>
+    );
+  }
+
+  // The heat rule is comparable only inside one stretch, so it is scaled to
+  // the busiest ballot printed beside it rather than to a global maximum.
+  const busiest = votes.reduce((max, vote) => Math.max(max, vote.totalBallots), 0);
+
+  return (
+    <AnimateIn className={styles.tileGrid}>
+      {/* No `data-animate` wrapper: a grid item has to be the tile itself, so
+          AnimateIn falls back to staggering the grid's direct children. */}
+      {votes.map((vote, i) => (
+        <BallotTile
+          key={vote.id}
+          vote={vote}
+          index={i + 1}
+          heat={busiest > 0 ? (vote.totalBallots / busiest) * 100 : 0}
+          artUrl={art.get(vote.id) ?? null}
+          kind={kind}
+          locale={locale}
+          t={t}
+        />
+      ))}
+    </AnimateIn>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
 
 const EMPTY_PROFILE: MunicipalityProfile = {
   metrics: {
@@ -173,204 +275,406 @@ const EMPTY_PROFILE: MunicipalityProfile = {
 
 export default async function MunicipalityProfilePage({ params }: PageProps) {
   const { locale, slug } = await params;
+  const t = COPY[locale];
   const name = resolveMunicipality(slug);
   if (!name) notFound();
 
   // Degrade to the empty state rather than a 500 - the page's "no data yet"
   // copy is honest for both an unreachable DB and a genuinely empty one.
-  const { metrics, openVotes, closedVotes } = await getMunicipalityProfile(
-    name
-  ).catch((error) => {
-    logger.error('municipality profile unavailable', { error, name });
-    return EMPTY_PROFILE;
-  });
+  const [profile, stats] = await Promise.all([
+    getMunicipalityProfile(name).catch((error) => {
+      logger.error('municipality profile unavailable', { error, name });
+      return EMPTY_PROFILE;
+    }),
+    municipalityCivicStats(),
+  ]);
+  const { metrics, openVotes, closedVotes } = profile;
+
+  // Faded tile plates from the desk's art job; degrades to an empty map.
+  const art = await getCardArtByVoteIds(
+    [...openVotes, ...closedVotes].map((vote) => vote.id)
+  );
 
   // Open votes split by whether anyone has actually voted: with ballots they
-  // are live races; without, they are topics on the table waiting to be
-  // claimed by a first voter.
+  // are live races; without, they are topics waiting for a first voice.
   const liveVotes = openVotes.filter((v) => v.totalBallots > 0);
   const openTopics = openVotes.filter((v) => v.totalBallots === 0);
+  const ballotsCounted = [...openVotes, ...closedVotes].reduce(
+    (sum, vote) => sum + vote.totalBallots,
+    0
+  );
 
-  const engagementPct =
-    metrics.engagementRate !== null
-      ? Math.round(metrics.engagementRate * 100)
-      : null;
+  // ---- Where this city stands in the field --------------------------------
+  const self: MunicipalityCivicStats | undefined = stats.find(
+    (entry) => entry.municipality === name
+  );
+  /* Falls back to the column's own default when the dial is unreachable: the
+     page still has to name what it is about, and every authority that resolves
+     to a slug today is a municipality. */
+  const kind: LocalAuthorityKind = self?.kind ?? 'municipality';
+  const ranked = stats
+    .filter((entry) => entry.overallScore !== null)
+    .sort((a, b) => (b.overallScore ?? 0) - (a.overallScore ?? 0));
+  const rank = ranked.findIndex((entry) => entry.municipality === name);
+  const medians = {
+    overall: median(stats.map((s) => s.overallScore)),
+    engagement: median(stats.map((s) => s.engagementScore)),
+    cooperation: median(stats.map((s) => s.cooperationScore)),
+    satisfaction: median(stats.map((s) => s.satisfactionScore)),
+  };
+
+  /* Registered residents come from the profile RPC (a head-count of platform
+     users); the population figure comes from the civic-stats RPC, which only
+     reports one where a sourced, dated figure exists. They are different
+     numbers and the band prints them as such - a platform head-count in a
+     row labelled "residents" would be a claim about the city that Taruu is
+     in no position to make. */
+  const registered = Math.max(metrics.residents, self?.platformUsers ?? 0);
+  const activeVoters = Math.max(metrics.participants, self?.activeParticipants ?? 0);
+  const population = self?.residents ?? null;
+  const openCount = Math.max(openVotes.length, self?.openTopics ?? 0);
+
+  const reachPct = percent(registered, population);
+  const votedPct = percent(activeVoters, registered);
+
   // Faster engagement fills the bar more; 72h+ reads as empty.
-  const timeBarValue =
+  const timeFill =
     metrics.avgTimeToEngageHours !== null
       ? Math.max(0, Math.min(100, 100 - (metrics.avgTimeToEngageHours / 72) * 100))
       : null;
-  const satisfactionPct =
-    metrics.satisfactionAvg !== null
-      ? Math.round((metrics.satisfactionAvg / 5) * 100)
-      : null;
+
+  const others = stats
+    .filter((entry) => entry.municipality !== name)
+    .sort((a, b) => {
+      if (a.overallScore === b.overallScore) return a.municipality.localeCompare(b.municipality);
+      if (a.overallScore === null) return 1;
+      if (b.overallScore === null) return -1;
+      return b.overallScore - a.overallScore;
+    });
+
+  const createHref = `${localePrefix(locale)}/votes/create`;
+  const defaultTab =
+    liveVotes.length > 0 ? 'live' : openTopics.length > 0 ? 'topics' : 'closed';
 
   return (
     <div className="np-page">
       <Masthead locale={locale} />
-      <main className="np-container flex flex-col gap-8 py-8">
-        {/* Dateline header */}
-        <header className="flex flex-col gap-4">
-          <span className="flex items-center gap-2 font-mono text-sm font-extrabold uppercase tracking-widest text-red">
-            <span aria-hidden className="inline-block size-[0.7em] bg-red" />
-            פרופיל רשות · MUNICIPALITY
-          </span>
-          <h1 className="font-display text-6xl font-black leading-none tracking-tighter md:text-8xl">
-            {name}
-          </h1>
-          <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2 border-y border-ink/40 py-2 font-mono text-xs font-bold uppercase tracking-widest text-ink-soft">
-            <span className="flex items-baseline gap-2">
-              <b className="font-display text-lg font-black tabular-nums text-ink">
-                {metrics.residents.toLocaleString('he-IL')}
-              </b>
-              תושבים רשומים
-            </span>
-            <span className="flex items-baseline gap-2">
-              <b className="font-display text-lg font-black tabular-nums text-ink">
-                {metrics.participants.toLocaleString('he-IL')}
-              </b>
-              מצביעים
-            </span>
-            <span className="flex items-baseline gap-2">
-              <b className="font-display text-lg font-black tabular-nums text-red">
-                {openVotes.length}
-              </b>
-              הצבעות פתוחות
-            </span>
-          </div>
-        </header>
 
-        {/* Civic metrics - ruled index band, no boxes */}
-        <section aria-label="מדדי הרשות">
-          <AnimateIn className="grid grid-cols-1 border-y-2 border-ink md:grid-cols-3">
-            <div
-              data-animate
-              className="border-ink py-6 md:border-s-2 md:px-8 md:first:border-s-0 md:first:ps-0 md:last:pe-0"
-            >
-              <MetricBar
-                label="מעורבות אזרחית"
-                value={engagementPct ?? 0}
-                display={engagementPct !== null ? `${engagementPct}%` : '-'}
+      <main className={styles.page}>
+        <div className={styles.inner}>
+          {/* ---- Hero ---------------------------------------------------- */}
+          <header className={styles.hero}>
+            <nav className={styles.breadcrumb} aria-label={t.crumbDesk}>
+              <a className={styles.crumb} href={localePrefix(locale) || '/'}>
+                {t.crumbHome}
+              </a>
+              <span aria-hidden className={styles.crumbSep}>
+                /
+              </span>
+              <span>{name}</span>
+            </nav>
+
+            <span className={styles.kicker}>
+              <span aria-hidden className={styles.kickerTick} />
+              {t.kicker(kind)}
+            </span>
+
+            <div className={styles.heroGrid}>
+              <div className={styles.heroMain}>
+                <span aria-hidden className={styles.nameGhost}>
+                  {name}
+                </span>
+                <h1 className={styles.name}>{name}</h1>
+                <p className={styles.standfirst}>{t.standfirst(name)}</p>
+                <div className={styles.heroActions}>
+                  <NewsButton
+                    href={createHref}
+                    variant="red"
+                    trailing={<span aria-hidden>{t.arrow}</span>}
+                  >
+                    {t.openTopicCta(name)}
+                  </NewsButton>
+                  <a className={styles.textLink} href={localePrefix(locale) || '/'}>
+                    {t.deskCta}
+                  </a>
+                </div>
+              </div>
+
+              <aside className={styles.plate} data-band={scoreBand(self?.overallScore ?? null)}>
+                <span className={styles.plateLabel}>{t.plateLabel}</span>
+                <b className={styles.plateValue}>{formatScore(self?.overallScore ?? null)}</b>
+                <span className={styles.plateRank}>
+                  {rank >= 0 ? t.plateRank(rank + 1, ranked.length) : t.plateUnranked}
+                </span>
+                <span aria-hidden className={styles.plateScale}>
+                  <span>{t.scaleMin}</span>
+                  <span>{t.scaleMax}</span>
+                </span>
+              </aside>
+            </div>
+          </header>
+
+          {/* ---- Index band ---------------------------------------------- */}
+          <AnimateIn className={styles.rail} aria-label={t.indexTitle}>
+            <RailCell
+              label={t.railResidents}
+              value={population}
+              note={population === null ? t.railResidentsUnknown : t.railResidentsSourced}
+              locale={t.dateLocale}
+            />
+            <RailCell
+              label={t.railPlatform}
+              value={registered}
+              note={reachPct ? t.railPlatformNote(reachPct) : t.railPlatformNoReach}
+              locale={t.dateLocale}
+            />
+            <RailCell
+              label={t.railVoters}
+              value={activeVoters}
+              note={votedPct && activeVoters > 0 ? t.railVotersNote(votedPct) : t.railVotersNone}
+              locale={t.dateLocale}
+            />
+            <RailCell
+              label={t.railOpen}
+              value={openCount}
+              note={t.railOpenNote}
+              locale={t.dateLocale}
+              accent="red"
+            />
+            <RailCell
+              label={t.railDecided}
+              value={closedVotes.length}
+              note={t.railDecidedNote}
+              locale={t.dateLocale}
+            />
+            <RailCell
+              label={t.railBallots}
+              value={ballotsCounted}
+              note={t.railBallotsNote}
+              locale={t.dateLocale}
+            />
+          </AnimateIn>
+
+          {/* ---- Civic index --------------------------------------------- */}
+          <section className={styles.section} aria-label={t.indexTitle}>
+            <div className={styles.sectionHead}>
+              <h2 className={styles.sectionTitle}>{t.indexTitle}</h2>
+              <p className={styles.sectionNote}>{t.indexNote}</p>
+            </div>
+
+            <AnimateIn className={styles.scoreGrid}>
+              <ScoreCard
+                label={t.scoreOverall}
+                score={self?.overallScore ?? null}
+                medianScore={medians.overall}
+                method={t.methodOverall}
+                locale={t.dateLocale}
+                t={t}
+              />
+              <ScoreCard
+                label={t.scoreEngagement}
+                score={self?.engagementScore ?? null}
+                medianScore={medians.engagement}
+                method={t.methodEngagement}
+                locale={t.dateLocale}
+                t={t}
+              />
+              <ScoreCard
+                label={t.scoreCooperation}
+                score={self?.cooperationScore ?? null}
+                medianScore={medians.cooperation}
+                method={t.methodCooperation}
+                locale={t.dateLocale}
+                t={t}
+              />
+              <ScoreCard
+                label={t.scoreSatisfaction}
+                score={self?.satisfactionScore ?? null}
+                medianScore={medians.satisfaction}
+                method={t.methodSatisfaction}
+                locale={t.dateLocale}
+                t={t}
+              />
+            </AnimateIn>
+
+            <AnimateIn className={styles.tempo}>
+              <TempoCell
+                label={t.tempoParticipation}
+                display={
+                  metrics.engagementRate !== null
+                    ? `${Math.round(metrics.engagementRate * 100)}%`
+                    : EM_DASH
+                }
+                fill={
+                  metrics.engagementRate !== null ? metrics.engagementRate * 100 : null
+                }
                 caption={
-                  engagementPct !== null
-                    ? `${metrics.participants.toLocaleString('he-IL')} מצביעים מתוך ${metrics.residents.toLocaleString('he-IL')} תושבים רשומים`
-                    : 'אין עדיין נתוני הצבעה'
+                  metrics.engagementRate !== null
+                    ? t.tempoParticipationCaption(
+                        activeVoters.toLocaleString(t.dateLocale),
+                        registered.toLocaleString(t.dateLocale)
+                      )
+                    : t.tempoNoData
                 }
               />
-            </div>
-            <div
-              data-animate
-              className="border-t-2 border-ink py-6 md:border-s-2 md:border-t-0 md:px-8"
-            >
-              <MetricBar
-                label="זמן עד הצבעה"
-                value={timeBarValue ?? 0}
+              <TempoCell
+                label={t.tempoTime}
                 display={
                   metrics.avgTimeToEngageHours !== null
-                    ? formatHours(metrics.avgTimeToEngageHours)
-                    : '-'
+                    ? formatHours(t, metrics.avgTimeToEngageHours)
+                    : EM_DASH
                 }
+                fill={timeFill}
                 caption={
-                  metrics.avgTimeToEngageHours !== null
-                    ? 'ממוצע מפתיחת הצבעה ועד מתן הקול'
-                    : 'אין עדיין נתוני הצבעה'
+                  metrics.avgTimeToEngageHours !== null ? t.tempoTimeCaption : t.tempoNoData
                 }
               />
-            </div>
-            <div
-              data-animate
-              className="border-t-2 border-ink py-6 md:border-s-2 md:border-t-0 md:px-8 md:pe-0"
-            >
-              <MetricBar
-                label="שביעות רצון התושבים"
-                value={satisfactionPct ?? 0}
+              <TempoCell
+                label={t.tempoSatisfaction}
                 display={
                   metrics.satisfactionAvg !== null
                     ? `${metrics.satisfactionAvg.toFixed(1)} / 5`
-                    : '-'
+                    : EM_DASH
+                }
+                fill={
+                  metrics.satisfactionAvg !== null
+                    ? (metrics.satisfactionAvg / 5) * 100
+                    : null
                 }
                 caption={
                   metrics.satisfactionCount > 0
-                    ? `${metrics.satisfactionCount.toLocaleString('he-IL')} תושבים דירגו`
-                    : 'אין עדיין דירוגים. הדירוג נאסף בהרשמה'
+                    ? t.tempoSatisfactionCaption(
+                        metrics.satisfactionCount.toLocaleString(t.dateLocale)
+                      )
+                    : t.tempoNoRatings
                 }
               />
+            </AnimateIn>
+          </section>
+
+          {/* ---- Ballots -------------------------------------------------- */}
+          <section className={styles.section} aria-label={t.votesTitle}>
+            <div className={styles.sectionHead}>
+              <h2 className={styles.sectionTitle}>{t.votesTitle}</h2>
+              <p className={styles.sectionNote}>{t.votesNote}</p>
             </div>
-          </AnimateIn>
-        </section>
 
-        {/* Votes */}
-        <section aria-label="הצבעות">
-          <Tabs defaultValue={liveVotes.length > 0 ? 'live' : 'topics'} dir="rtl">
-            <TabsList>
-              <TabsTrigger value="live">
-                הצבעות חיות
-                <span className="ms-2 tabular-nums text-red group-data-[state=active]:text-paper">
-                  {liveVotes.length}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="topics">
-                נושאים על השולחן
-                <span className="ms-2 tabular-nums text-red group-data-[state=active]:text-paper">
-                  {openTopics.length}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="closed">
-                סגורות
-                <span className="ms-2 tabular-nums text-red group-data-[state=active]:text-paper">
-                  {closedVotes.length}
-                </span>
-              </TabsTrigger>
-            </TabsList>
+            <Tabs
+              className={styles.tabsBlock}
+              defaultValue={defaultTab}
+              dir={locale === 'he' ? 'rtl' : 'ltr'}
+            >
+              <TabsList>
+                <TabsTrigger value="live">
+                  {t.tabLive}
+                  <span className="ms-2 tabular-nums text-red group-data-[state=active]:text-paper">
+                    {liveVotes.length}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="topics">
+                  {t.tabTopics}
+                  <span className="ms-2 tabular-nums text-red group-data-[state=active]:text-paper">
+                    {openTopics.length}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="closed">
+                  {t.tabClosed}
+                  <span className="ms-2 tabular-nums text-red group-data-[state=active]:text-paper">
+                    {closedVotes.length}
+                  </span>
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="live">
-              <AnimateIn className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                {liveVotes.map((vote) => (
-                  <div key={vote.id} data-animate>
-                    <VoteCard vote={vote} />
-                  </div>
+              <TabsContent value="live">
+                <Stretch
+                  votes={liveVotes}
+                  kind="live"
+                  art={art}
+                  locale={locale}
+                  t={t}
+                  emptyTitle={t.emptyLiveTitle}
+                  emptyBody={t.emptyLiveBody(name)}
+                />
+              </TabsContent>
+
+              <TabsContent value="topics">
+                <Stretch
+                  votes={openTopics}
+                  kind="topic"
+                  art={art}
+                  locale={locale}
+                  t={t}
+                  emptyTitle={t.emptyTopicsTitle}
+                  emptyBody={t.emptyTopicsBody(name)}
+                  emptyCta={{ href: createHref, label: t.openTopicCta(name) }}
+                />
+              </TabsContent>
+
+              <TabsContent value="closed">
+                <Stretch
+                  votes={closedVotes}
+                  kind="closed"
+                  art={art}
+                  locale={locale}
+                  t={t}
+                  emptyTitle={t.emptyClosedTitle}
+                  emptyBody={t.emptyClosedBody(name)}
+                />
+              </TabsContent>
+            </Tabs>
+          </section>
+
+          {/* ---- Other editions ------------------------------------------ */}
+          {others.length > 0 ? (
+            <section className={styles.section} aria-label={t.stripTitle}>
+              <div className={styles.sectionHead}>
+                <h2 className={styles.sectionTitle}>{t.stripTitle}</h2>
+                <p className={styles.sectionNote}>{t.stripNote}</p>
+              </div>
+
+              <div className={styles.strip}>
+                {others.map((entry) => (
+                  <a
+                    key={entry.municipality}
+                    className={styles.stripItem}
+                    href={municipalityHref(entry.municipality, locale)}
+                  >
+                    <span className={styles.stripKind}>{t.kindLabel[entry.kind]}</span>
+                    <span className={styles.stripName}>{entry.municipality}</span>
+                    <span
+                      className={styles.stripScore}
+                      data-band={scoreBand(entry.overallScore)}
+                    >
+                      {formatScore(entry.overallScore)}
+                    </span>
+                    <span className={styles.stripTopics}>
+                      {t.stripTopics(entry.openTopics)}
+                    </span>
+                  </a>
                 ))}
-              </AnimateIn>
-              {liveVotes.length === 0 ? (
-                <p className="border-2 border-dashed border-ink-soft p-6 font-mono text-sm text-ink-soft">
-                  עדיין לא נקלטו קולות ב{name}. הנושאים הפתוחים מחכים בלשונית
-                  «נושאים על השולחן».
-                </p>
-              ) : null}
-            </TabsContent>
+              </div>
+            </section>
+          ) : null}
 
-            <TabsContent value="topics">
-              <AnimateIn className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                {openTopics.map((vote) => (
-                  <div key={vote.id} data-animate>
-                    <TopicCard vote={vote} locale={locale} />
-                  </div>
-                ))}
-              </AnimateIn>
-              {openTopics.length === 0 ? (
-                <p className="border-2 border-dashed border-ink-soft p-6 font-mono text-sm text-ink-soft">
-                  אין כרגע נושאים פתוחים ב{name}.
-                </p>
-              ) : null}
-            </TabsContent>
-
-            <TabsContent value="closed">
-              <AnimateIn className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                {closedVotes.map((vote) => (
-                  <div key={vote.id} data-animate>
-                    <VoteCard vote={vote} />
-                  </div>
-                ))}
-              </AnimateIn>
-              {closedVotes.length === 0 ? (
-                <p className="border-2 border-dashed border-ink-soft p-6 font-mono text-sm text-ink-soft">
-                  עוד לא נסגרו הצבעות ב{name}. התוצאות יופיעו כאן, שקופות לכולם.
-                </p>
-              ) : null}
-            </TabsContent>
-          </Tabs>
-        </section>
+          {/* ---- Closing band -------------------------------------------- */}
+          <section className={styles.closing}>
+            <div>
+              <h2 className={styles.closingTitle}>{t.closingTitle}</h2>
+              <p className={styles.closingBody}>{t.closingBody(name)}</p>
+            </div>
+            <NewsButton
+              href={createHref}
+              variant="red"
+              size="lg"
+              trailing={<span aria-hidden>{t.arrow}</span>}
+            >
+              {t.openTopicCta(name)}
+            </NewsButton>
+          </section>
+        </div>
       </main>
+
+      <Colophon locale={locale} />
     </div>
   );
 }

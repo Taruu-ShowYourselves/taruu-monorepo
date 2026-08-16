@@ -243,6 +243,27 @@
   margin: 0;
 }
 
+/* Language switcher - discreet locale toggle in the bottom bar */
+.langSwitch {
+  font-family: var(--font-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: rgba(255, 255, 255, 0.55);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--lc-ease-brand);
+}
+
+.langSwitch:hover,
+.langSwitch:focus-visible {
+  color: #ffffff;
+}
+
+.langSwitch:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-primary-light);
+  outline-offset: var(--focus-ring-offset);
+  border-radius: var(--radius-sm);
+}
+
 /* Signature Link */
 .signatureLink {
   color: var(--color-primary-light);

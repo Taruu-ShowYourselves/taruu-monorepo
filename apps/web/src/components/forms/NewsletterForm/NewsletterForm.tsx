@@ -73,6 +73,7 @@ export function NewsletterForm({
         body: JSON.stringify({
           email: trimmedEmail,
           source,
+          locale,
           sourcePage: sourcePage || (typeof window !== 'undefined' ? window.location.pathname : undefined),
         }),
       });

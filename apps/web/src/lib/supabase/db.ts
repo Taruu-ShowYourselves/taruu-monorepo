@@ -5,6 +5,8 @@
 
 import { supabaseAdmin } from './server';
 import type { TreasuryTransactionType } from '@sync/shared';
+import { LOCAL_AUTHORITY_KINDS } from '@sync/shared/contracts';
+import type { LocalAuthorityKind, MunicipalityCivicStats } from '@sync/shared/contracts';
 import type {
   Json,
   User,
@@ -33,6 +35,7 @@ import {
   type PublicVoteStatus,
 } from '@/server/domain/votes/vote';
 import { REVIEW_VOTE_STATUSES } from '@/server/domain/space/review';
+import { UniqueViolationError } from './errors';
 
 // ============================================
 // USER OPERATIONS
@@ -758,7 +761,7 @@ export async function getVoteById(voteId: string): Promise<Vote | null> {
  *
  * This bypasses the PUBLIC_VOTE_STATUSES allow-list and will return proposals
  * that are still under review. It may only be called from a server-side
- * use-case that has already authorized the caller — a space reviewer holding
+ * use-case that has already authorized the caller - a space reviewer holding
  * the relevant capability, a cron/resolution job, or the vote's own submitter.
  * Never call it from a route that serves an unauthenticated reader.
  */
@@ -829,7 +832,7 @@ export async function getVotesByMunicipality(
     query = query.eq('status', status);
   } else {
     // No explicit status means "everything a resident may see", not
-    // "everything" — without this the listing would surface review-state
+    // "everything" - without this the listing would surface review-state
     // proposals the moment one can be written.
     query = query.in('status', PUBLIC_VOTE_STATUSES);
   }
@@ -843,14 +846,61 @@ export async function getVotesByMunicipality(
   return data || [];
 }
 
+/**
+ * Every ballot the public has finished with, tallies included.
+ *
+ * The mirror of `getActiveVotesWithOptions` for the far end of a topic's life:
+ * once a vote closes it stops being a question and becomes a decision, and the
+ * civic mandate is nothing but the list of those decisions. `resolving` and
+ * `resolved` are in the window because a closed count does not stop being the
+ * public's answer while the authority is being told about it.
+ *
+ * Degrades to an empty list rather than throwing, like its active twin: a
+ * mandate with nothing on it is a true statement about a young ledger, and a
+ * failed page is not.
+ */
+export async function getDecidedVotesWithOptions(): Promise<
+  (Vote & { options: VoteOption[]; source: VoteSource | null })[]
+> {
+  const { data, error } = await supabaseAdmin
+    .from('votes')
+    .select(`
+      *,
+      vote_options (*),
+      vote_sources (*)
+    `)
+    .in('status', ['ended', 'resolving', 'resolved'])
+    .order('end_date', { ascending: false });
+
+  if (error) {
+    console.error('Failed to get decided votes with options:', error);
+    return [];
+  }
+
+  return (data || []).map((row: any) => {
+    const { vote_options, vote_sources, ...vote } = row;
+    return {
+      ...vote,
+      options: vote_options || [],
+      source: (Array.isArray(vote_sources) ? vote_sources[0] : vote_sources) ?? null,
+    };
+  });
+}
+
 export async function getActiveVotesWithOptions(
   municipalityId?: string
 ): Promise<(Vote & { options: VoteOption[]; source: VoteSource | null })[]> {
+  // Source engagement rides along as an embedded to-one relation rather than
+  // a follow-up `.in('vote_id', ids)` query, which could only be issued once
+  // the vote ids were known and so cost a second serial round-trip on every
+  // render. A vote with no source row embeds as null, which is the same
+  // "no metrics, never an empty desk" degradation the separate query gave.
   let query = supabaseAdmin
     .from('votes')
     .select(`
       *,
-      vote_options (*)
+      vote_options (*),
+      vote_sources (*)
     `)
     .eq('status', 'active')
     .order('created_at', { ascending: false });
@@ -866,31 +916,19 @@ export async function getActiveVotesWithOptions(
     return [];
   }
 
-  const votes = data || [];
-
-  // Source engagement is fetched separately so a missing/errored
-  // vote_sources table degrades to "no metrics", never to an empty desk.
-  const sourceByVote = new Map<string, VoteSource>();
-  if (votes.length > 0) {
-    const { data: sources, error: sourcesError } = await supabaseAdmin
-      .from('vote_sources')
-      .select('*')
-      .in('vote_id', votes.map((v: any) => v.id));
-
-    if (sourcesError) {
-      console.error('Failed to get vote sources (continuing without):', sourcesError);
-    } else {
-      for (const s of (sources || []) as VoteSource[]) {
-        sourceByVote.set(s.vote_id, s);
-      }
-    }
-  }
-
-  return votes.map((vote: any) => ({
-    ...vote,
-    options: vote.vote_options || [],
-    source: sourceByVote.get(vote.id) ?? null,
-  }));
+  return (data || []).map((row: any) => {
+    // Destructured out of the spread on purpose: keeping them would ship the
+    // option rows twice - once under the raw relation name and again under
+    // `options` - through the RSC payload of every surface that renders a desk.
+    const { vote_options, vote_sources, ...vote } = row;
+    return {
+      ...vote,
+      options: vote_options || [],
+      // Defensive: PostgREST embeds this as an object today (unique vote_id),
+      // but an array here would silently become a truthy non-VoteSource.
+      source: (Array.isArray(vote_sources) ? vote_sources[0] : vote_sources) ?? null,
+    };
+  });
 }
 
 /**
@@ -900,6 +938,14 @@ export async function getActiveVotesWithOptions(
  * stopping POST /api/ingest/topics from creating a second copy of a topic that
  * is already sitting in the review queue, unpublished and therefore invisible
  * to a `pending`/`active`-only lookup.
+ *
+ * Throws rather than degrading to null, unlike most readers in this file. Here
+ * `null` is not "no answer" but "no such vote", and the only caller acts on it
+ * by inserting one. A database that answered with an error has not said the
+ * topic is absent, and treating it as if it had is how a single unapplied
+ * migration turned every ingest run into a fresh copy of the whole batch: the
+ * status window named enum labels the deployed database did not have yet, every
+ * lookup came back 22P02, and 184 duplicate votes accumulated behind it.
  */
 export async function findVoteByMunicipalityAndTitle(
   municipalityId: string,
@@ -916,7 +962,7 @@ export async function findVoteByMunicipalityAndTitle(
 
   if (error) {
     console.error('Failed to find vote by title:', error);
-    return null;
+    throw new Error(`vote lookup failed for "${title}": ${error.message}`);
   }
   return data;
 }
@@ -1025,6 +1071,57 @@ export async function getKnessetRankingsByVoteIds(
   return byVote;
 }
 
+/**
+ * Vote ids of the hottest ranked, still-active Knesset votes. The client
+ * can't know which votes are hot before it has the rankings, so "give me
+ * the top N" has to be answered server-side - picking N votes by
+ * created_at and ranking those was how a routine item became the front
+ * page. Degrades to [] on failure - ranking is never load-bearing.
+ */
+export async function getTopRankedKnessetVoteIds(
+  limit: number
+): Promise<string[]> {
+  const { data, error } = await supabaseAdmin
+    .from('knesset_rankings')
+    .select('vote_id, votes!inner(status)')
+    .eq('votes.status', 'active')
+    .order('hotness', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('Failed to get top knesset rankings (continuing without):', error);
+    return [];
+  }
+  return (data || []).map((row) => row.vote_id as string);
+}
+
+/**
+ * Generated card-art plates for a set of votes (desk agents' art job).
+ * Maps voteId → public image URL; rows without a stored plate are omitted.
+ * Degrades to an empty map on any failure - art is never load-bearing.
+ */
+export async function getCardArtByVoteIds(
+  voteIds: string[]
+): Promise<Map<string, string>> {
+  const byVote = new Map<string, string>();
+  if (voteIds.length === 0) return byVote;
+
+  const { data, error } = await supabaseAdmin
+    .from('vote_card_art')
+    .select('vote_id, image_url')
+    .in('vote_id', voteIds)
+    .not('image_url', 'is', null);
+
+  if (error) {
+    console.error('Failed to get vote card art (continuing without):', error);
+    return byVote;
+  }
+  for (const row of data || []) {
+    if (row.image_url) byVote.set(row.vote_id, row.image_url);
+  }
+  return byVote;
+}
+
 export async function createVote(
   voteData: InsertTables<'votes'>
 ): Promise<Vote> {
@@ -1034,6 +1131,15 @@ export async function createVote(
     .select()
     .single();
 
+  if (error?.code === '23505') {
+    // `ux_votes_live_topic`: this municipality already has an open ballot under
+    // this exact title. Typed so the ingest path can answer it by re-reading
+    // the winner instead of failing the run.
+    throw new UniqueViolationError(
+      error.details ?? undefined,
+      `Vote already exists for ${voteData.municipality_id}: ${voteData.title}`
+    );
+  }
   if (error) throw new Error(`Failed to create vote: ${error.message}`);
   return data;
 }
@@ -1423,7 +1529,7 @@ export async function countUserVoteParticipations(userId: string): Promise<numbe
 /**
  * Count the number of votes created by a user.
  *
- * Creator-scoped, so this is not a cross-user leak — but it feeds a "votes
+ * Creator-scoped, so this is not a cross-user leak - but it feeds a "votes
  * created" statistic, and an unsubmitted draft or a rejected submission is not
  * an achievement. Those two are excluded from the count only; the listing below
  * stays unfiltered so the submitter can still see and act on them.
@@ -2515,4 +2621,65 @@ export async function getMunicipalityProfile(
     openVotes,
     closedVotes,
   };
+}
+
+/** Raw shape of one `municipality_civic_stats()` row. */
+interface CivicStatsRow {
+  municipality_code: string;
+  kind: string | null;
+  residents: number | null;
+  platform_users: number | null;
+  active_participants: number | null;
+  open_topics: number | null;
+  engagement_score: number | null;
+  cooperation_score: number | null;
+  satisfaction_score: number | null;
+  overall_score: number | null;
+}
+
+/** A score is either measured or it is not; 0 is a measurement, not a gap. */
+const asScore = (value: number | null | undefined): number | null =>
+  value === null || value === undefined ? null : Number(value);
+
+/**
+ * The row's authority kind, falling back to the column's own default.
+ *
+ * Unlike a score, an absent kind is not a gap worth printing: `municipalities.
+ * kind` is NOT NULL DEFAULT 'municipality', so the only way to read one is
+ * against a deployment whose `municipality_civic_stats()` predates the column
+ * - exactly the deployment where every row it returned *was* a municipality.
+ */
+const asAuthorityKind = (value: string | null | undefined): LocalAuthorityKind =>
+  (LOCAL_AUTHORITY_KINDS as readonly string[]).includes(value ?? '')
+    ? (value as LocalAuthorityKind)
+    : 'municipality';
+
+/**
+ * Every municipality's civic stats in one round-trip - size, platform
+ * footprint, open topics, and the four -100..+100 scores.
+ *
+ * The dial prints all of them at once, so this is deliberately unscoped: one
+ * RPC for the whole list rather than `getMunicipalityProfile` per city.
+ */
+export async function getMunicipalityCivicStats(): Promise<
+  MunicipalityCivicStats[]
+> {
+  const { data, error } = await supabaseAdmin.rpc('municipality_civic_stats');
+
+  if (error) {
+    throw new Error(`municipality_civic_stats failed: ${error.message}`);
+  }
+
+  return ((data ?? []) as unknown as CivicStatsRow[]).map((row) => ({
+    municipality: row.municipality_code,
+    kind: asAuthorityKind(row.kind),
+    residents: row.residents === null ? null : Number(row.residents),
+    platformUsers: Number(row.platform_users ?? 0),
+    activeParticipants: Number(row.active_participants ?? 0),
+    openTopics: Number(row.open_topics ?? 0),
+    engagementScore: asScore(row.engagement_score),
+    cooperationScore: asScore(row.cooperation_score),
+    satisfactionScore: asScore(row.satisfaction_score),
+    overallScore: asScore(row.overall_score),
+  }));
 }

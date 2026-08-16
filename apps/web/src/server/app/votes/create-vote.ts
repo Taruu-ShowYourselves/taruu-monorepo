@@ -3,14 +3,15 @@
  *
  * Submission is free and enters review; the ₪50 fee is charged at approval
  * (issue #75, `server/app/space-admin/decide-proposal.ts`). Nothing here
- * verifies, holds or requests money — a proposal that is later rejected must
+ * verifies, holds or requests money - a proposal that is later rejected must
  * never have been billed, and this codebase has no refund path.
  *
- * Orchestration only — gates and persistence. Notification fan-out is handed to
+ * Orchestration only - gates and persistence. Notification fan-out is handed to
  * `deps.defer` so it runs after the response is sent.
  */
 
 import { errAsync, okAsync, type ResultAsync } from 'neverthrow';
+import { KNESSET_SCOPE } from '@sync/shared';
 import { findUserById } from '@/server/infra/supabase/user.repo';
 import {
   insertVote,
@@ -30,6 +31,12 @@ export interface CreateVoteCommand {
   userId: string;
   title: string;
   description: string;
+  /**
+   * `municipal` (default): the proposal is addressed to the creator's own
+   * town. `knesset`: a national ballot on the Knesset's desk, which any
+   * verified resident may raise and every resident may support or oppose.
+   */
+  scope?: 'municipal' | 'knesset';
   options: { label: string; description?: string }[];
   startDate: string;
   endDate: string;
@@ -53,16 +60,19 @@ export function createVote(
     return errAsync(validation(['startDate/endDate must be valid, endDate after startDate']));
   }
 
+  const national = cmd.scope === 'knesset';
+
   return findUserById(cmd.userId)
     .andThen((creator) => {
-      // Only a fully verified resident may raise a vote, and always for
-      // their OWN municipality - a local issue is raised by a local.
+      // Only a fully verified resident may raise a vote. A municipal issue
+      // is raised by a local, for their OWN municipality; a national one
+      // goes to the Knesset's desk and needs no home town on the profile.
       if (creator.verification_status !== 'verified') {
         return errAsync<typeof creator, AppError>(
           forbidden('Only verified residents may create a vote')
         );
       }
-      if (!creator.municipality_id) {
+      if (!national && !creator.municipality_id) {
         return errAsync<typeof creator, AppError>(
           validation(['Set your municipality before creating a vote'])
         );
@@ -73,10 +83,12 @@ export function createVote(
       insertVote({
         title: cmd.title,
         description: cmd.description,
-        municipality_id: creator.municipality_id as string,
+        municipality_id: national
+          ? KNESSET_SCOPE
+          : (creator.municipality_id as string),
         creator_id: cmd.userId,
         // Never `initialStatus(start, now)` here. A start date that has already
-        // arrived does not open the vote — publication is the approval's job,
+        // arrived does not open the vote - publication is the approval's job,
         // and `initialStatus` is consulted there instead. The dates are still
         // validated above and stored as submitted.
         status: submissionStatus(),
@@ -92,7 +104,7 @@ export function createVote(
     )
     .map(({ creator, vote, rows }) => {
       // `notifyVoteCreated` returns early unless `vote.status === 'active'`, so
-      // submitting no longer broadcasts to residents — the creator's own
+      // submitting no longer broadcasts to residents - the creator's own
       // confirmation email still sends, which is what a submitter should get.
       deps.defer(() => notifyVoteCreated(vote, creator));
       return {

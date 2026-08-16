@@ -5,7 +5,66 @@ import Link from 'next/link';
 import { PressSelect } from '@/components/press';
 import { MunicipalityLink } from '@/components/uikit/municipality-link';
 import { formatDate } from '@sync/shared';
+import type { Locale } from '@/lib/i18n';
+import { localePrefix } from '@/lib/i18n';
 import styles from './ArchiveList.module.css';
+
+interface ArchiveListCopy {
+  cardKicker: string;
+  endedPrefix: string;
+  verifiedVotes: string;
+  viewRecord: string;
+  filterLabel: string;
+  allMunicipalities: string;
+  loadingAria: string;
+  resultsCount: (count: number) => string;
+  emptyKicker: string;
+  errorTitle: string;
+  noneClosedTitle: string;
+  notFoundTitle: string;
+  errorText: string;
+  noneClosedText: string;
+  notFoundText: string;
+}
+
+const COPY: Record<Locale, ArchiveListCopy> = {
+  he: {
+    cardKicker: 'רשומה סגורה',
+    endedPrefix: 'הסתיים',
+    verifiedVotes: 'קולות מאומתים',
+    viewRecord: 'צפו ברשומה ←',
+    filterLabel: 'רשות',
+    allMunicipalities: 'כל הרשויות',
+    loadingAria: 'טוען ארכיון',
+    resultsCount: (count) => `מציג ${count} רשומות סגורות`,
+    emptyKicker: 'אין רשומות',
+    errorTitle: 'לא ניתן לטעון את הארכיון כרגע.',
+    noneClosedTitle: 'עוד לא נסגרו הצבעות.',
+    notFoundTitle: 'לא נמצאו הצבעות.',
+    errorText: 'נסו לרענן את העמוד בעוד רגע.',
+    noneClosedText:
+      'הרשומות הראשונות יופיעו כאן אחרי שההצבעה הראשונה תיסגר - שקופות לכולם.',
+    notFoundText: 'נסו לשנות את הסינון או לחפש ברשות אחרת.',
+  },
+  en: {
+    cardKicker: 'Closed record',
+    endedPrefix: 'Ended',
+    verifiedVotes: 'verified votes',
+    viewRecord: 'View the record →',
+    filterLabel: 'Municipality',
+    allMunicipalities: 'All municipalities',
+    loadingAria: 'Loading archive',
+    resultsCount: (count) => `Showing ${count} closed records`,
+    emptyKicker: 'No records',
+    errorTitle: 'The archive cannot be loaded right now.',
+    noneClosedTitle: 'No votes have closed yet.',
+    notFoundTitle: 'No votes found.',
+    errorText: 'Try refreshing the page in a moment.',
+    noneClosedText:
+      'The first records will appear here once the first vote closes - transparent to all.',
+    notFoundText: 'Try changing the filter or searching another municipality.',
+  },
+};
 
 interface EndedVote {
   id: string;
@@ -18,13 +77,14 @@ interface EndedVote {
 }
 
 /** Settled-record press card - dateline mono, muted; the tally lives on the record page. */
-function VoteArchiveCard({ vote }: { vote: EndedVote }) {
+function VoteArchiveCard({ vote, locale }: { vote: EndedVote; locale: Locale }) {
+  const t = COPY[locale];
   return (
     <article className={styles.card}>
       <header className={styles.cardHeader}>
-        <span className={styles.cardKicker}>רשומה סגורה</span>
+        <span className={styles.cardKicker}>{t.cardKicker}</span>
         <span className={styles.dateline}>
-          הסתיים · {formatDate(new Date(vote.endDate))}
+          {t.endedPrefix} · {formatDate(new Date(vote.endDate))}
         </span>
       </header>
 
@@ -34,17 +94,22 @@ function VoteArchiveCard({ vote }: { vote: EndedVote }) {
 
       <footer className={styles.cardFooter}>
         <span className={styles.dateline}>
-          {vote.participantCount.toLocaleString('he-IL')} קולות מאומתים
+          {vote.participantCount.toLocaleString('he-IL')} {t.verifiedVotes}
         </span>
-        <Link href={`/votes/${vote.id}`} className={styles.cardLink}>
-          צפו ברשומה ←
+        <Link href={`${localePrefix(locale)}/votes/${vote.id}`} className={styles.cardLink}>
+          {t.viewRecord}
         </Link>
       </footer>
     </article>
   );
 }
 
-export function ArchiveList() {
+interface ArchiveListProps {
+  locale?: Locale;
+}
+
+export function ArchiveList({ locale = 'he' }: ArchiveListProps) {
+  const t = COPY[locale];
   const [votes, setVotes] = useState<EndedVote[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -76,7 +141,7 @@ export function ArchiveList() {
   const municipalities = ['all', ...new Set(votes.map((v) => v.municipality))];
   const municipalityOptions = municipalities.map((m) => ({
     value: m,
-    label: m === 'all' ? 'כל הרשויות' : m,
+    label: m === 'all' ? t.allMunicipalities : m,
   }));
 
   const filteredVotes = votes.filter(
@@ -88,7 +153,7 @@ export function ArchiveList() {
     return (
       <section className={styles.section}>
         <div className={styles.container}>
-          <div className={styles.grid} aria-busy="true" aria-label="טוען ארכיון">
+          <div className={styles.grid} aria-busy="true" aria-label={t.loadingAria}>
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className={styles.skeletonCard}>
                 <div className={styles.skeletonRow}>
@@ -115,7 +180,7 @@ export function ArchiveList() {
             <div className={styles.filters}>
               <div className={styles.filterGroup}>
                 <PressSelect
-                  label="רשות"
+                  label={t.filterLabel}
                   options={municipalityOptions}
                   value={municipalityFilter}
                   onChange={(e) => setMunicipalityFilter(e.target.value)}
@@ -126,7 +191,7 @@ export function ArchiveList() {
 
             {/* Results Count */}
             <p className={styles.resultsCount}>
-              מציג {filteredVotes.length} רשומות סגורות
+              {t.resultsCount(filteredVotes.length)}
             </p>
           </>
         ) : null}
@@ -136,27 +201,27 @@ export function ArchiveList() {
           <div className={styles.emptyState}>
             <span className={styles.emptyKicker}>
               <span aria-hidden className={styles.emptyTick} />
-              אין רשומות
+              {t.emptyKicker}
             </span>
             <h3 className={styles.emptyTitle}>
               {error
-                ? 'לא ניתן לטעון את הארכיון כרגע.'
+                ? t.errorTitle
                 : votes.length === 0
-                  ? 'עוד לא נסגרו הצבעות.'
-                  : 'לא נמצאו הצבעות.'}
+                  ? t.noneClosedTitle
+                  : t.notFoundTitle}
             </h3>
             <p className={styles.emptyText}>
               {error
-                ? 'נסו לרענן את העמוד בעוד רגע.'
+                ? t.errorText
                 : votes.length === 0
-                  ? 'הרשומות הראשונות יופיעו כאן אחרי שההצבעה הראשונה תיסגר - שקופות לכולם.'
-                  : 'נסו לשנות את הסינון או לחפש ברשות אחרת.'}
+                  ? t.noneClosedText
+                  : t.notFoundText}
             </p>
           </div>
         ) : (
           <div className={styles.grid}>
             {filteredVotes.map((vote) => (
-              <VoteArchiveCard key={vote.id} vote={vote} />
+              <VoteArchiveCard key={vote.id} vote={vote} locale={locale} />
             ))}
           </div>
         )}

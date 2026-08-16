@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import {
   getActiveVotesWithOptions,
+  getCardArtByVoteIds,
   getKnessetItemsByVoteIds,
   getKnessetRankingsByVoteIds,
 } from '@/lib/supabase/db';
@@ -12,15 +13,28 @@ import { FeedReader } from './components/FeedReader';
 // The stream is live civic data; a stale edition is worse than a slow one.
 export const revalidate = 60;
 
-export const metadata: Metadata = {
-  title: 'המהדורה שלי · הפיד',
-  description:
-    'נושא אחרי נושא: מה עומד להצבעה ברשות שלכם ועל שולחן הכנסת, איפה עומדת ' +
-    'הספירה, ואיפה נרשם הקול שלכם.',
+const METADATA: Record<Locale, Metadata> = {
+  he: {
+    title: 'המהדורה שלי · הפיד',
+    description:
+      'נושא אחרי נושא: מה עומד להצבעה ברשות שלכם ועל שולחן הכנסת, איפה עומדת ' +
+      'הספירה, ואיפה נרשם הקול שלכם.',
+  },
+  en: {
+    title: 'My Edition · The Feed',
+    description:
+      'Topic by topic: what is up for a vote in your municipality and on the ' +
+      "Knesset's table, where the count stands, and where your vote is on record.",
+  },
 };
 
 interface FeedPageProps {
   params: Promise<{ locale: Locale }>;
+}
+
+export async function generateMetadata({ params }: FeedPageProps): Promise<Metadata> {
+  const { locale } = await params;
+  return METADATA[locale] ?? METADATA.he;
 }
 
 /**
@@ -36,14 +50,17 @@ export default async function FeedPage({ params }: FeedPageProps) {
 
   const votes = await getActiveVotesWithOptions().catch(() => []);
   const voteIds = votes.map((vote) => vote.id);
-  const [knessetItems, rankings] = await Promise.all([
+  const [knessetItems, rankings, art] = await Promise.all([
     getKnessetItemsByVoteIds(voteIds).catch(() => []),
     getKnessetRankingsByVoteIds(voteIds).catch(
       () => new Map<string, KnessetRanking>()
     ),
+    // Art is never load-bearing: the helper already degrades to an empty map,
+    // and a card without a plate is a complete card.
+    getCardArtByVoteIds(voteIds).catch(() => new Map<string, string>()),
   ]);
 
-  const items = buildFeedItems(votes, knessetItems, rankings);
+  const items = buildFeedItems(votes, knessetItems, rankings, locale, art);
 
   return <FeedReader items={items} locale={locale} />;
 }

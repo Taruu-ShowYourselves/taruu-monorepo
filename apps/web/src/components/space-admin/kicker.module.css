@@ -1,5 +1,5 @@
 /* ============================================================
- * Phase-local kicker — 05-UI-SPEC D9 + D16.
+ * Phase-local kicker - 05-UI-SPEC D9 + D16.
  *
  * The shared `.np-kicker` utility (globals.css:445) paints its TEXT in
  * `--np-red`, which measures 4.03:1 against paper and fails AA for normal
@@ -45,13 +45,13 @@
  * Inside the press `Receipt`.
  *
  * `Receipt` is on the reused-as-is list, and its own `.kicker` rule paints
- * the accent red at the mono data size — 4.03:1, the defect D9 exists to stop
+ * the accent red at the mono data size - 4.03:1, the defect D9 exists to stop
  * this phase propagating. It cannot be fixed here without forking the
  * component, but it takes its kicker as a NODE, so a colour declared on the
  * children wins for their own text. These two classes are that node; the
  * `ReceiptKicker` component is the one place they are used.
  *
- * They are not `composes: kicker` — the surrounding `<p>` already supplies the
+ * They are not `composes: kicker` - the surrounding `<p>` already supplies the
  * mono face, size, weight, tracking and case, and re-declaring them would put
  * this phase in the business of restyling a component it does not own.
  * ------------------------------------------------------------ */

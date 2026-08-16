@@ -35,13 +35,40 @@
   overflow-x: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  scroll-snap-type: inline proximity;
+  scroll-padding-inline: var(--space-3);
 }
 .list::-webkit-scrollbar {
   display: none;
 }
 
+/* The scrollbar is hidden, so overflow needs another tell: the tabs dissolve
+   at the inline-end edge instead of clipping mid-glyph. End padding keeps the
+   last tab clear of the fade once scrolled all the way there. Masks have no
+   logical directions - the base rule is the RTL default, :dir(ltr) flips it. */
+@media (max-width: 1023px) {
+  .list {
+    padding-inline-end: var(--space-8);
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--space-8)
+    );
+    mask-image: linear-gradient(to right, transparent 0, #000 var(--space-8));
+  }
+  .list:dir(ltr) {
+    -webkit-mask-image: linear-gradient(
+      to left,
+      transparent 0,
+      #000 var(--space-8)
+    );
+    mask-image: linear-gradient(to left, transparent 0, #000 var(--space-8));
+  }
+}
+
 .item {
   flex: 0 0 auto;
+  scroll-snap-align: start;
 }
 
 .chip {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RippleButton } from '@/components/ui/RippleButton';
 import { useReducedMotion } from '@/hooks';
@@ -9,6 +10,7 @@ import type { Locale } from '@/lib/i18n';
 import clsx from 'clsx';
 import styles from './Header.module.css';
 import { WHATSAPP_FOUNDERS_LINK } from '@sync/shared';
+import { localePath, localePrefix, localeSwitchPath } from '@/lib/i18n';
 
 const WHATSAPP_LINK = WHATSAPP_FOUNDERS_LINK;
 
@@ -21,16 +23,79 @@ interface NavLink {
   label: string;
 }
 
-const getNavLinks = (locale: Locale): NavLink[] => [
-  { href: `/${locale}`, label: 'בית' },
-  { href: `/${locale}/votes`, label: 'הצבעות' },
-  { href: `/${locale}/economics`, label: 'כלכלה אזרחית' },
-  { href: `/${locale}/treasury`, label: 'שקיפות הקרן' },
-  { href: `/${locale}/about`, label: 'אודות' },
-  { href: `/${locale}/faq`, label: 'שאלות נפוצות' },
-];
+interface HeaderCopy {
+  logo: string;
+  logoAria: string;
+  nav: {
+    home: string;
+    votes: string;
+    economics: string;
+    treasury: string;
+    about: string;
+    faq: string;
+  };
+  cta: string;
+  desktopNavAria: string;
+  mobileNavAria: string;
+  openMenu: string;
+  closeMenu: string;
+  langSwitch: string;
+}
+
+const COPY: Record<Locale, HeaderCopy> = {
+  he: {
+    logo: 'תַּרְאוּ',
+    logoAria: 'תַּרְאוּ, דף הבית',
+    nav: {
+      home: 'בית',
+      votes: 'הצבעות',
+      economics: 'כלכלה אזרחית',
+      treasury: 'שקיפות הקרן',
+      about: 'אודות',
+      faq: 'שאלות נפוצות',
+    },
+    cta: 'הצטרפו לפיילוט',
+    desktopNavAria: 'ניווט ראשי',
+    mobileNavAria: 'ניווט נייד',
+    openMenu: 'פתיחת תפריט',
+    closeMenu: 'סגירת תפריט',
+    langSwitch: 'EN',
+  },
+  en: {
+    logo: 'Taruu',
+    logoAria: 'Taruu, home page',
+    nav: {
+      home: 'Home',
+      votes: 'Votes',
+      economics: 'Civic Economics',
+      treasury: 'Treasury Transparency',
+      about: 'About',
+      faq: 'FAQ',
+    },
+    cta: 'Join the Pilot',
+    desktopNavAria: 'Primary navigation',
+    mobileNavAria: 'Mobile navigation',
+    openMenu: 'Open menu',
+    closeMenu: 'Close menu',
+    langSwitch: 'עברית',
+  },
+};
+
+const getNavLinks = (locale: Locale): NavLink[] => {
+  const t = COPY[locale];
+  return [
+    { href: localePath(locale), label: t.nav.home },
+    { href: `${localePrefix(locale)}/votes`, label: t.nav.votes },
+    { href: `${localePrefix(locale)}/economics`, label: t.nav.economics },
+    { href: `${localePrefix(locale)}/treasury`, label: t.nav.treasury },
+    { href: `${localePrefix(locale)}/about`, label: t.nav.about },
+    { href: `${localePrefix(locale)}/faq`, label: t.nav.faq },
+  ];
+};
 
 export function Header({ locale = 'he' }: HeaderProps) {
+  const t = COPY[locale];
+  const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const reducedMotion = useReducedMotion();
@@ -57,6 +122,8 @@ export function Header({ locale = 'he' }: HeaderProps) {
 
   const navLinks = getNavLinks(locale);
   const closeMenu = () => setIsMobileMenuOpen(false);
+  const switchLocale: Locale = locale === 'he' ? 'en' : 'he';
+  const switchHref = localeSwitchPath(pathname, switchLocale);
 
   return (
     <motion.header
@@ -67,12 +134,12 @@ export function Header({ locale = 'he' }: HeaderProps) {
     >
       <div className={styles.bar}>
         <div className={styles.container}>
-          <Link href={`/${locale}`} className={styles.logo} aria-label="תַּרְאוּ, דף הבית">
-            <span className={`${styles.logoText} logo-text`}>תַּרְאוּ</span>
+          <Link href={localePath(locale)} className={styles.logo} aria-label={t.logoAria}>
+            <span className={`${styles.logoText} logo-text`}>{t.logo}</span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className={styles.desktopNav} aria-label="ניווט ראשי">
+          <nav className={styles.desktopNav} aria-label={t.desktopNavAria}>
             {navLinks.map((link) => (
               <Link key={link.href} href={link.href} className={styles.navLink}>
                 <span className={styles.navLabel}>{link.label}</span>
@@ -82,13 +149,17 @@ export function Header({ locale = 'he' }: HeaderProps) {
 
           {/* Primary CTA */}
           <div className={styles.actions}>
+            <Link href={switchHref} className={styles.langSwitch}>
+              {t.langSwitch}
+            </Link>
+
             <a
               href={WHATSAPP_LINK}
               target="_blank"
               rel="noopener noreferrer"
               className={styles.ctaLink}
             >
-              <RippleButton size="md">הצטרפו לפיילוט</RippleButton>
+              <RippleButton size="md">{t.cta}</RippleButton>
             </a>
 
             {/* Mobile Menu Button */}
@@ -96,7 +167,7 @@ export function Header({ locale = 'he' }: HeaderProps) {
               type="button"
               className={styles.mobileMenuButton}
               onClick={() => setIsMobileMenuOpen((open) => !open)}
-              aria-label={isMobileMenuOpen ? 'סגירת תפריט' : 'פתיחת תפריט'}
+              aria-label={isMobileMenuOpen ? t.closeMenu : t.openMenu}
               aria-expanded={isMobileMenuOpen}
             >
               <span className={clsx(styles.hamburger, isMobileMenuOpen && styles.open)} />
@@ -115,7 +186,7 @@ export function Header({ locale = 'he' }: HeaderProps) {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
           >
-            <nav className={styles.mobileNavContent} aria-label="ניווט נייד">
+            <nav className={styles.mobileNavContent} aria-label={t.mobileNavAria}>
               {navLinks.map((link, index) => (
                 <motion.div
                   key={link.href}
@@ -138,7 +209,7 @@ export function Header({ locale = 'he' }: HeaderProps) {
                   className={styles.mobileCtaLink}
                 >
                   <RippleButton size="lg" isFullWidth>
-                    הצטרפו לפיילוט
+                    {t.cta}
                   </RippleButton>
                 </a>
               </div>

@@ -1,5 +1,5 @@
 /* ============================================================
- * AudiencePreview — the costed audience, and its stale treatment.
+ * AudiencePreview - the costed audience, and its stale treatment.
  *
  * Tokens only; no hex, no pixel literal outside a media query, and this file
  * has no media query.
@@ -12,7 +12,7 @@
 }
 
 /**
- * The stale banner is a RED RULE with red-ink text on paper-2 — 8.73:1.
+ * The stale banner is a RED RULE with red-ink text on paper-2 - 8.73:1.
  *
  * It is deliberately not a red fill and not an ink block. A red fill would put
  * paper text at 4.03:1 at this size, which is the same defect that keeps the
@@ -40,12 +40,12 @@
  * The dimmed panel. `--np-paper-2` is the disabled fill the colour table
  * already names, and it must NOT be darkened further here or anywhere else:
  * the Receipt's own footer paints `--np-ink-faint`, which on paper-2 is
- * 4.53:1 — AA by 0.03. Opacity is excluded for the same reason; dimming would
+ * 4.53:1 - AA by 0.03. Opacity is excluded for the same reason; dimming would
  * drag that pair under the line.
  *
  * The doubled selector is deliberate. This class arrives on `Receipt` through
  * its `className` prop, and `.receipt { background: --np-paper-box }` is
- * (0,1,0) in a different CSS Modules file — a single class here would tie it
+ * (0,1,0) in a different CSS Modules file - a single class here would tie it
  * and be decided by whichever stylesheet the bundler happened to emit second.
  * (0,2,0) settles it. Same reasoning as D27.
  */

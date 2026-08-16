@@ -1,5 +1,5 @@
 /* ============================================================
- * Surface 3 — חברים והרשאות.
+ * Surface 3 - חברים והרשאות.
  *
  * Tokens only. The single permitted hardcoded length in this phase is the
  * media-query breakpoint, because CSS media queries cannot read custom
@@ -254,7 +254,7 @@
   color: var(--np-ink-faint);
 }
 
-/* D23 — the dense `ink` hover fix, and ONLY on `ink`. `NewsButton`'s `.ink`
+/* D23 - the dense `ink` hover fix, and ONLY on `ink`. `NewsButton`'s `.ink`
    inverts to a red fill with paper text on hover, which is 4.03:1 at body
    size; `--np-red-dark` restores it to 6.03:1. `outline` is deliberately left
    alone: it already inverts to ink at 16.66:1, and giving it a red fill would
@@ -266,7 +266,7 @@
 
 /* The post-decision row flash used to live here. It is now `rowFlashClass`
    from `PressTable`, which ships the keyframe and its own reduced-motion
-   opt-out at matching specificity — see deferred item 8. */
+   opt-out at matching specificity - see deferred item 8. */
 
 /* ---------- Responsive ---------- */
 

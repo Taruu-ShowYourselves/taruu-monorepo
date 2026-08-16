@@ -1,11 +1,11 @@
 /**
- * Surface 4 — נתונים מצטברים (aggregate-only statistics), SPACE-07.
+ * Surface 4 - נתונים מצטברים (aggregate-only statistics), SPACE-07.
  *
  * Four cards and a footer note is the whole surface, and that is the
  * specification rather than a shortfall: CONTEXT.md defers the richer
  * statistics dashboard to issue #91, and what SPACE-07 needs here is a surface
  * that proves the aggregates-only promise. A breakdown, a filter or a time
- * series would not be a bonus — they are the things this surface exists to
+ * series would not be a bonus - they are the things this surface exists to
  * refuse.
  *
  * Nothing on it is interactive. It is a Server Component with no client code
@@ -30,7 +30,7 @@
  *
  * One consequence worth knowing before touching the renderer: 05-07 withholds
  * `participationRate` as `unavailable`, never as `suppressed`, because a rate
- * times a published denominator recovers a suppressed numerator — and because
+ * times a published denominator recovers a suppressed numerator - and because
  * `<5` on a percentage card asserts "under five percent", a different and
  * possibly false claim. This renderer treats all four cards identically on
  * purpose. If a future change ever marks the rate suppressed, the fix belongs
@@ -49,21 +49,22 @@ import { getSpaceOverview } from '@/server/app/space-admin/get-space-overview';
 import { getSessionFromCookies } from '@/services/auth/session';
 import { StatsFallback } from './StatsFallback';
 import styles from './page.module.css';
+import { localePrefix } from '@/lib/i18n';
 
 /**
  * The suppressed figure is a literal string, not a computed bound. The client
  * never learns the number it stands for.
  */
 const SUPPRESSED_FIGURE = '<5';
-const SUPPRESSED_NOTE = 'מוסתר — קבוצה קטנה מדי';
+const SUPPRESSED_NOTE = 'מוסתר - קבוצה קטנה מדי';
 
-const UNAVAILABLE_FIGURE = '—';
+const UNAVAILABLE_FIGURE = '-';
 const UNAVAILABLE_NOTE = 'הנתון לא זמין';
 
 /**
  * A missing figure is treated as withheld, never as zero. `space_admin_metrics`
  * returns no row at all for a space it cannot resolve, and the use-case folds
- * that into four withheld figures — but the guard stays here too, because a
+ * that into four withheld figures - but the guard stays here too, because a
  * fabricated zero is indistinguishable from a measured one and that is the
  * exact mistake this surface exists to avoid.
  */
@@ -115,7 +116,7 @@ function StatCard({ label, metric, suffix }: StatCardProps) {
 }
 
 const FOOTER_NOTE_HE =
-  'כל המספרים כאן מצטברים. אין בלוח הזה פילוח או צפייה ברמת תושב יחיד — לא במסך ולא ב־API שמאחוריו.';
+  'כל המספרים כאן מצטברים. אין בלוח הזה פילוח או צפייה ברמת תושב יחיד - לא במסך ולא ב-API שמאחוריו.';
 
 interface SpaceStatsPageProps {
   params: Promise<{ locale: Locale; spaceId: string }>;
@@ -125,7 +126,7 @@ export default async function SpaceStatsPage({ params }: SpaceStatsPageProps) {
   const { locale, spaceId } = await params;
 
   const session = await getSessionFromCookies();
-  if (!session) redirect(`/${locale}/sign-in`);
+  if (!session) redirect(`${localePrefix(locale)}/sign-in`);
 
   const overview = await getSpaceOverview(session, spaceId);
 
@@ -199,7 +200,7 @@ export default async function SpaceStatsPage({ params }: SpaceStatsPageProps) {
         </h2>
 
         <p className={styles.standfirst}>
-          תמונת מצב של המרחב במספרים. הכול מצטבר — אין כאן תושב יחיד.
+          תמונת מצב של המרחב במספרים. הכול מצטבר - אין כאן תושב יחיד.
         </p>
 
         <div className={styles.grid}>

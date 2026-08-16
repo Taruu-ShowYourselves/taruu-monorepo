@@ -6,8 +6,8 @@ import type { SpaceAdminNavHref } from './SpaceAdminNav';
  * capability opens which surface, and how a `spaces.type` value is written in
  * Hebrew on the edition line.
  *
- * They live together because they are one concern — the shell that wraps a
- * surface — and they live here rather than in each page because by the time
+ * They live together because they are one concern - the shell that wraps a
+ * surface - and they live here rather than in each page because by the time
  * 05-15 opened there were FOUR copies of each (the overview, proposals,
  * members and statistics surfaces), and this plan's two surfaces would have
  * made six. Deferred items 9 and 11 assign the extraction here.
@@ -23,7 +23,7 @@ import type { SpaceAdminNavHref } from './SpaceAdminNav';
 /**
  * Rule A, presentation half: a surface the admin holds no capability for gets
  * no nav link. The route still re-resolves the capability server-side on every
- * request, so this hides a link — it does not protect anything.
+ * request, so this hides a link - it does not protect anything.
  *
  * The overview has no entry because it needs no capability: reaching the shell
  * is membership, which `getSpaceOverview` has already resolved by the time
@@ -80,7 +80,7 @@ export const SPACE_TYPE_LABELS_HE: Readonly<Record<string, string>> = {
 /**
  * An unmapped type falls back to a Hebrew generic, never to the stored value.
  * Two of the four copies returned `space.type` itself, which would print
- * `urban_area` on the edition line the first time #74 adds a type — a bug on
+ * `urban_area` on the edition line the first time #74 adds a type - a bug on
  * screen in a Hebrew-only product, and a slower one to notice than a blank.
  */
 export const spaceTypeLabel = (type: string): string =>

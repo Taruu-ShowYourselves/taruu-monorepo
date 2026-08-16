@@ -28,7 +28,7 @@ export const MUNICIPALITY_B = 'muni-b';
 export const USER_ID = '33333333-3333-4333-8333-333333333333';
 export const OTHER_USER_ID = '44444444-4444-4444-8444-444444444444';
 
-/** Matches the real `Session` shape — `expiresAt` is a Date, not a number. */
+/** Matches the real `Session` shape - `expiresAt` is a Date, not a number. */
 export const SESSION: Session = {
   userId: USER_ID,
   googleId: 'google-abc',

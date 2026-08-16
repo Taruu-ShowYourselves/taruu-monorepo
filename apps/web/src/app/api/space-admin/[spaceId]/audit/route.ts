@@ -1,5 +1,5 @@
 /**
- * GET /api/space-admin/{spaceId}/audit — the space's action history.
+ * GET /api/space-admin/{spaceId}/audit - the space's action history.
  *
  * Thin imperative shell: session → zod parse → use-case → respond. Filters and
  * the cursor travel in the query string so a filtered view is linkable and

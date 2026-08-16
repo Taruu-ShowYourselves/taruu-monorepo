@@ -1,0 +1,26 @@
+-- Retired version slot. Deliberately empty; do not put SQL here.
+--
+-- Two migration files once claimed version 20260806000001 across a merge:
+-- pilot_program and votes_live_topic_unique. supabase_migrations keys on
+-- version, so only one could ever be recorded. votes_live_topic_unique is the
+-- one that ran, on the hosted database and everywhere else, and the ledger has
+-- carried a 20260806000001 row for it ever since. pilot_program was invisible
+-- behind the occupied slot and was silently skipped by every push.
+--
+-- Both files have since moved to versions of their own - votes_live_topic_unique
+-- to 20260806000003, pilot_program to 20260811000004 - and 20260806000003 is
+-- repaired to `applied` on the hosted database, because its SQL genuinely did
+-- run there under this slot's number.
+--
+-- That leaves the ledger row itself with no local file. `supabase db push`
+-- refuses to run at all in that state ("Remote migration versions not found in
+-- local migrations directory"). The CLI's suggested fix is to repair this
+-- version to `reverted`, which deletes the row. This file is the other fix, and
+-- the safer one: it gives the row a local counterpart without touching a
+-- production ledger that is an accurate record of what happened.
+--
+-- On any database that already carries this version - the hosted one does - it
+-- never executes. On a fresh replay it executes as a no-op, and the real work
+-- happens at 20260806000003 and 20260811000004 in their proper order.
+--
+-- Do not reuse this version number for new work.

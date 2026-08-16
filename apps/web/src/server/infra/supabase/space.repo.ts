@@ -1,7 +1,7 @@
 import 'server-only';
 
 /**
- * Space data access — the layer the branded SpaceScope protects.
+ * Space data access - the layer the branded SpaceScope protects.
  *
  * Every query here runs as the Supabase service role, which has BYPASSRLS, so
  * the space predicate is written by this file into the SQL and by nothing else.
@@ -9,7 +9,7 @@ import 'server-only';
  * as parameter one rather than a `spaceId: string`: a caller-supplied id has no
  * type that fits.
  *
- * `findActiveGrant` and `findGrantsForUser` are the two deliberate exceptions —
+ * `findActiveGrant` and `findGrantsForUser` are the two deliberate exceptions -
  * they are what *produces* a scope, so they necessarily take raw ids. They are
  * called from `server/app/space-admin/authorize.ts` and must not be called
  * anywhere else.
@@ -66,7 +66,7 @@ type EmbeddedSpace = { spaces: { municipality_code: string | null } };
 type EmbeddedUser = { users: { first_name: string | null; last_name: string | null } | null };
 
 /**
- * SCOPE PRODUCER — may take raw ids. Backed by
+ * SCOPE PRODUCER - may take raw ids. Backed by
  * `idx_grant_resolver (user_id, space_id, capability) WHERE suspended_at IS NULL`.
  */
 export function findActiveGrant(
@@ -97,7 +97,7 @@ export function findActiveGrant(
 }
 
 /**
- * SCOPE PRODUCER — may take raw ids. Reads suspended rows too, because a
+ * SCOPE PRODUCER - may take raw ids. Reads suspended rows too, because a
  * suspended admin must still reach the shell to see the banner and escalate.
  */
 export function findGrantsForUser(
@@ -128,7 +128,7 @@ export function findGrantsForUser(
 
 /**
  * Two public entry points, one query. A membership is a weaker token than a
- * scope — it renders the shell and nothing else — so it gets its own signature
+ * scope - it renders the shell and nothing else - so it gets its own signature
  * rather than a cast to SpaceScope, which would let shell-level authority
  * reach a data-layer function that requires a capability.
  *
@@ -155,7 +155,7 @@ export const findSpaceSummaryByMembership = (m: SpaceMembership) =>
   selectSpaceRow(m.spaceId);
 
 /**
- * The review queue. `filter` deliberately has no space field — the only space
+ * The review queue. `filter` deliberately has no space field - the only space
  * predicate is the one read off the scope, and it is in the SQL rather than
  * applied after the fetch.
  *
@@ -164,7 +164,7 @@ export const findSpaceSummaryByMembership = (m: SpaceMembership) =>
  * subquery form.
  *
  * THE SUBMITTER EMBED MUST NAME ITS FOREIGN KEY. `votes` has three foreign
- * keys into `users` — `creator_id`, and the `hidden_by` / `flagged_by` columns
+ * keys into `users` - `creator_id`, and the `hidden_by` / `flagged_by` columns
  * 20260802000012 added for permitted-content moderation. An unqualified
  * `users(...)` is therefore ambiguous and PostgREST refuses the whole request
  * with PGRST201 rather than picking one, which surfaces as a 500 on the queue.
@@ -181,7 +181,7 @@ export function listProposals(
     .select(
       'id, title, description, status, creator_id, created_at, hidden_at, flagged_at, users!votes_creator_id_fkey(first_name, last_name)'
     )
-    .eq('municipality_id', scope.municipalityCode) // scope key, never a caller string — non-nullable by construction, so no cast
+    .eq('municipality_id', scope.municipalityCode) // scope key, never a caller string - non-nullable by construction, so no cast
     .in('status', filter.status ? [filter.status] : [...REVIEW_VOTE_STATUSES])
     .order('created_at', { ascending: false })
     .limit(Math.min(filter.limit ?? 50, 200))
@@ -229,7 +229,7 @@ export function countProposalsAwaitingDecision(
  * published and that residents can still vote on.
  *
  * `active` is the published-and-open status, distinct from `pending`
- * (approved but scheduled to start later) — see `initialStatus` in
+ * (approved but scheduled to start later) - see `initialStatus` in
  * server/domain/votes/vote.ts, which is what an approval resolves through.
  * Counting both would report votes nobody can cast yet as open.
  */

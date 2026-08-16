@@ -4,15 +4,103 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { NewsButton, VoteWidget, TallyBar } from '@/components/press';
 import { MunicipalityLink } from '@/components/uikit/municipality-link';
-import { useLiveTallies } from '@/hooks';
+import { useLiveTallies } from '@/hooks/useLiveTallies';
 import type { VoteFilter } from './types';
+import type { Locale } from '@/lib/i18n';
+import { localePrefix } from '@/lib/i18n';
 import styles from './VotesList.module.css';
-import { WHATSAPP_FOUNDERS_LINK } from '@sync/shared';
+import { KNESSET_SCOPE, WHATSAPP_FOUNDERS_LINK } from '@sync/shared';
 
 // Number of votes revealed per "Load More" click
 const PAGE_SIZE = 6;
 
 const WHATSAPP_LINK = WHATSAPP_FOUNDERS_LINK;
+
+interface ListCopy {
+  liveKicker: string;
+  votesUnit: string;
+  verifiedVotes: string;
+  statusActive: string;
+  statusEnded: string;
+  statusPending: string;
+  statusCancelled: string;
+  daysUnit: string;
+  hoursUnit: string;
+  underHour: string;
+  recordClosed: string;
+  recordAwaiting: string;
+  viewRecord: string;
+  viewDetails: string;
+  loadError: string;
+  loadingAria: string;
+  trustNote: string;
+  loadMore: string;
+  emptyKicker: string;
+  emptyTitle: string;
+  emptyTitleFor: (municipality: string) => string;
+  emptyText: string;
+  ctaGlyph: string;
+  ctaLabel: string;
+}
+
+const COPY: Record<Locale, ListCopy> = {
+  he: {
+    liveKicker: 'הצבעה חיה',
+    votesUnit: 'קולות',
+    verifiedVotes: 'קולות מאומתים',
+    statusActive: 'פעילה',
+    statusEnded: 'הסתיימה',
+    statusPending: 'ממתינה',
+    statusCancelled: 'בוטלה',
+    daysUnit: 'ימים',
+    hoursUnit: 'שעות',
+    underHour: 'פחות משעה',
+    recordClosed: 'רשומה סגורה',
+    recordAwaiting: 'ממתינה לפתיחה',
+    viewRecord: 'צפו ברשומה ←',
+    viewDetails: 'לפרטים ←',
+    loadError: 'לא ניתן לטעון את ההצבעות כרגע. נסו לרענן את העמוד.',
+    loadingAria: 'טוען הצבעות',
+    trustNote:
+      'הקול שלכם נרשם פעם אחת ומשויך לתושב מאומת. אי אפשר לשנות אותו בדיעבד.',
+    loadMore: 'טענו עוד הצבעות',
+    emptyKicker: 'נפתחים בקרוב בכל הארץ',
+    emptyTitle: 'עוד אין הצבעות פתוחות.',
+    emptyTitleFor: (municipality) => `עוד אין הצבעות פתוחות ב${municipality}.`,
+    emptyText:
+      'ההצבעה הראשונה נפתחת 04.08.26, בכל הארץ בבת אחת. הצטרפו לוואטסאפ לעדכון ביום הפתיחה.',
+    ctaGlyph: '←',
+    ctaLabel: 'קבוצת המייסדים',
+  },
+  en: {
+    liveKicker: 'Live vote',
+    votesUnit: 'votes',
+    verifiedVotes: 'verified votes',
+    statusActive: 'Active',
+    statusEnded: 'Ended',
+    statusPending: 'Pending',
+    statusCancelled: 'Cancelled',
+    daysUnit: 'days',
+    hoursUnit: 'hours',
+    underHour: 'Under an hour',
+    recordClosed: 'Closed record',
+    recordAwaiting: 'Awaiting opening',
+    viewRecord: 'View the record →',
+    viewDetails: 'Details →',
+    loadError: 'The votes cannot be loaded right now. Try refreshing the page.',
+    loadingAria: 'Loading votes',
+    trustNote:
+      'Your vote is recorded once and tied to a verified resident. It cannot be changed after the fact.',
+    loadMore: 'Load more votes',
+    emptyKicker: 'Opening soon nationwide',
+    emptyTitle: 'No open votes yet.',
+    emptyTitleFor: (municipality) => `No open votes in ${municipality} yet.`,
+    emptyText:
+      'The first vote opens 04.08.26, nationwide at once. Join the WhatsApp group for an update on opening day.',
+    ctaGlyph: '→',
+    ctaLabel: "Founders' group",
+  },
+};
 
 // Vote types matching API response
 interface VoteOption {
@@ -33,35 +121,35 @@ interface Vote {
   options: VoteOption[];
 }
 
-function getStatusLabel(status: string): string {
+function getStatusLabel(status: string, t: ListCopy): string {
   switch (status) {
     case 'active':
-      return 'פעילה';
+      return t.statusActive;
     case 'completed':
     case 'ended':
-      return 'הסתיימה';
+      return t.statusEnded;
     case 'pending':
-      return 'ממתינה';
+      return t.statusPending;
     case 'cancelled':
-      return 'בוטלה';
+      return t.statusCancelled;
     default:
       return status;
   }
 }
 
-function getTimeRemaining(endDate: string | Date): string {
+function getTimeRemaining(endDate: string | Date, t: ListCopy): string {
   const now = new Date();
   const end = typeof endDate === 'string' ? new Date(endDate) : endDate;
   const diff = end.getTime() - now.getTime();
 
-  if (diff < 0) return 'הסתיימה';
+  if (diff < 0) return t.statusEnded;
 
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
 
-  if (days > 0) return `${days} ימים`;
-  if (hours > 0) return `${hours} שעות`;
-  return 'פחות משעה';
+  if (days > 0) return `${days} ${t.daysUnit}`;
+  if (hours > 0) return `${hours} ${t.hoursUnit}`;
+  return t.underHour;
 }
 
 function isVoteEnded(status: string): boolean {
@@ -98,7 +186,8 @@ function toWidgetOptions(vote: Vote) {
  * Settled-record press card for ended / pending votes - final tally, winner
  * marked, muted (no live pulse). Mirrors the archive record card.
  */
-function RecordCard({ vote }: { vote: Vote }) {
+function RecordCard({ vote, locale }: { vote: Vote; locale: Locale }) {
+  const t = COPY[locale];
   const options = vote.options ?? [];
   const total = options.reduce((sum, o) => sum + o.voteCount, 0);
   const leading =
@@ -112,7 +201,7 @@ function RecordCard({ vote }: { vote: Vote }) {
     <article className={styles.record}>
       <header className={styles.recordHead}>
         <span className={styles.recordKicker}>
-          {ended ? 'רשומה סגורה' : 'ממתינה לפתיחה'}
+          {ended ? t.recordClosed : t.recordAwaiting}
         </span>
         <MunicipalityLink name={vote.municipality} className={styles.recordPlace} />
       </header>
@@ -130,18 +219,18 @@ function RecordCard({ vote }: { vote: Vote }) {
         </div>
         <TallyBar pct={leadingPct} selected={ended} />
         <span className={styles.recordCount}>
-          {total.toLocaleString('he-IL')} קולות מאומתים
+          {total.toLocaleString('he-IL')} {t.verifiedVotes}
         </span>
       </div>
 
       <footer className={styles.recordFoot}>
         <span className={styles.recordMeta}>
           {ended
-            ? getStatusLabel(vote.status)
-            : `${getStatusLabel(vote.status)} · ${getTimeRemaining(vote.endDate)}`}
+            ? getStatusLabel(vote.status, t)
+            : `${getStatusLabel(vote.status, t)} · ${getTimeRemaining(vote.endDate, t)}`}
         </span>
-        <Link href={`/votes/${vote.id}`} className={styles.recordLink}>
-          {ended ? 'צפו ברשומה ←' : 'לפרטים ←'}
+        <Link href={`${localePrefix(locale)}/votes/${vote.id}`} className={styles.recordLink}>
+          {ended ? t.viewRecord : t.viewDetails}
         </Link>
       </footer>
     </article>
@@ -150,9 +239,13 @@ function RecordCard({ vote }: { vote: Vote }) {
 
 interface VotesListProps {
   filter: VoteFilter;
+  /** Municipality desk to show, or null for the nationwide edition. */
+  municipality: string | null;
+  locale?: Locale;
 }
 
-export function VotesList({ filter }: VotesListProps) {
+export function VotesList({ filter, municipality, locale = 'he' }: VotesListProps) {
+  const t = COPY[locale];
   const [votes, setVotes] = useState<Vote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -188,36 +281,48 @@ export function VotesList({ filter }: VotesListProps) {
   }, [filter, votes]);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     async function fetchVotes() {
       try {
         setIsLoading(true);
         setError(null);
 
-        const response = await fetch('/api/votes');
+        const url = municipality
+          ? `/api/votes?municipality=${encodeURIComponent(municipality)}`
+          : '/api/votes';
+        const response = await fetch(url, { signal: controller.signal });
 
         if (!response.ok) {
           throw new Error('Failed to fetch votes');
         }
 
         const data = await response.json();
-        setVotes(data.votes ?? []);
+        // This is the municipal section: Knesset-agenda topics carry the
+        // national pseudo-municipality and belong on /knesset, never here.
+        const municipalVotes: Vote[] = (data.votes ?? []).filter(
+          (vote: Vote) => vote.municipality !== KNESSET_SCOPE
+        );
+        setVotes(municipalVotes);
       } catch (err) {
+        if (controller.signal.aborted) return;
         console.error('Error fetching votes:', err);
         setVotes([]);
-        setError('לא ניתן לטעון את ההצבעות כרגע. נסו לרענן את העמוד.');
+        setError(COPY[locale].loadError);
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted) setIsLoading(false);
       }
     }
 
     fetchVotes();
-  }, []);
+    return () => controller.abort();
+  }, [municipality, locale]);
 
   if (isLoading) {
     return (
       <section className={styles.votesList}>
         <div className={styles.container}>
-          <div className={styles.grid} aria-busy="true" aria-label="טוען הצבעות">
+          <div className={styles.grid} aria-busy="true" aria-label={t.loadingAria}>
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className={styles.skeletonCard}>
                 <div className={styles.skeletonRow}>
@@ -251,27 +356,25 @@ export function VotesList({ filter }: VotesListProps) {
         )}
 
         {error ? null : filteredVotes.length === 0 ? (
-          <EmptyState />
+          <EmptyState municipality={municipality} locale={locale} />
         ) : (
           <div className={styles.grid}>
             {visibleVotes.map((vote) =>
               vote.status === 'active' ? (
                 <div key={vote.id} className={styles.ballot}>
                   <VoteWidget
-                    kicker="הצבעה חיה"
+                    locale={locale}
+                    kicker={t.liveKicker}
                     place={<MunicipalityLink name={vote.municipality} />}
                     question={vote.title}
                     options={toWidgetOptions(vote)}
-                    totalLabel={`${vote.participantCount.toLocaleString('he-IL')} קולות`}
-                    href={`/votes/${vote.id}`}
+                    totalLabel={`${vote.participantCount.toLocaleString('he-IL')} ${t.votesUnit}`}
+                    href={`${localePrefix(locale)}/votes/${vote.id}`}
                   />
-                  <p className={styles.trustNote}>
-                    הקול שלכם נרשם פעם אחת ומשויך לתושב מאומת. אי אפשר לשנות
-                    אותו בדיעבד.
-                  </p>
+                  <p className={styles.trustNote}>{t.trustNote}</p>
                 </div>
               ) : (
-                <RecordCard key={vote.id} vote={vote} />
+                <RecordCard key={vote.id} vote={vote} locale={locale} />
               )
             )}
           </div>
@@ -285,7 +388,7 @@ export function VotesList({ filter }: VotesListProps) {
               size="lg"
               onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
             >
-              טענו עוד הצבעות
+              {t.loadMore}
             </NewsButton>
           </div>
         )}
@@ -298,24 +401,29 @@ export function VotesList({ filter }: VotesListProps) {
  * Pre-launch empty state as press furniture: ink-boxed dispatch with dateline,
  * the nationwide opening moment and a WhatsApp CTA.
  */
-function EmptyState() {
+function EmptyState({
+  municipality,
+  locale,
+}: {
+  municipality: string | null;
+  locale: Locale;
+}) {
+  const t = COPY[locale];
   return (
     <div className={styles.emptyState}>
       <div className={styles.emptyHead}>
         <span className={styles.emptyKicker}>
           <span className={styles.emptyDot} aria-hidden />
-          נפתחים בקרוב בכל הארץ
+          {t.emptyKicker}
         </span>
         <span className={styles.emptyDate}>04.08.26</span>
       </div>
 
       <h2 className={styles.emptyTitle}>
-        עוד אין הצבעות פתוחות.
+        {municipality ? t.emptyTitleFor(municipality) : t.emptyTitle}
       </h2>
 
-      <p className={styles.emptyText}>
-        ההצבעה הראשונה נפתחת 04.08.26, בכל הארץ בבת אחת. הצטרפו לוואטסאפ לעדכון ביום הפתיחה.
-      </p>
+      <p className={styles.emptyText}>{t.emptyText}</p>
 
       <NewsButton
         href={WHATSAPP_LINK}
@@ -323,9 +431,9 @@ function EmptyState() {
         rel="noopener noreferrer"
         variant="red"
         size="lg"
-        trailing={<span aria-hidden>←</span>}
+        trailing={<span aria-hidden>{t.ctaGlyph}</span>}
       >
-        קבוצת המייסדים
+        {t.ctaLabel}
       </NewsButton>
     </div>
   );

@@ -7,7 +7,7 @@
  *
  * Submission is free (issue #75): the request carries no payment reference, no
  * payment is verified, and the row lands in `in_review`. The ₪50 creation fee
- * is requested when a space admin approves — covered by
+ * is requested when a space admin approves - covered by
  * space-admin-approve-charge.test.ts, not here.
  */
 
@@ -146,7 +146,7 @@ describe('Votes API Routes', () => {
       // Now that submission lands in `in_review`, the public listing is the
       // surface where an unapproved proposal would leak. Asking for the review
       // status by name degrades to "no filter", and no filter means db.ts
-      // applies PUBLIC_VOTE_STATUSES. This asserts the route half — the row
+      // applies PUBLIC_VOTE_STATUSES. This asserts the route half - the row
       // predicate itself lives in getVotesByMunicipality, mocked here.
       (getVotesByMunicipality as Mock).mockResolvedValue([]);
 
@@ -336,7 +336,7 @@ describe('Votes API Routes', () => {
 
     it('should still submit into in_review when startDate is in the past', async () => {
       // Was "status is active when startDate is in the past". A start date that
-      // has already arrived no longer opens the vote — publication is the
+      // has already arrived no longer opens the vote - publication is the
       // approval's job, and `initialStatus` is only consulted there.
       (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
       (createVote as Mock).mockResolvedValue({

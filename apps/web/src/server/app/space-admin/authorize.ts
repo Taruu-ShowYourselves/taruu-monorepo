@@ -5,7 +5,7 @@ import 'server-only';
  *
  * RLS cannot secure this surface: every server query runs as the Supabase
  * service role, which has BYPASSRLS. Object-level authorization therefore
- * lives in the type system — a repository function takes a SpaceScope, which
+ * lives in the type system - a repository function takes a SpaceScope, which
  * only this module can construct, and reads the scoping key off it. A
  * caller-supplied spaceId string is untypable at the data layer.
  *
@@ -38,7 +38,7 @@ export interface SpaceScope {
    *
    * NON-NULLABLE, and authorize() refuses to mint a scope without it. The
    * spaces.type CHECK constraint already admits issue #74's non-municipal
-   * types, whose rows carry municipality_code IS NULL — and every scoped query
+   * types, whose rows carry municipality_code IS NULL - and every scoped query
    * in this phase filters `.eq('municipality_id', scope.municipalityCode)`.
    * With a nullable field the first such row would turn each of those queries
    * into `.eq(col, null)`, which matches nothing, with no guard and no error.
@@ -49,7 +49,7 @@ export interface SpaceScope {
   readonly userId: string;
   /**
    * The capability this scope was minted FOR. Carried for auditing and for
-   * reading at the use-case layer — no repository checks it. The brand stops a
+   * reading at the use-case layer - no repository checks it. The brand stops a
    * raw caller-supplied string reaching the data layer; it does not stop a
    * scope minted for one capability being passed to a repository belonging to
    * another. Capability correctness is the use-case's job, enforced by the
@@ -76,7 +76,7 @@ const SpaceIdSchema = z.string().uuid();
  * The one escape hatch in the phase, and it is module-private on purpose: a
  * branded interface has no legal constructor, so exactly one unsound cast has
  * to exist somewhere. Keeping it here, and only here, is what lets a grep for
- * that cast serve as the phase's brand-leak audit — outside `__tests__` it must
+ * that cast serve as the phase's brand-leak audit - outside `__tests__` it must
  * match this line and nothing else. A second match anywhere in `src/server` or
  * `src/app` means some caller has forged a scope instead of earning one.
  */
@@ -119,7 +119,7 @@ export function authorize(
 
     // A space with no municipality_code has no scoping key, and every scoped
     // query in this phase joins through municipality_id. Minting a scope with a
-    // null code would turn each of those into .eq(col, null) — matching nothing,
+    // null code would turn each of those into .eq(col, null) - matching nothing,
     // silently. Issue #74's non-municipal space types are already legal values in
     // the spaces.type CHECK, so this is reachable, not theoretical. Refuse, with
     // the same opaque forbidden() as every other failure so it is not a signal.
@@ -142,7 +142,7 @@ export function authorize(
  *
  * There is deliberately no twelfth `space.read` capability. Reaching the
  * dashboard shell is membership, and the UI capability manifest lists exactly
- * the eleven rows of `CAPABILITIES` — a twelfth would be a twelfth row the spec
+ * the eleven rows of `CAPABILITIES` - a twelfth would be a twelfth row the spec
  * does not have. See server/domain/space/capability.ts.
  *
  * A suspended admin still resolves, because they must be able to see the

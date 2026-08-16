@@ -57,6 +57,25 @@
   outline-offset: 2px;
 }
 
+/* Disabled: a quiet paper slot in every variant. The border must read as a
+   hairline yet the box may not shrink, so the --np-rule border goes
+   transparent and the hairline is drawn as an inset outline; a disabled
+   button cannot take focus, so this never collides with :focus-visible.
+   opacity: 1 counters the global button:disabled 50% wash. The :hover arm
+   outranks the variant hover inversions, which tie with .btn:disabled. */
+.btn:disabled,
+.btn:disabled:hover {
+  background: var(--np-paper);
+  color: var(--np-ink-faint);
+  border-color: transparent;
+  outline: var(--np-rule-hair) solid var(--np-ink);
+  outline-offset: calc(-1 * var(--np-rule-hair));
+  opacity: 1;
+  cursor: default;
+}
+
+.btn:disabled:active { transform: none; }
+
 @media (prefers-reduced-motion: reduce) {
   .btn { transition: none; }
   .btn:active { transform: none; }

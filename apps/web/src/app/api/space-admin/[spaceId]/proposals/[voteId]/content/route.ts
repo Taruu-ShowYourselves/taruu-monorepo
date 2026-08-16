@@ -1,5 +1,5 @@
 /**
- * POST /api/space-admin/{spaceId}/proposals/{voteId}/content — hide, unhide,
+ * POST /api/space-admin/{spaceId}/proposals/{voteId}/content - hide, unhide,
  * flag or unflag a proposal's content.
  *
  * The UI for this lives inside the proposal detail panel rather than on a

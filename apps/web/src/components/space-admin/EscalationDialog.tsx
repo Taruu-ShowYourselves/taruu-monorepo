@@ -8,7 +8,7 @@ import { NoPermissionPanel } from './Panels';
 import styles from './EscalationDialog.module.css';
 
 /**
- * `פנייה למנהל־על` — the SPACE-09 escalation path (D21).
+ * `פנייה למנהל-על` - the SPACE-09 escalation path (D21).
  *
  * TWO PROPERTIES, BOTH LOAD-BEARING. A later "consistency" pass must not
  * quietly undo either one:
@@ -18,7 +18,7 @@ import styles from './EscalationDialog.module.css';
  *    app, leaves nothing behind on our side, and an escalation about a wrongly
  *    suspended admin is exactly the case that has to be recorded somewhere the
  *    platform can see it. The endpoint answers every caller identically and
- *    writes only the platform escalation row — never a space's audit log.
+ *    writes only the platform escalation row - never a space's audit log.
  *
  * 2. It is rendered REGARDLESS OF CAPABILITY, including to a suspended admin
  *    and to a member holding nothing at all. Every other control on this
@@ -41,15 +41,15 @@ export interface EscalationDialogProps {
 }
 
 /** Copy-deck strings, each kept on one line so it stays one greppable literal. */
-const HEADING = 'פנייה למנהל־על';
+const HEADING = 'פנייה למנהל-על';
 const BODY = 'הפנייה נשלחת למנהלי הפלטפורמה יחד עם שם המרחב ועם החשבון שלכם.';
 const FIELD_LABEL = 'מה תרצו לבקש? (חובה)';
-const FIELD_ERROR = 'נדרש תיאור — לפחות 10 תווים.';
+const FIELD_ERROR = 'נדרש תיאור - לפחות 10 תווים.';
 const PLACEHOLDER =
-  'תארו מה חסם אתכם — למשל הרשאה שאתם צריכים, או השעיה שנראית לכם שגויה.';
+  'תארו מה חסם אתכם - למשל הרשאה שאתם צריכים, או השעיה שנראית לכם שגויה.';
 const CONFIRM = 'שלחו פנייה';
 const UNBLOCK_HINT = 'התיאור נדרש כדי להמשיך.';
-const SENT = 'הפנייה נשלחה. מנהל־על יקבל אותה עם פרטי המרחב.';
+const SENT = 'הפנייה נשלחה. מנהל-על יקבל אותה עם פרטי המרחב.';
 
 /**
  * Two failures worth telling apart: the limiter is five an hour per user, and
@@ -80,7 +80,7 @@ export function EscalationDialog({
       });
 
       if (!response.ok) {
-        // The dialog stays open and the typed text survives — losing a
+        // The dialog stays open and the typed text survives - losing a
         // description someone had to write twice is its own small injustice.
         setError(response.status === 429 ? RATE_LIMITED : FAILED);
         return;

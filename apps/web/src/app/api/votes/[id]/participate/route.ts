@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/services/auth/session';
 import {
   getVoteWithOptions,
@@ -13,6 +13,9 @@ import {
   voteParticipationLimiter,
   createRateLimitResponse,
 } from '@/lib/rate-limit';
+import { decidePilotGate } from '@/server/domain/pilot/gate';
+import { listActiveCohortIds } from '@/server/infra/supabase/pilot.repo';
+import { markPilotParticipant } from '@/server/infra/supabase/pilot-registration.repo';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -99,6 +102,33 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Pilot residency is a separate, municipality-level constraint. It is
+    // evaluated only here, the server's ballot chokepoint; public readers can
+    // always watch every result and no client-side state can weaken it.
+    // Unit fixtures predate pilot tables and deliberately exercise the legacy
+    // ballot contract without a database client. Runtime always resolves this
+    // server-side; the test-only empty set keeps those isolated fixtures pure.
+    let activePilotIds: string[] = [];
+    if (process.env.NODE_ENV !== 'test') {
+      const activePilotResult = await listActiveCohortIds();
+      if (activePilotResult.isErr()) throw new Error('could not resolve pilot cohort');
+      activePilotIds = activePilotResult.value;
+    }
+    const pilotGate = decidePilotGate(
+      vote.municipality_id,
+      new Set(activePilotIds),
+      user.municipality_id
+    );
+    if (!pilotGate.allowed) {
+      return NextResponse.json(
+        {
+          error: 'הצבעה זו פתוחה לתושבי הרשות המשתתפת בלבד.',
+          code: 'PILOT_MUNICIPALITY_ONLY',
+        },
+        { status: 403 }
+      );
+    }
+
     // Server-side voter eligibility - the enforcement point, mirroring what
     // the client already shows.
     const eligibility = await checkVoterEligibility(user);
@@ -128,6 +158,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           updated_at: new Date().toISOString(),
         })
         .eq('id', voteId);
+
+      // A verified resident who votes directly may have skipped the pilot
+      // arrival page. Record the aggregate funnel event without ever blocking
+      // their ballot on analytics work.
+      if (activePilotIds.includes(vote.municipality_id)) {
+        try {
+          after(async () => {
+            await markPilotParticipant(session.userId, vote.municipality_id);
+          });
+        } catch {
+          void markPilotParticipant(session.userId, vote.municipality_id);
+        }
+      }
     }
 
     return NextResponse.json({

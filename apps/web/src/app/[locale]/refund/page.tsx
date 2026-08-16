@@ -2,60 +2,30 @@ import { Metadata } from 'next';
 import { LegalPage, type LegalSection } from '@/components/legal/LegalPage';
 import type { Locale } from '@/lib/i18n';
 
-export const metadata: Metadata = {
-  title: 'מדיניות החזרים | תַּרְאוּ',
-  description: 'מדיניות ההחזרים עבור תשלומי יצירת הצבעות בתַּרְאוּ.',
-};
-
-interface PageProps {
-  params: Promise<{ locale: Locale }>;
+interface RefundCopy {
+  title: string;
+  /** English-only convenience notice rendered as the first line of the standfirst. */
+  disclaimer?: string;
+  intro: string;
+  updated: string;
+  sections: LegalSection[];
 }
 
 const LAST_UPDATED = '2026-07-29';
 
-function content(locale: Locale): { title: string; intro: string; updated: string; sections: LegalSection[] } {
-  if (locale === 'en') {
-    return {
-      title: 'Refund Policy',
-      intro:
-        'This policy explains when payments on Taro (vote creation and store purchases) can be refunded. Payments are processed by Green Invoice (Merchant of Record).',
-      updated: `Last updated: ${LAST_UPDATED}`,
-      sections: [
-        {
-          heading: '1. What You Are Paying For',
-          paragraphs: [
-            'Voting is free. The only paid civic action is vote creation (₪50): a digital action that publishes a new vote immediately.',
-          ],
-        },
-        {
-          heading: '2. When You Can Get a Refund',
-          bullets: [
-            'If a technical error charged you without the action completing, or you were charged more than once for the same action, you are entitled to a full refund.',
-            'A vote-creation payment is refundable if the vote was not published due to a failure on our side.',
-            'Requests made within 14 days of payment will be reviewed in line with applicable consumer-protection law.',
-          ],
-        },
-        {
-          heading: '3. When Refunds Are Not Available',
-          paragraphs: [
-            'Once a created vote has been published, the action is final and generally non-refundable, because the service was delivered.',
-          ],
-        },
-        {
-          heading: '4. How to Request a Refund',
-          paragraphs: [
-            'Email support@taruu.co.il with your payment/transaction id (from your Green Invoice receipt) and a short description. Because Green Invoice is the Merchant of Record, refunds are issued back to your original payment method via Green Invoice, typically within 5–10 business days.',
-          ],
-        },
-        {
-          heading: '5. Contact',
-          paragraphs: ['Refund requests: support@taruu.co.il'],
-        },
-      ],
-    };
-  }
+const METADATA: Record<Locale, Metadata> = {
+  he: {
+    title: 'מדיניות החזרים | תַּרְאוּ',
+    description: 'מדיניות ההחזרים עבור תשלומי יצירת הצבעות בתַּרְאוּ.',
+  },
+  en: {
+    title: 'Refund Policy | Taruu',
+    description: 'The refund policy for vote-creation payments on Taruu.',
+  },
+};
 
-  return {
+const COPY: Record<Locale, RefundCopy> = {
+  he: {
     title: 'מדיניות החזרים',
     intro:
       'מדיניות זו מסבירה מתי ניתן להחזיר תשלומים בתַּרְאוּ (יצירת הצבעות ורכישות בחנות). התשלומים מעובדים על ידי Green Invoice (Merchant of Record).',
@@ -92,11 +62,61 @@ function content(locale: Locale): { title: string; intro: string; updated: strin
         paragraphs: ['בקשות החזר: support@taruu.co.il'],
       },
     ],
-  };
+  },
+  en: {
+    title: 'Refund Policy',
+    disclaimer:
+      'This English translation is provided for convenience only; the Hebrew original is the binding version.',
+    intro:
+      'This policy explains when payments on Taruu (vote creation and store purchases) can be refunded. Payments are processed by Green Invoice (Merchant of Record).',
+    updated: `Last updated: ${LAST_UPDATED}`,
+    sections: [
+      {
+        heading: '1. What You Are Paying For',
+        paragraphs: [
+          'Voting is free. The only paid action is creating a vote (₪50): a digital action that publishes a new vote immediately.',
+        ],
+      },
+      {
+        heading: '2. When You Can Receive a Refund',
+        bullets: [
+          'If a technical fault charged you without the action being completed, or if you were charged more than once for the same action, you are entitled to a full refund.',
+          'A payment for creating a vote will be refunded if the vote was not published due to a failure on our side.',
+          'Requests submitted within 14 days of payment will be reviewed in accordance with the Consumer Protection Law, 5741-1981.',
+        ],
+      },
+      {
+        heading: '3. When a Refund Is Not Available',
+        paragraphs: [
+          'Once a created vote has been published, the action is final and, as a rule, non-refundable, since the service has been provided.',
+        ],
+      },
+      {
+        heading: '4. How to Request a Refund',
+        paragraphs: [
+          'Send an email to support@taruu.co.il with the payment/transaction identifier (from your Green Invoice receipt) and a short description. Since Green Invoice is the Merchant of Record, refunds are made to the original payment method via Green Invoice, usually within 5–10 business days.',
+        ],
+      },
+      {
+        heading: '5. Contact',
+        paragraphs: ['Refund requests: support@taruu.co.il'],
+      },
+    ],
+  },
+};
+
+interface PageProps {
+  params: Promise<{ locale: Locale }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  return METADATA[locale];
 }
 
 export default async function RefundPage({ params }: PageProps) {
   const { locale } = await params;
-  const c = content(locale);
-  return <LegalPage locale={locale} title={c.title} intro={c.intro} updated={c.updated} sections={c.sections} />;
+  const t = COPY[locale];
+  const intro = t.disclaimer ? `${t.disclaimer} ${t.intro}` : t.intro;
+  return <LegalPage locale={locale} title={t.title} intro={intro} updated={t.updated} sections={t.sections} />;
 }
