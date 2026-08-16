@@ -35,9 +35,11 @@ codex login status >/dev/null 2>&1 || { echo "   Codex CLI not authenticated —
 
 say "4/6 host identity (.agentic/config.local.json — gitignored)"
 if [ ! -f .agentic/config.local.json ]; then
-  read -rp "   your email for cycle notifications: " HOST_EMAIL
-  read -rp "   your GitHub login (assignee filter, e.g. DolevSeren): " HOST_LOGIN
-  sed -e "s/YOUR-EMAIL@example.com/${HOST_EMAIL}/" -e "s/DolevSeren/${HOST_LOGIN}/" \
+  read -rp "   your email for cycle notifications [dolev@taruu.co.il]: " HOST_EMAIL
+  HOST_EMAIL=${HOST_EMAIL:-dolev@taruu.co.il}
+  read -rp "   your GitHub login (assignee filter) [DolevSeren]: " HOST_LOGIN
+  HOST_LOGIN=${HOST_LOGIN:-DolevSeren}
+  sed -e "s/dolev@taruu.co.il/${HOST_EMAIL}/" -e "s/DolevSeren/${HOST_LOGIN}/" \
     .agentic/config.local.example.json > .agentic/config.local.json
   echo "   wrote .agentic/config.local.json"
 else

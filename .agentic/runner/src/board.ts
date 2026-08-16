@@ -116,6 +116,54 @@ async function itemIdFor(issue: number, projectId: string): Promise<string | nul
 }
 
 /**
+ * Issue numbers on the board carrying ANY "Humans Only" value. Checked every
+ * tick so marking an item mid-flight stops the lane — not just at admission.
+ */
+export async function humansOnlyIssues(): Promise<Set<number>> {
+  const c = config();
+  try {
+    const data = await graphql<{
+      organization: { projectV2: { items: { nodes: {
+        content: { number?: number; repository?: { nameWithOwner: string } } | null;
+        ho: { name?: string } | null;
+      }[] } } };
+    }>(`query{ organization(login:"${c.board.owner}"){ projectV2(number:${c.board.projectNumber}){ items(first:100){ nodes{ content{...on Issue{number repository{nameWithOwner}}} ho:fieldValueByName(name:"Humans Only"){...on ProjectV2ItemFieldSingleSelectValue{name}} } } } } }`);
+    return new Set(
+      data.organization.projectV2.items.nodes
+        .filter((n) => n.ho?.name && n.content?.repository?.nameWithOwner === c.repo && n.content.number)
+        .map((n) => n.content!.number!),
+    );
+  } catch (e) {
+    console.error(`[board] humans-only lookup failed: ${(e as Error).message}`);
+    return new Set();
+  }
+}
+
+/**
+ * Hand an item back to humans: Status → Todo, Stage and Need Human cleared.
+ * Used when a lane stops because the item was marked Humans Only.
+ */
+export async function resetItem(issue: number): Promise<void> {
+  try {
+    const f = await boardFields();
+    if (!f) return;
+    const item = await itemIdFor(issue, f.projectId);
+    if (!item) return;
+    const todo = f.status.options["Todo"];
+    const parts: string[] = [];
+    if (todo) {
+      parts.push(`st: updateProjectV2ItemFieldValue(input:{projectId:"${f.projectId}", itemId:"${item}", fieldId:"${f.status.id}", value:{singleSelectOptionId:"${todo}"}}){ projectV2Item{ id } }`);
+    }
+    parts.push(`sg: clearProjectV2ItemFieldValue(input:{projectId:"${f.projectId}", itemId:"${item}", fieldId:"${f.stage.id}"}){ projectV2Item{ id } }`);
+    parts.push(`nh: clearProjectV2ItemFieldValue(input:{projectId:"${f.projectId}", itemId:"${item}", fieldId:"${f.needHuman.id}"}){ projectV2Item{ id } }`);
+    await graphql(`mutation{ ${parts.join(" ")} }`);
+    lastSynced.delete(issue);
+  } catch (e) {
+    console.error(`[board #${issue}] reset failed: ${(e as Error).message}`);
+  }
+}
+
+/**
  * Mirror one lane. Sets Stage from the phase; sets Need Human (red) when a
  * human is the blocker, clears it otherwise. Idempotent per phase — repeat
  * daemon ticks on a waiting gate cost zero API calls.

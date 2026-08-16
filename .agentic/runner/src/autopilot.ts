@@ -11,7 +11,7 @@ import { config } from "./config.ts";
 import { runGraph, type NodeFn } from "./graph.ts";
 import { nodes } from "./nodes.ts";
 import { routers } from "./routers.ts";
-import { syncBoard } from "./board.ts";
+import { syncBoard, humansOnlyIssues, resetItem } from "./board.ts";
 import { activeLanes, loadLane, newLane, saveLane, type LaneState } from "./state.ts";
 
 const exec = promisify(execFile);
@@ -167,8 +167,21 @@ async function walkLane(lane: LaneState): Promise<void> {
  * together — the later one parks for human re-ordering.
  */
 export async function tick(): Promise<void> {
+  // Humans Only is re-checked EVERY tick, not only at admission: marking an
+  // item mid-flight stops its lane at the next tick boundary — the lane
+  // parks, and the board hands back to the human (Status → Todo, agent
+  // fields cleared).
+  const handsOff = await humansOnlyIssues();
   const runnable: LaneState[] = [];
   for (const lane of activeLanes()) {
+    if (handsOff.has(lane.issue)) {
+      lane.phase = "parked";
+      lane.exitReason = "parked";
+      saveLane(lane);
+      await resetItem(lane.issue);
+      console.log(`[lane #${lane.issue}] stopped — item marked Humans Only`);
+      continue;
+    }
     if (lane.pathClaims.length > 0 &&
         runnable.some((o) => claimsOverlap(lane.pathClaims, o.pathClaims))) {
       lane.phase = "parked";
