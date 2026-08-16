@@ -17,12 +17,17 @@ export function readTemplate(name: string): string {
   return readFileSync(join(AG(), "templates", `${name}.template.md`), "utf8");
 }
 
+/**
+ * Lane artifacts live in the LANE'S WORKTREE (they are the draft PR's first
+ * content and get committed there) — never in the daemon's own checkout.
+ * Prompts/templates above stay cwd-relative: read-only, main checkout.
+ */
 export function specPath(lane: LaneState): string {
-  return join(AG(), "specs", `${lane.issue}-${lane.slug}.v${lane.specVersion}.md`);
+  return join(lane.worktree, ".agentic", "specs", `${lane.issue}-${lane.slug}.v${lane.specVersion}.md`);
 }
 
 export function researchPath(lane: LaneState): string {
-  return join(AG(), "specs", `${lane.issue}-RESEARCH.md`);
+  return join(lane.worktree, ".agentic", "specs", `${lane.issue}-RESEARCH.md`);
 }
 
 export function readIfExists(p: string): string {
