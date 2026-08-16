@@ -1,0 +1,5 @@
+worktrees/
+lanes/*.json
+lanes/*.checkpoint.md
+metrics/*.jsonl
+.env
