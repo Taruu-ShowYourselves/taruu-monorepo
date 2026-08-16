@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MINIMUM_IDENTITY_SCORE_FOR_VOTING } from '@sync/shared';
 import type { UserProfile, SocialProof, IdentityScore, VerificationStatus } from '@sync/shared';
 import {
   signInWithGoogle,
@@ -188,8 +189,10 @@ export const useIdentityScore = () =>
 
 export const useCanVote = () =>
   useAuthStore((state) => {
+    // Score floor only, for display: the server-enforced ballot gate
+    // additionally requires explicitly verified GPS residency (issue #71).
     const score = state.user?.identityScore?.total || 0;
-    return score >= 40;
+    return score >= MINIMUM_IDENTITY_SCORE_FOR_VOTING;
   });
 
 export const useIdentityLevel = () =>

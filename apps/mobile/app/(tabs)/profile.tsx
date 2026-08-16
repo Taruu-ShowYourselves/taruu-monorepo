@@ -7,7 +7,7 @@ import { Image } from 'expo-image';
 import { useAuthStore, useUser, useSyncTokenBalance, useIdentityScore, useAvatarUrl } from '@/stores/authStore';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { getIdentityLevelLabel } from '@sync/shared';
+import { getIdentityLevelLabel, IDENTITY_SCORE_MAX } from '@sync/shared';
 import { usersApi } from '@sync/api-client';
 
 const APP_URL = process.env.EXPO_PUBLIC_APP_URL || 'https://taruu.co.il';
@@ -154,7 +154,7 @@ export default function ProfileScreen() {
                     ציון זהות
                   </Text>
                   <Text className="text-lg font-heebo font-bold text-neutral-900 text-right">
-                    {identityScore?.total || 0}/100
+                    {identityScore?.total || 0}/{IDENTITY_SCORE_MAX}
                   </Text>
                 </View>
               </View>

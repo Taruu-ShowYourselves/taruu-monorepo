@@ -1,29 +1,36 @@
 /**
  * Identity Score Calculator
  *
- * Calculates user's identity verification score based on GPS verification and connected social accounts.
- * Higher scores indicate higher confidence in user's authentic identity (Sybil-resistance).
+ * Calculates user's identity verification score from connected social
+ * accounts and verification evidence. Higher scores indicate higher
+ * confidence in user's authentic identity (Sybil-resistance).
  *
- * Score Breakdown (per specs/auth-flow.md v77):
- * - GPS Verification: 40 points (location proof, highest weight)
+ * Score Breakdown (issue #71 final model; canonical writer is the database -
+ * migration 20260807000001 - this mirror exists for client-side display):
  * - Google: 40 points (primary auth, REQUIRED)
+ * - Identity document: 40 points (operator-approved OCR; inert until PR-10)
+ * - GPS Verification: 20 points (21-day location proof)
+ * - Phone: 10 points (server-verified SMS OTP)
  * - Facebook: 10 points (social proof)
  * - Instagram: 10 points (social proof)
+ * Maximum: 140.
  *
- * Levels:
- * - basic: 40-59 points (Google only)
- * - verified: 60-79 points (Google + GPS or Google + both socials)
- * - trusted: 80-100 points (Google + GPS + at least one social)
+ * Levels (identity_score only - security_score never feeds these):
+ * - basic: 40-79 points
+ * - verified: 80-119 points
+ * - trusted: 120-140 points
  *
- * Minimum to vote: 40 points (Google verification required)
- * Recommended: 80+ points (trusted status with GPS verification)
+ * Ballot: identity_score >= 40 AND explicitly verified GPS residency - see
+ * MINIMUM_IDENTITY_SCORE_FOR_VOTING and votingGate below.
  */
 
 import type { SocialProof, IdentityScore, SocialPlatform } from '../types/user';
 
 // === Score Constants ===
 
-export const GPS_SCORE_WEIGHT = 40;
+export const GPS_SCORE_WEIGHT = 20;
+export const PHONE_SCORE_WEIGHT = 10;
+export const ID_DOCUMENT_SCORE_WEIGHT = 40;
 
 export const IDENTITY_SCORE_WEIGHTS: Record<SocialPlatform, number> = {
   google: 40,
@@ -31,36 +38,62 @@ export const IDENTITY_SCORE_WEIGHTS: Record<SocialPlatform, number> = {
   instagram: 10,
 };
 
-export const VERIFIED_THRESHOLD = 60;
-export const TRUSTED_THRESHOLD = 80;
+export const IDENTITY_SCORE_MAX = 140;
+export const VERIFIED_THRESHOLD = 80;
+export const TRUSTED_THRESHOLD = 120;
 
 /**
- * Minimum score to cast a ballot: trusted, nothing less.
+ * Minimum identity score to cast a ballot: the Google sign-in baseline (40).
  *
- * Google sign-in alone scores 40, and no arrangement of social proofs reaches
- * 80 without the GPS residency check (40 + 10 + 10 = 60). That is the point:
- * one ballot per real resident of the municipality, and only the residency
- * programme evidences the "of the municipality" part. Anyone below this must
- * finish onboarding first.
+ * The number alone is NOT sufficient. Ballot eligibility is
+ *   identity_score >= MINIMUM_IDENTITY_SCORE_FOR_VOTING
+ *   AND explicitly verified residency
+ * (see {@link votingGate}). The two requirements are deliberately separate:
+ * the aggregate score measures accumulated identity evidence, while the
+ * mandatory residency evidence is checked explicitly as a boolean - the GPS
+ * +20 stays in the score for identity/trust purposes but is NOT what grants
+ * ballot eligibility, and no evidence (phone, socials, an operator-approved
+ * identity document, X) substitutes for residency. Deliberately NOT derived
+ * from TRUSTED_THRESHOLD: identity levels and ballot eligibility are
+ * separate concepts.
  */
-export const MINIMUM_VOTING_SCORE = TRUSTED_THRESHOLD;
+export const MINIMUM_IDENTITY_SCORE_FOR_VOTING = 40;
 
 // === Score Calculation ===
 
+/** Non-social verification evidence feeding the identity score. */
+export interface IdentityEvidence {
+  /** Server-verified SMS OTP completed (users.phone_verified). */
+  phoneVerified?: boolean;
+  /** Operator-approved identity document (users.identity_verified_at). */
+  idDocumentApproved?: boolean;
+}
+
+/** Map a total onto the level bands (identity_score only, never security_score). */
+export function getIdentityLevelForTotal(total: number): IdentityScore['level'] {
+  if (total >= TRUSTED_THRESHOLD) return 'trusted';
+  if (total >= VERIFIED_THRESHOLD) return 'verified';
+  return 'basic';
+}
+
 /**
- * Calculate identity score from social proofs and GPS verification status
+ * Calculate identity score from social proofs and verification evidence.
  * @param socialProofs - Array of connected social proof objects
  * @param gpsVerified - Whether GPS verification is completed (21-day verification passed)
+ * @param evidence - Phone / identity-document evidence (issue #71 final model)
  */
 export function calculateIdentityScore(
   socialProofs: SocialProof[],
-  gpsVerified: boolean = false
+  gpsVerified: boolean = false,
+  evidence: IdentityEvidence = {}
 ): IdentityScore {
   const breakdown = {
     gps: gpsVerified ? GPS_SCORE_WEIGHT : 0,
     google: 0,
     facebook: 0,
     instagram: 0,
+    phone: evidence.phoneVerified ? PHONE_SCORE_WEIGHT : 0,
+    idDocument: evidence.idDocumentApproved ? ID_DOCUMENT_SCORE_WEIGHT : 0,
   };
 
   // Calculate points for each verified platform
@@ -71,45 +104,42 @@ export function calculateIdentityScore(
     }
   }
 
-  // Calculate total score
-  const total =
-    breakdown.gps + breakdown.google + breakdown.facebook + breakdown.instagram;
-
-  // Determine level based on new thresholds (per specs/auth-flow.md v77)
-  // basic: 40-59, verified: 60-79, trusted: 80-100
-  let level: IdentityScore['level'];
-  if (total >= TRUSTED_THRESHOLD) {
-    level = 'trusted';
-  } else if (total >= VERIFIED_THRESHOLD) {
-    level = 'verified';
-  } else {
-    level = 'basic';
-  }
+  const total = Math.min(
+    breakdown.gps +
+      breakdown.google +
+      breakdown.facebook +
+      breakdown.instagram +
+      breakdown.phone +
+      breakdown.idDocument,
+    IDENTITY_SCORE_MAX
+  );
 
   return {
     total,
     breakdown,
-    level,
+    level: getIdentityLevelForTotal(total),
   };
 }
 
 /**
- * Check if user has minimum score to vote
+ * Score-floor check only - NECESSARY but NOT SUFFICIENT for a ballot.
+ * Eligibility additionally requires explicitly verified residency; callers
+ * deciding anything ballot-shaped must go through {@link votingGate}.
  */
 export function canVote(identityScore: IdentityScore): boolean {
-  return identityScore.total >= MINIMUM_VOTING_SCORE;
+  return identityScore.total >= MINIMUM_IDENTITY_SCORE_FOR_VOTING;
 }
 
-/** What a resident still owes the ballot box, in points. */
+/** What a resident still owes the ballot box. */
 export interface VotingGate {
-  /** 0-100, residency points included. */
+  /** 0-140; the stored identity score, residency points already included. */
   readonly total: number;
-  /** {@link MINIMUM_VOTING_SCORE}, carried so a caller can print it. */
+  /** {@link MINIMUM_IDENTITY_SCORE_FOR_VOTING}, carried so a caller can print it. */
   readonly required: number;
-  /** Points still missing. Zero once the gate opens. */
+  /** Points still missing toward `required`. Zero once satisfied. */
   readonly missing: number;
-  /** Points the residency programme is currently contributing. */
-  readonly residencyPoints: number;
+  /** Residency is a hard requirement of its own, never a point substitute. */
+  readonly residencyVerified: boolean;
   readonly canVote: boolean;
 }
 
@@ -117,27 +147,32 @@ export interface VotingGate {
  * The one voting gate, shared by the server that enforces it and the surfaces
  * that explain it.
  *
- * `identityPoints` is the stored identity score, which counts sign-in and
- * social proofs only: nothing in the codebase calls
- * {@link calculateIdentityScore} with `gpsVerified`, so its GPS component is
- * always zero and residency is added here instead - once, from whichever
- * residency signal the caller holds. Both sides must pass the same predicate
- * (programme completed OR at least one successful check-in) or the desk will
- * promise a ballot the server refuses.
+ * `identityPoints` is the stored, database-owned identity score. Since the
+ * Issue #71 unification that score already CONTAINS the GPS residency points
+ * (+20), this gate adds nothing on top - re-adding them here would count
+ * residency twice. Residency participates ONLY as an explicit boolean
+ * requirement: a ballot needs the 40-point Google baseline AND verified
+ * residency. The +20 GPS contribution stays in the score for identity/trust
+ * display, but it is the boolean - not those points - that grants
+ * eligibility, so no other evidence (phone, socials, an approved identity
+ * document, X) can substitute for living in the municipality, and a verified
+ * resident whose stored score has not yet been backfilled past 40 is still
+ * eligible. security_score and the displayed combined trust score never
+ * participate. Server enforcement and desk display must both come through
+ * here or the desk will promise a ballot the server refuses.
  */
 export function votingGate(input: {
   readonly identityPoints: number;
   readonly residencyVerified: boolean;
 }): VotingGate {
-  const residencyPoints = input.residencyVerified ? GPS_SCORE_WEIGHT : 0;
-  const total = Math.min(100, Math.max(0, input.identityPoints) + residencyPoints);
+  const total = Math.min(IDENTITY_SCORE_MAX, Math.max(0, input.identityPoints));
 
   return {
     total,
-    required: MINIMUM_VOTING_SCORE,
-    missing: Math.max(0, MINIMUM_VOTING_SCORE - total),
-    residencyPoints,
-    canVote: total >= MINIMUM_VOTING_SCORE,
+    required: MINIMUM_IDENTITY_SCORE_FOR_VOTING,
+    missing: Math.max(0, MINIMUM_IDENTITY_SCORE_FOR_VOTING - total),
+    residencyVerified: input.residencyVerified,
+    canVote: total >= MINIMUM_IDENTITY_SCORE_FOR_VOTING && input.residencyVerified,
   };
 }
 
@@ -204,6 +239,8 @@ export function createInitialIdentityScore(): IdentityScore {
       google: 0,
       facebook: 0,
       instagram: 0,
+      phone: 0,
+      idDocument: 0,
     },
     level: 'basic',
   };
@@ -265,9 +302,9 @@ export function getIdentityLevelDescription(
   level: IdentityScore['level']
 ): string {
   const descriptions: Record<IdentityScore['level'], string> = {
-    basic: 'אימות Google בלבד - מומלץ להוסיף אימות GPS',
-    verified: 'אימות עם GPS או רשתות חברתיות - רמת אמון גבוהה',
-    trusted: 'אימות מלא עם GPS - רמת אמון מקסימלית',
+    basic: 'אימות Google בלבד - מומלץ להוסיף אימותים נוספים',
+    verified: 'אימות מורחב (GPS, טלפון או רשתות חברתיות) - רמת אמון גבוהה',
+    trusted: 'אימות מלא כולל מסמך זהות - רמת אמון מקסימלית',
   };
   return descriptions[level];
 }
