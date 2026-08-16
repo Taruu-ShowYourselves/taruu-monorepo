@@ -4,6 +4,7 @@ import {
   getUserById,
   createPayment,
   getPaymentByIdempotencyKey,
+  attachPaymentFormUrl,
 } from '@/lib/supabase/db';
 import {
   paymentService,
@@ -110,15 +111,33 @@ export async function POST(request: NextRequest) {
     }
 
     if (resolution.kind === 'reuse') {
-      // Idempotent retry: same draft, same user, payment still pending.
+      // Idempotent retry: same draft, same user, payment still pending. Hand
+      // back the hosted-form URL stored at first create, so the retry can pay
+      // the SAME payment instead of dead-ending on a payment with no way to
+      // pay it (the client maps a URL-less payment to CHECKOUT_UNAVAILABLE).
+      // Rows created before the URL was persisted degrade to the old shape.
+      const metadata = (resolution.existing.metadata ?? {}) as Record<string, unknown>;
+      const storedFormUrl =
+        typeof metadata.providerFormUrl === 'string' && metadata.providerFormUrl.length > 0
+          ? metadata.providerFormUrl
+          : undefined;
+      const storedFormExpiresAt =
+        typeof metadata.providerFormExpiresAt === 'string' &&
+        metadata.providerFormExpiresAt.length > 0
+          ? metadata.providerFormExpiresAt
+          : undefined;
+
       return NextResponse.json({
         success: true,
         idempotent: true,
         payment: {
           id: resolution.existing.id,
+          orderId: resolution.existing.id,
           status: resolution.existing.status,
           amount: resolution.existing.amount,
           currency: resolution.existing.currency,
+          ...(storedFormUrl ? { paymentUrl: storedFormUrl } : {}),
+          ...(storedFormUrl && storedFormExpiresAt ? { expiresAt: storedFormExpiresAt } : {}),
         },
       });
     }
@@ -156,6 +175,16 @@ export async function POST(request: NextRequest) {
       name: userName,
       municipality: user.municipality_id || undefined,
     });
+
+    // Persist the hosted-form URL on the payment row, so an idempotent retry of
+    // this request (same user, same draft) is handed the same checkout instead
+    // of a payment it cannot pay. Best-effort: the fresh response below already
+    // carries the URL either way.
+    await attachPaymentFormUrl(
+      payment.id,
+      paymentIntent.paymentUrl,
+      paymentIntent.expiresAt.toISOString()
+    );
 
     return NextResponse.json({
       success: true,

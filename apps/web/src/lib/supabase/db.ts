@@ -564,6 +564,43 @@ export async function createPayment(
 }
 
 /**
+ * Persist the provider's hosted-form URL (and its expiry) on a pending
+ * payment's metadata. Written once, right after the Green Invoice form is
+ * minted, so an idempotent retry of /api/payments/create can hand the caller
+ * the SAME checkout instead of a payment with no way to pay it. Best-effort by
+ * design: on failure the payment stays fully usable - only the reuse path
+ * degrades back to "no URL stored".
+ */
+export async function attachPaymentFormUrl(
+  paymentId: string,
+  formUrl: string,
+  expiresAt: string
+): Promise<void> {
+  const { data: row, error: selErr } = await supabaseAdmin
+    .from('payments')
+    .select('metadata')
+    .eq('id', paymentId)
+    .maybeSingle();
+
+  if (selErr || !row) {
+    console.error('Failed to read payment metadata for form url:', selErr);
+    return;
+  }
+
+  const metadata = (row.metadata as Record<string, unknown>) || {};
+  const { error: updErr } = await supabaseAdmin
+    .from('payments')
+    .update({
+      metadata: { ...metadata, providerFormUrl: formUrl, providerFormExpiresAt: expiresAt },
+    })
+    .eq('id', paymentId);
+
+  if (updErr) {
+    console.error('Failed to attach payment form url:', updErr);
+  }
+}
+
+/**
  * Atomically claim a payment as completed: `pending → completed` guarded in the
  * same statement. Returns the row to the single caller that won the race, or
  * null if it was already completed / lost (idempotent). All downstream

@@ -83,7 +83,8 @@ describe('startVoteCreationCheckout', () => {
   it('treats a 200 with no checkout URL as an error, never a success', async () => {
     // This is the exact branch that used to fabricate a seal and render a
     // receipt. Nothing was charged and no vote exists, so there is nothing
-    // truthful to show but an error.
+    // truthful to show but an error. Since the server started persisting the
+    // hosted-form URL, only a legacy pending row can still answer without one.
     const fetchImpl = vi.fn().mockResolvedValue(
       jsonResponse(200, { success: true, payment: { id: 'payment-123', orderId: 'payment-123' } })
     );
@@ -91,6 +92,35 @@ describe('startVoteCreationCheckout', () => {
     const result = await startVoteCreationCheckout({ fetch: fetchImpl }, { voteTitle: VOTE_TITLE });
 
     expect(result).toEqual({ kind: 'error', message: CHECKOUT_UNAVAILABLE_MESSAGE });
+  });
+
+  it('redirects on an idempotent reuse that carries the stored hosted-form URL', async () => {
+    // A retry of the same draft returns the SAME pending payment with the form
+    // URL persisted at first create - not a dead end, and not a second charge.
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        success: true,
+        idempotent: true,
+        payment: {
+          id: 'payment-123',
+          orderId: 'payment-123',
+          status: 'pending',
+          paymentUrl: 'https://sandbox.d.greeninvoice.co.il/payments/form/abc',
+          expiresAt: '2026-08-16T12:00:00.000Z',
+        },
+      })
+    );
+
+    const result = await startVoteCreationCheckout({ fetch: fetchImpl }, { voteTitle: VOTE_TITLE });
+
+    expect(result).toEqual({
+      kind: 'redirect',
+      payment: {
+        id: 'payment-123',
+        orderId: 'payment-123',
+        paymentUrl: 'https://sandbox.d.greeninvoice.co.il/payments/form/abc',
+      },
+    });
   });
 
   it('treats a 200 with no payment object at all as an error', async () => {

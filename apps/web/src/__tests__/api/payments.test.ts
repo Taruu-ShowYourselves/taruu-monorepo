@@ -28,6 +28,7 @@ vi.mock('@/lib/supabase/db', () => ({
   getPaymentById: vi.fn(),
   getPaymentByProviderId: vi.fn(),
   getPaymentByIdempotencyKey: vi.fn(),
+  attachPaymentFormUrl: vi.fn(),
   markPaymentCompleted: vi.fn(),
   updatePaymentStatus: vi.fn(),
   createEntitlement: vi.fn(),
@@ -46,6 +47,7 @@ vi.mock('@/services/payments/greenInvoice', () => ({
     getPaymentStatus: vi.fn(),
     verifyWebhook: vi.fn(),
     confirmDocumentIssued: vi.fn(),
+    confirmDocumentForPayment: vi.fn(),
     extractDocumentId: vi.fn(),
     parseWebhookEvent: vi.fn(),
   },
@@ -94,6 +96,7 @@ import {
   getPaymentById,
   getPaymentByProviderId,
   getPaymentByIdempotencyKey,
+  attachPaymentFormUrl,
   markPaymentCompleted,
   updatePaymentStatus,
   createEntitlement,
@@ -269,6 +272,41 @@ describe('Payments API Routes (Green Invoice)', () => {
       expect(data.success).toBe(true);
       expect(data.idempotent).toBe(true);
       expect(data.payment.id).toBe('existing-payment');
+      // A legacy row that never had a form URL stored degrades to the old
+      // shape: no fabricated URL, the client shows CHECKOUT_UNAVAILABLE.
+      expect(data.payment.paymentUrl).toBeUndefined();
+    });
+
+    it('hands an idempotent retry the stored hosted-form URL while the payment is pending', async () => {
+      (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
+      (getUserById as Mock).mockResolvedValue(mockUser);
+      (getPaymentByIdempotencyKey as Mock).mockResolvedValue({
+        id: 'existing-payment',
+        status: 'pending',
+        amount: 5000,
+        currency: 'ILS',
+        metadata: {
+          voteTitle: 'Test Vote',
+          providerFormUrl: 'https://sandbox.d.greeninvoice.co.il/form/reuse-1',
+          providerFormExpiresAt: '2026-08-16T12:00:00.000Z',
+        },
+      });
+
+      const request = new NextRequest('http://localhost:3000/api/payments/create', {
+        method: 'POST',
+        body: JSON.stringify({ type: 'vote_creation', voteTitle: 'Test Vote' }),
+      });
+      const response = await createPayment(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.idempotent).toBe(true);
+      // The retry can PAY: same payment, same checkout - no dead end, and no
+      // second Green Invoice form is minted for one payment row.
+      expect(data.payment.paymentUrl).toBe('https://sandbox.d.greeninvoice.co.il/form/reuse-1');
+      expect(data.payment.expiresAt).toBe('2026-08-16T12:00:00.000Z');
+      expect(paymentService.createVoteCreationPayment).not.toHaveBeenCalled();
+      expect(dbCreatePayment).not.toHaveBeenCalled();
     });
 
     it('should create checkout successfully for vote creation', async () => {
@@ -295,6 +333,13 @@ describe('Payments API Routes (Green Invoice)', () => {
       expect(data.success).toBe(true);
       expect(data.payment.amount).toBe(50);
       expect(paymentService.createVoteCreationPayment).toHaveBeenCalled();
+      // The hosted-form URL is persisted on the row, so an idempotent retry of
+      // this request can be handed the same checkout.
+      expect(attachPaymentFormUrl).toHaveBeenCalledWith(
+        'payment-123',
+        'https://sandbox.d.greeninvoice.co.il/form/456',
+        expect.any(String)
+      );
     });
 
     it('should handle database errors gracefully', async () => {
@@ -518,6 +563,7 @@ describe('Payments API Routes (Green Invoice)', () => {
       // Invoice does NOT vouch for it unless a test says so. Fail-closed default.
       (paymentService.extractDocumentId as Mock).mockReturnValue('txn_123');
       (paymentService.confirmDocumentIssued as Mock).mockResolvedValue(false);
+      (paymentService.confirmDocumentForPayment as Mock).mockResolvedValue(false);
     });
 
     /** Mocks for a delivery that reaches fulfilment, so auth is the only variable. */
@@ -557,27 +603,32 @@ describe('Payments API Routes (Green Invoice)', () => {
       expect(response.status).toBe(200);
       expect(markPaymentCompleted).toHaveBeenCalledTimes(1);
       // The header short-circuits factor 2: no Green Invoice round-trip at all.
-      expect(paymentService.confirmDocumentIssued).not.toHaveBeenCalled();
+      expect(paymentService.confirmDocumentForPayment).not.toHaveBeenCalled();
     });
 
-    it('accepts a header-less delivery whose document Green Invoice confirms', async () => {
+    it('accepts a header-less delivery whose document Green Invoice binds to THIS payment', async () => {
       (paymentService.verifyWebhook as Mock).mockReturnValue(false);
       stubSettledDelivery('gi-doc-9');
-      (paymentService.confirmDocumentIssued as Mock).mockResolvedValue(true);
+      (paymentService.confirmDocumentForPayment as Mock).mockResolvedValue(true);
 
       const response = await handleWebhook(
         createHeaderlessRequest({ event_id: 'evt_conf', id: 'gi-doc-9', custom: 'payment-123' })
       );
 
       expect(response.status).toBe(200);
-      expect(paymentService.confirmDocumentIssued).toHaveBeenCalledWith('gi-doc-9');
+      // Ownership, not existence: the check receives the payment row's id and
+      // amount, so the document must correlate to the exact payment it settles.
+      expect(paymentService.confirmDocumentForPayment).toHaveBeenCalledWith('gi-doc-9', {
+        paymentId: 'payment-123',
+        amountAgorot: 5000,
+      });
       expect(markPaymentCompleted).toHaveBeenCalledTimes(1);
     });
 
     it('rejects a header-less delivery with no confirmable document', async () => {
       (paymentService.verifyWebhook as Mock).mockReturnValue(false);
       stubSettledDelivery('gi-doc-forged');
-      (paymentService.confirmDocumentIssued as Mock).mockResolvedValue(false);
+      (paymentService.confirmDocumentForPayment as Mock).mockResolvedValue(false);
 
       const response = await handleWebhook(
         createHeaderlessRequest({ event_id: 'evt_forged', id: 'gi-doc-forged', custom: 'payment-123' })
@@ -591,6 +642,69 @@ describe('Payments API Routes (Green Invoice)', () => {
       expect(createWebhookEvent).not.toHaveBeenCalled();
     });
 
+    it('rejects a forged payload borrowing a real but UNRELATED document id - and mutates nothing', async () => {
+      (paymentService.verifyWebhook as Mock).mockReturnValue(false);
+      stubSettledDelivery('gi-doc-unrelated');
+      // The document exists (an attacker's own ₪1 receipt would), but it does not
+      // correlate to payment-123, so the binding check says no. Existence alone
+      // must never authenticate.
+      (paymentService.confirmDocumentIssued as Mock).mockResolvedValue(true);
+      (paymentService.confirmDocumentForPayment as Mock).mockResolvedValue(false);
+
+      const response = await handleWebhook(
+        createHeaderlessRequest({ event_id: 'evt_borrowed', id: 'gi-doc-unrelated', custom: 'payment-123' })
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.error).toBe('Unauthorized');
+      expect(markPaymentCompleted).not.toHaveBeenCalled();
+      expect(createWebhookEvent).not.toHaveBeenCalled();
+      expect(createEntitlement).not.toHaveBeenCalled();
+      expect(qubikService.mintTokens).not.toHaveBeenCalled();
+      expect(updatePaymentStatus).not.toHaveBeenCalled();
+    });
+
+    it('rejects a VALID document replayed against a DIFFERENT payment', async () => {
+      (paymentService.verifyWebhook as Mock).mockReturnValue(false);
+      // gi-doc-A genuinely settles payment-A. The forged payload points it at
+      // payment-B (a pending row the attacker wants completed for free). The
+      // binding check holds the document to the payment the payload claims.
+      stubSettledDelivery('gi-doc-A');
+      (getPaymentById as Mock).mockResolvedValue({
+        ...mockPayment,
+        id: 'payment-B',
+        type: 'vote_creation',
+        amount: 5000,
+        vote_id: null,
+        option_id: null,
+      });
+      (paymentService.parseWebhookEvent as Mock).mockReturnValue({
+        type: 'payment.succeeded',
+        paymentId: 'gi-doc-A',
+        amount: 5000,
+        metadata: { orderId: 'payment-B' },
+      });
+      (paymentService.confirmDocumentForPayment as Mock).mockImplementation(
+        async (documentId: string, expected: { paymentId: string }) =>
+          documentId === 'gi-doc-A' && expected.paymentId === 'payment-A'
+      );
+
+      const response = await handleWebhook(
+        createHeaderlessRequest({ event_id: 'evt_replayed', id: 'gi-doc-A', custom: 'payment-B' })
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.error).toBe('Unauthorized');
+      expect(paymentService.confirmDocumentForPayment).toHaveBeenCalledWith('gi-doc-A', {
+        paymentId: 'payment-B',
+        amountAgorot: 5000,
+      });
+      expect(markPaymentCompleted).not.toHaveBeenCalled();
+      expect(createWebhookEvent).not.toHaveBeenCalled();
+    });
+
     it('rejects a delivery whose secret arrives as a ?token= query parameter', async () => {
       // The regression that would reintroduce the forbidden transport. verifyWebhook
       // is held to its real header-only contract: a query parameter never matches.
@@ -599,7 +713,7 @@ describe('Payments API Routes (Green Invoice)', () => {
         (req: Request) => req.headers.get('x-greeninvoice-token') === secret
       );
       stubSettledDelivery('gi-doc-9');
-      (paymentService.confirmDocumentIssued as Mock).mockResolvedValue(false);
+      (paymentService.confirmDocumentForPayment as Mock).mockResolvedValue(false);
 
       const response = await handleWebhook(
         createHeaderlessRequest(
@@ -1016,6 +1130,79 @@ describe('Payments API Routes (Green Invoice)', () => {
         vi.stubGlobal('fetch', fetchMock);
 
         await expect(actual.confirmDocumentIssued('')).resolves.toBe(false);
+        expect(fetchMock).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('confirmDocumentForPayment - existence is not ownership', () => {
+      /** Green Invoice answers the token call and returns `doc` for the document. */
+      const giReturns = (doc: Record<string, unknown>) => {
+        vi.stubGlobal(
+          'fetch',
+          vi.fn(async (input: unknown) =>
+            String(input).includes('/account/token')
+              ? { ok: true, headers: { get: () => 'jwt-for-tests' }, json: async () => ({}) }
+              : { ok: true, json: async () => doc }
+          )
+        );
+      };
+
+      const EXPECTED = { paymentId: 'payment-123', amountAgorot: 5000 };
+
+      it('accepts a document whose custom field carries the payment id and whose total matches', async () => {
+        giReturns({ id: 'doc-1', custom: 'payment-123', amount: 50 });
+        await expect(actual.confirmDocumentForPayment('doc-1', EXPECTED)).resolves.toBe(true);
+      });
+
+      it('accepts correlation through remarks - the field createPaymentForm writes', async () => {
+        giReturns({ id: 'doc-1', remarks: 'Payment payment-123', sum: 50 });
+        await expect(actual.confirmDocumentForPayment('doc-1', EXPECTED)).resolves.toBe(true);
+      });
+
+      it('rejects a REAL but unrelated document - it exists, it just is not ours', async () => {
+        // The forgery this check exists for: the attacker buys their own ₪1
+        // receipt from the same merchant and quotes its (real) id.
+        giReturns({ id: 'doc-attacker', custom: 'payment-attacker', amount: 1 });
+        await expect(actual.confirmDocumentForPayment('doc-attacker', EXPECTED)).resolves.toBe(false);
+      });
+
+      it('rejects a valid document replayed against a different payment', async () => {
+        // gi-doc-A genuinely settles payment-A; the payload aims it at payment-B.
+        giReturns({ id: 'gi-doc-A', custom: 'payment-A', remarks: 'Payment payment-A', amount: 50 });
+        await expect(
+          actual.confirmDocumentForPayment('gi-doc-A', { paymentId: 'payment-B', amountAgorot: 5000 })
+        ).resolves.toBe(false);
+      });
+
+      it('rejects a correlated document whose total does not match the payment row', async () => {
+        // Correlation forged into a cheap document must not buy a ₪50 completion.
+        giReturns({ id: 'doc-1', custom: 'payment-123', amount: 1 });
+        await expect(actual.confirmDocumentForPayment('doc-1', EXPECTED)).resolves.toBe(false);
+      });
+
+      it('tolerates sub-agora rounding on the total, and nothing more', async () => {
+        giReturns({ id: 'doc-1', custom: 'payment-123', amount: 50.005 });
+        await expect(actual.confirmDocumentForPayment('doc-1', EXPECTED)).resolves.toBe(true);
+
+        giReturns({ id: 'doc-1', custom: 'payment-123', amount: 50.02 });
+        await expect(actual.confirmDocumentForPayment('doc-1', EXPECTED)).resolves.toBe(false);
+      });
+
+      it('accepts on correlation alone when the document exposes no total', async () => {
+        giReturns({ id: 'doc-1', custom: 'payment-123' });
+        await expect(actual.confirmDocumentForPayment('doc-1', EXPECTED)).resolves.toBe(true);
+      });
+
+      it('resolves false without throwing when the lookup fails', async () => {
+        vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('network down'); }));
+        await expect(actual.confirmDocumentForPayment('doc-1', EXPECTED)).resolves.toBe(false);
+      });
+
+      it('resolves false for an empty document id without calling Green Invoice', async () => {
+        const fetchMock = vi.fn();
+        vi.stubGlobal('fetch', fetchMock);
+
+        await expect(actual.confirmDocumentForPayment('', EXPECTED)).resolves.toBe(false);
         expect(fetchMock).not.toHaveBeenCalled();
       });
     });

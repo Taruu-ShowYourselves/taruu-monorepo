@@ -323,6 +323,96 @@ export async function confirmDocumentIssued(documentId: string): Promise<boolean
 }
 
 /**
+ * Prove that an issued Green Invoice document belongs to THIS payment.
+ *
+ * `confirmDocumentIssued` proves existence, and existence is not ownership: any
+ * real document id - an attacker's own ₪1 receipt, an id skimmed from a shared
+ * receipt URL - passes an existence check while the forged payload's `custom`
+ * points at somebody else's payment row. The header-less factor must therefore
+ * bind the document to the payment it claims to settle.
+ *
+ * The document is fetched over the authenticated API and accepted only when
+ * BOTH hold:
+ * - Correlation: a field Green Invoice echoes back from the form we created
+ *   (`custom`, `remarks`, `description`, an income line's description) carries
+ *   this payment's id. `createPaymentForm` writes the id into `custom` and
+ *   `remarks` at create time, so a genuine settlement always correlates.
+ * - Amount: whenever the document exposes a total, it matches the payment row
+ *   to within a hundredth of a shekel - the same tolerance the merch
+ *   confirm-document check uses.
+ *
+ * Anything else - transport failure, missing correlation, amount mismatch -
+ * resolves false, and the route answers 401 without mutating anything.
+ */
+export async function confirmDocumentForPayment(
+  documentId: string,
+  expected: { paymentId: string; amountAgorot: number }
+): Promise<boolean> {
+  if (!documentId || !expected.paymentId) return false;
+  try {
+    const doc = await giRequest<Record<string, unknown>>(
+      `/documents/${encodeURIComponent(documentId)}`,
+      { method: 'GET' }
+    );
+    if (!doc || typeof doc !== 'object') return false;
+
+    // Correlation - the fields written at create time, read defensively across
+    // the shapes GI may echo them back in.
+    const haystacks: string[] = [];
+    const collect = (value: unknown) => {
+      if (typeof value === 'string' && value.length > 0) haystacks.push(value);
+    };
+    collect(doc.custom);
+    collect(doc.remarks);
+    collect(doc.description);
+    collect(doc.externalId);
+    if (Array.isArray(doc.income)) {
+      for (const line of doc.income) {
+        if (line && typeof line === 'object') {
+          collect((line as Record<string, unknown>).description);
+        }
+      }
+    }
+    if (doc.payment && typeof doc.payment === 'object') {
+      const nested = doc.payment as Record<string, unknown>;
+      collect(nested.custom);
+      collect(nested.remarks);
+    }
+    if (!haystacks.some((h) => h.includes(expected.paymentId))) {
+      logger.warn('Green Invoice document does not correlate to the claimed payment', {
+        documentId,
+        paymentId: expected.paymentId,
+      });
+      return false;
+    }
+
+    // Amount - enforced whenever the document exposes a total. The exact field
+    // name varies by document shape, so every exposed total is considered and
+    // one of them must match the payment row.
+    const totals = [doc.amount, doc.sum, doc.total].filter(
+      (value): value is number => typeof value === 'number' && Number.isFinite(value)
+    );
+    if (totals.length > 0) {
+      const expectedILS = expected.amountAgorot / 100;
+      if (!totals.some((total) => Math.abs(total - expectedILS) < 0.01)) {
+        logger.warn('Green Invoice document total does not match the payment amount', {
+          documentId,
+          paymentId: expected.paymentId,
+        });
+        return false;
+      }
+    }
+
+    return true;
+  } catch {
+    // Same rule as confirmDocumentIssued: log the id only, never GI's response
+    // body, which is attacker-influenced on an unauthenticated notify.
+    logger.warn('Green Invoice document confirmation failed', { documentId });
+    return false;
+  }
+}
+
+/**
  * The Green Invoice document id from a notify payload, or null.
  *
  * Deliberately does NOT fall back to our own order id. `parseWebhookEvent` does,
@@ -384,6 +474,7 @@ export const paymentService = {
   createRefund,
   verifyWebhook,
   confirmDocumentIssued,
+  confirmDocumentForPayment,
   extractDocumentId,
   parseWebhookEvent,
 };

@@ -26,11 +26,16 @@ import { webhookLogger as log } from '@/lib/logger';
  *   constant time. The header is the only accepted transport; no secret is ever
  *   placed in the notify URL, and a secret arriving as a query parameter is
  *   ignored. Unset secret = fail closed in production, open outside it (dev).
- * - Factor 2: Green Invoice vouches for the document. The hosted form cannot
- *   attach a header, so a real notify is treated as an untrusted ping: the route
- *   re-fetches the claimed document over the authenticated Green Invoice API
- *   before mutating anything. Guessing an order id achieves nothing, because an
- *   attacker cannot make Green Invoice produce a document that was never issued.
+ * - Factor 2: Green Invoice vouches for the document AND the document belongs to
+ *   the payment the payload claims to settle. The hosted form cannot attach a
+ *   header, so a real notify is treated as an untrusted ping: the route
+ *   re-fetches the claimed document over the authenticated Green Invoice API and
+ *   requires it to correlate to THIS payment row (the `custom`/`remarks` fields
+ *   written at create time carry the payment id) with a matching total whenever
+ *   the document exposes one - see confirmDocumentForPayment. Existence alone is
+ *   not accepted: any real document id (an attacker's own receipt, an id skimmed
+ *   from a shared receipt URL) would otherwise authorise a forged payload aimed
+ *   at somebody else's payment.
  * Neither factor holding is a 401 and nothing is mutated.
  *
  * Fail closed on the database too: only SQLSTATE 23505 (a concurrent delivery won
@@ -63,18 +68,36 @@ export async function POST(request: NextRequest) {
 
     // Factor 1: the shared secret, constant-time, HEADER ONLY (never a query
     // parameter). Factor 2: make Green Invoice vouch for the document over the
-    // authenticated API. The hosted form cannot attach a header, so factor 2 is
-    // what actually authenticates production notifies; factor 1 covers any caller
-    // that can. verifyWebhook already fails open outside production when no secret
-    // is configured, so local mock checkout keeps working without a Green Invoice
-    // round-trip - there is deliberately no second dev escape hatch here.
+    // authenticated API AND bind it to the payment row the payload claims to
+    // settle - existence is not ownership, so a real-but-unrelated document id
+    // must not authenticate a forged payload. The hosted form cannot attach a
+    // header, so factor 2 is what actually authenticates production notifies;
+    // factor 1 covers any caller that can. verifyWebhook already fails open
+    // outside production when no secret is configured, so local mock checkout
+    // keeps working without a Green Invoice round-trip - there is deliberately
+    // no second dev escape hatch here.
     const headerOk = paymentService.verifyWebhook(request);
+
+    // The payment row the payload claims to settle - a read, needed both by the
+    // second auth factor (which must bind the document to this exact row) and by
+    // the handlers below. Nothing is mutated before authentication.
+    const claimedPaymentId = event.metadata.orderId || event.paymentId;
+    const payment =
+      (await getPaymentById(claimedPaymentId)) ||
+      (await getPaymentByProviderId(event.paymentId)) ||
+      null;
+
     const authenticated =
       headerOk ||
-      (documentId !== null && (await paymentService.confirmDocumentIssued(documentId)));
+      (documentId !== null &&
+        payment !== null &&
+        (await paymentService.confirmDocumentForPayment(documentId, {
+          paymentId: payment.id,
+          amountAgorot: payment.amount,
+        })));
 
     if (!authenticated) {
-      log.error('Webhook auth failed - no valid header and no confirmable document');
+      log.error('Webhook auth failed - no valid header and no document bound to the claimed payment');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -122,14 +145,10 @@ export async function POST(request: NextRequest) {
 
     switch (event.type) {
       case 'payment.succeeded': {
-        // custom_data.orderId is our internal payment id
-        const ourPaymentId = event.metadata.orderId || event.paymentId;
-        const payment =
-          (await getPaymentById(ourPaymentId)) ||
-          (await getPaymentByProviderId(event.paymentId));
-
+        // `payment` was resolved before authentication - custom_data.orderId is
+        // our internal payment id.
         if (!payment) {
-          log.error('Payment not found', { paymentId: ourPaymentId });
+          log.error('Payment not found', { paymentId: claimedPaymentId });
           return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
         }
 
@@ -222,11 +241,6 @@ export async function POST(request: NextRequest) {
       }
 
       case 'payment.failed': {
-        const ourPaymentId = event.metadata.orderId || event.paymentId;
-        const payment =
-          (await getPaymentById(ourPaymentId)) ||
-          (await getPaymentByProviderId(event.paymentId));
-
         if (payment && payment.status !== 'failed') {
           await updatePaymentStatus(payment.id, 'failed', event.paymentId);
         }
@@ -235,11 +249,6 @@ export async function POST(request: NextRequest) {
       }
 
       case 'refund.created': {
-        const ourPaymentId = event.metadata.orderId || event.paymentId;
-        const payment =
-          (await getPaymentById(ourPaymentId)) ||
-          (await getPaymentByProviderId(event.paymentId));
-
         if (payment && payment.status !== 'refunded') {
           await updatePaymentStatus(payment.id, 'refunded', event.paymentId);
         }
