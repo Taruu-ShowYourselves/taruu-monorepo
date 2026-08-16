@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { NewsButton } from '@/components/press/NewsButton';
+import { Reveal } from './Reveal';
 import { useParallaxBackdrop } from '@/hooks';
 import { localePrefix, type Locale } from '@/lib/i18n';
 import styles from './HowToJoin.module.css';
@@ -57,6 +58,8 @@ interface JoinRoute {
   /** Where this route actually starts, as a locale-relative path segment. */
   href: string;
   cta: string;
+  /** The route's plate under /press/routes/ - decorative, same scene in both locales. */
+  art: string;
 }
 
 interface HowToJoinCopy {
@@ -92,13 +95,15 @@ const COPY: Record<Locale, HowToJoinCopy> = {
         body: 'הצבעות מאומתות ביישוב שלכם: קול אחד לכל תושב, ותוצאה שנשארת מתועדת גם אחרי הבחירות.',
         href: 'feed',
         cta: 'לראות מה פתוח עכשיו',
+        art: 'route-vote.webp',
       },
       {
         index: '02',
-        label: 'להעלות הצבעה מהכנסת',
-        body: 'כל סעיף שעולה במליאה יכול להיפתח כאן להצבעה אזרחית - אתם בוחרים עמדה, והמנדט הציבורי נמדד מול איך שהצביעו בפועל.',
+        label: 'להעלות הצבעה לכנסת',
+        body: 'כל סעיף שעולה במליאה נפתח כאן להצבעה אזרחית - וגם אתם יכולים להעלות הצעה משלכם לשולחן הכנסת, שכל הארץ תתמוך בה או תתנגד לה.',
         href: 'knesset',
         cta: 'לסדר היום של הכנסת',
+        art: 'route-knesset.webp',
       },
       {
         index: '03',
@@ -106,6 +111,7 @@ const COPY: Record<Locale, HowToJoinCopy> = {
         body: 'בתשלום סמלי אפשר להעלות נושא לכלל התושבים - או לדרוש שהכנסת תעסוק בו. הנושא עולה מכם, לא מחבר כנסת.',
         href: 'votes/create',
         cta: 'להעלות הצבעה',
+        art: 'route-local.webp',
       },
     ],
   },
@@ -123,13 +129,15 @@ const COPY: Record<Locale, HowToJoinCopy> = {
         body: 'Verified ballots in your own town: one voice per resident, and a result that stays on the record after the election.',
         href: 'feed',
         cta: 'See what is open now',
+        art: 'route-vote.webp',
       },
       {
         index: '02',
         label: 'Raise a Knesset vote',
-        body: 'Any item on the plenum floor can open here as a civic ballot - you take a position, and the public mandate is measured against how they actually voted.',
+        body: 'Any item on the plenum floor opens here as a civic ballot - and you can raise a proposal of your own to the Knesset, for the whole country to support or oppose.',
         href: 'knesset',
         cta: 'To the Knesset agenda',
+        art: 'route-knesset.webp',
       },
       {
         index: '03',
@@ -137,6 +145,7 @@ const COPY: Record<Locale, HowToJoinCopy> = {
         body: 'For a symbolic fee you can put an issue to every resident - or demand the Knesset take it up. The subject comes from you, not from a member.',
         href: 'votes/create',
         cta: 'Raise a ballot',
+        art: 'route-local.webp',
       },
     ],
   },
@@ -157,6 +166,7 @@ export function HowToJoin({ locale = 'he' }: HowToJoinProps) {
       className={styles.section}
       aria-labelledby="how-to-join-headline"
     >
+      <Reveal />
       {/* The bare half of this spread is the backdrop's, not the copy's: the
           two routes sit on the reading side and everything below them was
           empty paper. */}
@@ -202,6 +212,17 @@ export function HowToJoin({ locale = 'he' }: HowToJoinProps) {
         <ol className={styles.routes}>
           {t.routes.map((route) => (
             <li className={styles.route} key={route.index}>
+              {/* The route's plate - the scene the copy describes, cropped to a
+                  press strip. Plain <img> on purpose: next/image optimization
+                  is unverified on the Workers runtime. */}
+              <img
+                src={`/press/routes/${route.art}`}
+                alt=""
+                className={styles.routePlate}
+                data-plate={route.href}
+                loading="lazy"
+                decoding="async"
+              />
               <span className={styles.routeIndex} aria-hidden>
                 {route.index}
               </span>

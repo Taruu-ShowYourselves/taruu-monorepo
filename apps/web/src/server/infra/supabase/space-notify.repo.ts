@@ -70,7 +70,7 @@ export function currentMonthStartIso(now: Date = new Date()): string {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
 }
 
-/** When the quota resets - the `המכסה מתאפסת ב־{date}` instant. */
+/** When the quota resets - the `המכסה מתאפסת ב-{date}` instant. */
 export function nextMonthStartIso(now: Date = new Date()): string {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
 }

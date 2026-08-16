@@ -90,7 +90,7 @@ const REASON_PLACEHOLDER =
  * cannot describe would lose the typed reason silently. Phrased to match the
  * deck's own error voice.
  */
-const ACTION_FAILED_HE = 'הפעולה לא הושלמה. נסו שוב; אם זה חוזר - פנו למנהל־על.';
+const ACTION_FAILED_HE = 'הפעולה לא הושלמה. נסו שוב; אם זה חוזר - פנו למנהל-על.';
 
 export interface ProposalDetailPanelProps {
   proposal: ProposalDetail;

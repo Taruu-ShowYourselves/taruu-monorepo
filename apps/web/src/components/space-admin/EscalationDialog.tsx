@@ -8,7 +8,7 @@ import { NoPermissionPanel } from './Panels';
 import styles from './EscalationDialog.module.css';
 
 /**
- * `פנייה למנהל־על` - the SPACE-09 escalation path (D21).
+ * `פנייה למנהל-על` - the SPACE-09 escalation path (D21).
  *
  * TWO PROPERTIES, BOTH LOAD-BEARING. A later "consistency" pass must not
  * quietly undo either one:
@@ -41,7 +41,7 @@ export interface EscalationDialogProps {
 }
 
 /** Copy-deck strings, each kept on one line so it stays one greppable literal. */
-const HEADING = 'פנייה למנהל־על';
+const HEADING = 'פנייה למנהל-על';
 const BODY = 'הפנייה נשלחת למנהלי הפלטפורמה יחד עם שם המרחב ועם החשבון שלכם.';
 const FIELD_LABEL = 'מה תרצו לבקש? (חובה)';
 const FIELD_ERROR = 'נדרש תיאור - לפחות 10 תווים.';
@@ -49,7 +49,7 @@ const PLACEHOLDER =
   'תארו מה חסם אתכם - למשל הרשאה שאתם צריכים, או השעיה שנראית לכם שגויה.';
 const CONFIRM = 'שלחו פנייה';
 const UNBLOCK_HINT = 'התיאור נדרש כדי להמשיך.';
-const SENT = 'הפנייה נשלחה. מנהל־על יקבל אותה עם פרטי המרחב.';
+const SENT = 'הפנייה נשלחה. מנהל-על יקבל אותה עם פרטי המרחב.';
 
 /**
  * Two failures worth telling apart: the limiter is five an hour per user, and

@@ -176,7 +176,7 @@ const COPY: Record<Locale, AuditCopy> = {
       member: 'חבר/ה',
       notification_campaign: 'משלוח התראה',
       content: 'תוכן',
-      escalation: 'פנייה למנהל־על',
+      escalation: 'פנייה למנהל-על',
     },
     stateKeys: {
       status: 'סטטוס',

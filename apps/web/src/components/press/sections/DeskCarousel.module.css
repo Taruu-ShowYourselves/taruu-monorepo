@@ -41,7 +41,7 @@
   block-size: clamp(
     32rem,
     calc(
-      100svh - var(--np-nav-h) - var(--np-desk-tabs-h, 0rem) -
+      100svh - var(--np-desk-top-pad, var(--np-nav-h)) - var(--np-desk-tabs-h, 0rem) -
         var(--np-desk-dock-measured, var(--np-desk-dock-h)) -
         var(--np-viewport-air)
     ),
@@ -101,7 +101,7 @@
     block-size: max(
       32rem,
       calc(
-        100svh - var(--np-nav-h) - var(--np-desk-tabs-h, 0rem) -
+        100svh - var(--np-desk-top-pad, var(--np-nav-h)) - var(--np-desk-tabs-h, 0rem) -
           var(--np-desk-dock-measured, var(--np-desk-dock-h)) -
           var(--np-viewport-air)
       )

@@ -2063,9 +2063,10 @@ a.topicMuni:hover { background: var(--np-red); }
     background: color-mix(in srgb, var(--np-paper) 82%, transparent);
   }
   22%, 74% {
-    transform: translateY(-50%) translateX(0.7rem) scale(1.12);
+    transform: translateY(-50%) translateX(0.7rem) scale(1.2);
     color: var(--np-paper);
     background: var(--np-green);
+    box-shadow: var(--np-shadow-float);
   }
 }
 
@@ -2076,9 +2077,10 @@ a.topicMuni:hover { background: var(--np-red); }
     background: color-mix(in srgb, var(--np-paper) 82%, transparent);
   }
   22%, 74% {
-    transform: translateY(-50%) translateX(-0.7rem) scale(1.12);
+    transform: translateY(-50%) translateX(-0.7rem) scale(1.2);
     color: var(--np-paper);
-    background: color-mix(in srgb, var(--np-ink) 55%, var(--np-paper));
+    background: var(--np-ink);
+    box-shadow: var(--np-shadow-float);
   }
 }
 
@@ -2089,9 +2091,10 @@ a.topicMuni:hover { background: var(--np-red); }
     background: color-mix(in srgb, var(--np-paper) 82%, transparent);
   }
   22%, 74% {
-    transform: translateX(-50%) translateY(0.7rem) scale(1.12);
+    transform: translateX(-50%) translateY(0.7rem) scale(1.2);
     color: var(--np-paper);
     background: var(--np-blue);
+    box-shadow: var(--np-shadow-float);
   }
 }
 
@@ -2100,30 +2103,37 @@ a.topicMuni:hover { background: var(--np-red); }
    Each runs 1.4s and stays lit for the middle ~770ms of it. That hold is the
    point: at the 290ms the first draft gave it, a cue was lit for less time
    than it takes to look at, and the lesson read as a flicker rather than as
-   three answers. The delays track the ghost sheet's own phases (np-teach-ghost
-   below): the cue lights while the ghost is leaning toward it. The last cue
-   starts at 4.3s and ends at 5.7s, inside the 6.2s TUTOR_MS in
+   three answers. The delays track the ghost's own phases (np-teach-dot and
+   the wedges below): the cue lights while the finger is dragging toward it.
+   The press phase owns the first ~1.3s, so the first cue waits for it. The
+   last cue starts at 5.3s and ends at 6.7s, inside the 7.6s TUTOR_MS in
    DeskTopicRow.tsx - change any of the three and the others have to follow,
    or the lesson is cut off mid-gesture. */
+/* During the lesson the cues print over the ghost's floods - a label the
+   demonstration just buried teaches nothing. */
+.topicCard[data-swipe-tutor] .swipeCues {
+  z-index: 4;
+}
+
 .topicCard[data-swipe-tutor] .swipeCue {
-  animation-duration: 1.4s;
+  animation-duration: 1.7s;
   animation-timing-function: var(--np-ease);
   animation-fill-mode: both;
 }
 
 .topicCard[data-swipe-tutor] .swipeCue[data-cue='for'] {
   animation-name: np-teach-right;
-  animation-delay: 0.45s;
+  animation-delay: 1.3s;
 }
 
 .topicCard[data-swipe-tutor] .swipeCue[data-cue='against'] {
   animation-name: np-teach-left;
-  animation-delay: 2.35s;
+  animation-delay: 3.45s;
 }
 
 .topicCard[data-swipe-tutor] .swipeCue[data-cue='aside'] {
   animation-name: np-teach-down;
-  animation-delay: 4.3s;
+  animation-delay: 5.25s;
 }
 
 /* The sides swap with the writing direction - voteSwipe.ts sends בעד toward
@@ -2141,7 +2151,7 @@ a.topicMuni:hover { background: var(--np-red); }
    for - so it prints, and the tile carries it for those few seconds. */
 .topicCard[data-swipe-tutor] .swipeHint {
   display: block;
-  animation: np-teach-hint 6.2s var(--np-ease) both;
+  animation: np-teach-hint 7.6s var(--np-ease) both;
 }
 
 @keyframes np-teach-hint {
@@ -2151,17 +2161,18 @@ a.topicMuni:hover { background: var(--np-red); }
 }
 
 /* ------------------------------------------------------------------
- * The lesson's ghost - a sheet over the tile that performs the gesture.
+ * The lesson's ghost - a finger performing the gesture on the tile.
  *
- * The pills say which edge means what; the ghost shows the card being
- * pushed. It leans right and holds in the green it would cast, comes back,
- * leans left in the objection's ink, comes back, dips down in the set-aside
- * blue, and settles. Its phases are what the cue delays above are timed to,
- * and the whole run is TUTOR_MS (6.2s) in DeskTopicRow.tsx.
+ * The pills say which edge means what; the ghost shows the actual move:
+ * an ink fingertip lands on the tile's centre and presses (two rings pulse
+ * out - the grip the reader will have to hold), then drags to the בעד edge
+ * while that edge floods green, returns, drags to נגד under an ink flood,
+ * returns, and dips to the set-aside blue. Edge wedges rather than a
+ * full-tile wash: the tiles carry dark art plates, and a translucent sheet
+ * over one read as mud while burying the headline it was decorating.
  *
- * Its own element rather than a keyframe on the tile: the tile's transform
- * is inline (the gesture and the reveal both write it) and an animation
- * would out-rank both.
+ * Everything here is timed against TUTOR_MS (7.6s) in DeskTopicRow.tsx and
+ * the cue delays above - change one and the others must follow.
  * ------------------------------------------------------------------ */
 .tutorGhost {
   position: absolute;
@@ -2169,86 +2180,175 @@ a.topicMuni:hover { background: var(--np-red); }
   z-index: 3;
   pointer-events: none;
   border-radius: inherit;
-  background: transparent;
-  animation: np-teach-ghost 6.2s var(--np-ease) both;
+  overflow: hidden;
 }
 
-@keyframes np-teach-ghost {
-  0%,
-  6% {
-    transform: translate(0, 0) rotate(0deg);
-    background: transparent;
+/* The answers' edges, each flooding in the colour that push would cast. */
+.tutorWedge {
+  position: absolute;
+  opacity: 0;
+  animation: np-teach-wedge-for 7.6s var(--np-ease) both;
+}
+
+.tutorWedge[data-edge='for'] {
+  inset-block: 0;
+  right: 0;
+  inline-size: 54%;
+  background: linear-gradient(
+    270deg,
+    rgb(from var(--np-green) r g b / 1),
+    rgb(from var(--np-green) r g b / 0)
+  );
+}
+
+.tutorWedge[data-edge='against'] {
+  inset-block: 0;
+  left: 0;
+  inline-size: 54%;
+  background: linear-gradient(
+    90deg,
+    rgb(from var(--np-ink) r g b / 0.96),
+    rgb(from var(--np-ink) r g b / 0)
+  );
+  animation-name: np-teach-wedge-against;
+}
+
+.tutorWedge[data-edge='aside'] {
+  inset-inline: 0;
+  bottom: 0;
+  block-size: 55%;
+  background: linear-gradient(
+    0deg,
+    rgb(from var(--np-blue) r g b / 1),
+    rgb(from var(--np-blue) r g b / 0)
+  );
+  animation-name: np-teach-wedge-aside;
+}
+
+@keyframes np-teach-wedge-for {
+  0%, 16% { opacity: 0; }
+  22%, 36% { opacity: 1; }
+  43%, 100% { opacity: 0; }
+}
+
+@keyframes np-teach-wedge-against {
+  0%, 45% { opacity: 0; }
+  51%, 62% { opacity: 1; }
+  68%, 100% { opacity: 0; }
+}
+
+@keyframes np-teach-wedge-aside {
+  0%, 69% { opacity: 0; }
+  75%, 85% { opacity: 1; }
+  92%, 100% { opacity: 0; }
+}
+
+/* The fingertip: lands centre, presses, then drags edge to edge. Position
+   is animated in left/top - the dot is a demo that plays once, not a frame
+   the compositor lives in - and the centring translate stays constant so
+   the keyframes never fight it. */
+.tutorDot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  border-radius: var(--np-radius-pill);
+  background: var(--np-ink);
+  border: 3px solid var(--np-paper);
+  box-shadow: var(--np-shadow-float);
+  transform: translate(-50%, -50%);
+  animation: np-teach-dot 7.6s var(--np-ease) both;
+}
+
+/* The press: two rings pulse out of the fingertip while it holds the
+   centre - the grip, before any push. */
+.tutorDot::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  border: 2px solid var(--np-ink);
+  opacity: 0;
+  animation: np-teach-ring 0.55s var(--np-ease) 0.35s 2;
+}
+
+@keyframes np-teach-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
   }
-  /* Lean right - the בעד side - and hold there. */
-  19%,
-  29% {
-    transform: translateX(9%) rotate(2deg);
-    background: color-mix(in srgb, var(--np-green) 34%, transparent);
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
   }
-  /* Back to rest between answers, so the three read as three. */
-  37% {
-    transform: translate(0, 0) rotate(0deg);
-    background: transparent;
-  }
-  /* Lean left - נגד. */
-  50%,
-  60% {
-    transform: translateX(-9%) rotate(-2deg);
-    background: color-mix(in srgb, var(--np-ink) 30%, transparent);
-  }
-  68% {
-    transform: translate(0, 0) rotate(0deg);
-    background: transparent;
-  }
+}
+
+@keyframes np-teach-dot {
+  0% { left: 50%; top: 50%; opacity: 0; }
+  4%, 17% { left: 50%; top: 50%; opacity: 1; }
+  /* Drag to בעד and hold. */
+  24%, 38% { left: 82%; top: 50%; }
+  /* Back to centre between answers, so the three read as three. */
+  45%, 49% { left: 50%; top: 50%; }
+  /* Drag to נגד. */
+  55%, 64% { left: 18%; top: 50%; }
+  68%, 71% { left: 50%; top: 50%; }
   /* Dip down - not a consensus matter. */
-  79%,
-  85% {
-    transform: translateY(8%) rotate(0deg);
-    background: color-mix(in srgb, var(--np-blue) 30%, transparent);
-  }
-  100% {
-    transform: translate(0, 0) rotate(0deg);
-    background: transparent;
-  }
+  77%, 86% { left: 50%; top: 74%; }
+  91% { left: 50%; top: 60%; opacity: 1; }
+  100% { left: 50%; top: 50%; opacity: 0; }
 }
 
-/* The sides swap with the writing direction, like the cues above. */
-:global([dir='ltr']) .tutorGhost {
-  animation-name: np-teach-ghost-ltr;
+/* The sides swap with the writing direction, like the cues above: בעד goes
+   toward the reader's leading edge. */
+:global([dir='ltr']) .tutorWedge[data-edge='for'] {
+  right: auto;
+  left: 0;
+  background: linear-gradient(
+    90deg,
+    rgb(from var(--np-green) r g b / 1),
+    rgb(from var(--np-green) r g b / 0)
+  );
 }
 
-@keyframes np-teach-ghost-ltr {
-  0%,
-  6% {
-    transform: translate(0, 0) rotate(0deg);
-    background: transparent;
+:global([dir='ltr']) .tutorWedge[data-edge='against'] {
+  left: auto;
+  right: 0;
+  background: linear-gradient(
+    270deg,
+    rgb(from var(--np-ink) r g b / 0.96),
+    rgb(from var(--np-ink) r g b / 0)
+  );
+}
+
+:global([dir='ltr']) .tutorDot {
+  animation-name: np-teach-dot-ltr;
+}
+
+@keyframes np-teach-dot-ltr {
+  0% { left: 50%; top: 50%; opacity: 0; }
+  4%, 17% { left: 50%; top: 50%; opacity: 1; }
+  24%, 38% { left: 18%; top: 50%; }
+  45%, 49% { left: 50%; top: 50%; }
+  55%, 64% { left: 82%; top: 50%; }
+  68%, 71% { left: 50%; top: 50%; }
+  77%, 86% { left: 50%; top: 74%; }
+  91% { left: 50%; top: 60%; opacity: 1; }
+  100% { left: 50%; top: 50%; opacity: 0; }
+}
+
+/* No motion: the demonstration is motion, so it bows out entirely and the
+   three cues simply print, lit and legible, for the lesson's run. */
+@media (prefers-reduced-motion: reduce) {
+  .tutorGhost {
+    display: none;
   }
-  19%,
-  29% {
-    transform: translateX(-9%) rotate(-2deg);
-    background: color-mix(in srgb, var(--np-green) 34%, transparent);
-  }
-  37% {
-    transform: translate(0, 0) rotate(0deg);
-    background: transparent;
-  }
-  50%,
-  60% {
-    transform: translateX(9%) rotate(2deg);
-    background: color-mix(in srgb, var(--np-ink) 30%, transparent);
-  }
-  68% {
-    transform: translate(0, 0) rotate(0deg);
-    background: transparent;
-  }
-  79%,
-  85% {
-    transform: translateY(8%) rotate(0deg);
-    background: color-mix(in srgb, var(--np-blue) 30%, transparent);
-  }
-  100% {
-    transform: translate(0, 0) rotate(0deg);
-    background: transparent;
+
+  .topicCard[data-swipe-tutor] .swipeCue,
+  .topicCard[data-swipe-tutor] .swipeHint {
+    animation: none;
+    opacity: 1;
   }
 }
 
@@ -2301,6 +2401,13 @@ a.topicMuni:hover { background: var(--np-red); }
 
 .holdDigit {
   grid-area: 1 / 1;
+  /* The digit takes the ring's own box and centres inside it - sharing only
+     the cell left both bottom-aligned, and the count sat on the ring's rim
+     instead of in its middle. */
+  inline-size: clamp(3.5rem, 34%, 5.5rem);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
   font-family: var(--np-font-display);
   font-weight: 900;
   font-style: normal;

@@ -47,7 +47,7 @@ export interface AudiencePreviewProps {
 const STALE_HE = 'ההודעה שונתה אחרי חישוב הקהל - חשבו שוב לפני שליחה.';
 
 const footer = (time: string): string =>
-  `התצוגה חושבה ב־${time} · הנמענים שיקבלו בפועל זהים לרשימה שחושבה כאן.`;
+  `התצוגה חושבה ב-${time} · הנמענים שיקבלו בפועל זהים לרשימה שחושבה כאן.`;
 
 /** State 2: the resolver is running. `aria-busy` is set by the caller. */
 export function AudiencePreviewComputing({ className }: { className?: string }) {

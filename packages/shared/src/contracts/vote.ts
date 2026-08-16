@@ -125,6 +125,13 @@ export const CreateVoteRequestSchema = z.object({
   title: z.string().min(5).max(200),
   description: z.string().min(10).max(2000),
   municipality: z.string().min(1),
+  /**
+   * Where the proposal is addressed: the creator's own municipality (the
+   * default, and the only value before this field existed) or the Knesset -
+   * a national ballot other residents support or oppose. Optional so
+   * pre-field clients keep validating.
+   */
+  scope: z.enum(['municipal', 'knesset']).optional(),
   options: z.array(VoteOptionInputSchema).min(2).max(10),
   startDate: z.string().datetime(),
   endDate: z.string().datetime(),

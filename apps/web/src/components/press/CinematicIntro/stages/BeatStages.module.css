@@ -51,8 +51,10 @@
   border: 1px solid color-mix(in srgb, var(--intro-ink) 24%, transparent);
   transform: scale(calc(0.74 + var(--depth) * 0.4));
   transform-origin: top right;
-  opacity: calc(0.3 + var(--depth) * 0.55);
-  filter: blur(calc((1 - var(--depth)) * 2.2px));
+  /* Present enough to read as evidence: at the old 0.3 floor the far cards
+     were rumours, and the beat looked like it stood on blank paper. */
+  opacity: calc(0.52 + var(--depth) * 0.48);
+  filter: blur(calc((1 - var(--depth)) * 1.1px));
   will-change: transform, opacity;
 }
 
@@ -156,8 +158,38 @@
   color: var(--intro-ink);
 }
 
-.scoreCard[data-band='negative'] .scoreValue {
+.scoreCard[data-band='down'] .scoreValue {
   color: var(--intro-red);
+}
+
+/* Direction beside the reading: the sign is a glance, the arrow is a glimpse. */
+.scoreBandGlyph {
+  margin-inline-start: 0.3rem;
+  font-style: normal;
+  font-size: 0.55em;
+  vertical-align: 0.25em;
+  color: var(--intro-soft);
+}
+
+.scoreBandGlyph[data-band='down'] {
+  color: var(--intro-red);
+}
+
+.scoreBandGlyph[data-band='up'] {
+  color: var(--intro-ink);
+}
+
+/* The card's instrument (see ledgerMarks): the reading's magnitude drawn on
+   a 0-100 face, at the same ink weight the number prints in. */
+.scoreMark {
+  display: block;
+  inline-size: min(8vw, 5.5rem);
+  block-size: auto;
+  color: color-mix(in srgb, var(--intro-ink) 68%, transparent);
+}
+
+.scoreCard[data-band='down'] .scoreMark {
+  color: color-mix(in srgb, var(--intro-red) 74%, transparent);
 }
 
 /* Zero drawn, bar measured from it. */
@@ -194,22 +226,29 @@
 /* Clear of the centred beat column and of the paper scrim behind it: the
    copy's wash paints over anything that strays under it, and half a washed
    clause reads as a rendering fault. */
+/* The register itself, in the paper's own furniture: heavy ink frame, ruled
+   lead, red majorities over share tracks - the same reading the /mandate
+   page prints in full, shrunk to a sheet on the beat's desk. */
 .mandateSheet {
-  inline-size: min(24vw, 21rem);
-  inset-block-start: 30%;
-  inset-inline-start: 1.5%;
-  gap: 0.5rem;
+  inline-size: min(27vw, 24rem);
+  inset-block-start: 22%;
+  inset-inline-start: 2.5%;
+  gap: 0.7rem;
   padding: 1.1rem 1.2rem;
   background: var(--np-paper-box);
   border: 2px solid var(--intro-ink);
+  border-radius: var(--np-radius-card);
+  box-shadow: var(--np-shadow-float);
 }
 
 .mandateLead {
+  padding-block-end: 0.5rem;
   font-family: var(--np-font-mono);
-  font-size: 0.56rem;
+  font-size: 0.6rem;
   font-weight: 800;
   letter-spacing: 0.07em;
   color: var(--intro-red);
+  border-block-end: var(--np-rule) solid var(--intro-ink);
 }
 
 .mandateEmpty {
@@ -228,20 +267,74 @@
   color: var(--intro-soft);
 }
 
+/* No markers: the sheet is a register, not a numbered list. */
 .clauses {
   display: grid;
-  gap: 0.6rem;
   margin: 0;
-  padding-inline-start: 1rem;
+  padding: 0;
+  list-style: none;
   /* Grid items default to min-content width, which lets a long Hebrew clause
      push straight out through the sheet's border instead of wrapping. */
   min-inline-size: 0;
 }
 
+/* Majority beside clause, ruled apart from the next - a ledger row. */
 .clause {
   display: grid;
-  gap: 0.15rem;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.7rem;
+  padding-block: 0.55rem;
   min-inline-size: 0;
+  border-block-start: var(--np-rule-hair) solid
+    color-mix(in srgb, var(--intro-ink) 30%, transparent);
+}
+
+.clause:first-child {
+  border-block-start: none;
+}
+
+/* The majority is the row's fact: the paper's red figure, share unit under. */
+.clauseShare {
+  display: grid;
+  justify-items: center;
+  min-inline-size: 3rem;
+}
+
+.clauseShare b {
+  font-family: var(--np-font-display);
+  font-size: 1.15rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--intro-red);
+  font-variant-numeric: tabular-nums;
+}
+
+.clauseShare i {
+  font-family: var(--np-font-mono);
+  font-size: 0.5rem;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--intro-soft);
+}
+
+.clauseBody {
+  display: grid;
+  gap: 0.3rem;
+  min-inline-size: 0;
+}
+
+.clauseLink {
+  display: grid;
+  gap: 0.2rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.clauseLink:hover strong,
+.clauseLink:focus-visible strong {
+  color: var(--intro-red);
 }
 
 .clause strong {
@@ -252,16 +345,7 @@
   color: var(--intro-ink);
   min-inline-size: 0;
   overflow-wrap: anywhere;
-}
-
-.clauseSubject {
-  font-family: var(--np-font-body);
-  font-size: 0.7rem;
-  color: var(--intro-soft);
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  transition: color var(--np-dur-snap) var(--np-ease);
 }
 
 .clauseFigures {
@@ -272,6 +356,19 @@
   letter-spacing: 0.04em;
   color: var(--intro-soft);
   font-variant-numeric: tabular-nums;
+}
+
+/* The share drawn, not only printed: the same red track every tally uses. */
+.clauseTrack {
+  display: block;
+  block-size: 0.28rem;
+  background: color-mix(in srgb, var(--intro-ink) 12%, transparent);
+}
+
+.clauseTrack > i {
+  display: block;
+  block-size: 100%;
+  background: var(--intro-red);
 }
 
 /* ---- Narrow window ----

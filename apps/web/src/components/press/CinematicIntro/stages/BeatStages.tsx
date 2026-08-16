@@ -4,7 +4,8 @@ import { formatScore, scoreBand } from '@/lib/civic/score';
 import { municipalityCivicStats } from '@/server/read/municipality-stats';
 import { governmentStats } from '@/server/read/government';
 import { civicMandate } from '@/server/read/mandate';
-import type { Locale } from '@/lib/i18n';
+import { localePrefix, type Locale } from '@/lib/i18n';
+import { LedgerMark, type LedgerMarkKind } from '../ledgerMarks';
 import { MandateSheet } from './MandateSheet';
 import styles from './BeatStages.module.css';
 
@@ -56,7 +57,7 @@ const COPY: Record<Locale, StageCopy> = {
     scoreUnmeasured: 'טרם נמדד',
     authoritiesKicker: 'רשויות · AUTHORITIES',
     mandateKicker: 'המנדט האזרחי · THE MANDATE',
-    mandateLead: 'הוכרע על ידי האזרחים ש־',
+    mandateLead: 'הוכרע על ידי האזרחים ש-',
     mandateEmpty: 'המנדט עוד ריק.',
     mandateEmptyNote: 'ההחלטה הראשונה תיכתב כאן ברגע שהצבעה תיסגר ברוב ברור.',
     mandateShareUnit: 'רוב',
@@ -109,7 +110,23 @@ interface ScoreCard {
   label: string;
   sub: string;
   score: number | null;
+  /** True where the printed score is a demonstration, not a measurement. */
+  demo?: boolean;
 }
+
+/**
+ * Demonstration scores for a ledger too young to have measured any. Same
+ * contract as DEMO_MANDATE: fixed, plausible, always stamped on the face of
+ * the card, never written anywhere. The government reads critical and the
+ * towns mixed because that is the shape a real reading would take - a wall
+ * of positives would be the one dishonest way to fill this in.
+ */
+const DEMO_GOV = { overall: -38, representation: -52, engagement: 21 } as const;
+const DEMO_AUTHORITIES = [
+  { municipality: 'בת ים', score: 34, openTopics: 46 },
+  { municipality: 'חיפה', score: 27, openTopics: 21 },
+  { municipality: 'עכו', score: -18, openTopics: 27 },
+] as const;
 
 /**
  * The score cards, on the same signed −100..+100 track the government and
@@ -127,31 +144,68 @@ export async function BeatScoresStage({ locale }: { locale: Locale }) {
     .sort((a, b) => (b.openTopics ?? 0) - (a.openTopics ?? 0))
     .slice(0, 3);
 
+  /* An unmeasured axis used to print an em-dash and "not measured yet" six
+     times over - true, and unreadable as a backdrop about scoring. Where the
+     ledger has no reading yet, a fixed demonstration stands in, stamped on
+     the face of the card (same contract as the demo mandate). A measured
+     score always wins over its demo. */
+  const authorityLabel = t.authoritiesKicker.split(' · ')[0];
+  const shownAuthorities =
+    topAuthorities.length > 0
+      ? topAuthorities.map((authority, index) => ({
+          municipality: authority.municipality,
+          openTopics: authority.openTopics ?? 0,
+          score: authority.overallScore,
+          demoScore: DEMO_AUTHORITIES[index % DEMO_AUTHORITIES.length].score,
+        }))
+      : DEMO_AUTHORITIES.map((authority) => ({
+          municipality: authority.municipality,
+          openTopics: authority.openTopics,
+          score: null,
+          demoScore: authority.score,
+        }));
+
   const cards: ScoreCard[] = [
     {
       key: 'gov-overall',
       label: t.scoreGovernment,
       sub: gov?.knessetNum ? `כנסת ${gov.knessetNum}` : KNESSET_SCOPE,
-      score: gov?.overallScore ?? null,
+      score: gov?.overallScore ?? DEMO_GOV.overall,
+      demo: gov?.overallScore == null,
     },
     {
       key: 'gov-representation',
       label: t.scoreRepresentation,
       sub: KNESSET_SCOPE,
-      score: gov?.representationScore ?? null,
+      score: gov?.representationScore ?? DEMO_GOV.representation,
+      demo: gov?.representationScore == null,
     },
     {
       key: 'gov-engagement',
       label: t.scoreEngagement,
       sub: KNESSET_SCOPE,
-      score: gov?.engagementScore ?? null,
+      score: gov?.engagementScore ?? DEMO_GOV.engagement,
+      demo: gov?.engagementScore == null,
     },
-    ...topAuthorities.map((authority) => ({
+    ...shownAuthorities.map((authority) => ({
       key: `muni-${authority.municipality}`,
       label: authority.municipality,
-      sub: `${authority.openTopics} · ${t.authoritiesKicker.split(' · ')[0]}`,
-      score: authority.overallScore,
+      sub: `${authority.openTopics} · ${authorityLabel}`,
+      score: authority.score ?? authority.demoScore,
+      demo: authority.score == null,
     })),
+  ];
+
+  /* Each card carries its own instrument (see ledgerMarks): the reading and
+     the drawing of it, the way the opening field prints its figures. One
+     kind per slot, never repeated. */
+  const MARK_KINDS: readonly LedgerMarkKind[] = [
+    'ring',
+    'bars',
+    'dots',
+    'tally',
+    'trace',
+    'hatch',
   ];
 
   return (
@@ -166,8 +220,26 @@ export async function BeatScoresStage({ locale }: { locale: Locale }) {
           key={card.key}
           style={slotStyle(index)}
         >
-          <span className={styles.scoreLabel}>{card.label}</span>
-          <b className={styles.scoreValue}>{formatScore(card.score)}</b>
+          <span className={styles.scoreLabel}>
+            {card.label}
+            {card.demo && <b className={styles.demoStamp}>{t.demoStamp}</b>}
+          </span>
+          <b className={styles.scoreValue}>
+            {formatScore(card.score)}
+            <i className={styles.scoreBandGlyph} data-band={scoreBand(card.score)}>
+              {scoreBand(card.score) === 'up'
+                ? '▲'
+                : scoreBand(card.score) === 'down'
+                  ? '▼'
+                  : '•'}
+            </i>
+          </b>
+          {/* The instrument draws the reading's magnitude on the 0-100 face. */}
+          <LedgerMark
+            className={styles.scoreMark}
+            kind={MARK_KINDS[index % MARK_KINDS.length]}
+            value={card.score === null ? null : Math.abs(card.score)}
+          />
           {/* Zero is drawn, and the bar runs from it, so the length of the bar
               is the deviation rather than the value - the same track the
               profiles use. */}
@@ -210,6 +282,7 @@ export async function BeatMandateStage({ locale }: { locale: Locale }) {
 
       <MandateSheet
         clauses={clauses}
+        votePathPrefix={`${localePrefix(locale)}/votes`}
         numberLocale={locale === 'he' ? 'he-IL' : 'en-US'}
         copy={{
           lead: t.mandateLead,

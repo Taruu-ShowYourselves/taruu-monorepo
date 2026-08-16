@@ -14,6 +14,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { localePath, localePrefix } from "@/lib/i18n/config";
 import type { Locale } from "@/lib/i18n";
 import { topReactions } from "@/components/press/reactions";
+import { NewsButton } from "@/components/press/NewsButton";
 import { SocialMark } from "@/components/uikit/social-mark";
 import {
   interleaveByCity,
@@ -23,6 +24,7 @@ import {
 } from "./israel-map";
 import { structureKnessetTitle } from "./knesset-title";
 import { LedgerMark, type LedgerMarkKind } from "./ledgerMarks";
+import { THESIS_BEATS } from "./thesisBeats";
 import styles from "./CinematicIntro.module.css";
 
 interface SignalSource {
@@ -177,6 +179,12 @@ interface IntroCopy {
   openingHeadline: string;
   openingStandfirst: string;
   /**
+   * The splash's one door: the brand's own imperative, pointed at the live
+   * feed. "Vote" describes the mechanism; "show them" is what the reader
+   * came to do.
+   */
+  openingCta: string;
+  /**
    * Each beat is a claim and, where the claim needs one, the condition it
    * holds under. Carried as two fields because they are set as two things:
    * as one string the whole beat ran at display scale, and a sentence with a
@@ -253,21 +261,8 @@ const COPY: Record<Locale, IntroCopy> = {
     openingHeadline: "אנחנו כאן כדי להזכיר לרשויות שהן *בשירות הציבור*.",
     openingStandfirst:
       "אזרחים מצביעים על נושאים שעל הפרק, יוצרים רוב אזרחי ובונים מנדט - מנדט שהרשויות מחויבות לכבד, או לאבד את הלגיטימציה שלהן.",
-    thesisBeats: [
-      {
-        head: "אנחנו מאזינים לאזרחים בפייסבוק - בכל רשות, ובכנסת.",
-        note: "ופותחים להצבעה את הנושאים שראוי שיוכרעו בציבור.",
-      },
-      {
-        head: "סביב כל נושא נפתחת הצבעה אזרחית - והקולות נעשים *רוב אזרחי*.",
-        note: "רוב אזרחי הוא מנדט ציבורי: הוראה שהרשות או הממשלה נדרשת לכבד.",
-      },
-      { head: "העירייה או הממשלה מקבלת ציון, וצוברת ניקוד לאורך הכהונה." },
-      {
-        head: "ואם היא לא מכבדת את המנדט - פונים לבית משפט.",
-        note: "רשות שמתעלמת מרצון התושבים מאבדת את הלגיטימציה שלה.",
-      },
-    ],
+    openingCta: "תראו להם",
+    thesisBeats: THESIS_BEATS.he,
   },
   en: {
     metricMunicipalities: "Municipalities in the database",
@@ -336,23 +331,8 @@ const COPY: Record<Locale, IntroCopy> = {
       "We are here to remind the authorities that they are *in the service of the public*.",
     openingStandfirst:
       "Civilians vote on the topics that concern them, form civilian majorities, and build a mandate - one the authorities must honour, or lose their legitimacy.",
-    thesisBeats: [
-      {
-        head: "We listen to citizens on Facebook - in every authority, and in the Knesset.",
-        note: "And open ballots on the topics that deserve a public decision.",
-      },
-      {
-        head: "Around each topic a civic ballot opens - and the votes become a *civilian majority*.",
-        note: "A civilian majority is a public mandate: an instruction the authority or the government is required to honour.",
-      },
-      {
-        head: "The municipality or the government is scored, and the score accrues across its term.",
-      },
-      {
-        head: "And if it does not honour the mandate - it is taken to court.",
-        note: "An authority that ignores the will of its residents loses its legitimacy.",
-      },
-    ],
+    openingCta: "Show them",
+    thesisBeats: THESIS_BEATS.en,
   },
 };
 
@@ -455,6 +435,95 @@ const byHeat = (a: SignalVote, b: SignalVote) =>
 
 const he = (value: number) => value.toLocaleString("he-IL");
 
+/**
+ * A figure that arrives by counting rather than by appearing.
+ *
+ * The ledger's numbers land from the stats poll a beat after mount, and they
+ * used to snap in - a field of instruments where every reading was suddenly
+ * just there. This walks the shown value to each new target instead, so the
+ * count-up drives BOTH the printed number and the instrument above it (the
+ * animated value feeds LedgerMark, so bars rise, the ring sweeps, the tally
+ * accrues). Reduced motion snaps straight to the target.
+ */
+function useRisingCount(target: number | null): number | null {
+  const [shown, setShown] = useState<number | null>(null);
+  const shownRef = useRef<number | null>(null);
+  shownRef.current = shown;
+
+  useEffect(() => {
+    if (target === null) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setShown(target);
+      return;
+    }
+    const from = shownRef.current ?? 0;
+    if (from === target) return;
+    const started = performance.now();
+    const DURATION_MS = 1500;
+    let frame = requestAnimationFrame(function tick(now: number) {
+      const progress = Math.min(1, (now - started) / DURATION_MS);
+      const eased = 1 - (1 - progress) ** 3;
+      setShown(Math.round(from + (target - from) * eased));
+      if (progress < 1) frame = requestAnimationFrame(tick);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [target]);
+
+  return target === null ? null : (shown ?? 0);
+}
+
+interface LedgerMetricDef {
+  label: string;
+  value: number | string | null;
+  depth: number;
+  kind: LedgerMarkKind;
+  feature?: boolean;
+}
+
+/** One pinned reading in the field; owns its own count-up. */
+function LedgerMetricMark({
+  metric,
+  index,
+}: {
+  metric: LedgerMetricDef;
+  index: number;
+}) {
+  const numericTarget = typeof metric.value === "number" ? metric.value : null;
+  const live = useRisingCount(numericTarget);
+
+  return (
+    <div
+      className={`${styles.ledgerMetric} ${metric.feature ? styles.ledgerMetricFeature : ""}`}
+      data-thesis-metric
+      data-depth={metric.depth}
+      style={
+        {
+          "--metric-delay": `${index * 0.13}s`,
+          "--depth": metric.depth,
+        } as CSSProperties
+      }
+    >
+      <dt>{metric.label}</dt>
+      {/* The instrument is drawn above the reading, and an uncounted figure
+          draws an empty one - eight empty instruments differ from each other,
+          where eight printings of "measuring now" did not. The instrument
+          takes the SAME live value as the number, so the two grow together. */}
+      <LedgerMark
+        className={styles.ledgerMarkGlyph}
+        kind={metric.kind}
+        value={live}
+      />
+      <dd>
+        {metric.value === null
+          ? "-"
+          : typeof metric.value === "number"
+            ? he(live ?? 0)
+            : metric.value}
+      </dd>
+    </div>
+  );
+}
+
 interface CivicSignalMapProps {
   stats: PublicLedgerStats;
   mapSignals: PlacedSignal[];
@@ -476,13 +545,7 @@ function CivicSignalMap({
   // kind: which instrument draws the figure (see ledgerMarks). One per metric,
   // never repeated, so the field reads as a bench of instruments rather than
   // eight printings of the same reading.
-  const metrics: {
-    label: string;
-    value: number | string | null;
-    depth: number;
-    kind: LedgerMarkKind;
-    feature?: boolean;
-  }[] = [
+  const metrics: LedgerMetricDef[] = [
     {
       label: t.metricMunicipalities,
       value: stats.municipalities,
@@ -590,35 +653,7 @@ function CivicSignalMap({
 
       <dl className={styles.thesisMetricMap} data-beat-stage-primary>
         {metrics.map((metric, index) => (
-          <div
-            className={`${styles.ledgerMetric} ${metric.feature ? styles.ledgerMetricFeature : ""}`}
-            data-thesis-metric
-            data-depth={metric.depth}
-            key={metric.label}
-            style={
-              {
-                "--metric-delay": `${index * 0.13}s`,
-                "--depth": metric.depth,
-              } as CSSProperties
-            }
-          >
-            <dt>{metric.label}</dt>
-            {/* The instrument is drawn above the reading, and an uncounted
-                figure draws an empty one - eight empty instruments differ from
-                each other, where eight printings of "measuring now" did not. */}
-            <LedgerMark
-              className={styles.ledgerMarkGlyph}
-              kind={metric.kind}
-              value={typeof metric.value === "number" ? metric.value : null}
-            />
-            <dd>
-              {metric.value === null
-                ? "-"
-                : typeof metric.value === "number"
-                  ? he(metric.value)
-                  : metric.value}
-            </dd>
-          </div>
+          <LedgerMetricMark metric={metric} index={index} key={metric.label} />
         ))}
       </dl>
     </aside>
@@ -1306,6 +1341,56 @@ export function CinematicIntro({
           // at 0.6, so ~40% of each step is the beat sitting still and legible.
           const STEP = 1;
           const lastAt = Math.max(0, beats.length - 1) * STEP;
+
+          /* The opening is a splash, not a runway: everything arrives on
+             load - the survey field rises under the wordmark, the metrics
+             stagger in, the claim prints - and the scroll's only job is to
+             carry the site up over it. It used to hold the field back until
+             the first scroll, which read as a page that had not finished
+             loading rather than a reveal waiting to be earned. */
+          if (openingOnly) {
+            gsap.set(thesis, {
+              visibility: "visible",
+              yPercent: 0,
+              pointerEvents: "auto",
+            });
+
+            const splash = gsap.timeline({
+              defaults: { ease: "power3.out" },
+            });
+            splash
+              .fromTo(
+                "[data-thesis-ledger]",
+                { yPercent: 6, opacity: 0 },
+                { yPercent: 0, opacity: 0.62, duration: 0.9, ease: "power2.out" },
+                0,
+              )
+              .fromTo(
+                "[data-thesis-metric]",
+                { y: -22, opacity: 0 },
+                {
+                  y: 0,
+                  opacity: (_index: number, target: Element) =>
+                    0.38 +
+                    0.62 *
+                      Number((target as HTMLElement).dataset.depth ?? "0.5"),
+                  stagger: 0.07,
+                  duration: 0.55,
+                },
+                0.2,
+              )
+              /* The claim itself - wordmark, headline, standfirst - rises
+                 line by line over the field. */
+              .fromTo(
+                "[data-thesis-beat] > *",
+                { y: 26, opacity: 0 },
+                { y: 0, opacity: 1, stagger: 0.14, duration: 0.75 },
+                0.1,
+              );
+
+            ScrollTrigger.refresh();
+            return;
+          }
 
           gsap.set(thesis, {
             visibility: "visible",
@@ -2273,6 +2358,20 @@ export function CinematicIntro({
                     <p className={styles.thesisLede}>
                       {withEmphasis(t.openingStandfirst)}
                     </p>
+                    {/* The one door out of the splash. The label is the brand's
+                        own imperative rather than "vote": the standfirst has
+                        just said what showing them does. */}
+                    <NewsButton
+                      href={`${localePrefix(locale)}/feed`}
+                      variant="red"
+                      size="lg"
+                      className={styles.openingCta}
+                      trailing={
+                        <span aria-hidden>{locale === "he" ? "←" : "→"}</span>
+                      }
+                    >
+                      {t.openingCta}
+                    </NewsButton>
                   </>
                 ) : (
                   <>

@@ -42,7 +42,7 @@ const COPY: Record<Locale, LiveVoteWidgetCopy> = {
     dispatchKicker: 'נפתחים בקרוב',
     dispatchPlace: 'ישראל',
     issueSuffixOf: (issueNo) => ` · גיליון ${issueNo}`,
-    dispatchQuestion: 'ההצבעה הראשונה נפתחת ב־04.08.26.',
+    dispatchQuestion: 'ההצבעה הראשונה נפתחת ב-04.08.26.',
     dispatchText:
       'בכל הארץ בבת אחת. הצטרפו לקבוצת המייסדים כדי לקבל עדכון ברגע שהקלפי נפתחת.',
     dispatchCta: 'קבוצת המייסדים',

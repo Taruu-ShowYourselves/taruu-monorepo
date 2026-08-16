@@ -181,7 +181,7 @@ const COPY: Record<Locale, RowCopy> = {
     unmeasured: 'לא נמדד',
     unmeasuredTitle: 'הנושא טרם נמדד',
     heatTitle: 'מדד חום: כמה הנושא בוער עכשיו',
-    aiKicker: 'ה־AI שלנו איתר',
+    aiKicker: 'ה-AI שלנו איתר',
     rankBadge: (rank) => `#${rank} בחום`,
     postsLine: (count) =>
       `עלה מתוך ${count === 1 ? 'פוסט' : `${count} פוסטים`} בקבוצות הפייסבוק המקומיות.`,
@@ -345,14 +345,14 @@ function Sentiment({ source, locale = 'he' }: { source: DeskSource; locale?: Loc
 /**
  * How long the swipe lesson runs.
  *
- * The lesson is a demonstration now, not three lit pills: a ghost sheet
- * performs the gesture on the tile - leans right and holds, leans left and
- * holds, dips down - with the matching cue lighting as it goes. The CSS
- * sequence in ConsensusDesk.module.css (np-teach-ghost + the cue delays) is
- * hard-coupled to this number: change either and the other must follow, or
- * the lesson is cut off mid-gesture.
+ * The lesson is a performed gesture: a finger dot presses the tile's centre
+ * and holds (the grip), then drags to each answer's edge in turn while that
+ * edge floods in its cast colour and its cue lights - press, right, left,
+ * down. The CSS sequence in ConsensusDesk.module.css (np-teach-* keyframes
+ * and the cue delays) is hard-coupled to this number: change either and the
+ * other must follow, or the lesson is cut off mid-gesture.
  */
-const TUTOR_MS = 6200;
+const TUTOR_MS = 7600;
 
 const FOR_TEXT = /^(בעד|for)$/i;
 const AGAINST_TEXT = /^(נגד|against)$/i;
@@ -789,12 +789,14 @@ interface DeskTopicRowProps {
    */
   tutor?: boolean;
   /**
-   * Called the first time this tile is substantially on screen, so the stream
-   * can hand the lesson to a tile the reader can actually see. Passed only
-   * while the lesson is unclaimed - its absence is what stops the tile
-   * watching itself for no reason.
+   * Called the first time this tile is substantially on screen, with its
+   * squared distance from the viewport's centre, so the stream can hand the
+   * lesson to the tile the reader is actually looking at - the centre-most
+   * one, not merely the first to cross a threshold. Passed only while the
+   * lesson is unclaimed - its absence is what stops the tile watching itself
+   * for no reason.
    */
-  onTutorVisible?: (index: number) => void;
+  onTutorVisible?: (index: number, distance: number) => void;
   /**
    * Handed a push made by a reader with no account, instead of letting it
    * land. Present only for guests - its absence is what says the desk may
@@ -917,7 +919,14 @@ export function DeskTopicRow({
            the guard degrades to the old behaviour where it is not.) */
         if (entry.target.checkVisibility?.() === false) return;
         observer.disconnect();
-        onTutorVisible(index);
+        /* The bid carries how far this tile sits from the middle of the
+           screen: the stream gives the lesson to the closest bidder, so the
+           demonstration plays where the reader's eyes already are instead of
+           on a lead tile half off the edge of the desk. */
+        const rect = entry.boundingClientRect;
+        const dx = rect.left + rect.width / 2 - window.innerWidth / 2;
+        const dy = rect.top + rect.height / 2 - window.innerHeight / 2;
+        onTutorVisible(index, dx * dx + dy * dy);
       },
       { threshold: [0.6] }
     );
@@ -1109,13 +1118,23 @@ export function DeskTopicRow({
         </div>
       </div>
 
-      {/* The lesson's ghost: a translucent sheet over the tile that performs
-          the swipe - lean right, hold, lean left, hold, dip down - so the
-          reader is shown the card moving rather than told about it. Its own
-          element on purpose: the tile's transform belongs to the gesture and
-          the reveal (both inline), and a keyframe on the tile itself would
-          out-rank and fight them. */}
-      {teaching ? <span className={styles.tutorGhost} aria-hidden /> : null}
+      {/* The lesson's ghost: a finger presses the tile's centre and holds -
+          the grip - then drags to each answer's edge while that edge floods
+          in its cast colour, so the reader is shown the actual gesture
+          (hold, then push) rather than told about it. Edge wedges instead of
+          a full-tile wash: the tile's own art plate is often dark, and a
+          translucent sheet over it read as mud while burying the headline.
+          Its own element on purpose: the tile's transform belongs to the
+          gesture and the reveal (both inline), and a keyframe on the tile
+          itself would out-rank and fight them. */}
+      {teaching ? (
+        <span className={styles.tutorGhost} aria-hidden>
+          <i className={styles.tutorWedge} data-edge="for" />
+          <i className={styles.tutorWedge} data-edge="against" />
+          <i className={styles.tutorWedge} data-edge="aside" />
+          <i className={styles.tutorDot} />
+        </span>
+      ) : null}
 
       {/* The three answers, each printed on the edge it lives on, and lit as
           the tile is pushed toward it. Decorative: the gesture is a shortcut

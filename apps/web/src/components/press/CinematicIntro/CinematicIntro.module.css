@@ -83,9 +83,14 @@
    The floor is set by the handoff, not by the copy: HomepageExperience docks
    the site layer at `height - 100svh` and scrubs it over the viewport before
    that, so anything under 300svh starts sliding the masthead up over a
-   wordmark the reader has not finished reading. */
+   wordmark the reader has not finished reading.
+
+   The opening is a splash now, not a scrub: everything is on stage within a
+   second of load, so the runway only has to hold the hero fully visible at
+   rest. 200svh is exactly that - the site layer's -100svh overlap begins the
+   moment the reader scrolls, and not a pixel before. */
 .cinematic.openingRunway {
-  height: 300svh;
+  height: 200svh;
 }
 
 /* Four beats rather than five, and it opens mid-page with the reader already
@@ -721,6 +726,71 @@
 /* An uncounted figure: the same instrument, empty and quieter. */
 .ledgerMarkGlyph[data-empty] {
   color: color-mix(in srgb, var(--intro-soft) 55%, transparent);
+}
+
+/* ---- The instruments keep measuring ------------------------------------
+   The count-up lands the reading; after it, each instrument stays faintly
+   alive - bars breathe, dots and hatches shimmer - so the field reads as a
+   survey still running rather than a chart that was printed once. All of it
+   is opacity/scale on the SVG's own children; nothing touches the drawn
+   geometry, so an empty instrument idles too, just quieter. */
+.ledgerMarkGlyph[data-mark='bars'] rect {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: ledger-bar-breathe 2.9s ease-in-out infinite alternate;
+}
+
+.ledgerMarkGlyph[data-mark='bars'] rect:nth-child(2n) { animation-delay: 0.45s; }
+.ledgerMarkGlyph[data-mark='bars'] rect:nth-child(3n) { animation-delay: 0.9s; }
+.ledgerMarkGlyph[data-mark='bars'] rect:nth-child(5n) { animation-delay: 1.4s; }
+
+@keyframes ledger-bar-breathe {
+  from { transform: scaleY(1); }
+  to { transform: scaleY(1.14); }
+}
+
+.ledgerMarkGlyph[data-mark='dots'] circle,
+.ledgerMarkGlyph[data-mark='hatch'] line,
+.ledgerMarkGlyph[data-mark='tally'] line {
+  animation: ledger-shimmer 3.4s ease-in-out infinite;
+}
+
+.ledgerMarkGlyph[data-mark='dots'] circle:nth-child(2n),
+.ledgerMarkGlyph[data-mark='hatch'] line:nth-child(2n),
+.ledgerMarkGlyph[data-mark='tally'] line:nth-child(2n) { animation-delay: 0.7s; }
+
+.ledgerMarkGlyph[data-mark='dots'] circle:nth-child(3n),
+.ledgerMarkGlyph[data-mark='hatch'] line:nth-child(3n) { animation-delay: 1.5s; }
+
+.ledgerMarkGlyph[data-mark='dots'] circle:nth-child(5n),
+.ledgerMarkGlyph[data-mark='hatch'] line:nth-child(5n) { animation-delay: 2.2s; }
+
+@keyframes ledger-shimmer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+/* The ring and the trace pulse as wholes - their strokes carry the reading,
+   and dimming individual segments would redraw the figure. */
+.ledgerMarkGlyph[data-mark='ring'],
+.ledgerMarkGlyph[data-mark='trace'] {
+  animation: ledger-gauge-pulse 3.1s ease-in-out infinite;
+}
+
+@keyframes ledger-gauge-pulse {
+  0%, 100% { opacity: 1; }
+  55% { opacity: 0.68; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ledgerMarkGlyph[data-mark='bars'] rect,
+  .ledgerMarkGlyph[data-mark='dots'] circle,
+  .ledgerMarkGlyph[data-mark='hatch'] line,
+  .ledgerMarkGlyph[data-mark='tally'] line,
+  .ledgerMarkGlyph[data-mark='ring'],
+  .ledgerMarkGlyph[data-mark='trace'] {
+    animation: none;
+  }
 }
 
 /* The plates. Each is a flat pattern rather than a picture: the field is a
@@ -1863,6 +1933,13 @@
   letter-spacing: -0.03em;
   text-wrap: balance;
   color: var(--intro-ink);
+}
+
+/* The splash's door. The beat grid's row-gap spaces the copy lines against
+   each other; the button is an instrument, not a line, and stands half a step
+   further off so the standfirst finishes before the ask begins. */
+.openingCta {
+  margin-block-start: calc(var(--beat-step) * 0.5);
 }
 
 /* The opening story's purpose line, at beat scale under the wordmark. It is

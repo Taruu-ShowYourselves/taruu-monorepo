@@ -57,7 +57,7 @@ const ERROR_COPY: Record<Locale, ErrorPanelCopy> = {
   he: {
     kicker: 'שגיאה · ERROR',
     defaultBody:
-      'לא הצלחנו לטעון את הנתונים. הנתונים עצמם לא נפגעו - נסו שוב; אם זה חוזר, פנו למנהל־על.',
+      'לא הצלחנו לטעון את הנתונים. הנתונים עצמם לא נפגעו - נסו שוב; אם זה חוזר, פנו למנהל-על.',
     retryLabel: 'נסו שוב',
   },
   en: {
@@ -109,7 +109,7 @@ export function ErrorPanel({
 export interface NoPermissionPanelProps {
   /**
    * Opens the escalation `ConfirmDialog`. Required, because SPACE-09 makes
-   * `פנייה למנהל־על` a real path rather than a decorative button - and this
+   * `פנייה למנהל-על` a real path rather than a decorative button - and this
    * is the one control rendered regardless of capability, including to a
    * suspended admin holding nothing at all.
    */
@@ -129,11 +129,11 @@ export function NoPermissionPanel({ onEscalate, className }: NoPermissionPanelPr
       <h2 className={styles.heading}>אין לכם גישה לחלק הזה</h2>
       <p className={styles.body}>
         החשבון שלכם לא מחזיק את ההרשאה הנדרשת במרחב הזה, או שהגישה הושעתה. אם זו
-        טעות - פנו למנהל־על.
+        טעות - פנו למנהל-על.
       </p>
       <div className={styles.actions}>
         <NewsButton variant="outline" onClick={onEscalate}>
-          פנייה למנהל־על
+          פנייה למנהל-על
         </NewsButton>
       </div>
       <p className={styles.note}>

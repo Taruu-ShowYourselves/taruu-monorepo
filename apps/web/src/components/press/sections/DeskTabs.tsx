@@ -115,9 +115,11 @@ export function DeskTabs({
     tab === 'national' ? 'knesset-desk' : 'desk-panel-local';
 
   return (
+    /* No nav sentinel here on purpose: the pinned dock stays out of the
+       carousel's frame - it stands over the locality desk and the thesis
+       chapters instead (their data-nav-reveal="hold"). */
     <section
       id="consensus-desk"
-      data-nav-reveal=""
       className={styles.section}
       aria-labelledby="consensus-desk-headline"
     >

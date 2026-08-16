@@ -46,6 +46,37 @@ import type {
 const idempotencyKeyFor = (submitterUserId: string, voteId: string): string =>
   `${submitterUserId}:vote_creation:${voteId}`;
 
+/**
+ * Load-bearing payment switch for PAY-06.
+ *
+ * Today's implementation does NOT capture money; it only records an obligation,
+ * so approvals must keep working while `NEXT_PUBLIC_PAYMENTS_ENABLED` is off.
+ * When PAY-06 swaps the pending-row insert for a real capture, this constant is
+ * the required one-line acknowledgement that the implementation now moves
+ * money. The guard below then fails closed unless the global payment switch is
+ * explicitly enabled.
+ */
+export const CREATION_FEE_IMPLEMENTATION_CAPTURES = false;
+
+type PaymentSwitchEnv = { NEXT_PUBLIC_PAYMENTS_ENABLED?: string };
+
+const currentPaymentSwitchEnv = (): PaymentSwitchEnv => ({
+  NEXT_PUBLIC_PAYMENTS_ENABLED: process.env.NEXT_PUBLIC_PAYMENTS_ENABLED,
+});
+
+const paymentsEnabled = (
+  env: PaymentSwitchEnv = currentPaymentSwitchEnv()
+): boolean => env.NEXT_PUBLIC_PAYMENTS_ENABLED === 'true';
+
+export function assertCreationFeeCaptureAllowed(
+  capturesMoney = CREATION_FEE_IMPLEMENTATION_CAPTURES,
+  env: PaymentSwitchEnv = currentPaymentSwitchEnv()
+): AppError | null {
+  return capturesMoney && !paymentsEnabled(env)
+    ? paymentInvalid('התשלומים כבויים')
+    : null;
+}
+
 /** A completed row is a real capture; anything else is still just owed. */
 const toCharge = (row: Payment): CreationFeeCharge => ({
   paymentId: row.id,
@@ -69,6 +100,11 @@ function findExisting(key: string): ResultAsync<Payment | null, AppError> {
 export function createCreationFeePort(): CreationFeePort {
   return {
     charge({ submitterUserId, voteId, amountAgorot }) {
+      const captureSwitchError = assertCreationFeeCaptureAllowed();
+      if (captureSwitchError) {
+        return errAsync<CreationFeeCharge, AppError>(captureSwitchError);
+      }
+
       const idempotency_key = idempotencyKeyFor(submitterUserId, voteId);
 
       // Look up before inserting. This is what makes a second approval attempt

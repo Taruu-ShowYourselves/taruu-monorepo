@@ -40,7 +40,7 @@ describe('formatBillTitle', () => {
       qualifier: null,
     });
     expect(formatBillTitle('חוק-יסוד: לימוד תורה')).toEqual({
-      kicker: 'חוק־יסוד',
+      kicker: 'חוק-יסוד',
       headline: 'לימוד תורה',
       qualifier: null,
     });

@@ -27,23 +27,6 @@
   will-change: transform;
 }
 
-.section::after {
-  content: '06';
-  position: absolute;
-  inset-inline-end: clamp(-0.08em, -1vw, 0);
-  inset-block-start: 3vh;
-  z-index: -1;
-  transform: translate3d(0, var(--np-parallax-fore, 0), 0);
-  will-change: transform;
-  font-family: var(--np-font-display);
-  font-size: clamp(12rem, 31vw, 34rem);
-  font-weight: 900;
-  line-height: 0.7;
-  letter-spacing: -0.1em;
-  color: rgb(224 48 30 / 3.5%);
-  pointer-events: none;
-}
-
 .inner {
   inline-size: 100%;
   max-inline-size: var(--np-container);

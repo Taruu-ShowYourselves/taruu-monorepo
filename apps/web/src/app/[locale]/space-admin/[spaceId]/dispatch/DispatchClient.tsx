@@ -61,11 +61,11 @@ const HINT_NO_PREVIEW = 'חשבו קהל יעד כדי לאפשר שליחה.';
 const HINT_NO_RECIPIENTS = 'אין נמענים מאושרים בקהל שבחרתם.';
 
 const SEND_ERROR_HE =
-  'ההתראה לא נשלחה, ואף נמען לא קיבל אותה. נסו שוב; אם זה חוזר - פנו למנהל־על.';
+  'ההתראה לא נשלחה, ואף נמען לא קיבל אותה. נסו שוב; אם זה חוזר - פנו למנהל-על.';
 
 /** A failed preview is not in the copy deck; this is the deck's error voice. */
 const PREVIEW_ERROR_HE =
-  'לא הצלחנו לחשב את הקהל. הנתונים לא נפגעו - נסו שוב; אם זה חוזר, פנו למנהל־על.';
+  'לא הצלחנו לחשב את הקהל. הנתונים לא נפגעו - נסו שוב; אם זה חוזר, פנו למנהל-על.';
 
 /**
  * The house required-field string, verbatim. It already exists in four other
@@ -312,7 +312,7 @@ export function DispatchClient({ spaceId, quota }: DispatchClientProps) {
           setSent(result);
           setConfirming(false);
           setAnnouncement(
-            `ההתראה נשלחה ל־${result.deliveredRecipients} נמענים. רשומת המשלוח נשמרה ביומן.`,
+            `ההתראה נשלחה ל-${result.deliveredRecipients} נמענים. רשומת המשלוח נשמרה ביומן.`,
           );
           router.refresh();
           return;
@@ -588,7 +588,7 @@ export function DispatchClient({ spaceId, quota }: DispatchClientProps) {
             setConfirming(next);
           }}
           heading={CONFIRM_HEADING}
-          body={`ההתראה תישלח ל־${preview.data.approvedRecipients} נמענים מאושרים במרחב.`}
+          body={`ההתראה תישלח ל-${preview.data.approvedRecipients} נמענים מאושרים במרחב.`}
           consequence={CONFIRM_CONSEQUENCE}
           reasonLabel={CONFIRM_REASON_LABEL}
           confirmLabel={SEND_CTA}

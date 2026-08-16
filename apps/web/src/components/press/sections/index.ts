@@ -13,3 +13,4 @@ export { Pillars } from './Pillars';
 export { PilotDispatch } from './PilotDispatch';
 export { Colophon } from './Colophon';
 export { IsraelMapDesk } from './IsraelMapDesk';
+export { ThesisChapters } from './ThesisChapters';
