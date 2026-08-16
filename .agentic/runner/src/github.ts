@@ -71,6 +71,15 @@ export async function reviewDecision(pr: number): Promise<ReviewDecision> {
   return (JSON.parse(out) as { reviewDecision: ReviewDecision }).reviewDecision;
 }
 
+export async function isMerged(pr: number): Promise<boolean> {
+  const out = await gh(["pr", "view", String(pr), "-R", config().repo, "--json", "state"]);
+  return (JSON.parse(out) as { state: string }).state === "MERGED";
+}
+
+export async function prDiff(pr: number): Promise<string> {
+  return gh(["pr", "diff", String(pr), "-R", config().repo]);
+}
+
 export async function issueView(issue: number): Promise<{ title: string; body: string }> {
   const out = await gh([
     "issue", "view", String(issue), "-R", config().repo,

@@ -185,7 +185,7 @@ async function walkLane(lane: LaneState): Promise<void> {
  * together — the later one parks for human re-ordering.
  */
 /** Phases where a lane sits on a human, holding no working slot. */
-const WAITING_PHASES = new Set<string>(["spec-gate", "pr-gate"]);
+const WAITING_PHASES = new Set<string>(["spec-gate", "pr-gate", "merge-learn"]);
 
 export function workingLanes(): LaneState[] {
   return activeLanes().filter((l) => !WAITING_PHASES.has(l.phase));
