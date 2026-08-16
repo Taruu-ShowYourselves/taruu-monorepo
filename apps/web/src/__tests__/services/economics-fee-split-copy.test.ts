@@ -76,9 +76,10 @@ describe('the true figures survive', () => {
     expect(readCode('CTASection.tsx')).toContain('חינם');
   });
 
-  it('FAQ.tsx keeps all nine questions', () => {
+  it('FAQ.tsx keeps all nine questions in each locale', () => {
+    // The FAQ went i18n on main: nine questions each in HE_FAQS and EN_FAQS.
     const questions = readCode('FAQ.tsx').match(/question: '/g) ?? [];
-    expect(questions).toHaveLength(9);
+    expect(questions).toHaveLength(18);
   });
 });
 

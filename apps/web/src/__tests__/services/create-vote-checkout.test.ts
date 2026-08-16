@@ -282,17 +282,29 @@ describe('creation funnel states only what it can back', () => {
     expect(createCode).not.toContain('CREATED');
   });
 
-  it('the create page reaches Green Invoice before anything else can happen', () => {
-    expect(createCode).toContain('startVoteCreationCheckout');
+  // The product flow moved under the funnel (issue #75, PR #104): a proposal is
+  // submitted free and the ₪50 fee becomes an obligation only when a space
+  // admin approves. The create page therefore starts no checkout, and the
+  // return page is a plain acknowledgement with no draft to finalise. The
+  // pure helpers above (deriveVoteCreationKey / decideReturnPhase /
+  // classifyFinalizeResponse) stay pinned: they are the rails a paid funnel
+  // would ride again, and the /api/payments/create route still uses them.
+
+  it('the create page starts no checkout - submission is free', () => {
+    expect(createCode).not.toContain('startVoteCreationCheckout');
+    expect(createCode).not.toContain('/api/payments/create');
+    expect(createCode).not.toContain('paymentUrl');
   });
 
-  it("the create page keeps the form's true ₪50 price", () => {
-    // Deleting the fabricated receipt must not take the honest price with it.
-    expect(createCode).toContain('CREATE_VOTE_COST');
+  it('the create page says the submission was not charged', () => {
+    expect(createCode).toContain('ההגשה לא חויבה');
   });
 
-  it('the return page reads the failure redirect off the location', () => {
-    expect(returnCode).toContain('window.location.search');
+  it('the return page finalises nothing - there is no draft to finalise', () => {
+    expect(returnCode).not.toContain('pendingVote');
+    expect(returnCode).not.toContain('sessionStorage');
+    expect(returnCode).not.toContain('classifyFinalizeResponse');
+    expect(returnCode).not.toContain('decideReturnPhase');
   });
 
   it('the return page does not use the Next search-params hook', () => {
@@ -301,17 +313,8 @@ describe('creation funnel states only what it can back', () => {
     expect(returnCode).not.toContain('useSearchParams');
   });
 
-  it('the return page honours the failed verdict before finalising', () => {
-    expect(returnCode).toContain('decideReturnPhase');
-    expect(returnCode).toContain("setPhase('failed')");
-  });
-
-  it('the return page clears the draft on both the created and the failed path', () => {
-    const cleared = returnCode.split("removeItem('pendingVote')").length - 1;
-    expect(cleared).toBeGreaterThanOrEqual(2);
-  });
-
-  it('the return page keeps the deliberate 402 / 400 finalisation semantics', () => {
-    expect(returnCode).toContain('classifyFinalizeResponse');
+  it('the return page never claims a vote was created', () => {
+    expect(returnCode).not.toContain('הצבעה נוצרה');
+    expect(returnCode).not.toContain("setPhase('created')");
   });
 });
