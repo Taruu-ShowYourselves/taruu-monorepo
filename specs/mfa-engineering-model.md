@@ -23,6 +23,15 @@
 > `dolev/issue-71-pr-a-score-unification` @ `75dc346` (draft PR #110, worktree
 > `taruu-monorepo-wt-pr-a`), `origin/main` @ `248c2c1`, and the **live
 > production database** (ledger, columns, policies queried 2026-08-13).
+>
+> **Update 2026-08-16:** PR #110 (identity-score unification) is now MERGED to
+> main (squash `bc7defe`), and the M1 branch is rebased onto it. `origin/main`
+> is now `bc7defe`; the 0..140 identity model, `MINIMUM_IDENTITY_SCORE_FOR_VOTING
+> = 40 AND explicit residency` ballot rule, and migration
+> `20260807000001_identity_score_unification.sql` are on main. That migration is
+> present in the tree but **still NOT applied to production** (app-first rollout
+> pending). PR-A is no longer a separate branch dependency — its behavior is now
+> the main baseline this branch builds on.
 
 ---
 
@@ -850,7 +859,10 @@ superseded by verified reality. Its *decisions* are unaffected.
    `supabase.auth.mfa.*`) stands unchanged; only the factual claim is
    sharpened.
 2. **§2 "prod ledger = 49/49"** — now 50 applied, latest `20260811000004`
-   (audit predates the pilot_program apply).
+   (audit predates the pilot_program apply). As of 2026-08-16 PR #110 is merged
+   to main, so `20260807000001_identity_score_unification.sql` is in the repo
+   chain but is NOT among the applied prod versions (verified absent from the
+   live ledger); it awaits the app-first single-migration apply.
 3. **Suggested destination realized**: the architecture doc now lives at
    `specs/mfa-architecture.md`, which resolves the previously dangling path
    citations in `20260901000001_session_version.sql` and gives the bare

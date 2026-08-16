@@ -2,7 +2,7 @@
 
 Status: REVISION 2 — review points resolved; ready to be marked CANONICAL v1
 Supersedes all prior Issue #71 planning fragments.
-Grounded in: `origin/main` @248c2c1 · draft PR #110 @75dc346 · live prod DB (audit 2026-08-12)
+Grounded in: `origin/main` @248c2c1 · draft PR #110 @75dc346 · live prod DB (audit 2026-08-12). **Update 2026-08-16:** PR #110 is now MERGED to main (squash `bc7defe`); the M1 branch is rebased onto it. Migration `20260807000001` is present on main but NOT yet applied to production.
 Suggested repo destination once approved: `specs/mfa-architecture.md`
 
 ---
@@ -36,7 +36,7 @@ Hard dependency: PR #110 ("PR-A", identity-score unification) must land and its 
 | OAuth `state` client-side only; callback never validates it; no nonce | `google.ts:58-83`; `callback/route.ts:69`; proper signed-state precedent at `apps/web/src/lib/oauth-state.ts:14,28` |
 | No auth middleware; 172 per-route `requireAuth()` sites — a single central chokepoint in `services/auth/session.ts` | `apps/web/src/middleware.ts:27`; `session.ts:228` |
 | ES256/JWKS subsystem exists but only to publish keys for Supabase RLS transport | `apps/web/src/lib/supabase/signing-key.ts:24,76`; `apps/web/src/app/api/jwks/route.ts`; `apps/web/src/lib/supabase/user-token.ts:20,70-73` |
-| No MFA tables; no session table; prod ledger = 49/49 match with main; `20260807000001` unapplied | live `list_migrations` |
+| No MFA tables; no session table; `20260807000001` present on main (PR #110 merged) but unapplied to prod (prod ledger 2026-08-16 has no `20260807000001` row) | live `list_migrations` |
 | Append-only house pattern (BEFORE trigger + REVOKE, never RLS-only) proven 3× | `role_grant_events` (20260802000002:135,176), `space_audit_log` (20260802000010:137-174), `pilot_audit_log` (20260811000004:205-218) |
 | Operator model = `role_grants` + `requireRole`/`requirePilotAdmin` + `users.is_platform_admin` | `20260802000002:33-51`; `apps/web/src/server/app/authz/require-role.ts:47-63`; `apps/web/src/server/app/pilot/authorize.ts:20-36` |
 | Rate-limit substrate exists; Upstash unconfigured in prod → in-memory fallback only; no auth endpoint limited | `apps/web/src/lib/rate-limit.ts:31,139,257-308` |
@@ -565,7 +565,7 @@ Rollback: flipping enforcement OFF (same one-row transaction, with recompute) in
 
 ## 13. PR-A relationship (hard prerequisite)
 
-PR #110 (@75dc346) makes the DB sole writer of `identity_score` on the 0..140 scale. Every scoring element here stacks on it. Current state: **draft, unmerged; migration `20260807000001` NOT applied** (prod ledger verified 49/49 = main, this one absent).
+PR #110 makes the DB sole writer of `identity_score` on the 0..140 scale. Every scoring element here stacks on it. Current state (2026-08-16): **MERGED to main (squash `bc7defe`); the M1 branch is rebased onto it. Migration `20260807000001` is present on main but NOT yet applied to production** (prod ledger has no such row; the app-first deploy then single-migration apply is the remaining prod step).
 
 Before any Issue #71 MFA milestone merges, PR-A must complete, including the audit-identified hazards (dependency only — not implemented in this task):
 

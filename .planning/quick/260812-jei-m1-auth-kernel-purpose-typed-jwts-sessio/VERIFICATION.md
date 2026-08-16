@@ -150,6 +150,7 @@ implemented as deliberate, with the reasoning in their file headers — matching
 - The trigger deliberately cannot see settings flips, and the header carries the transactional recompute runbook for both directions — matching §5.7.
 - Eligibility isolation: grep over `services/verification/eligibility.ts`, `app/api/votes/**`, `app/api/payments/**`, `packages/shared/src/utils/identityScore.ts` returns **zero** hits for `security_score|securityScore|displayed_trust|displayedTrust`. No SQL function or view combines the two scores. **State correct; regression guard missing — gap 1.**
 - Note (not a gap): `votingGate()` on this branch is main's pre-PR-A shape (`MINIMUM_VOTING_SCORE`, capped at 100). The `identity_score >= 40 AND explicit residency` shape described in §6.2 is PR-A's deliverable on `dolev/issue-71-pr-a-score-unification`, which §12.3 correctly records as unmerged and as not a dependency of M1.
+  - **Update 2026-08-16:** PR #110 (PR-A) is now MERGED to main (`bc7defe`) and this branch is rebased onto it, so `votingGate()` here is now PR-A's `MINIMUM_IDENTITY_SCORE_FOR_VOTING = 40 AND explicit residency` shape (140 cap), inherited from main — not the old `MINIMUM_VOTING_SCORE`/100 shape. The eligibility-isolation grep above still returns zero security_score/MFA hits post-rebase.
 
 ## 5. Test coverage vs §16b
 

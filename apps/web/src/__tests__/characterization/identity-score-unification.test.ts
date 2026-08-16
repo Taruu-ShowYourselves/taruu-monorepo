@@ -206,6 +206,8 @@ describe('pin: mapper feeds GPS verification into the displayed score', () => {
     phone_verified_at: null,
     identity_verified_at: null,
     is_platform_admin: false,
+    session_version: 1,
+    security_score: 0,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
   } as User;
