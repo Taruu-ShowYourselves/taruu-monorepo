@@ -1,0 +1,7 @@
+# supabase — verified facts (merged PRs only)
+- RLS transport: user-client = anon key + minted ES256 JWT (user-token.ts/jwks); service client bypasses RLS — never mix (PR #95)
+- webhook_events policy is FOR ALL USING(true) with no TO clause — open finding, fix scheduled under issue #22 (audit 2026-08-16)
+- vote_nfts SELECT USING(true) leaks user_id↔wallet — open finding under issue #22 (audit 2026-08-16)
+- Space migrations 20260802000010–0014 were unapplied/unproven per .planning/STATE.md:263 — verify before building on them (audit 2026-08-16)
+- Migration 20260807000001 (identity scoring) sorts before merged 2026081x files — apply as targeted single migration, never bulk up (PR #110 review)
+- is_platform_admin()/can_admin_space() are SECURITY DEFINER with pinned search_path — the 42P17 anti-recursion break, do not remove (issue #101)
