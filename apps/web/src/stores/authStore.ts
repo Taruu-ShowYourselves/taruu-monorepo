@@ -12,6 +12,7 @@ import type {
   SocialProof,
   VerificationStatus,
 } from '@sync/shared';
+import { voterGate } from '@/lib/verification';
 
 // === Types ===
 
@@ -146,10 +147,14 @@ export const useAuthStore = create<AuthState>()(
 // === Selectors ===
 
 /**
- * Check if user can vote (has minimum identity score)
+ * Check if the user clears the voting gate: identity points plus residency,
+ * scored exactly as the server scores it. Advisory - the server still decides.
  */
 export const useCanVote = () =>
-  useAuthStore((state) => (state.user?.identityScore?.total ?? 0) >= 40);
+  useAuthStore((state) => voterGate(state.user).canVote);
+
+/** The gate itself, for surfaces that print the numbers rather than a verdict. */
+export const useVoterGate = () => useAuthStore((state) => voterGate(state.user));
 
 /**
  * Check if user's verification is complete

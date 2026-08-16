@@ -33,9 +33,14 @@ export interface Database {
           google_id: string | null;
           avatar_url: string | null;
           identity_score: number;
-          verification_status: "none" | "pending" | "verified" | "failed";
+          verification_status: 'none' | 'pending' | 'verified' | 'failed';
           qubik_wallet_address: string | null;
           identity_verified_at: string | null;
+          /**
+           * Bootstrap marker for cross-space grant management and grant
+           * suspension only. Confers no space capability and no data access.
+           */
+          is_platform_admin: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -56,9 +61,10 @@ export interface Database {
           google_id?: string | null;
           avatar_url?: string | null;
           identity_score?: number;
-          verification_status?: "none" | "pending" | "verified" | "failed";
+          verification_status?: 'none' | 'pending' | 'verified' | 'failed';
           qubik_wallet_address?: string | null;
           identity_verified_at?: string | null;
+          is_platform_admin?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -79,9 +85,10 @@ export interface Database {
           google_id?: string | null;
           avatar_url?: string | null;
           identity_score?: number;
-          verification_status?: "none" | "pending" | "verified" | "failed";
+          verification_status?: 'none' | 'pending' | 'verified' | 'failed';
           qubik_wallet_address?: string | null;
           identity_verified_at?: string | null;
+          is_platform_admin?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -96,13 +103,7 @@ export interface Database {
           shipping_ils: number;
           total_ils: number;
           currency: string;
-          status:
-            | "pending"
-            | "paid"
-            | "fulfilling"
-            | "shipped"
-            | "cancelled"
-            | "failed";
+          status: 'pending' | 'paid' | 'fulfilling' | 'shipped' | 'cancelled' | 'failed';
           shipping: Record<string, unknown>;
           payment_id: string | null;
           created_at: string;
@@ -116,27 +117,89 @@ export interface Database {
           shipping_ils: number;
           total_ils: number;
           currency?: string;
-          status?:
-            | "pending"
-            | "paid"
-            | "fulfilling"
-            | "shipped"
-            | "cancelled"
-            | "failed";
+          status?: 'pending' | 'paid' | 'fulfilling' | 'shipped' | 'cancelled' | 'failed';
           shipping: Record<string, unknown>;
           payment_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
-          status?:
-            | "pending"
-            | "paid"
-            | "fulfilling"
-            | "shipped"
-            | "cancelled"
-            | "failed";
+          status?: 'pending' | 'paid' | 'fulfilling' | 'shipped' | 'cancelled' | 'failed';
           payment_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      newsletter_subscribers: {
+        Row: {
+          id: string;
+          email: string;
+          status: 'active' | 'unsubscribed';
+          source: string | null;
+          source_page: string | null;
+          locale: 'he' | 'en' | null;
+          subscribed_at: string;
+          unsubscribed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          /** Must already be lowercased and trimmed - the table CHECKs it. */
+          email: string;
+          status?: 'active' | 'unsubscribed';
+          source?: string | null;
+          source_page?: string | null;
+          locale?: 'he' | 'en' | null;
+          subscribed_at?: string;
+          unsubscribed_at?: string | null;
+        };
+        Update: {
+          status?: 'active' | 'unsubscribed';
+          source?: string | null;
+          source_page?: string | null;
+          locale?: 'he' | 'en' | null;
+          subscribed_at?: string;
+          unsubscribed_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      /**
+       * The desk's "not a matter of consensus" signal. Never a ballot: no
+       * points, no tally, no chain. One row per reader per topic.
+       */
+      topic_set_aside: {
+        Row: {
+          id: string;
+          vote_id: string;
+          user_id: string;
+          reason:
+            | 'not_consensus'
+            | 'already_decided'
+            | 'unclear'
+            | 'not_my_authority';
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          vote_id: string;
+          user_id: string;
+          reason:
+            | 'not_consensus'
+            | 'already_decided'
+            | 'unclear'
+            | 'not_my_authority';
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          reason?:
+            | 'not_consensus'
+            | 'already_decided'
+            | 'unclear'
+            | 'not_my_authority';
           updated_at?: string;
         };
         Relationships: [];
@@ -146,7 +209,7 @@ export interface Database {
           id: string;
           user_id: string;
           token: string;
-          device_type: "ios" | "android" | null;
+          device_type: 'ios' | 'android' | null;
           device_name: string | null;
           is_active: boolean;
           last_used: string | null;
@@ -157,7 +220,7 @@ export interface Database {
           id?: string;
           user_id: string;
           token: string;
-          device_type?: "ios" | "android" | null;
+          device_type?: 'ios' | 'android' | null;
           device_name?: string | null;
           is_active?: boolean;
           last_used?: string | null;
@@ -168,7 +231,7 @@ export interface Database {
           id?: string;
           user_id?: string;
           token?: string;
-          device_type?: "ios" | "android" | null;
+          device_type?: 'ios' | 'android' | null;
           device_name?: string | null;
           is_active?: boolean;
           last_used?: string | null;
@@ -181,7 +244,7 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          provider: "google" | "facebook" | "instagram";
+          provider: 'google' | 'facebook' | 'instagram';
           provider_id: string;
           provider_email: string | null;
           provider_name: string | null;
@@ -193,7 +256,7 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
-          provider: "google" | "facebook" | "instagram";
+          provider: 'google' | 'facebook' | 'instagram';
           provider_id: string;
           provider_email?: string | null;
           provider_name?: string | null;
@@ -205,7 +268,7 @@ export interface Database {
         Update: {
           id?: string;
           user_id?: string;
-          provider?: "google" | "facebook" | "instagram";
+          provider?: 'google' | 'facebook' | 'instagram';
           provider_id?: string;
           provider_email?: string | null;
           provider_name?: string | null;
@@ -221,7 +284,7 @@ export interface Database {
           id: string;
           user_id: string;
           municipality_id: string;
-          status: "active" | "verified" | "failed" | "cancelled";
+          status: 'active' | 'verified' | 'failed' | 'cancelled';
           started_at: string;
           completed_at: string | null;
           total_check_ins: number;
@@ -234,7 +297,7 @@ export interface Database {
           id?: string;
           user_id: string;
           municipality_id: string;
-          status?: "active" | "verified" | "failed" | "cancelled";
+          status?: 'active' | 'verified' | 'failed' | 'cancelled';
           started_at?: string;
           completed_at?: string | null;
           total_check_ins?: number;
@@ -247,7 +310,7 @@ export interface Database {
           id?: string;
           user_id?: string;
           municipality_id?: string;
-          status?: "active" | "verified" | "failed" | "cancelled";
+          status?: 'active' | 'verified' | 'failed' | 'cancelled';
           started_at?: string;
           completed_at?: string | null;
           total_check_ins?: number;
@@ -331,11 +394,11 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          type: "vote_participation" | "vote_creation";
+          type: 'vote_participation' | 'vote_creation';
           amount: number;
           currency: string;
-          status: "pending" | "completed" | "failed" | "refunded";
-          provider: "paddle" | "green_invoice";
+          status: 'pending' | 'completed' | 'failed' | 'refunded';
+          provider: 'paddle' | 'green_invoice';
           provider_id: string | null;
           idempotency_key: string;
           vote_id: string | null;
@@ -347,11 +410,11 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
-          type: "vote_participation" | "vote_creation";
+          type: 'vote_participation' | 'vote_creation';
           amount: number;
           currency?: string;
-          status?: "pending" | "completed" | "failed" | "refunded";
-          provider?: "paddle" | "green_invoice";
+          status?: 'pending' | 'completed' | 'failed' | 'refunded';
+          provider?: 'paddle' | 'green_invoice';
           provider_id?: string | null;
           idempotency_key: string;
           vote_id?: string | null;
@@ -363,11 +426,11 @@ export interface Database {
         Update: {
           id?: string;
           user_id?: string;
-          type?: "vote_participation" | "vote_creation";
+          type?: 'vote_participation' | 'vote_creation';
           amount?: number;
           currency?: string;
-          status?: "pending" | "completed" | "failed" | "refunded";
-          provider?: "paddle" | "green_invoice";
+          status?: 'pending' | 'completed' | 'failed' | 'refunded';
+          provider?: 'paddle' | 'green_invoice';
           provider_id?: string | null;
           idempotency_key?: string;
           vote_id?: string | null;
@@ -382,7 +445,7 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          type: "vote" | "create_vote" | "tokens";
+          type: 'vote' | 'create_vote' | 'tokens';
           payment_id: string | null;
           vote_id: string | null;
           amount: number | null;
@@ -393,7 +456,7 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
-          type: "vote" | "create_vote" | "tokens";
+          type: 'vote' | 'create_vote' | 'tokens';
           payment_id?: string | null;
           vote_id?: string | null;
           amount?: number | null;
@@ -404,7 +467,7 @@ export interface Database {
         Update: {
           id?: string;
           user_id?: string;
-          type?: "vote" | "create_vote" | "tokens";
+          type?: 'vote' | 'create_vote' | 'tokens';
           payment_id?: string | null;
           vote_id?: string | null;
           amount?: number | null;
@@ -422,22 +485,25 @@ export interface Database {
           description: string;
           municipality_id: string;
           status:
-            | "pending"
-            | "active"
-            | "ended"
-            | "resolving"
-            | "resolved"
-            | "failed";
+            | 'draft'
+            | 'in_review'
+            | 'changes_requested'
+            | 'rejected'
+            | 'pending'
+            | 'active'
+            | 'ended'
+            | 'resolving'
+            | 'resolved'
+            | 'failed';
           start_date: string;
           end_date: string;
           participant_count: number;
           resolved_at: string | null;
-          resolution_status:
-            | "pending"
-            | "resolving"
-            | "resolved"
-            | "failed"
-            | null;
+          resolution_status: 'pending' | 'resolving' | 'resolved' | 'failed' | null;
+          hidden_at: string | null;
+          hidden_by: string | null;
+          flagged_at: string | null;
+          flagged_by: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -448,22 +514,25 @@ export interface Database {
           description: string;
           municipality_id: string;
           status?:
-            | "pending"
-            | "active"
-            | "ended"
-            | "resolving"
-            | "resolved"
-            | "failed";
+            | 'draft'
+            | 'in_review'
+            | 'changes_requested'
+            | 'rejected'
+            | 'pending'
+            | 'active'
+            | 'ended'
+            | 'resolving'
+            | 'resolved'
+            | 'failed';
           start_date?: string;
           end_date: string;
           participant_count?: number;
           resolved_at?: string | null;
-          resolution_status?:
-            | "pending"
-            | "resolving"
-            | "resolved"
-            | "failed"
-            | null;
+          resolution_status?: 'pending' | 'resolving' | 'resolved' | 'failed' | null;
+          hidden_at?: string | null;
+          hidden_by?: string | null;
+          flagged_at?: string | null;
+          flagged_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -474,22 +543,25 @@ export interface Database {
           description?: string;
           municipality_id?: string;
           status?:
-            | "pending"
-            | "active"
-            | "ended"
-            | "resolving"
-            | "resolved"
-            | "failed";
+            | 'draft'
+            | 'in_review'
+            | 'changes_requested'
+            | 'rejected'
+            | 'pending'
+            | 'active'
+            | 'ended'
+            | 'resolving'
+            | 'resolved'
+            | 'failed';
           start_date?: string;
           end_date?: string;
           participant_count?: number;
           resolved_at?: string | null;
-          resolution_status?:
-            | "pending"
-            | "resolving"
-            | "resolved"
-            | "failed"
-            | null;
+          resolution_status?: 'pending' | 'resolving' | 'resolved' | 'failed' | null;
+          hidden_at?: string | null;
+          hidden_by?: string | null;
+          flagged_at?: string | null;
+          flagged_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -501,10 +573,10 @@ export interface Database {
           vote_id: string;
           user_id: string | null;
           wallet_address: string | null;
-          type: "verified_voter" | "civic_patron";
+          type: 'verified_voter' | 'civic_patron';
           mint_address: string | null;
           metadata_uri: string | null;
-          status: "pending" | "minting" | "minted" | "failed";
+          status: 'pending' | 'minting' | 'minted' | 'failed';
           minted_at: string | null;
           mint_tx_hash: string | null;
           error_message: string | null;
@@ -518,10 +590,10 @@ export interface Database {
           vote_id: string;
           user_id?: string | null;
           wallet_address?: string | null;
-          type: "verified_voter" | "civic_patron";
+          type: 'verified_voter' | 'civic_patron';
           mint_address?: string | null;
           metadata_uri?: string | null;
-          status?: "pending" | "minting" | "minted" | "failed";
+          status?: 'pending' | 'minting' | 'minted' | 'failed';
           minted_at?: string | null;
           mint_tx_hash?: string | null;
           error_message?: string | null;
@@ -535,10 +607,10 @@ export interface Database {
           vote_id?: string;
           user_id?: string | null;
           wallet_address?: string | null;
-          type?: "verified_voter" | "civic_patron";
+          type?: 'verified_voter' | 'civic_patron';
           mint_address?: string | null;
           metadata_uri?: string | null;
-          status?: "pending" | "minting" | "minted" | "failed";
+          status?: 'pending' | 'minting' | 'minted' | 'failed';
           minted_at?: string | null;
           mint_tx_hash?: string | null;
           error_message?: string | null;
@@ -570,6 +642,200 @@ export interface Database {
           text?: string;
           votes?: number;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      knesset_persons: {
+        Row: {
+          person_id: number;
+          first_name: string;
+          last_name: string;
+          full_name: string;
+          gender_desc: string | null;
+          is_current: boolean;
+          slug: string;
+          knesset_num: number | null;
+          faction_name: string | null;
+          source_name: string;
+          source_url: string;
+          as_of: string;
+          source_updated_at: string | null;
+          fetched_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          person_id: number;
+          first_name: string;
+          last_name: string;
+          full_name: string;
+          gender_desc?: string | null;
+          is_current?: boolean;
+          slug: string;
+          knesset_num?: number | null;
+          faction_name?: string | null;
+          source_name: string;
+          source_url: string;
+          as_of: string;
+          source_updated_at?: string | null;
+          fetched_at?: string;
+        };
+        Update: {
+          is_current?: boolean;
+          slug?: string;
+          knesset_num?: number | null;
+          faction_name?: string | null;
+          first_name?: string;
+          last_name?: string;
+          full_name?: string;
+          gender_desc?: string | null;
+          source_name?: string;
+          source_url?: string;
+          as_of?: string;
+          source_updated_at?: string | null;
+          fetched_at?: string;
+        };
+        Relationships: [];
+      };
+      knesset_positions: {
+        Row: {
+          position_row_id: number;
+          person_id: number;
+          office: string;
+          title: string;
+          portfolio: string | null;
+          faction_name: string | null;
+          knesset_num: number | null;
+          start_date: string | null;
+          end_date: string | null;
+          is_current: boolean;
+          source_name: string;
+          source_url: string;
+          as_of: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          position_row_id: number;
+          person_id: number;
+          office: string;
+          title: string;
+          portfolio?: string | null;
+          faction_name?: string | null;
+          knesset_num?: number | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          is_current?: boolean;
+          source_name: string;
+          source_url: string;
+          as_of: string;
+        };
+        Update: {
+          office?: string;
+          title?: string;
+          portfolio?: string | null;
+          faction_name?: string | null;
+          knesset_num?: number | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          is_current?: boolean;
+        };
+        Relationships: [];
+      };
+      knesset_roll_calls: {
+        Row: {
+          roll_call_id: number;
+          knesset_num: number | null;
+          session_id: number | null;
+          sess_item_id: number | null;
+          item_description: string | null;
+          vote_subject: string | null;
+          vote_date: string | null;
+          total_for: number;
+          total_against: number;
+          total_abstain: number;
+          is_accepted: boolean;
+          source_name: string;
+          source_url: string;
+          as_of: string;
+          fetched_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          roll_call_id: number;
+          knesset_num?: number | null;
+          session_id?: number | null;
+          sess_item_id?: number | null;
+          item_description?: string | null;
+          vote_subject?: string | null;
+          vote_date?: string | null;
+          total_for?: number;
+          total_against?: number;
+          total_abstain?: number;
+          is_accepted?: boolean;
+          source_name: string;
+          source_url: string;
+          as_of: string;
+          fetched_at?: string;
+        };
+        Update: {
+          total_for?: number;
+          total_against?: number;
+          total_abstain?: number;
+          is_accepted?: boolean;
+          fetched_at?: string;
+        };
+        Relationships: [];
+      };
+      knesset_roll_call_stances: {
+        Row: {
+          roll_call_id: number;
+          member_key: string;
+          person_id: number | null;
+          member_name: string;
+          faction_name: string | null;
+          stance: string;
+          created_at: string;
+        };
+        Insert: {
+          roll_call_id: number;
+          member_key: string;
+          person_id?: number | null;
+          member_name: string;
+          faction_name?: string | null;
+          stance: string;
+        };
+        Update: {
+          person_id?: number | null;
+          stance?: string;
+          faction_name?: string | null;
+        };
+        Relationships: [];
+      };
+      knesset_member_reviews: {
+        Row: {
+          id: string;
+          person_id: number;
+          user_id: string;
+          rating: number;
+          body: string | null;
+          status: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          person_id: number;
+          user_id: string;
+          rating: number;
+          body?: string | null;
+          status?: string;
+        };
+        Update: {
+          rating?: number;
+          body?: string | null;
+          status?: string;
         };
         Relationships: [];
       };
@@ -642,54 +908,6 @@ export interface Database {
         };
         Relationships: [];
       };
-      knesset_rankings: {
-        Row: {
-          id: string;
-          vote_id: string;
-          hotness: number;
-          relevance: number | null;
-          media: number | null;
-          headline: string | null;
-          rationale: string | null;
-          media_refs: string[];
-          media_evidence: Record<string, unknown>;
-          model: string | null;
-          ranked_at: string;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          vote_id: string;
-          hotness: number;
-          relevance?: number | null;
-          media?: number | null;
-          headline?: string | null;
-          rationale?: string | null;
-          media_refs?: string[];
-          media_evidence?: Record<string, unknown>;
-          model?: string | null;
-          ranked_at?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          vote_id?: string;
-          hotness?: number;
-          relevance?: number | null;
-          media?: number | null;
-          headline?: string | null;
-          rationale?: string | null;
-          media_refs?: string[];
-          media_evidence?: Record<string, unknown>;
-          model?: string | null;
-          ranked_at?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
       vote_sources: {
         Row: {
           id: string;
@@ -753,27 +971,6 @@ export interface Database {
         };
         Relationships: [];
       };
-      municipalities: {
-        Row: {
-          code: string;
-          name_he: string;
-          kind: "municipality" | "national";
-          created_at: string;
-        };
-        Insert: {
-          code: string;
-          name_he: string;
-          kind?: "municipality" | "national";
-          created_at?: string;
-        };
-        Update: {
-          code?: string;
-          name_he?: string;
-          kind?: "municipality" | "national";
-          created_at?: string;
-        };
-        Relationships: [];
-      };
       webhook_events: {
         Row: {
           id: string;
@@ -783,7 +980,7 @@ export interface Database {
           payload_hash: string;
           received_at: string;
           processed_at: string | null;
-          status: "pending" | "processed" | "failed" | "skipped";
+          status: 'pending' | 'processed' | 'failed' | 'skipped';
           error_message: string | null;
           idempotency_key: string | null;
           created_at: string;
@@ -796,7 +993,7 @@ export interface Database {
           payload_hash: string;
           received_at?: string;
           processed_at?: string | null;
-          status?: "pending" | "processed" | "failed" | "skipped";
+          status?: 'pending' | 'processed' | 'failed' | 'skipped';
           error_message?: string | null;
           idempotency_key?: string | null;
           created_at?: string;
@@ -809,7 +1006,7 @@ export interface Database {
           payload_hash?: string;
           received_at?: string;
           processed_at?: string | null;
-          status?: "pending" | "processed" | "failed" | "skipped";
+          status?: 'pending' | 'processed' | 'failed' | 'skipped';
           error_message?: string | null;
           idempotency_key?: string | null;
           created_at?: string;
@@ -868,13 +1065,7 @@ export interface Database {
         Row: {
           id: string;
           treasury_id: string;
-          type:
-            | "deposit"
-            | "allocation"
-            | "withdrawal"
-            | "fee_claim"
-            | "token_purchase"
-            | "nft_mint";
+          type: 'deposit' | 'allocation' | 'withdrawal' | 'fee_claim' | 'token_purchase' | 'nft_mint';
           vote_id: string | null;
           user_id: string | null;
           payment_id: string | null;
@@ -882,20 +1073,14 @@ export interface Database {
           amount_sol: string | null;
           description: string;
           bags_tx_hash: string | null;
-          status: "pending" | "confirmed" | "failed";
+          status: 'pending' | 'confirmed' | 'failed';
           metadata: Record<string, unknown> | null;
           created_at: string;
         };
         Insert: {
           id?: string;
           treasury_id: string;
-          type:
-            | "deposit"
-            | "allocation"
-            | "withdrawal"
-            | "fee_claim"
-            | "token_purchase"
-            | "nft_mint";
+          type: 'deposit' | 'allocation' | 'withdrawal' | 'fee_claim' | 'token_purchase' | 'nft_mint';
           vote_id?: string | null;
           user_id?: string | null;
           payment_id?: string | null;
@@ -903,20 +1088,14 @@ export interface Database {
           amount_sol?: string | null;
           description: string;
           bags_tx_hash?: string | null;
-          status?: "pending" | "confirmed" | "failed";
+          status?: 'pending' | 'confirmed' | 'failed';
           metadata?: Record<string, unknown> | null;
           created_at?: string;
         };
         Update: {
           id?: string;
           treasury_id?: string;
-          type?:
-            | "deposit"
-            | "allocation"
-            | "withdrawal"
-            | "fee_claim"
-            | "token_purchase"
-            | "nft_mint";
+          type?: 'deposit' | 'allocation' | 'withdrawal' | 'fee_claim' | 'token_purchase' | 'nft_mint';
           vote_id?: string | null;
           user_id?: string | null;
           payment_id?: string | null;
@@ -924,7 +1103,7 @@ export interface Database {
           amount_sol?: string | null;
           description?: string;
           bags_tx_hash?: string | null;
-          status?: "pending" | "confirmed" | "failed";
+          status?: 'pending' | 'confirmed' | 'failed';
           metadata?: Record<string, unknown> | null;
           created_at?: string;
         };
@@ -1039,7 +1218,7 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          document_type: "id_card" | "drivers_license";
+          document_type: 'id_card' | 'drivers_license';
           id_number_hash: string;
           id_number_last2: string;
           first_name: string;
@@ -1054,7 +1233,7 @@ export interface Database {
           face_match_score: number | null;
           face_liveness_passed: boolean;
           face_antispoof_score: number | null;
-          status: "verified" | "pending_review" | "rejected";
+          status: 'verified' | 'pending_review' | 'rejected';
           consent_version: string;
           consent_at: string;
           verified_at: string | null;
@@ -1064,7 +1243,7 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
-          document_type: "id_card" | "drivers_license";
+          document_type: 'id_card' | 'drivers_license';
           id_number_hash: string;
           id_number_last2: string;
           first_name: string;
@@ -1079,7 +1258,7 @@ export interface Database {
           face_match_score?: number | null;
           face_liveness_passed?: boolean;
           face_antispoof_score?: number | null;
-          status?: "verified" | "pending_review" | "rejected";
+          status?: 'verified' | 'pending_review' | 'rejected';
           consent_version: string;
           consent_at?: string;
           verified_at?: string | null;
@@ -1087,7 +1266,7 @@ export interface Database {
           updated_at?: string;
         };
         Update: {
-          document_type?: "id_card" | "drivers_license";
+          document_type?: 'id_card' | 'drivers_license';
           id_number_hash?: string;
           id_number_last2?: string;
           first_name?: string;
@@ -1102,7 +1281,7 @@ export interface Database {
           face_match_score?: number | null;
           face_liveness_passed?: boolean;
           face_antispoof_score?: number | null;
-          status?: "verified" | "pending_review" | "rejected";
+          status?: 'verified' | 'pending_review' | 'rejected';
           consent_version?: string;
           consent_at?: string;
           verified_at?: string | null;
@@ -1115,12 +1294,12 @@ export interface Database {
           id: string;
           user_id: string;
           event:
-            | "submitted"
-            | "auto_verified"
-            | "queued_review"
-            | "approved"
-            | "rejected"
-            | "deleted";
+            | 'submitted'
+            | 'auto_verified'
+            | 'queued_review'
+            | 'approved'
+            | 'rejected'
+            | 'deleted';
           detail: Json | null;
           created_at: string;
         };
@@ -1128,57 +1307,342 @@ export interface Database {
           id?: string;
           user_id: string;
           event:
-            | "submitted"
-            | "auto_verified"
-            | "queued_review"
-            | "approved"
-            | "rejected"
-            | "deleted";
+            | 'submitted'
+            | 'auto_verified'
+            | 'queued_review'
+            | 'approved'
+            | 'rejected'
+            | 'deleted';
           detail?: Json | null;
           created_at?: string;
         };
         Update: Record<string, never>;
         Relationships: [];
       };
-      role_grants: {
+      spaces: {
         Row: {
           id: string;
-          user_id: string;
-          role: "super_admin" | "space_admin" | "community_manager";
-          space_id: string | null;
-          status: "active" | "suspended" | "revoked";
-          source: "manual" | "application";
-          source_id: string | null;
-          granted_by: string | null;
-          granted_at: string;
-          ended_at: string | null;
+          type: 'municipality' | 'national' | 'organization' | 'urban_area' | 'nationwide_civic';
+          slug: string;
+          name_he: string;
+          municipality_code: string | null;
+          geography: Json | null;
+          owner_user_id: string | null;
+          verification_state: 'unverified' | 'pending' | 'verified';
+          notification_monthly_quota: number;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id?: string;
-          user_id: string;
-          role: "super_admin" | "space_admin" | "community_manager";
-          space_id?: string | null;
-          status?: "active" | "suspended" | "revoked";
-          source?: "manual" | "application";
-          source_id?: string | null;
-          granted_by?: string | null;
-          granted_at?: string;
-          ended_at?: string | null;
+          type?: 'municipality' | 'national' | 'organization' | 'urban_area' | 'nationwide_civic';
+          slug: string;
+          name_he: string;
+          municipality_code?: string | null;
+          geography?: Json | null;
+          owner_user_id?: string | null;
+          verification_state?: 'unverified' | 'pending' | 'verified';
+          notification_monthly_quota?: number;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
-          role?: "super_admin" | "space_admin" | "community_manager";
-          space_id?: string | null;
-          status?: "active" | "suspended" | "revoked";
-          source?: "manual" | "application";
-          source_id?: string | null;
-          granted_by?: string | null;
-          granted_at?: string;
-          ended_at?: string | null;
+          id?: string;
+          type?: 'municipality' | 'national' | 'organization' | 'urban_area' | 'nationwide_civic';
+          slug?: string;
+          name_he?: string;
+          municipality_code?: string | null;
+          geography?: Json | null;
+          owner_user_id?: string | null;
+          verification_state?: 'unverified' | 'pending' | 'verified';
+          notification_monthly_quota?: number;
+          created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      space_capability_grants: {
+        Row: {
+          id: string;
+          space_id: string;
+          user_id: string;
+          capability:
+            | 'proposal.read'
+            | 'proposal.approve'
+            | 'proposal.reject'
+            | 'member.read'
+            | 'member.suspend'
+            | 'grant.create'
+            | 'grant.revoke'
+            | 'content.moderate'
+            | 'metrics.read'
+            | 'notification.send'
+            | 'audit.read';
+          /**
+           * Provenance for the UI preset picker only. Never consulted at
+           * authorization time.
+           */
+          granted_via_role: string | null;
+          granted_by: string;
+          granted_at: string;
+          suspended_at: string | null;
+          suspended_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          space_id: string;
+          user_id: string;
+          capability:
+            | 'proposal.read'
+            | 'proposal.approve'
+            | 'proposal.reject'
+            | 'member.read'
+            | 'member.suspend'
+            | 'grant.create'
+            | 'grant.revoke'
+            | 'content.moderate'
+            | 'metrics.read'
+            | 'notification.send'
+            | 'audit.read';
+          granted_via_role?: string | null;
+          granted_by: string;
+          granted_at?: string;
+          suspended_at?: string | null;
+          suspended_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          space_id?: string;
+          user_id?: string;
+          capability?:
+            | 'proposal.read'
+            | 'proposal.approve'
+            | 'proposal.reject'
+            | 'member.read'
+            | 'member.suspend'
+            | 'grant.create'
+            | 'grant.revoke'
+            | 'content.moderate'
+            | 'metrics.read'
+            | 'notification.send'
+            | 'audit.read';
+          granted_via_role?: string | null;
+          granted_by?: string;
+          granted_at?: string;
+          suspended_at?: string | null;
+          suspended_by?: string | null;
+        };
+        Relationships: [];
+      };
+      space_member_suspensions: {
+        Row: {
+          id: string;
+          space_id: string;
+          user_id: string;
+          suspended_at: string;
+          suspended_by: string;
+          lifted_at: string | null;
+          lifted_by: string | null;
+          reason: string;
+        };
+        Insert: {
+          id?: string;
+          space_id: string;
+          user_id: string;
+          suspended_at?: string;
+          suspended_by: string;
+          lifted_at?: string | null;
+          lifted_by?: string | null;
+          reason: string;
+        };
+        Update: {
+          id?: string;
+          space_id?: string;
+          user_id?: string;
+          suspended_at?: string;
+          suspended_by?: string;
+          lifted_at?: string | null;
+          lifted_by?: string | null;
+          reason?: string;
+        };
+        Relationships: [];
+      };
+      space_audit_log: {
+        Row: {
+          id: string;
+          space_id: string;
+          actor_user_id: string;
+          action: string;
+          object_type:
+            | 'vote'
+            | 'grant'
+            | 'space'
+            | 'member'
+            | 'notification_campaign'
+            | 'content'
+            | 'escalation';
+          object_id: string | null;
+          prior_state: Json | null;
+          new_state: Json | null;
+          reason: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          space_id: string;
+          actor_user_id: string;
+          action: string;
+          object_type:
+            | 'vote'
+            | 'grant'
+            | 'space'
+            | 'member'
+            | 'notification_campaign'
+            | 'content'
+            | 'escalation';
+          object_id?: string | null;
+          prior_state?: Json | null;
+          new_state?: Json | null;
+          reason: string;
+          created_at?: string;
+        };
+        /**
+         * The table is append-only, enforced by trigger and REVOKE. No
+         * application path may produce an update payload, so there is no
+         * legal shape for one.
+         */
+        Update: Record<string, never>;
+        Relationships: [];
+      };
+      platform_escalations: {
+        Row: {
+          id: string;
+          /** NULL when the caller's target space did not resolve; see raw_space_id. */
+          space_id: string | null;
+          raw_space_id: string;
+          raised_by: string;
+          body: string;
+          status: 'open' | 'acknowledged' | 'closed';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          space_id?: string | null;
+          raw_space_id: string;
+          raised_by: string;
+          body: string;
+          status?: 'open' | 'acknowledged' | 'closed';
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          space_id?: string | null;
+          raw_space_id?: string;
+          raised_by?: string;
+          body?: string;
+          status?: 'open' | 'acknowledged' | 'closed';
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      space_notification_campaigns: {
+        Row: {
+          id: string;
+          space_id: string;
+          created_by: string;
+          title: string;
+          body: string;
+          audience_filter:
+            | 'all_members'
+            | 'active_vote_participants'
+            | 'new_members_30d';
+          /** sha256 of the sorted, comma-joined recipient ids. Re-derived at send. */
+          audience_hash: string;
+          /** sha256 of trimmed title + body + filter. This IS the previewToken. */
+          content_hash: string;
+          audience_size: number;
+          excluded_opted_out: number;
+          excluded_no_channel: number;
+          status: 'previewed' | 'sent' | 'failed';
+          reason: string | null;
+          previewed_at: string;
+          sent_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          space_id: string;
+          created_by: string;
+          title: string;
+          body: string;
+          audience_filter:
+            | 'all_members'
+            | 'active_vote_participants'
+            | 'new_members_30d';
+          audience_hash: string;
+          content_hash: string;
+          audience_size: number;
+          excluded_opted_out?: number;
+          excluded_no_channel?: number;
+          status?: 'previewed' | 'sent' | 'failed';
+          reason?: string | null;
+          previewed_at?: string;
+          sent_at?: string | null;
+        };
+        Update: {
+          status?: 'previewed' | 'sent' | 'failed';
+          reason?: string | null;
+          sent_at?: string | null;
+        };
+        Relationships: [];
+      };
+      space_notification_deliveries: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          user_id: string;
+          channel: 'in_app' | 'push';
+          state: 'delivered' | 'suppressed' | 'failed';
+          suppression_reason: 'opted_out' | 'no_active_channel' | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          campaign_id: string;
+          user_id: string;
+          channel: 'in_app' | 'push';
+          state?: 'delivered' | 'suppressed' | 'failed';
+          suppression_reason?: 'opted_out' | 'no_active_channel' | null;
+          created_at?: string;
+        };
+        Update: {
+          state?: 'delivered' | 'suppressed' | 'failed';
+          suppression_reason?: 'opted_out' | 'no_active_channel' | null;
+        };
+        Relationships: [];
+      };
+      user_notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          space_id: string | null;
+          campaign_id: string | null;
+          title: string;
+          body: string;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          space_id?: string | null;
+          campaign_id?: string | null;
+          title: string;
+          body: string;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          read_at?: string | null;
         };
         Relationships: [];
       };
@@ -1268,20 +1732,460 @@ export interface Database {
         Update: Record<string, never>;
         Relationships: [];
       };
+      role_grants: {
+        Row: {
+          id: string;
+          user_id: string;
+          role: "super_admin" | "space_admin" | "community_manager";
+          space_id: string | null;
+          status: "active" | "suspended" | "revoked";
+          source: "manual" | "application";
+          source_id: string | null;
+          granted_by: string | null;
+          granted_at: string;
+          ended_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          role: "super_admin" | "space_admin" | "community_manager";
+          space_id?: string | null;
+          status?: "active" | "suspended" | "revoked";
+          source?: "manual" | "application";
+          source_id?: string | null;
+          granted_by?: string | null;
+          granted_at?: string;
+          ended_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          role?: "super_admin" | "space_admin" | "community_manager";
+          space_id?: string | null;
+          status?: "active" | "suspended" | "revoked";
+          source?: "manual" | "application";
+          source_id?: string | null;
+          granted_by?: string | null;
+          granted_at?: string;
+          ended_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      knesset_rankings: {
+        Row: {
+          id: string;
+          vote_id: string;
+          hotness: number;
+          relevance: number | null;
+          stakes: number | null;
+          media: number | null;
+          headline: string | null;
+          rationale: string | null;
+          media_refs: string[];
+          media_evidence: Record<string, unknown>;
+          model: string | null;
+          ranked_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          vote_id: string;
+          hotness: number;
+          relevance?: number | null;
+          stakes?: number | null;
+          media?: number | null;
+          headline?: string | null;
+          rationale?: string | null;
+          media_refs?: string[];
+          media_evidence?: Record<string, unknown>;
+          model?: string | null;
+          ranked_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          vote_id?: string;
+          hotness?: number;
+          relevance?: number | null;
+          stakes?: number | null;
+          media?: number | null;
+          headline?: string | null;
+          rationale?: string | null;
+          media_refs?: string[];
+          media_evidence?: Record<string, unknown>;
+          model?: string | null;
+          ranked_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      vote_card_art: {
+        Row: {
+          id: string;
+          vote_id: string;
+          image_url: string | null;
+          prompt: string | null;
+          model: string | null;
+          attempted_at: string;
+          generated_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          vote_id: string;
+          image_url?: string | null;
+          prompt?: string | null;
+          model?: string | null;
+          attempted_at?: string;
+          generated_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          vote_id?: string;
+          image_url?: string | null;
+          prompt?: string | null;
+          model?: string | null;
+          attempted_at?: string;
+          generated_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      municipalities: {
+        Row: {
+          code: string;
+          name_he: string;
+          kind: "municipality" | "national";
+          created_at: string;
+        };
+        Insert: {
+          code: string;
+          name_he: string;
+          kind?: "municipality" | "national";
+          created_at?: string;
+        };
+        Update: {
+          code?: string;
+          name_he?: string;
+          kind?: "municipality" | "national";
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      pilot_municipalities: {
+        Row: {
+          municipality_id: string;
+          rank: number | null;
+          engagement_score: number;
+          engagement_snapshot: Json;
+          status: 'selected' | 'active' | 'paused' | 'completed';
+          curated_by: string;
+          curated_at: string;
+          activated_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          municipality_id: string;
+          rank?: number | null;
+          engagement_score?: number;
+          engagement_snapshot?: Json;
+          status?: 'selected' | 'active' | 'paused' | 'completed';
+          curated_by: string;
+          curated_at?: string;
+          activated_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          municipality_id?: string;
+          rank?: number | null;
+          engagement_score?: number;
+          engagement_snapshot?: Json;
+          status?: 'selected' | 'active' | 'paused' | 'completed';
+          curated_by?: string;
+          curated_at?: string;
+          activated_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      pilot_votes: {
+        Row: {
+          municipality_id: string;
+          vote_id: string;
+          position: number;
+          added_by: string;
+          created_at: string;
+        };
+        Insert: {
+          municipality_id: string;
+          vote_id: string;
+          position: number;
+          added_by: string;
+          created_at?: string;
+        };
+        Update: {
+          municipality_id?: string;
+          vote_id?: string;
+          position?: number;
+          added_by?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      pilot_campaigns: {
+        Row: {
+          id: string;
+          municipality_id: string;
+          created_by: string;
+          group_name: string;
+          group_url: string | null;
+          status: 'draft' | 'ready' | 'posted' | 'archived';
+          current_copy_id: string | null;
+          posted_at: string | null;
+          posted_by: string | null;
+          post_permalink: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          municipality_id: string;
+          created_by: string;
+          group_name: string;
+          group_url?: string | null;
+          status?: 'draft' | 'ready' | 'posted' | 'archived';
+          current_copy_id?: string | null;
+          posted_at?: string | null;
+          posted_by?: string | null;
+          post_permalink?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          municipality_id?: string;
+          created_by?: string;
+          group_name?: string;
+          group_url?: string | null;
+          status?: 'draft' | 'ready' | 'posted' | 'archived';
+          current_copy_id?: string | null;
+          posted_at?: string | null;
+          posted_by?: string | null;
+          post_permalink?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      pilot_campaign_copies: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          version: number;
+          body: string;
+          author: 'llm' | 'human';
+          author_user_id: string;
+          model: string | null;
+          prompt_snapshot: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          campaign_id: string;
+          version: number;
+          body: string;
+          author: 'llm' | 'human';
+          author_user_id: string;
+          model?: string | null;
+          prompt_snapshot?: Json | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          campaign_id?: string;
+          version?: number;
+          body?: string;
+          author?: 'llm' | 'human';
+          author_user_id?: string;
+          model?: string | null;
+          prompt_snapshot?: Json | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      pilot_links: {
+        Row: {
+          code: string;
+          campaign_id: string | null;
+          municipality_id: string;
+          target_path: string;
+          created_by: string;
+          disabled_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          code: string;
+          campaign_id?: string | null;
+          municipality_id: string;
+          target_path?: string;
+          created_by: string;
+          disabled_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          code?: string;
+          campaign_id?: string | null;
+          municipality_id?: string;
+          target_path?: string;
+          created_by?: string;
+          disabled_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      pilot_link_clicks: {
+        Row: {
+          id: number;
+          link_code: string;
+          clicked_at: string;
+          user_agent: string | null;
+          referer: string | null;
+          ip_hash: string | null;
+          country: string | null;
+          is_bot: boolean;
+        };
+        Insert: {
+          link_code: string;
+          clicked_at?: string;
+          user_agent?: string | null;
+          referer?: string | null;
+          ip_hash?: string | null;
+          country?: string | null;
+          is_bot?: boolean;
+        };
+        Update: {
+          link_code?: string;
+          clicked_at?: string;
+          user_agent?: string | null;
+          referer?: string | null;
+          ip_hash?: string | null;
+          country?: string | null;
+          is_bot?: boolean;
+        };
+        Relationships: [];
+      };
+      pilot_registrations: {
+        Row: {
+          id: string;
+          user_id: string;
+          role: 'participant' | 'observer';
+          lat: number | null;
+          lng: number | null;
+          accuracy_m: number | null;
+          location_consent_at: string | null;
+          consent_version: string | null;
+          claimed_municipality_id: string | null;
+          gps_municipality_id: string | null;
+          resolved_municipality_id: string | null;
+          resolution: 'gps' | 'manual' | 'profile' | 'none';
+          ref_code: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          role: 'participant' | 'observer';
+          lat?: number | null;
+          lng?: number | null;
+          accuracy_m?: number | null;
+          location_consent_at?: string | null;
+          consent_version?: string | null;
+          claimed_municipality_id?: string | null;
+          gps_municipality_id?: string | null;
+          resolved_municipality_id?: string | null;
+          resolution?: 'gps' | 'manual' | 'profile' | 'none';
+          ref_code?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          role?: 'participant' | 'observer';
+          lat?: number | null;
+          lng?: number | null;
+          accuracy_m?: number | null;
+          location_consent_at?: string | null;
+          consent_version?: string | null;
+          claimed_municipality_id?: string | null;
+          gps_municipality_id?: string | null;
+          resolved_municipality_id?: string | null;
+          resolution?: 'gps' | 'manual' | 'profile' | 'none';
+          ref_code?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      pilot_audit_log: {
+        Row: {
+          id: string;
+          actor_user_id: string;
+          municipality_id: string | null;
+          action: string;
+          object_type: 'cohort' | 'campaign' | 'copy' | 'link' | 'vote_set';
+          object_id: string | null;
+          prior_state: Json | null;
+          new_state: Json | null;
+          reason: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          actor_user_id: string;
+          municipality_id?: string | null;
+          action: string;
+          object_type: 'cohort' | 'campaign' | 'copy' | 'link' | 'vote_set';
+          object_id?: string | null;
+          prior_state?: Json | null;
+          new_state?: Json | null;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          actor_user_id?: string;
+          municipality_id?: string | null;
+          action?: string;
+          object_type?: 'cohort' | 'campaign' | 'copy' | 'link' | 'vote_set';
+          object_id?: string | null;
+          prior_state?: Json | null;
+          new_state?: Json | null;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
-      user_id: {
-        Args: Record<string, never>;
-        Returns: string | null;
-      };
-      is_platform_admin: {
-        Args: Record<string, never>;
-        Returns: boolean;
-      };
-      can_admin_space: {
-        Args: { p_space: string | null };
-        Returns: boolean;
+      set_claim: {
+        Args: {
+          claim: string;
+          value: string;
+        };
+        Returns: void;
       };
       increment_vote_option: {
         Args: {
@@ -1318,6 +2222,149 @@ export interface Database {
           satisfaction_count: number;
         }[];
       };
+      council_office_holders_public: {
+        Args: {
+          council_identifier: string;
+        };
+        Returns: {
+          holder_id: string;
+          council_code: string;
+          role: string;
+          full_name: string;
+          term_start: string | null;
+          term_end: string | null;
+          /** Never null - the table refuses an unsourced office holder. */
+          source_name: string;
+          source_url: string;
+          as_of: string;
+          review_count: number;
+          rating_average: number | null;
+        }[];
+      };
+      council_network_public: {
+        Args: {
+          council_identifier: string;
+        };
+        Returns: {
+          relation: string;
+          council_code: string;
+          name_he: string;
+          slug_he: string;
+          kind: string;
+          source_name: string | null;
+          source_url: string | null;
+        }[];
+      };
+      knesset_roster_public: {
+        Args: Record<string, never>;
+        Returns: {
+          person_id: number;
+          slug: string;
+          full_name: string;
+          first_name: string;
+          last_name: string;
+          faction_name: string | null;
+          knesset_num: number | null;
+          source_name: string;
+          source_url: string;
+          as_of: string;
+          /** Sitting offices as GovPosition-shaped JSON, highest standing first. */
+          positions: unknown;
+          matched_votes: number;
+          agreed_votes: number;
+          roll_calls: number;
+          recorded_votes: number;
+          review_count: number;
+          rating_average: number | null;
+          /** All four run -100..+100; NULL means not measured. */
+          alignment_score: number | null;
+          participation_score: number | null;
+          trust_score: number | null;
+          overall_score: number | null;
+        }[];
+      };
+      government_civic_stats: {
+        Args: Record<string, never>;
+        Returns: {
+          knesset_num: number | null;
+          members: number;
+          factions: number;
+          open_topics: number;
+          decided_topics: number;
+          ballots_counted: number;
+          platform_users: number;
+          active_participants: number;
+          matched_items: number;
+          agreed_items: number;
+          representation_score: number | null;
+          engagement_score: number | null;
+          cooperation_score: number | null;
+          trust_score: number | null;
+          overall_score: number | null;
+        }[];
+      };
+      knesset_matched_votes_public: {
+        Args: { p_limit?: number };
+        Returns: {
+          vote_id: string;
+          title: string;
+          item_id: number;
+          vote_date: string | null;
+          public_for: number;
+          public_against: number;
+          house_for: number;
+          house_against: number;
+          house_abstain: number;
+          house_accepted: boolean;
+          public_side: string | null;
+          house_side: string | null;
+        }[];
+      };
+      knesset_member_votes_public: {
+        Args: { p_person_id: number };
+        Returns: {
+          vote_id: string;
+          title: string;
+          item_id: number;
+          vote_date: string | null;
+          public_for: number;
+          public_against: number;
+          house_for: number;
+          house_against: number;
+          house_abstain: number;
+          house_accepted: boolean;
+          public_side: string | null;
+          house_side: string | null;
+          member_stance: string | null;
+        }[];
+      };
+      knesset_member_reviews_public: {
+        Args: { p_person_id: number; viewer?: string | null };
+        Returns: {
+          review_id: string;
+          rating: number;
+          body: string | null;
+          status: string;
+          created_at: string;
+          is_mine: boolean;
+        }[];
+      };
+      municipality_civic_stats: {
+        Args: Record<string, never>;
+        Returns: {
+          municipality_code: string;
+          /** Sourced population; NULL where no authoritative figure is loaded. */
+          residents: number | null;
+          platform_users: number;
+          active_participants: number;
+          open_topics: number;
+          /** All four scores run -100..+100; NULL means not measured. */
+          engagement_score: number | null;
+          cooperation_score: number | null;
+          satisfaction_score: number | null;
+          overall_score: number | null;
+        }[];
+      };
       public_council_metrics: {
         Args: {
           council_identifier: string;
@@ -1340,56 +2387,148 @@ export interface Database {
           aggregates_updated_at: string;
         }[];
       };
+      // SQL lands in plan 05-07 (20260802000004_space_admin_metrics.sql); typed
+      // here so a parallel-wave plan never has to reopen this hand-maintained file.
+      space_admin_metrics: {
+        Args: { space_uuid: string };
+        Returns: {
+          registered_residents: number | null;
+          registered_residents_status: 'available' | 'suppressed' | 'unavailable';
+          active_participants_30d: number | null;
+          active_participants_30d_status: 'available' | 'suppressed' | 'unavailable';
+          proposals_submitted: number | null;
+          proposals_submitted_status: 'available' | 'suppressed' | 'unavailable';
+          participation_rate_pct: number | null;
+          participation_rate_pct_status: 'available' | 'suppressed' | 'unavailable';
+          generated_at: string;
+        }[];
+      };
+      pilot_engagement_ranking: {
+        Args: Record<string, never>;
+        Returns: {
+          municipality_id: string;
+          vote_count: number;
+          post_count: number;
+          comments_count: number;
+          reactions_count: number;
+          score: number;
+        }[];
+      };
+      pilot_link_click_stats: {
+        Args: { p_code: string };
+        Returns: {
+          day: string;
+          total_clicks: number;
+          human_clicks: number;
+          unique_visitors: number;
+        }[];
+      };
+      pilot_campaign_funnel: {
+        Args: { p_campaign: string };
+        Returns: {
+          clicks: number;
+          unique_visitors: number;
+          registrations: number;
+          participants: number;
+          ballots: number;
+        }[];
+      };
+      pilot_overview: {
+        Args: Record<string, never>;
+        Returns: {
+          municipality_id: string;
+          rank: number | null;
+          status: 'selected' | 'active' | 'paused' | 'completed';
+          campaigns: number;
+          posted_campaigns: number;
+          human_clicks: number;
+          registrations: number;
+          participants: number;
+          ballots: number;
+        }[];
+      };
+      can_admin_space: {
+        Args: { p_space: string | null };
+        Returns: boolean;
+      };
+      is_platform_admin: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      user_id: {
+        Args: Record<string, never>;
+        Returns: string | null;
+      };
     };
     Enums: {
-      verification_status: "none" | "pending" | "verified" | "failed";
-      payment_status: "pending" | "completed" | "failed" | "refunded";
-      payment_type: "vote_participation" | "vote_creation";
-      social_provider: "google" | "facebook" | "instagram";
+      verification_status: 'none' | 'pending' | 'verified' | 'failed';
+      payment_status: 'pending' | 'completed' | 'failed' | 'refunded';
+      payment_type: 'vote_participation' | 'vote_creation';
+      social_provider: 'google' | 'facebook' | 'instagram';
       vote_status:
-        | "pending"
-        | "active"
-        | "ended"
-        | "resolving"
-        | "resolved"
-        | "failed";
-      entitlement_type: "vote" | "create_vote" | "tokens";
-      nft_type: "verified_voter" | "civic_patron";
+        | 'draft'
+        | 'in_review'
+        | 'changes_requested'
+        | 'rejected'
+        | 'pending'
+        | 'active'
+        | 'ended'
+        | 'resolving'
+        | 'resolved'
+        | 'failed';
+      entitlement_type: 'vote' | 'create_vote' | 'tokens';
+      nft_type: 'verified_voter' | 'civic_patron';
     };
   };
 }
 
 // Utility types for easier access
-export type Tables<T extends keyof Database["public"]["Tables"]> =
-  Database["public"]["Tables"][T]["Row"];
+export type Tables<T extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][T]['Row'];
 
-export type InsertTables<T extends keyof Database["public"]["Tables"]> =
-  Database["public"]["Tables"][T]["Insert"];
+export type InsertTables<T extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][T]['Insert'];
 
-export type UpdateTables<T extends keyof Database["public"]["Tables"]> =
-  Database["public"]["Tables"][T]["Update"];
+export type UpdateTables<T extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][T]['Update'];
 
 // Exported types for use in the app
-export type User = Tables<"users">;
-export type SocialProof = Tables<"social_proofs">;
-export type VerificationRun = Tables<"verification_runs">;
-export type VerificationSchedule = Tables<"verification_schedule">;
-export type VerificationAttempt = Tables<"verification_attempts">;
-export type Payment = Tables<"payments">;
-export type Entitlement = Tables<"entitlements">;
-export type Vote = Tables<"votes">;
-export type VoteOption = Tables<"vote_options">;
-export type UserVote = Tables<"user_votes">;
-export type PushToken = Tables<"push_tokens">;
-export type WebhookEvent = Tables<"webhook_events">;
-export type VoteNft = Tables<"vote_nfts">;
-export type MerchOrderRow = Tables<"merch_orders">;
-export type VoteSource = Tables<"vote_sources">;
-export type IdentityDocument = Tables<"identity_documents">;
-export type IdentityDocumentEvent = Tables<"identity_document_events">;
-export type RoleGrant = Tables<"role_grants">;
-export type CommunityManagerApplication =
-  Tables<"community_manager_applications">;
-export type RoleGrantEvent = Tables<"role_grant_events">;
-export type KnessetItem = Tables<"knesset_items">;
-export type KnessetRanking = Tables<"knesset_rankings">;
+export type User = Tables<'users'>;
+export type SocialProof = Tables<'social_proofs'>;
+export type VerificationRun = Tables<'verification_runs'>;
+export type VerificationSchedule = Tables<'verification_schedule'>;
+export type VerificationAttempt = Tables<'verification_attempts'>;
+export type Payment = Tables<'payments'>;
+export type Entitlement = Tables<'entitlements'>;
+export type Vote = Tables<'votes'>;
+export type VoteOption = Tables<'vote_options'>;
+export type UserVote = Tables<'user_votes'>;
+export type PushToken = Tables<'push_tokens'>;
+export type WebhookEvent = Tables<'webhook_events'>;
+export type VoteNft = Tables<'vote_nfts'>;
+export type MerchOrderRow = Tables<'merch_orders'>;
+export type VoteSource = Tables<'vote_sources'>;
+export type IdentityDocument = Tables<'identity_documents'>;
+export type IdentityDocumentEvent = Tables<'identity_document_events'>;
+export type KnessetItem = Tables<'knesset_items'>;
+export type Space = Tables<'spaces'>;
+export type SpaceCapabilityGrant = Tables<'space_capability_grants'>;
+export type SpaceMemberSuspension = Tables<'space_member_suspensions'>;
+export type SpaceAuditRow = Tables<'space_audit_log'>;
+export type PlatformEscalation = Tables<'platform_escalations'>;
+export type SpaceNotificationCampaign = Tables<'space_notification_campaigns'>;
+export type SpaceNotificationDelivery = Tables<'space_notification_deliveries'>;
+export type UserNotification = Tables<'user_notifications'>;
+export type RoleGrant = Tables<'role_grants'>;
+export type CommunityManagerApplication = Tables<'community_manager_applications'>;
+export type RoleGrantEvent = Tables<'role_grant_events'>;
+export type KnessetRanking = Tables<'knesset_rankings'>;
+export type VoteCardArt = Tables<'vote_card_art'>;
+export type PilotMunicipality = Tables<'pilot_municipalities'>;
+export type PilotVoteRow = Tables<'pilot_votes'>;
+export type PilotCampaignRow = Tables<'pilot_campaigns'>;
+export type PilotCampaignCopyRow = Tables<'pilot_campaign_copies'>;
+export type PilotLinkRow = Tables<'pilot_links'>;
+export type PilotLinkClickRow = Tables<'pilot_link_clicks'>;
+export type PilotRegistrationRow = Tables<'pilot_registrations'>;
+export type PilotAuditRow = Tables<'pilot_audit_log'>;

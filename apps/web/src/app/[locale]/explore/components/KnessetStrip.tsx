@@ -4,6 +4,41 @@ import { SourceLine } from '@/components/press/sections/DeskTopicRow';
 import type { NowTopic } from '../data';
 import { ShareBar } from './ShareBar';
 import styles from './KnessetStrip.module.css';
+import { localePrefix } from '@/lib/i18n';
+
+interface KnessetStripCopy {
+  kicker: string;
+  headline: string;
+  headlineRed: string;
+  emptyLede: string;
+  emptyLink: string;
+  noBallots: string;
+  civicVotesWord: string;
+  footerLink: string;
+}
+
+const COPY: Record<Locale, KnessetStripCopy> = {
+  he: {
+    kicker: 'המהדורה הארצית · THE NATIONAL DESK',
+    headline: 'על סדר היום',
+    headlineRed: 'בכנסת.',
+    emptyLede: 'סדר היום הבא של המליאה בהכנה.',
+    emptyLink: 'לדסק הארצי ←',
+    noBallots: 'הקלפי האזרחית פתוחה. הקול הראשון שלכם.',
+    civicVotesWord: 'קולות אזרחיים',
+    footerLink: 'לדסק הארצי המלא ←',
+  },
+  en: {
+    kicker: 'The National Edition · THE NATIONAL DESK',
+    headline: 'On the agenda',
+    headlineRed: 'in the Knesset.',
+    emptyLede: 'The plenum’s next agenda is in preparation.',
+    emptyLink: 'The national desk →',
+    noBallots: 'The civic ballot box is open. The first vote is yours.',
+    civicVotesWord: 'civic votes',
+    footerLink: 'The full national desk →',
+  },
+};
 
 interface KnessetStripProps {
   locale: Locale;
@@ -17,6 +52,7 @@ interface KnessetStripProps {
  * the depth.
  */
 export function KnessetStrip({ locale, topics }: KnessetStripProps) {
+  const t = COPY[locale];
   return (
     <section
       id="knesset-strip"
@@ -27,18 +63,18 @@ export function KnessetStrip({ locale, topics }: KnessetStripProps) {
         <header className={styles.header}>
           <span className={styles.kicker}>
             <span aria-hidden className={styles.kickerTick} />
-            המהדורה הארצית · THE NATIONAL DESK
+            {t.kicker}
           </span>
           <h2 id="knesset-strip-headline" className={styles.headline}>
-            על סדר היום <span className={styles.red}>בכנסת.</span>
+            {t.headline} <span className={styles.red}>{t.headlineRed}</span>
           </h2>
         </header>
 
         {topics.length === 0 ? (
           <p className={styles.emptyLine}>
-            סדר היום הבא של המליאה בהכנה.{' '}
-            <Link href={`/${locale}/knesset`} className={styles.footerLink}>
-              לדסק הארצי ←
+            {t.emptyLede}{' '}
+            <Link href={`${localePrefix(locale)}/knesset`} className={styles.footerLink}>
+              {t.emptyLink}
             </Link>
           </p>
         ) : (
@@ -58,7 +94,7 @@ export function KnessetStrip({ locale, topics }: KnessetStripProps) {
                     <div className={styles.itemBody}>
                       <h3 className={styles.itemTitle}>
                         <Link
-                          href={`/${locale}/votes/${entry.topic.id}`}
+                          href={`${localePrefix(locale)}/votes/${entry.topic.id}`}
                           className={styles.itemLink}
                         >
                           {entry.topic.title}
@@ -72,14 +108,14 @@ export function KnessetStrip({ locale, topics }: KnessetStripProps) {
                         </div>
                       ) : (
                         <p className={styles.itemNoBallots}>
-                          הקלפי האזרחית פתוחה. הקול הראשון שלכם.
+                          {t.noBallots}
                         </p>
                       )}
                       <p className={styles.itemMeta}>
-                        {ballots.toLocaleString('he-IL')} קולות אזרחיים
+                        {ballots.toLocaleString('he-IL')} {t.civicVotesWord}
                       </p>
                       {entry.topic.source ? (
-                        <SourceLine source={entry.topic.source} />
+                        <SourceLine source={entry.topic.source} locale={locale} />
                       ) : null}
                     </div>
                   </li>
@@ -87,8 +123,8 @@ export function KnessetStrip({ locale, topics }: KnessetStripProps) {
               })}
             </ol>
             <div className={styles.footer}>
-              <Link href={`/${locale}/knesset`} className={styles.footerLink}>
-                לדסק הארצי המלא ←
+              <Link href={`${localePrefix(locale)}/knesset`} className={styles.footerLink}>
+                {t.footerLink}
               </Link>
             </div>
           </>

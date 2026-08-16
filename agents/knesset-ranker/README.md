@@ -1,13 +1,15 @@
 # @sync/knesset-ranker
 
-The Knesset desk's off-platform agents. Two jobs, both on the **Claude Agent
-SDK** with your local Claude Code session — neither needs an
-`ANTHROPIC_API_KEY`:
+The desk's off-platform agents. Three jobs on the **Claude Agent SDK** with
+your local Claude Code session — none needs an `ANTHROPIC_API_KEY`:
 
 - **`docs`** — attaches each day-order item's official document and writes a
   short neutral Hebrew summary (`knesset_items.summary`).
 - **`rank`** — scores every active Knesset vote for editorial hotness
   (`knesset_rankings`).
+- **`art`** — renders one duotone background plate per active vote
+  (`vote_card_art` + the `vote-art` storage bucket). The render step
+  additionally needs the Higgsfield CLI (`higgsfield auth login`).
 
 `docs` feeds `rank`: the summary is what the ranker reads to judge an item.
 
@@ -32,23 +34,54 @@ neither. Moving it here removed the last API-key dependency.
 
 Reads active Knesset votes
 (title + AI document summary from `knesset_items`), asks a Claude agent to
-judge how relevant and pressing each item is to the Israeli public
-(`relevance`, 0–100) and to hunt live Israeli press coverage with WebSearch.
-The agent never scores media coverage — the code does (`src/media.ts`):
+judge each item on two axes — `relevance` (0–100, does the topic touch the
+public) and `stakes` (0–100, what actually changes if it passes;
+ceremonial/declaratory items score low regardless of resonance) — and to
+hunt live Israeli press coverage **of the item itself** with WebSearch
+(general topic coverage is out of bounds: for a memorial-day item, articles
+about the tragedy don't count, only articles about the bill). The agent
+never scores media coverage — the code does (`src/media.ts`):
 
 - every coverage URL is HTTP-validated (HEAD, GET fallback; 404/410/network
   failure = dead — dead refs never count and never render);
 - hits are filtered to Israeli press outlets (`.il` domains minus
   institutions, plus known Israeli outlets on foreign TLDs) published within
   the last 14 days;
-- the media sub-score is a fixed table over the count of **distinct** live
-  outlets (0→0, 1→35, 3→68, 6→90 …);
-- `hotness = round(0.6·relevance + 0.4·media)`.
+- each counted outlet contributes a freshness weight that halves every
+  4 days (undated hits count at a flat 0.4), so heat measures what the
+  press is writing **now**, not what it wrote two weeks ago;
+- the media sub-score maps the decay-weighted outlet total through a fixed
+  editorial table (0→0, 1→35, 3→68, 6→90 …), interpolated between steps;
+- `hotness = round(0.45·media + 0.35·stakes + 0.20·relevance)` — stakes
+  falls back to relevance on rows ranked before v3.
 
 Each row carries the full audit trail in `knesset_rankings.media_evidence`:
 search queries, every hit with HTTP status / freshness / classification /
 whether it counted, the outlet count and validation time. `media_refs` keeps
 only validated counted refs (one per outlet) for the desk's evidence strip.
+
+## art — card-art plates
+
+Turns each active vote (every desk, municipal and national) into one faded
+background plate for its front-page tile. A Claude agent compresses the
+Hebrew title+description into one concrete English scene line (objects only
+— no names, no flags, no text in the scene); the code wraps it in the fixed
+house style — **two-colour risograph screenprint, black ink + pillarbox red
+on newsprint cream, halftone, brutalist civic linocut** (the same recipe
+that produced the merch and certificate plates) — and renders it through
+the **Higgsfield CLI** (`generate create <model> --wait --json`; the same
+account that produced those assets). `--image-model` / `HIGGSFIELD_IMAGE_MODEL`
+picks the model — default `z_image`, 0.15 credits/plate (gpt_image_2 is 7;
+beware `nano_banana_2` = Nano Banana *Pro*); `higgsfield generate cost
+<model> --prompt …` checks; `--limit` (default 12) caps a run's spend. Renders run sequentially — the account
+allows 4 concurrent jobs and the desk shares it with hand-run generations.
+The result is downscaled to an 800px WebP with sharp, uploaded to the
+public `vote-art` bucket and recorded in `vote_card_art`. Desk tiles print
+the plate at ~14% opacity under the type; the lead ink tile inverts it.
+
+Work-queue semantics: a stored plate is permanent; a failed attempt stamps
+`attempted_at` and is retried after `--retry-hours` (default 24). `--dry-run`
+prints scenes and prompts without spending.
 
 ## Prerequisites
 

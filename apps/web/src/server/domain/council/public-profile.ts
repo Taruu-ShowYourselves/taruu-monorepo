@@ -2,6 +2,7 @@ import type {
   CouncilMetric,
   PublicCouncilProfile,
 } from '@sync/shared/contracts';
+import { localePrefix } from '@/lib/i18n';
 
 export const COUNCIL_SENSITIVE_COHORT_MIN = 5;
 export const OFFICIAL_POPULATION_STALE_AFTER_DAYS = 548;
@@ -107,7 +108,7 @@ export function buildPublicCouncilProfile(
       code: row.council_code,
       name: row.council_name_he,
       slug: row.council_slug_he,
-      canonicalUrl: `/${locale}/councils/${row.council_slug_he}`,
+      canonicalUrl: `${localePrefix(locale)}/councils/${row.council_slug_he}`,
     },
     generatedAt,
     metrics: {
@@ -139,8 +140,8 @@ export function buildPublicCouncilProfile(
       ),
     },
     links: {
-      votes: `/${locale}/votes?municipality=${encodedCode}`,
-      civicSpace: `/${locale}/municipality/${encodedCode}`,
+      votes: `${localePrefix(locale)}/votes?municipality=${encodedCode}`,
+      civicSpace: `${localePrefix(locale)}/municipality/${encodedCode}`,
     },
   };
 }

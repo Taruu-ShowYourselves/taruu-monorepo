@@ -75,9 +75,8 @@ SMS_API_URL=
 SMS_API_KEY=
 SMS_FROM=
 
-# Beehiiv (newsletter)
-BEEHIIV_API_KEY=
-BEEHIIV_PUBLICATION_ID=
+# Newsletter: no vendor keys. The list lives in Supabase
+# (newsletter_subscribers), reached with SUPABASE_SERVICE_ROLE_KEY above.
 
 # Expo push
 EXPO_ACCESS_TOKEN=
@@ -89,6 +88,19 @@ UPSTASH_REDIS_REST_TOKEN=
 # Cron auth (guards /api/cron/* - see DNS-SETUP.md "Cron")
 CRON_SECRET=
 
+# Optional — set to false to remove the space-admin dashboard routes and pages (issue #75). Defaults to on.
+SPACE_ADMIN_ENABLED=true
+
+# Pilot program — LLM copy drafting in the campaign desk (POST /api/pilot-admin/campaigns/[id]/draft-copy)
+# Google AI Studio key for generativelanguage.googleapis.com. Optional: without
+# it only the draft button fails, every other pilot surface is unaffected.
+GEMINI_API_KEY=
+# Optional override for the drafting model. Defaults to gemini-3.6-flash.
+PILOT_COPY_MODEL=
+
+# Pilot program — HMAC key for one-way click IP hashing (falls back to JWT_SECRET, like IDENTITY_HASH_SECRET)
+CLICK_HASH_SECRET=
+
 # Public app URLs
 NEXT_PUBLIC_APP_URL=https://taruu.co.il
 EXPO_PUBLIC_API_URL=https://api.taruu.co.il
@@ -96,6 +108,9 @@ EXPO_PUBLIC_API_URL=https://api.taruu.co.il
 # --- Ops tokens (machine/CI credentials - NEVER pushed to the worker; see SKIP
 # in scripts/sync-secrets.sh). Pushed to GitHub Actions via sync-gh-secrets.sh.
 CLOUDFLARE_API_TOKEN=
+# Account the worker deploys into. The OpenNext adapter needs it explicitly to
+# provision the R2 incremental-cache bucket; `wrangler whoami` shows the value.
+CLOUDFLARE_ACCOUNT_ID=
 OPENAI_API_KEY=
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=

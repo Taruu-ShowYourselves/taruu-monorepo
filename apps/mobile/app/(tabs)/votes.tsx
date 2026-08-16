@@ -21,14 +21,19 @@ function VoteListItem({ vote, onPress }: { vote: Vote; onPress: () => void }) {
   const timeRemaining = getTimeRemaining(vote.endDate);
   const totalVotes = vote.options.reduce((sum, opt) => sum + (opt.voteCount || opt.votes || 0), 0);
 
-  const statusColors: Record<VoteStatus, { bg: string; text: string }> = {
+  // Partial, not exhaustive: VoteStatus covers every database label, including
+  // the review states a proposal holds before approval. Those can never reach a
+  // list here - the server's PUBLIC_VOTE_STATUSES allow-list keeps them off
+  // every public read path - so the fallback covers the impossible case rather
+  // than asserting a colour for it. ('cancelled' is gone; it was never a
+  // database label.)
+  const statusColors: Partial<Record<VoteStatus, { bg: string; text: string }>> = {
     active: { bg: 'bg-green-100', text: 'text-green-600' },
     ended: { bg: 'bg-neutral-100', text: 'text-neutral-600' },
     pending: { bg: 'bg-yellow-100', text: 'text-yellow-600' },
-    cancelled: { bg: 'bg-red-100', text: 'text-red-600' },
   };
 
-  const colors = statusColors[vote.status];
+  const colors = statusColors[vote.status] ?? statusColors.pending!;
 
   return (
     <Pressable

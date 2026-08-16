@@ -80,59 +80,26 @@ describe('the flag itself', () => {
   });
 });
 
-describe('vote creation shows a coming-soon state instead of a checkout', () => {
-  it('asks the flag before it renders anything', () => {
-    expect(createPage).toContain("from '@/lib/payments-flag'");
-    expect(createPage).toContain('paymentsEnabled()');
+describe('vote creation is submit-free and needs no payment switch', () => {
+  // The product model (issue #75, PR #104): a proposal is submitted free, a
+  // space admin reviews it, and the ₪50 creation fee becomes an obligation only
+  // at approval (server/app/votes/create-vote.ts + infra/payments/creation-fee.ts,
+  // itself guarded by assertCreationFeeCaptureAllowed). So the create page has
+  // no checkout to gate: it must not consult the flag, and it must not start a
+  // payment. A coming-soon plate here would block a flow that is free.
+  it('never consults the payments flag', () => {
+    expect(createPage).not.toContain('payments-flag');
+    expect(createPage).not.toContain('paymentsEnabled');
   });
 
-  it('returns the coming-soon plate before the wizard can be reached', () => {
-    expect(createPage).toContain('if (!PAYMENTS_OPEN) {');
-
-    // The guard must sit ahead of the payment plate, not beside it.
-    const guardAt = createPage.indexOf('if (!PAYMENTS_OPEN) {\n    return (');
-    const receiptAt = createPage.indexOf('<Receipt');
-    expect(guardAt).toBeGreaterThan(-1);
-    expect(receiptAt).toBeGreaterThan(guardAt);
+  it('starts no checkout and creates no payment from the client', () => {
+    expect(createPage).not.toContain('startVoteCreationCheckout');
+    expect(createPage).not.toContain('/api/payments/create');
+    expect(createPage).not.toContain('paymentUrl');
   });
 
-  it('guards the submit handler as well as the render', () => {
-    expect(createPage).toContain('if (!PAYMENTS_OPEN) return;');
-  });
-
-  it('says so in Hebrew, and says why', () => {
-    expect(createPage).toContain('עוד לא נפתחה');
-    expect(createPage).toContain('בקרוב · COMING SOON');
-    expect(createPage).toContain('ההשתתפות בהצבעות פתוחה וחינמית');
-  });
-
-  it('promises no date', () => {
-    for (const date of ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט',
-      'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר', 'בשבוע', 'בחודש', 'תוך יומיים']) {
-      expect(createPage).not.toContain(date);
-    }
-  });
-
-  it('collects nothing on the closed state - no email capture, no waitlist', () => {
-    // `code()` has already stripped the // markers, so the slice is bounded by
-    // real code: the coming-soon guard through to the auth skeleton after it.
-    const start = createPage.indexOf('if (!PAYMENTS_OPEN) {');
-    const end = createPage.indexOf('if (isLoading) {');
-    expect(start).toBeGreaterThan(-1);
-    expect(end).toBeGreaterThan(start);
-
-    const closedState = createPage.slice(start, end);
-    expect(closedState).not.toContain('PressInput');
-    expect(closedState).not.toContain('email');
-    expect(closedState).not.toContain('newsletter');
-    expect(closedState).not.toContain('fetch(');
-  });
-
-  it('keeps the paid funnel intact behind the switch, for the day it flips', () => {
-    // Deleting the rails would make "turn payments on" a rewrite rather than a
-    // one-line change, which is precisely what this flag exists to avoid.
-    expect(createPage).toContain('startVoteCreationCheckout');
-    expect(createPage).toContain('CREATE_VOTE_COST');
+  it('tells the resident the submission itself is not charged', () => {
+    expect(createPage).toContain('ההגשה לא חויבה');
   });
 });
 
@@ -190,7 +157,6 @@ describe('FREE VOTING IS UNTOUCHED', () => {
       'app/api/payments/create/route.ts',
       'app/api/payments/refund/route.ts',
       'app/api/merch/checkout/route.ts',
-      'app/[locale]/votes/create/page.tsx',
       'app/[locale]/store/cart/components/CartView.tsx',
       'services/payments/createVoteCheckout.ts',
     ];

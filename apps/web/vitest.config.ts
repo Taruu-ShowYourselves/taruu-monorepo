@@ -24,6 +24,14 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
+      /**
+       * `server-only` throws from its default entry by design; Next swaps it for
+       * an empty module through the `react-server` export condition, which a
+       * plain-Node Vitest run does not apply. Without this alias every test that
+       * imports a `server/app/**` or `server/infra/**` module would abort on
+       * load. See src/__tests__/stubs/server-only.ts.
+       */
+      'server-only': resolve(__dirname, './src/__tests__/stubs/server-only.ts'),
     },
   },
 });

@@ -1,0 +1,428 @@
+/* The homepage stretches every `main > section` to 100svh (see
+   HomepageExperience), so the content is centred in the band it is given
+   rather than sitting at the top of a screen of empty paper. */
+.section {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  /* Squeezable column - an implicit `auto` track would be as wide as the three
+     routes ask for and push the section off the start edge below that width. */
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  padding: clamp(3.5rem, 9vh, 7rem) var(--np-gutter);
+  border-block-start: var(--np-rule-heavy) solid var(--np-ink);
+  background: var(--np-paper);
+  color: var(--np-ink);
+}
+
+/* Overhangs the section so the parallax drift never pulls an edge into view. */
+.section::before {
+  content: '';
+  position: absolute;
+  inset-block: -8%;
+  inset-inline: 0;
+  z-index: -2;
+  opacity: 0.42;
+  background-image:
+    linear-gradient(rgb(25 24 22 / 4.5%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(25 24 22 / 4.5%) 1px, transparent 1px);
+  background-size: clamp(3.25rem, 5vw, 5.5rem) clamp(3.25rem, 5vw, 5.5rem);
+  transform: translate3d(0, var(--np-parallax-back, 0), 0);
+  will-change: transform;
+}
+
+/* The ask reads down the centre line rather than across a spread: the two
+   routes are the same offer twice, not a column answering a column, and split
+   left-and-right they left the headline ranged against nothing. */
+.inner {
+  display: grid;
+  justify-items: center;
+  gap: clamp(2rem, 5vh, 3.5rem);
+  inline-size: 100%;
+  max-inline-size: 64rem;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.lead {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: clamp(0.75rem, 1.6vh, 1.25rem);
+}
+
+.kicker {
+  font-family: var(--np-font-mono);
+  font-size: clamp(0.6rem, 0.75vw, 0.72rem);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--np-red);
+}
+
+.headline {
+  max-inline-size: 16ch;
+  margin: 0;
+  font-family: var(--np-font-display);
+  font-size: clamp(2.2rem, 3.6vw, 4rem);
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.05em;
+  text-wrap: balance;
+}
+
+.standfirst {
+  max-inline-size: 46ch;
+  margin: 0;
+  font-family: var(--np-font-body);
+  font-size: clamp(1rem, 1.35vw, 1.22rem);
+  line-height: 1.55;
+  text-wrap: pretty;
+  color: var(--np-ink-soft);
+}
+
+/* The two ways in, side by side: neither is a step toward the other, so they
+   are numbered rather than sequenced. */
+/* The primary door under the standfirst, and a quiet one beside it for the
+   reader who wants to know what they are joining first. */
+.leadActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.85rem, 1.6vw, 1.5rem);
+  margin-block-start: clamp(0.5rem, 1.2vh, 1rem);
+}
+
+.leadQuiet {
+  font-family: var(--np-font-mono);
+  font-size: clamp(0.7rem, 0.85vw, 0.8rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--np-ink-soft);
+  text-decoration: none;
+  border-block-end: var(--np-rule-hair) solid currentColor;
+}
+
+.leadQuiet:hover,
+.leadQuiet:focus-visible {
+  color: var(--np-red-ink);
+}
+
+.routes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1.25rem, 2.5vw, 2.5rem);
+  inline-size: 100%;
+  max-inline-size: 68rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A column, not a grid: the three routes have bodies of different lengths and
+   their doors have to line up with each other, not float under their own
+   paragraph. */
+.route {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  padding-block-start: clamp(0.85rem, 1.8vh, 1.35rem);
+  border-block-start: var(--np-rule) solid var(--np-ink);
+}
+
+/* The route's plate: the scene the copy describes, cropped to a press strip
+   under the card's rule. The frame is the same hairline the paper draws
+   everywhere else - an illustration in a newspaper is set, not floated. */
+.routePlate {
+  inline-size: 100%;
+  /* A press strip, not a poster: height is budgeted against the viewport so
+     three plates never push the routes' own doors under the fold. */
+  block-size: clamp(6rem, 15vh, 9.5rem);
+  object-fit: cover;
+  border: 1px solid color-mix(in srgb, var(--np-ink) 26%, transparent);
+  background: var(--np-paper-box);
+  margin-block-end: 0.35rem;
+}
+
+/* The Knesset plate's subject sits in its upper half - a centre crop kept
+   the road and lost the building the route is named after. */
+.routePlate[data-plate='knesset'] {
+  object-position: center 30%;
+}
+
+.routeIndex {
+  font-family: var(--np-font-mono);
+  font-size: clamp(0.62rem, 0.8vw, 0.76rem);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--np-red);
+}
+
+.routeLabel {
+  margin: 0;
+  font-family: var(--np-font-display);
+  font-size: clamp(1.15rem, 1.8vw, 1.55rem);
+  font-weight: 850;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.routeBody {
+  max-inline-size: 34ch;
+  margin: 0;
+  font-family: var(--np-font-body);
+  font-size: clamp(0.94rem, 1.15vw, 1.05rem);
+  line-height: 1.6;
+  text-wrap: pretty;
+  color: var(--np-ink-soft);
+}
+
+/* Each route's own door. Set as a rule-under-line rather than a third button,
+   so the section keeps one primary and three ways on from it. */
+.routeCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-block-start: auto;
+  padding-block-start: 0.35rem;
+  font-family: var(--np-font-mono);
+  font-size: clamp(0.68rem, 0.82vw, 0.78rem);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--np-red-ink);
+  text-decoration: none;
+  border-block-end: var(--np-rule) solid currentColor;
+  transition: color var(--np-dur-snap) var(--np-ease),
+    gap var(--np-dur-snap) var(--np-ease);
+}
+
+.routeCta:hover,
+.routeCta:focus-visible {
+  color: var(--np-ink);
+  gap: 0.7rem;
+}
+
+@media (max-width: 1000px) {
+  .headline {
+    max-inline-size: none;
+  }
+
+  .standfirst {
+    max-inline-size: none;
+  }
+
+  /* Three columns of prose stop being readable well before they stop
+     fitting - the routes stack, each keeping its own door. */
+  .routes {
+    grid-template-columns: minmax(0, 1fr);
+    max-inline-size: 42rem;
+    gap: clamp(1.1rem, 3vh, 1.75rem);
+  }
+
+  /* Stacked, three column-wide plates would triple the section - the same
+     height budget that tightened the type below turns the art off here. */
+  .routePlate {
+    display: none;
+  }
+}
+
+/* Stacked, the three routes ran the section past the screen, and the page
+   rests on section edges - so the third route, the one that says a resident
+   can put a subject on the Knesset's table, sat below the fold at every stop
+   and was never seen.
+
+   The budget is not the screen: a section resting on its own edge sits under
+   the pinned dock, so what it actually gets is 100svh minus the nav. The
+   column tightens until all three routes and all three doors fit inside
+   that. */
+@media (max-width: 700px) {
+  .section {
+    padding-block-end: clamp(0.75rem, 2vh, 1.5rem);
+  }
+
+  /* Height-driven, not width-driven: the same 538px column on a short window
+     had 84px less room than on a tall one, and fixed minimums put the last
+     route's body under the fold. */
+  .inner {
+    gap: clamp(0.7rem, 2vh, 1.4rem);
+  }
+
+  .lead {
+    gap: clamp(0.3rem, 0.9vh, 0.7rem);
+  }
+
+  .headline {
+    /* Bounded by height as well as width: on a short window the section has
+       to hold a headline, a standfirst, a call to action and three routes,
+       and the headline is the one that can give. */
+    font-size: clamp(1.6rem, min(8.5vw, 5.5vh), 2.4rem);
+  }
+
+  .standfirst {
+    font-size: 0.92rem;
+    line-height: 1.38;
+  }
+
+  .leadActions {
+    gap: clamp(0.6rem, 1.2vh, 1rem);
+  }
+
+  .routes {
+    gap: clamp(0.35rem, 1.3vh, 0.9rem);
+  }
+
+  .route {
+    gap: 0.15rem;
+    padding-block-start: clamp(0.3rem, 1vh, 0.8rem);
+  }
+
+  .routeLabel {
+    font-size: 0.98rem;
+    line-height: 1.15;
+  }
+
+  .routeBody {
+    font-size: 0.85rem;
+    line-height: 1.35;
+  }
+
+  .leadActions {
+    margin-block-start: 0;
+  }
+}
+
+/* ======================================================================
+   The backdrop: live topics, blurred back. It sits under the copy and over
+   the section's own grid, and is never read - this half of the spread was
+   empty paper, and the argument is on the other.
+   ====================================================================== */
+
+.joinTiles {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  transform: translate3d(0, var(--np-parallax-back, 0), 0);
+  will-change: transform;
+}
+
+/* Live topics, blurred back to texture. Four, spread across the empty half. */
+.joinTile {
+  position: absolute;
+  display: grid;
+  gap: 0.35rem;
+  inline-size: min(17vw, 13.5rem);
+  padding: 0.9rem 1rem;
+  background: color-mix(in srgb, var(--np-paper-box) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--np-ink) 22%, transparent);
+  filter: blur(2.4px);
+  opacity: 0.5;
+}
+
+/* The copy holds the centre now, so the tiles work the two margins - they
+   frame the column instead of lying under it. */
+.joinTile[data-slot='0'] {
+  inset-block-start: 11%;
+  inset-inline-start: 4%;
+  transform: scale(1.04);
+}
+
+.joinTile[data-slot='1'] {
+  inset-block-start: 24%;
+  inset-inline-end: 5%;
+  filter: blur(3.6px);
+  opacity: 0.36;
+}
+
+.joinTile[data-slot='2'] {
+  inset-block-end: 18%;
+  inset-inline-start: 7%;
+  filter: blur(1.8px);
+  opacity: 0.56;
+}
+
+.joinTile[data-slot='3'] {
+  inset-block-end: 9%;
+  inset-inline-end: 8%;
+  filter: blur(4.2px);
+  opacity: 0.3;
+}
+
+.joinTileMuni {
+  font-family: var(--np-font-mono);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  color: var(--np-red);
+}
+
+.joinTileTitle {
+  margin: 0;
+  font-family: var(--np-font-display);
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.12;
+  color: var(--np-ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Below this the margins are too narrow to hold a tile without it sliding
+   under the column. */
+@media (max-width: 1200px) {
+  .joinTiles {
+    display: none;
+  }
+}
+
+/* ---- Entrance ------------------------------------------------------------ */
+
+/* Armed on mount, played on first sight (see Reveal): the lead rises, then
+   the routes land one after another - numeral first by way of its own
+   deeper offset. Backdrop tiles fade up with the section. No JS, no
+   attributes, everything prints. */
+.lead > *,
+.route,
+.joinTiles {
+  transition:
+    opacity 0.6s var(--np-ease),
+    transform 0.6s var(--np-ease);
+}
+
+.section[data-armed]:not([data-seen]) .lead > *,
+.section[data-armed]:not([data-seen]) .route {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+.section[data-armed]:not([data-seen]) .joinTiles {
+  opacity: 0;
+}
+
+.section[data-seen] .lead > :nth-child(2) { transition-delay: 90ms; }
+.section[data-seen] .lead > :nth-child(3) { transition-delay: 180ms; }
+.section[data-seen] .lead > :nth-child(4) { transition-delay: 270ms; }
+.section[data-seen] .route:nth-child(1) { transition-delay: 240ms; }
+.section[data-seen] .route:nth-child(2) { transition-delay: 380ms; }
+.section[data-seen] .joinTiles { transition-delay: 120ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .lead > *,
+  .route,
+  .joinTiles {
+    transition: none;
+  }
+
+  .section[data-armed]:not([data-seen]) .lead > *,
+  .section[data-armed]:not([data-seen]) .route,
+  .section[data-armed]:not([data-seen]) .joinTiles {
+    opacity: 1;
+    transform: none;
+  }
+}

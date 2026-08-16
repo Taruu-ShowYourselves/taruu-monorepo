@@ -14,26 +14,65 @@ interface Pillar {
   glyph: 'measure' | 'verify' | 'broadcast';
 }
 
-const PILLARS: readonly Pillar[] = [
-  {
-    no: '01',
-    kicker: 'מודדים',
-    body: 'כמה באמת תומכים, כמה מתנגדים. לא תחושת בטן ולא מי שצועק חזק: מספר מדויק.',
-    glyph: 'measure',
+interface PillarsCopy {
+  kicker: string;
+  headline: string;
+  headlineRed: string;
+  pillars: readonly Pillar[];
+}
+
+const COPY: Record<Locale, PillarsCopy> = {
+  he: {
+    kicker: 'המנגנון · בשלוש מילים',
+    headline: 'שלושה דברים שהופכים דעה',
+    headlineRed: 'לכוח.',
+    pillars: [
+      {
+        no: '01',
+        kicker: 'מודדים',
+        body: 'כמה באמת תומכים, כמה מתנגדים. לא תחושת בטן ולא מי שצועק חזק: מספר מדויק.',
+        glyph: 'measure',
+      },
+      {
+        no: '02',
+        kicker: 'מאמתים',
+        body: 'כל קול הוא תושב אמיתי אחד: זהות ו-GPS, חתום בבלוקצ׳יין. בלי בוטים ובלי כפילויות.',
+        glyph: 'verify',
+      },
+      {
+        no: '03',
+        kicker: 'מנגישים',
+        body: 'התמונה המלאה פתוחה לכולם, לתושבים ולמועצה כאחד. בלי חדרים סגורים.',
+        glyph: 'broadcast',
+      },
+    ],
   },
-  {
-    no: '02',
-    kicker: 'מאמתים',
-    body: 'כל קול הוא תושב אמיתי אחד: זהות ו-GPS, חתום בבלוקצ׳יין. בלי בוטים ובלי כפילויות.',
-    glyph: 'verify',
+  en: {
+    kicker: 'THE MECHANISM · IN THREE WORDS',
+    headline: 'Three things that turn an opinion',
+    headlineRed: 'into power.',
+    pillars: [
+      {
+        no: '01',
+        kicker: 'Measure',
+        body: 'How many are truly in favor, how many are against. Not a gut feeling and not whoever shouts loudest: a precise number.',
+        glyph: 'measure',
+      },
+      {
+        no: '02',
+        kicker: 'Verify',
+        body: 'Every vote is one real resident: identity and GPS, sealed on the blockchain. No bots and no duplicates.',
+        glyph: 'verify',
+      },
+      {
+        no: '03',
+        kicker: 'Publish',
+        body: 'The full picture is open to everyone, residents and council alike. No closed rooms.',
+        glyph: 'broadcast',
+      },
+    ],
   },
-  {
-    no: '03',
-    kicker: 'מנגישים',
-    body: 'התמונה המלאה פתוחה לכולם, לתושבים ולמועצה כאחד. בלי חדרים סגורים.',
-    glyph: 'broadcast',
-  },
-] as const;
+};
 
 function Glyph({ kind }: { kind: Pillar['glyph'] }) {
   // Hard-edged ink SVG glyphs - no rounding, crisp strokes.
@@ -84,21 +123,23 @@ function Glyph({ kind }: { kind: Pillar['glyph'] }) {
 }
 
 export function Pillars({ locale = 'he' }: PillarsProps) {
+  const t = COPY[locale];
+
   return (
     <section className={styles.pillars} aria-labelledby="pillars-headline">
       <div className={styles.inner}>
         <header className={styles.head}>
           <span className={styles.kicker}>
             <span aria-hidden className={styles.kickerTick} />
-            המנגנון · בשלוש מילים
+            {t.kicker}
           </span>
           <h2 id="pillars-headline" className={styles.headline}>
-            שלושה דברים שהופכים דעה <span className={styles.red}>לכוח.</span>
+            {t.headline} <span className={styles.red}>{t.headlineRed}</span>
           </h2>
         </header>
 
         <div className={styles.columns}>
-          {PILLARS.map((p) => (
+          {t.pillars.map((p) => (
             <article key={p.no} className={styles.box}>
               <div className={styles.boxTop}>
                 <span className={styles.no} aria-hidden>

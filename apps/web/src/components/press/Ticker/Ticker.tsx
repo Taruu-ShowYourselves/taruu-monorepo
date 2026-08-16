@@ -1,25 +1,55 @@
 'use client';
 
+import type { Locale } from '@/lib/i18n';
 import styles from './Ticker.module.css';
 
 interface TickerProps {
   items?: string[];
   label?: string;
+  locale?: Locale;
 }
 
-const DEFAULT_ITEMS = [
-  'נפתחים בכל הארץ, בבת אחת · 04.08.26',
-  '1,247 קולות מאומתים נחתמו השבוע',
-  'כל קול חתום בבלוקצ׳יין · בלתי ניתן לזיוף',
-  'ההשתתפות בהצבעות חינם · ₪50 ליצירת הצבעה',
-  'מודדים · מאמתים · מנגישים',
-];
+interface TickerCopy {
+  ariaLabel: string;
+  defaultItems: string[];
+}
+
+const COPY: Record<Locale, TickerCopy> = {
+  he: {
+    ariaLabel: 'עדכונים',
+    defaultItems: [
+      'ההצבעה פתוחה · כל קול נספר',
+      'תוצאות נספרות בזמן אמת · גלוי לכולם',
+      'כל קול חתום בבלוקצ׳יין · בלתי ניתן לזיוף',
+      'ההשתתפות בהצבעות חינם · ₪50 ליצירת הצבעה',
+      'מודדים · מאמתים · מנגישים',
+    ],
+  },
+  en: {
+    ariaLabel: 'Updates',
+    defaultItems: [
+      'Voting is open · every vote counts',
+      'Results tallied in real time · visible to all',
+      'Every vote signed on the blockchain · tamper-proof',
+      'Participation in votes is free · ₪50 to create a vote',
+      'Measuring · verifying · making it accessible',
+    ],
+  },
+};
+
+/* The marquee wraps by shifting the track 50%, so the two halves must be
+   pixel-identical (keep this even) and each half wider than any viewport -
+   otherwise the wrap exposes a hole at the anchored edge. 4 runs per half
+   covers ultrawide screens. */
+const RUN_COUNT = 8;
 
 /** Breaking-news ticker strip - ink bar, mono uppercase, marquee scroll. */
-export function Ticker({ items = DEFAULT_ITEMS, label = 'LIVE' }: TickerProps) {
-  const row = [...items, ...items];
+export function Ticker({ items, label = 'LIVE', locale = 'he' }: TickerProps) {
+  const t = COPY[locale];
+  const list = items ?? t.defaultItems;
+  const row = Array.from({ length: RUN_COUNT }, () => list).flat();
   return (
-    <div className={styles.ticker} role="marquee" aria-label="עדכונים">
+    <div className={styles.ticker} role="marquee" aria-label={t.ariaLabel}>
       <span className={styles.flag}>
         <span className={styles.dot} aria-hidden />
         {label}
@@ -27,7 +57,9 @@ export function Ticker({ items = DEFAULT_ITEMS, label = 'LIVE' }: TickerProps) {
       <div className={styles.viewport}>
         <div className={styles.track}>
           {row.map((it, i) => (
-            <span key={i} className={styles.item}>
+            // Repeats beyond the first run only fill the marquee - a screen
+            // reader should hear each line once.
+            <span key={i} className={styles.item} aria-hidden={i >= list.length || undefined}>
               <span className={styles.sep} aria-hidden>■</span>
               {it}
             </span>

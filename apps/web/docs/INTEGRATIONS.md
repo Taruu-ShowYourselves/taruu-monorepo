@@ -26,7 +26,6 @@ These need no third party; generated into `.dev.vars`:
 | `SOLANA_RPC_URL`, `SOLANA_MERKLE_TREE`, `PINATA_JWT` | OPT | Helius + Pinata; merkle tree created via Bubblegum | Unset → NFT certs stay pending (no spend). Needs a created merkle tree + mainnet smoke test. |
 | `RESEND_API_KEY` | REQ-ish | resend.com | Transactional email; verify the sending domain. |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | OPT | console.upstash.com | Prod rate-limit persistence; degrades to in-memory without. |
-| `BEEHIIV_API_KEY`, `BEEHIIV_PUBLICATION_ID` | OPT | beehiiv.com | Newsletter signup. |
 | `FACEBOOK_APP_ID/SECRET`, `INSTAGRAM_APP_ID/SECRET` | OPT | developers.facebook.com | Extra identity-score providers. |
 | `EXPO_ACCESS_TOKEN` | OPT | expo.dev | Push - web-only build, not needed now. |
 | `QUBIK_API_KEY` | DEAD | - | Stack moved to Solana; qubik dropped. Leave empty. |

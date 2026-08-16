@@ -1,13 +1,96 @@
 import Link from 'next/link';
 import type { Locale } from '@/lib/i18n';
 import styles from './MechanismTiles.module.css';
+import { localePrefix } from '@/lib/i18n';
 
 interface Tile {
-  href: string;
+  slug: string;
   no: string;
   title: string;
   note: string;
 }
+
+interface MechanismCopy {
+  kicker: string;
+  headlineLead: string;
+  headlineAccent: string;
+  tiles: Tile[];
+  archiveLead: string;
+  archiveLink: string;
+  /** Direction-semantic arrow: Hebrew ←, English →. */
+  arrow: string;
+}
+
+const COPY: Record<Locale, MechanismCopy> = {
+  he: {
+    kicker: 'חדר המכונות · THE MECHANISM',
+    headlineLead: 'איך זה',
+    headlineAccent: 'עובד.',
+    tiles: [
+      {
+        slug: '/what-is-taruu',
+        no: '01',
+        title: 'מהי תַּרְאוּ?',
+        note: 'שלוש רשויות, ומי שהן עובדות עבורו: המנגנון במלואו.',
+      },
+      {
+        slug: '/pricing',
+        no: '02',
+        title: 'תמחור',
+        note: 'להצביע - חינם. לפתוח נושא - ₪50.',
+      },
+      {
+        slug: '/faq',
+        no: '03',
+        title: 'שאלות נפוצות',
+        note: 'הספקות של כולם, עם תשובות ישרות.',
+      },
+      {
+        slug: '/about',
+        no: '04',
+        title: 'אודות',
+        note: 'מי מאחורי המערכת, ולמה עכשיו.',
+      },
+    ],
+    archiveLead: 'מחפשים הצבעות שהסתיימו?',
+    archiveLink: 'לארכיון התוצאות ←',
+    arrow: '←',
+  },
+  en: {
+    kicker: 'THE MECHANISM',
+    headlineLead: 'How it',
+    headlineAccent: 'works.',
+    tiles: [
+      {
+        slug: '/what-is-taruu',
+        no: '01',
+        title: 'What is Taruu?',
+        note: 'Three branches, and who they work for: the whole mechanism.',
+      },
+      {
+        slug: '/pricing',
+        no: '02',
+        title: 'Pricing',
+        note: 'Voting is free. Opening a topic costs ₪50.',
+      },
+      {
+        slug: '/faq',
+        no: '03',
+        title: 'FAQ',
+        note: "Everyone's doubts, with straight answers.",
+      },
+      {
+        slug: '/about',
+        no: '04',
+        title: 'About',
+        note: 'Who is behind the system, and why now.',
+      },
+    ],
+    archiveLead: 'Looking for votes that have closed?',
+    archiveLink: 'To the results archive →',
+    arrow: '→',
+  },
+};
 
 /**
  * S7 - איך זה עובד. Editorial boxed link tiles in a 2×2 zig-zag with one
@@ -15,32 +98,8 @@ interface Tile {
  * hover per press discipline. A quiet inline link leads to the archive.
  */
 export function MechanismTiles({ locale }: { locale: Locale }) {
-  const tiles: Tile[] = [
-    {
-      href: `/${locale}/how-it-works`,
-      no: '01',
-      title: 'איך זה עובד',
-      note: 'מאימות ועד קלפי: כל המנגנון, צעד אחר צעד.',
-    },
-    {
-      href: `/${locale}/pricing`,
-      no: '02',
-      title: 'תמחור',
-      note: 'להצביע - חינם. לפתוח נושא - ₪50.',
-    },
-    {
-      href: `/${locale}/faq`,
-      no: '03',
-      title: 'שאלות נפוצות',
-      note: 'הספקות של כולם, עם תשובות ישרות.',
-    },
-    {
-      href: `/${locale}/about`,
-      no: '04',
-      title: 'אודות',
-      note: 'מי מאחורי המערכת, ולמה עכשיו.',
-    },
-  ];
+  const t = COPY[locale];
+  const prefix = localePrefix(locale);
 
   return (
     <section
@@ -52,32 +111,36 @@ export function MechanismTiles({ locale }: { locale: Locale }) {
         <header className={styles.header}>
           <span className={styles.kicker}>
             <span aria-hidden className={styles.kickerTick} />
-            חדר המכונות · THE MECHANISM
+            {t.kicker}
           </span>
           <h2 id="mechanism-headline" className={styles.headline}>
-            איך זה <span className={styles.red}>עובד.</span>
+            {t.headlineLead} <span className={styles.red}>{t.headlineAccent}</span>
           </h2>
         </header>
 
         <div className={styles.grid}>
-          {tiles.map((tile) => (
-            <Link key={tile.href} href={tile.href} className={styles.tile}>
+          {t.tiles.map((tile) => (
+            <Link
+              key={tile.slug}
+              href={`${prefix}${tile.slug}`}
+              className={styles.tile}
+            >
               <span className={styles.tileNo} aria-hidden>
                 {tile.no}
               </span>
               <span className={styles.tileTitle}>{tile.title}</span>
               <span className={styles.tileNote}>{tile.note}</span>
               <span className={styles.tileArrow} aria-hidden>
-                ←
+                {t.arrow}
               </span>
             </Link>
           ))}
         </div>
 
         <p className={styles.archiveLine}>
-          מחפשים הצבעות שהסתיימו?{' '}
-          <Link href={`/${locale}/votes/archive`} className={styles.archiveLink}>
-            לארכיון התוצאות ←
+          {t.archiveLead}{' '}
+          <Link href={`${prefix}/votes/archive`} className={styles.archiveLink}>
+            {t.archiveLink}
           </Link>
         </p>
       </div>

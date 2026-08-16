@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useReducedMotion } from '@/hooks';
+import type { Locale } from '@/lib/i18n';
 import styles from './Team.module.css';
 
 interface Member {
@@ -10,19 +11,56 @@ interface Member {
   bio: string;
 }
 
+interface TeamCopy {
+  ariaLabel: string;
+  kicker: string;
+  headlineStart: string;
+  headlineAccent: string;
+  sub: string;
+  members: Member[];
+}
+
 // TODO: placeholder bios - replace with the founders' real roles + bios.
-const TEAM: Member[] = [
-  {
-    name: 'סהר ברק',
-    role: 'מייסד',
-    bio: 'מוביל את תַּרְאוּ: דמוקרטיה מקומית שקופה, מאומתת ובשליטת התושבים.',
+const COPY: Record<Locale, TeamCopy> = {
+  he: {
+    ariaLabel: 'הצוות',
+    kicker: 'הצוות',
+    headlineStart: 'האנשים מאחורי',
+    headlineAccent: 'תַּרְאוּ.',
+    sub: 'צוות קטן מרקע של טכנולוגיה, ממשל מקומי וחוויית משתמש. מטרה אחת: להחזיר את הקול לתושבים.',
+    members: [
+      {
+        name: 'סהר ברק',
+        role: 'מייסד',
+        bio: 'מוביל את תַּרְאוּ: דמוקרטיה מקומית שקופה, מאומתת ובשליטת התושבים.',
+      },
+      {
+        name: 'עיילה איילון',
+        role: 'מייסדת',
+        bio: 'מובילה את תַּרְאוּ: מהרעיון של קונצנזוס ציבורי ועד החוויה בפועל לתושב.',
+      },
+    ],
   },
-  {
-    name: 'עיילה איילון',
-    role: 'מייסדת',
-    bio: 'מובילה את תַּרְאוּ: מהרעיון של קונצנזוס ציבורי ועד החוויה בפועל לתושב.',
+  en: {
+    ariaLabel: 'The team',
+    kicker: 'The Team',
+    headlineStart: 'The people behind',
+    headlineAccent: 'Taruu.',
+    sub: 'A small team with backgrounds in technology, local government, and user experience. One goal: returning the voice to the residents.',
+    members: [
+      {
+        name: 'Sahar Barak',
+        role: 'Founder',
+        bio: 'Leads Taruu: local democracy that is transparent, verified, and in the residents’ hands.',
+      },
+      {
+        name: 'Ayala Ayalon',
+        role: 'Founder',
+        bio: 'Leads Taruu: from the idea of public consensus to the resident’s actual experience.',
+      },
+    ],
   },
-];
+};
 
 function getInitials(name: string): string {
   return name
@@ -32,30 +70,32 @@ function getInitials(name: string): string {
     .join('');
 }
 
-export function Team() {
+interface TeamProps {
+  locale?: Locale;
+}
+
+export function Team({ locale = 'he' }: TeamProps) {
   const reducedMotion = useReducedMotion();
+  const t = COPY[locale];
 
   return (
-    <section className={styles.team} aria-label="הצוות">
+    <section className={styles.team} aria-label={t.ariaLabel}>
       <div className={styles.inner}>
         <div className={styles.header}>
           <span className={styles.kicker}>
             <span aria-hidden className={styles.kickerTick} />
-            הצוות
+            {t.kicker}
           </span>
           <h2 className={styles.headline}>
-            האנשים מאחורי <span className={styles.red}>תַּרְאוּ.</span>
+            {t.headlineStart} <span className={styles.red}>{t.headlineAccent}</span>
           </h2>
-          <p className={styles.sub}>
-            צוות קטן מרקע של טכנולוגיה, ממשל מקומי וחוויית משתמש. מטרה אחת:
-            להחזיר את הקול לתושבים.
-          </p>
+          <p className={styles.sub}>{t.sub}</p>
         </div>
 
         <hr className={styles.ruleHeavy} aria-hidden />
 
         <ul className={styles.grid}>
-          {TEAM.map((member, i) => (
+          {t.members.map((member, i) => (
             <motion.li
               key={member.name}
               className={styles.member}

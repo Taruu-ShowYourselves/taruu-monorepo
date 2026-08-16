@@ -1,0 +1,212 @@
+/* ============================================================
+ * Surface 5 - משגר (the notification composer).
+ *
+ * Tokens only. The single permitted hardcoded length in this phase is the
+ * media-query breakpoint, because CSS media queries cannot read custom
+ * properties.
+ * ============================================================ */
+
+.surface {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.heading {
+  font-family: var(--np-font-display);
+  font-weight: 800;
+  font-size: var(--text-base);
+  line-height: 1.2;
+  color: var(--np-ink);
+}
+
+/* The surface's one editorial line: Frank Ruhl Libre, family change only. */
+.standfirst {
+  font-family: var(--np-font-body);
+  font-weight: 400;
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--np-ink-soft);
+  max-inline-size: 68ch;
+}
+
+/* Visually hidden, still announced. Sized off the hairline rule token. */
+.srOnly {
+  position: absolute;
+  inline-size: var(--np-rule-hair);
+  block-size: var(--np-rule-hair);
+  margin: calc(-1 * var(--np-rule-hair));
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+/* ---------- Composer ---------- */
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--np-paper-box);
+  border: var(--np-rule) solid var(--np-ink);
+  border-radius: 0;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* State 1's always-visible quota line - `מכסה חודשית · {used}/{limit}`. */
+.quotaLine {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  color: var(--np-ink-faint);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.actionRow > * {
+  min-block-size: var(--space-11);
+}
+
+/* Rule B: every disabled control names what unblocks it, in visible text. */
+.hint {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: var(--np-ink-faint);
+  max-inline-size: 68ch;
+}
+
+/* ---------- Alerts: a failed preview, a refused send, a rejected send ------ */
+
+/* Red text on paper-box is `--np-red-ink` - 10.32:1 (D9). A red FILL here
+   would be paper text at 4.03:1 at this size; danger is structural in this
+   system, carried by the heavy red rule rather than by a background. */
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--np-paper-box);
+  border-inline-start: var(--np-rule-heavy) solid var(--np-red);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: var(--np-red-ink);
+  max-inline-size: 68ch;
+}
+
+/* ---------- Sent (state 6) ---------- */
+
+.sent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+
+.sent > :last-child {
+  min-block-size: var(--space-11);
+}
+
+/* ---------- Past dispatches ---------- */
+
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.historyHeading {
+  font-family: var(--np-font-display);
+  font-weight: 800;
+  font-size: var(--text-base);
+  line-height: 1.2;
+  color: var(--np-ink);
+}
+
+.historyList {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--np-paper-box);
+  border: var(--np-rule) solid var(--np-ink);
+}
+
+.historyRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  min-block-size: var(--space-11);
+  border-block-start: var(--np-rule-hair) solid var(--np-paper-edge);
+}
+
+.historyRow:first-child {
+  border-block-start: 0;
+}
+
+.historyTitle {
+  font-family: var(--np-font-display);
+  font-weight: 800;
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--np-ink);
+  flex: 1 1 auto;
+  overflow-wrap: anywhere;
+}
+
+.historyMeta {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--np-ink-faint);
+}
+
+.historyEmpty {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: var(--np-ink-faint);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (min-width: 768px) {
+  .surface {
+    gap: var(--space-6);
+  }
+
+  .composer {
+    padding: var(--space-6);
+  }
+}

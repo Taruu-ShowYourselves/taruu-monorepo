@@ -1,0 +1,70 @@
+/* ============================================================
+ * AudiencePreview - the costed audience, and its stale treatment.
+ *
+ * Tokens only; no hex, no pixel literal outside a media query, and this file
+ * has no media query.
+ * ============================================================ */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/**
+ * The stale banner is a RED RULE with red-ink text on paper-2 - 8.73:1.
+ *
+ * It is deliberately not a red fill and not an ink block. A red fill would put
+ * paper text at 4.03:1 at this size, which is the same defect that keeps the
+ * global red-fill utility out of this phase entirely; an ink block would say
+ * "switched off" when the message is "recompute before you send".
+ *
+ * The rule itself is non-text, so `--np-red` clears its 3:1 threshold.
+ */
+.staleBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--np-paper-2);
+  border-inline-start: var(--np-rule-heavy) solid var(--np-red);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: var(--np-red-ink);
+}
+
+/**
+ * The dimmed panel. `--np-paper-2` is the disabled fill the colour table
+ * already names, and it must NOT be darkened further here or anywhere else:
+ * the Receipt's own footer paints `--np-ink-faint`, which on paper-2 is
+ * 4.53:1 - AA by 0.03. Opacity is excluded for the same reason; dimming would
+ * drag that pair under the line.
+ *
+ * The doubled selector is deliberate. This class arrives on `Receipt` through
+ * its `className` prop, and `.receipt { background: --np-paper-box }` is
+ * (0,1,0) in a different CSS Modules file - a single class here would tie it
+ * and be decided by whichever stylesheet the bundler happened to emit second.
+ * (0,2,0) settles it. Same reasoning as D27.
+ */
+.stale.stale {
+  background: var(--np-paper-2);
+}
+
+/* The busy state, state 2. Mono, faint, no spinner beside a skeleton. */
+.computing {
+  padding: var(--space-6);
+  background: var(--np-paper-box);
+  border: var(--np-rule) solid var(--np-ink);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: var(--np-ink-faint);
+}
+
+/* The compliant kicker for a press `Receipt` lives in `ReceiptKicker` and
+   `kicker.module.css`, because the sent-confirmation receipt on the dispatch
+   surface needs the same treatment. */

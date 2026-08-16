@@ -1,0 +1,174 @@
+/* ============================================================
+ * ProposalDetailPanel - the expanding row on the proposals surface.
+ *
+ * The panel lives inside a table cell that spans every column, so it inherits
+ * the table's cell padding and adds only its own internal rhythm. Tokens only:
+ * no literal colour, no literal length outside a media query.
+ * ============================================================ */
+
+.row > .cell {
+  background: var(--np-paper-2);
+  border-block-start: var(--np-rule-hair) solid var(--np-paper-edge);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.title {
+  font-family: var(--np-font-display);
+  font-weight: 800;
+  font-size: var(--text-base);
+  line-height: 1.2;
+  color: var(--np-ink);
+  max-inline-size: 68ch;
+}
+
+/* ---------- Submitter / submitted, as a definition list ---------- */
+
+.meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-2) var(--space-4);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.meta dt {
+  font-weight: 700;
+  color: var(--np-ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.meta dd {
+  color: var(--np-ink);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Moderation notices ---------- */
+
+/* Red text on paper-2 is `--np-red-ink` - 8.73:1 (D9). Never the accent token,
+   which measures below AA for normal text on every paper background. */
+.notice {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: var(--np-red-ink);
+  max-inline-size: 68ch;
+}
+
+/* ---------- The proposal body ---------- */
+
+.bodyBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  inline-size: 100%;
+}
+
+/* The one place on this dashboard that uses the body serif: this is the
+   citizen's own prose, not interface text. */
+.body {
+  font-family: var(--np-font-body);
+  font-weight: 400;
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--np-ink);
+  max-inline-size: 68ch;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.bodyClamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 12;
+  line-clamp: 12;
+  overflow: hidden;
+}
+
+.bodyToggle {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  min-block-size: var(--space-11);
+  background: transparent;
+  border: 0;
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--np-ink);
+  cursor: pointer;
+}
+
+.bodyToggle:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.bodyToggle:focus-visible {
+  outline: var(--np-rule) solid var(--np-red);
+  outline-offset: var(--np-rule);
+}
+
+/* ---------- Content controls ---------- */
+
+.rule {
+  inline-size: 100%;
+  border: 0;
+  border-block-start: var(--np-rule) solid var(--np-ink);
+  margin: 0;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+/* Touch target. These stay `outline` at rest and on hover - an outline control
+   never takes a red or red-dark fill, which is what keeps every destructive
+   trigger in this phase structurally rather than chromatically marked. */
+.controlBtn {
+  min-block-size: var(--space-11);
+  font-family: var(--np-font-mono);
+  letter-spacing: 0.02em;
+}
+
+/* Visually hidden, still announced. Sized from the hairline rule token. */
+.srOnly {
+  position: absolute;
+  inline-size: var(--np-rule-hair);
+  block-size: var(--np-rule-hair);
+  margin: calc(-1 * var(--np-rule-hair));
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@media (min-width: 768px) {
+  .panel {
+    gap: var(--space-6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .bodyToggle {
+    transition: none;
+    animation: none;
+  }
+}

@@ -92,10 +92,6 @@ pnpm typecheck
 Create `.env.local` in `apps/web/`:
 
 ```env
-# Beehiiv Newsletter
-BEEHIIV_API_KEY=your_api_key
-BEEHIIV_PUBLICATION_ID=pub_your_publication_id
-
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key

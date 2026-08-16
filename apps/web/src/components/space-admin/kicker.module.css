@@ -1,0 +1,72 @@
+/* ============================================================
+ * Phase-local kicker - 05-UI-SPEC D9 + D16.
+ *
+ * The shared `.np-kicker` utility (globals.css:445) paints its TEXT in
+ * `--np-red`, which measures 4.03:1 against paper and fails AA for normal
+ * text at the kicker size. This phase does not propagate that: it scopes the
+ * fix to its own modules rather than editing a global every surface uses.
+ *
+ * The rule is stated PER BACKGROUND, because a token alone is not enough:
+ *   - on paper / paper-box / paper-2 → red text is `--np-red-ink` (9.56:1)
+ *   - on ink                         → there is NO compliant red text
+ *     (`--np-red-ink` on ink is 1.74:1, `--np-red` on ink is 4.13:1), so the
+ *     text is `--np-paper` (16.66:1) and only the tick glyph stays red.
+ *
+ * The tick is decorative, always `aria-hidden`, and therefore exempt from
+ * the text-contrast threshold.
+ * ============================================================ */
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--np-red-ink);
+}
+
+/* Decorative glyph, aria-hidden, exempt from the text threshold. */
+.kicker .tick {
+  color: var(--np-red);
+  flex-shrink: 0;
+}
+
+/* On an ink block: paper text, red tick. */
+.kickerOnInk {
+  composes: kicker;
+  color: var(--np-paper);
+}
+
+/* ------------------------------------------------------------
+ * Inside the press `Receipt`.
+ *
+ * `Receipt` is on the reused-as-is list, and its own `.kicker` rule paints
+ * the accent red at the mono data size - 4.03:1, the defect D9 exists to stop
+ * this phase propagating. It cannot be fixed here without forking the
+ * component, but it takes its kicker as a NODE, so a colour declared on the
+ * children wins for their own text. These two classes are that node; the
+ * `ReceiptKicker` component is the one place they are used.
+ *
+ * They are not `composes: kicker` - the surrounding `<p>` already supplies the
+ * mono face, size, weight, tracking and case, and re-declaring them would put
+ * this phase in the business of restyling a component it does not own.
+ * ------------------------------------------------------------ */
+
+.receiptKickerText {
+  color: var(--np-red-ink);
+}
+
+.receiptKickerTick {
+  color: var(--np-red);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kicker {
+    transition: none;
+    animation: none;
+  }
+}

@@ -6,8 +6,32 @@
 import type { GpsCoordinates } from './user';
 export type { GpsCoordinates };
 
-// Note: Database uses 'ended' instead of 'completed'
-export type VoteStatus = 'pending' | 'active' | 'ended' | 'cancelled';
+/**
+ * Every label the database's `vote_status` enum can hold - the five publication
+ * states plus the four review states added for space governance.
+ *
+ * Note: the database uses 'ended' rather than 'completed'.
+ *
+ * 'cancelled' is deliberately absent. It never existed as a database label; it
+ * was only ever an API-level alias, and `normalizeStatusFilter` in the web app
+ * still maps a legacy client's `?status=cancelled` to 'ended'.
+ *
+ * Holding a status here does NOT make it publicly visible. Public visibility is
+ * a separate, narrower allow-list - `PUBLIC_VOTE_STATUSES` in
+ * apps/web/src/server/domain/votes/vote.ts - and the four review states are not
+ * on it.
+ */
+export type VoteStatus =
+  | 'pending'
+  | 'active'
+  | 'ended'
+  | 'resolving'
+  | 'resolved'
+  | 'failed'
+  | 'draft'
+  | 'in_review'
+  | 'changes_requested'
+  | 'rejected';
 
 export interface VoteOption {
   id: string;

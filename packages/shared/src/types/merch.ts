@@ -3,7 +3,7 @@
  *
  * Physical merch (apparel, stickers, accessories, prints). Payments settle
  * through Green Invoice (morning) as the Israeli merchant of record +
- * invoicing rail — the same rail that handles the vote fees.
+ * invoicing rail - the same rail that handles the vote fees.
  * We hold the catalogue + orders; orders settle at `paid` with no fulfilment
  * handoff.
  */
@@ -49,7 +49,7 @@ export interface Product {
 
 // === Cart ===
 
-/** A resolved line in the cart — self-contained for display + checkout. */
+/** A resolved line in the cart - self-contained for display + checkout. */
 export interface CartItem {
   productId: string;
   slug: string;
@@ -86,7 +86,7 @@ export interface ShippingAddress {
 
 export interface MerchOrder {
   id: string;
-  /** Buyer's user id — checkout requires sign-in, so this is set on real orders. */
+  /** Buyer's user id - checkout requires sign-in, so this is set on real orders. */
   userId?: string;
   items: CartItem[];
   subtotalILS: number;

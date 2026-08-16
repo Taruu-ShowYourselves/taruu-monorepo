@@ -17,7 +17,10 @@
 import { NextResponse } from 'next/server';
 import { getPublicJwks } from '@/lib/supabase/signing-key';
 
-export const runtime = 'edge';
+// No `export const runtime = 'edge'` here, deliberately: on Cloudflare via
+// OpenNext every route already runs on workerd, and declaring the edge runtime
+// makes the build fail outright ("cannot use the edge runtime"). No other route
+// in this app declares one.
 
 export async function GET() {
   try {

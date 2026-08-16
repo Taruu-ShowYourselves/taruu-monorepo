@@ -92,11 +92,15 @@ describe('press Ticker', () => {
     expect(tickerCode).not.toContain('מכל הצבעה');
   });
 
-  it('still renders five DEFAULT_ITEMS - corrected, not gutted', () => {
-    const array = tickerCode.match(/const DEFAULT_ITEMS = \[([\s\S]*?)\];/);
-    expect(array).not.toBeNull();
-    const entries = (array as RegExpMatchArray)[1].match(/'[^']*'/g) ?? [];
-    expect(entries).toHaveLength(5);
+  it('still renders five default items per locale - corrected, not gutted', () => {
+    // The Ticker went i18n on main: DEFAULT_ITEMS became a per-locale
+    // `defaultItems` array inside COPY. Same guard, one array per locale.
+    const arrays = [...tickerCode.matchAll(/defaultItems: \[([\s\S]*?)\]/g)];
+    expect(arrays).toHaveLength(2); // he + en
+    for (const array of arrays) {
+      const entries = array[1].match(/'[^']*'/g) ?? [];
+      expect(entries).toHaveLength(5);
+    }
   });
 });
 

@@ -31,7 +31,7 @@ export interface CreateVoteResponse {
 export interface ParticipateResponse {
   success: boolean;
   participation: Participation;
-  /** True when the ballot already existed — the server returned it instead of creating a second row. */
+  /** True when the ballot already existed - the server returned it instead of creating a second row. */
   alreadyRecorded: boolean;
 }
 
@@ -74,11 +74,14 @@ export const votesApi = {
   },
 
   /**
-   * Create a new vote
+   * Submit a new proposal.
+   *
+   * Submission is free - the ₪50 creation fee is charged when a space admin
+   * approves and the proposal publishes (issue #75). The payment reference this
+   * used to require was never part of `VoteCreateInput`; it was this client's
+   * own intersection, and it is gone from the request contract too.
    */
-  async createVote(
-    input: VoteCreateInput & { paymentTxId: string }
-  ): Promise<Vote> {
+  async createVote(input: VoteCreateInput): Promise<Vote> {
     const client = getApiClient();
     const response = await client.post<CreateVoteResponse>('/api/votes', input);
     return response.vote;

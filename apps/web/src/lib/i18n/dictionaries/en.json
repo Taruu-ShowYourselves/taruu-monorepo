@@ -1,7 +1,7 @@
 {
   "meta": {
-    "title": "Taruu | Israel’s Public Consensus Mechanism",
-    "description": "Taruu is a public consensus mechanism that measures, verifies and surfaces where the majority of the public stands, from the voice of a city to the voice of a nation. Every voice is identity- and GPS-verified and sealed on the blockchain. Opening nationwide on 04.08.26.",
+    "title": "Taruu | The Civic Platform for Fixing Democracy",
+    "description": "Citizens vote on the issues on the table, form a civic majority, and build a mandate the authorities must honour. We are no longer waiting for the authorities to act in the citizen's favor - we have lost that trust. Now we vote.",
     "keywords": "public consensus, majority opinion, direct democracy, community voting, GPS resident verification, blockchain voting, public transparency, civic participation, Israeli municipalities"
   },
   "nav": {
@@ -17,7 +17,7 @@
   "hero": {
     "title1": "The Local Voice,",
     "title2": "In a Measurable Way.",
-    "subtitle": "Taro helps communities form a transparent civic majority on issues that truly matter. We create an objective picture that helps authorities understand residents' wishes and act in coordination with the community.",
+    "subtitle": "Taruu helps communities form a transparent civic majority on issues that truly matter. We create an objective picture that helps authorities understand residents' wishes and act in coordination with the community.",
     "cta": {
       "download": "Download App - Coming Soon",
       "viewVotes": "View Public Votes"
@@ -33,8 +33,8 @@
     "title": "Why Does This Exist?",
     "items": [
       {
-        "title": "Real Local Issues",
-        "description": "What concerns the street and neighborhood. You decide what goes to vote and propose topics for consensus."
+        "title": "Issues from the ground, and from the floor",
+        "description": "What sits on the authority's table and what reaches the Knesset floor. You decide what goes to a vote, and you can demand the Knesset take a subject up."
       },
       {
         "title": "Verified Residents Only",
@@ -106,7 +106,7 @@
     "product": "Product",
     "support": "Support",
     "legal": "Legal",
-    "copyright": "Taro. All rights reserved.",
+    "copyright": "Taruu. All rights reserved.",
     "builtBy": "Built by"
   },
   "comingSoon": {

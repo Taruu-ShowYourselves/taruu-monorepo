@@ -3,10 +3,19 @@
 import { useState, useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useReducedMotion } from '@/hooks';
+import type { Locale } from '@/lib/i18n';
 import styles from './FAQ.module.css';
 
-const faqs = [
-  // COIN-04 owns this answer's investment wording; it is gated on COIN-01's written legal sign-off and is left verbatim on purpose.
+interface FAQCopy {
+  kicker: string;
+  headlineLead: string;
+  headlineAccent: string;
+  standfirst: string;
+  faqs: { question: string; answer: string }[];
+}
+
+const HE_FAQS = [
+  // COIN-04 owns the investment wording below; it is gated on COIN-01's written legal sign-off and is left verbatim on purpose.
   {
     question: 'למה לא פשוט לתרום ישירות?',
     answer:
@@ -53,6 +62,71 @@ const faqs = [
       'כן. אנחנו משתמשים בטכנולוגיית בלוקצ\'יין מוכחת, תשלומים מאובטחים דרך Merchant of Record, ואימות זהות באמצעות Google, מספר טלפון ו-GPS. כל הקוד פתוח לביקורת.',
   },
 ];
+
+const EN_FAQS = [
+  {
+    question: 'Why not just donate directly?',
+    answer:
+      'Because every vote gets its own BAG on bags.fm, and the BAG creates a market. You are not only donating - you hold an asset that represents your support, much like a share. If more people invest, the BAG is worth more. That gives people a reason to share the topic and spread it.',
+  },
+  {
+    question: 'What happens to the money?',
+    answer:
+      "Participation in votes is free. Creating a new vote costs ₪50, which funds platform operations. The community fund is filled by outside investment in each vote's BAG, not by residents' money, and every movement of it is visible.",
+  },
+  {
+    question: 'Is this crypto?',
+    answer:
+      'Yes, but you need to know nothing about crypto to use it. Residents vote for free, with no wallet and no coins. The crypto works behind the scenes to guarantee transparency and security.',
+  },
+  {
+    question: 'Why bags.fm specifically?',
+    answer:
+      'bags.fm gives an independent economic rail that cannot be shut down: the money, the BAGS and the fund run on a public blockchain rather than on one party\'s server that can be leaned on or switched off. Every BAG is transparent and every transaction is auditable. The structure fits what we do: civic economics, community control of community money, and transparency towards authorities and tax.',
+  },
+  {
+    question: 'What if I do not live in Israel?',
+    answer:
+      "You can support Israeli communities from anywhere in the world by buying the vote's BAG on bags.fm. You need a crypto wallet and a coin to buy with. When the vote ends you receive a \"community supporter\" certificate.",
+  },
+  {
+    question: 'What is the digital certificate and why do I need it?',
+    answer:
+      'The certificate (an NFT) is a digital record proving you took part in a specific vote. It stays with you, signed on the blockchain.',
+  },
+  {
+    question: 'How does the platform make money?',
+    answer:
+      'From vote-creation fees: ₪50 for every new vote. We do not depend on outside investors. The economic model sustains itself from day one.',
+  },
+  {
+    question: 'What happens when a vote ends?',
+    answer:
+      'When a vote ends the vote\'s BAG freezes (it can no longer be traded), the funds move to the community fund, and digital certificates are issued to every participant: "verified voter" for residents and "community supporter" for outside backers.',
+  },
+  {
+    question: 'Is it safe?',
+    answer:
+      'Yes. We use proven blockchain technology, secured payments through a Merchant of Record, and identity verification via Google, phone number and GPS. All the code is open to audit.',
+  },
+];
+
+const COPY: Record<Locale, FAQCopy> = {
+  he: {
+    kicker: 'שאלות נפוצות · FAQ',
+    headlineLead: 'כל מה שרציתם לשאול על',
+    headlineAccent: 'הכלכלה האזרחית.',
+    standfirst: "בלי ז'רגון ובלי אותיות קטנות. תשובות ישירות.",
+    faqs: HE_FAQS,
+  },
+  en: {
+    kicker: 'FREQUENTLY ASKED · FAQ',
+    headlineLead: 'Everything you wanted to ask about',
+    headlineAccent: 'civic economics.',
+    standfirst: 'No jargon and no small print. Straight answers.',
+    faqs: EN_FAQS,
+  },
+};
 
 function FAQItem({
   index,
@@ -109,7 +183,8 @@ function FAQItem({
   );
 }
 
-export function FAQ() {
+export function FAQ({ locale }: { locale: Locale }) {
+  const t = COPY[locale];
   const reduced = useReducedMotion();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
@@ -119,18 +194,16 @@ export function FAQ() {
         <header className={styles.head}>
           <span className={styles.kicker}>
             <span aria-hidden className={styles.kickerTick} />
-            שאלות נפוצות · FAQ
+            {t.kicker}
           </span>
           <h2 id="faq-title" className={styles.headline}>
-            כל מה שרציתם לשאול על <span className={styles.red}>הכלכלה האזרחית.</span>
+            {t.headlineLead} <span className={styles.red}>{t.headlineAccent}</span>
           </h2>
-          <p className={styles.standfirst}>
-            בלי ז&apos;רגון ובלי אותיות קטנות. תשובות ישירות.
-          </p>
+          <p className={styles.standfirst}>{t.standfirst}</p>
         </header>
 
         <div className={styles.faqList}>
-          {faqs.map((faq, index) => (
+          {t.faqs.map((faq, index) => (
             <FAQItem
               key={faq.question}
               index={index}

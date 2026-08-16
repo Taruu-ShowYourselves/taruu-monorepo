@@ -1,0 +1,148 @@
+/* ============================================================
+ * Surface 4 - נתונים מצטברים.
+ *
+ * The cards are inert by construction. There is no pointer-state rule on a
+ * card anywhere in this file, the pointer stays the default arrow, and no
+ * figure sits inside anything focusable. Adding a pointer state here would be
+ * the first half of implying a drill-down the API refuses to serve.
+ *
+ * Tokens only. The media-query breakpoints are the one permitted hardcoded
+ * length, because a media query cannot read a custom property.
+ * ============================================================ */
+
+.surface {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.heading {
+  font-family: var(--np-font-display);
+  font-weight: 800;
+  font-size: var(--text-base);
+  line-height: 1.2;
+  color: var(--np-ink);
+}
+
+.standfirst {
+  font-family: var(--np-font-body);
+  font-weight: 400;
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--np-ink-soft);
+  max-inline-size: 68ch;
+}
+
+.srOnly {
+  position: absolute;
+  inline-size: var(--np-rule-hair);
+  block-size: var(--np-rule-hair);
+  margin: calc(-1 * var(--np-rule-hair));
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+/* ---------- Cards ---------- */
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--np-paper-box);
+  border: var(--np-rule) solid var(--np-ink);
+  border-radius: 0;
+  cursor: default;
+}
+
+.statLabel {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--np-ink-faint);
+}
+
+.statFigure {
+  font-family: var(--np-font-display);
+  font-weight: 900;
+  font-size: var(--text-3xl);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--np-ink);
+}
+
+/* A withheld bucket and an uncomputable figure are both mono, so neither can
+   be mistaken for a measurement. They keep the figure row's height so the
+   cards stay aligned across a mixed row. */
+.statSuppressed,
+.statUnavailable {
+  font-family: var(--np-font-mono);
+  font-weight: 700;
+  font-size: var(--text-3xl);
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+  unicode-bidi: isolate;
+  color: var(--np-ink);
+}
+
+.statNote {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: var(--np-ink-faint);
+}
+
+.footerNote {
+  font-family: var(--np-font-body);
+  font-weight: 400;
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--np-ink-soft);
+  max-inline-size: 68ch;
+  padding-block-start: var(--space-4);
+  border-block-start: var(--np-rule) solid var(--np-ink);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (min-width: 768px) {
+  .surface {
+    gap: var(--space-6);
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-6);
+  }
+
+  .statCard {
+    padding: var(--space-6);
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .statCard {
+    transition: none;
+    animation: none;
+  }
+}

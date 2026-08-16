@@ -31,9 +31,19 @@ export const IDENTITY_SCORE_WEIGHTS: Record<SocialPlatform, number> = {
   instagram: 10,
 };
 
-export const MINIMUM_VOTING_SCORE = 40;
 export const VERIFIED_THRESHOLD = 60;
 export const TRUSTED_THRESHOLD = 80;
+
+/**
+ * Minimum score to cast a ballot: trusted, nothing less.
+ *
+ * Google sign-in alone scores 40, and no arrangement of social proofs reaches
+ * 80 without the GPS residency check (40 + 10 + 10 = 60). That is the point:
+ * one ballot per real resident of the municipality, and only the residency
+ * programme evidences the "of the municipality" part. Anyone below this must
+ * finish onboarding first.
+ */
+export const MINIMUM_VOTING_SCORE = TRUSTED_THRESHOLD;
 
 // === Score Calculation ===
 
@@ -88,6 +98,47 @@ export function calculateIdentityScore(
  */
 export function canVote(identityScore: IdentityScore): boolean {
   return identityScore.total >= MINIMUM_VOTING_SCORE;
+}
+
+/** What a resident still owes the ballot box, in points. */
+export interface VotingGate {
+  /** 0-100, residency points included. */
+  readonly total: number;
+  /** {@link MINIMUM_VOTING_SCORE}, carried so a caller can print it. */
+  readonly required: number;
+  /** Points still missing. Zero once the gate opens. */
+  readonly missing: number;
+  /** Points the residency programme is currently contributing. */
+  readonly residencyPoints: number;
+  readonly canVote: boolean;
+}
+
+/**
+ * The one voting gate, shared by the server that enforces it and the surfaces
+ * that explain it.
+ *
+ * `identityPoints` is the stored identity score, which counts sign-in and
+ * social proofs only: nothing in the codebase calls
+ * {@link calculateIdentityScore} with `gpsVerified`, so its GPS component is
+ * always zero and residency is added here instead - once, from whichever
+ * residency signal the caller holds. Both sides must pass the same predicate
+ * (programme completed OR at least one successful check-in) or the desk will
+ * promise a ballot the server refuses.
+ */
+export function votingGate(input: {
+  readonly identityPoints: number;
+  readonly residencyVerified: boolean;
+}): VotingGate {
+  const residencyPoints = input.residencyVerified ? GPS_SCORE_WEIGHT : 0;
+  const total = Math.min(100, Math.max(0, input.identityPoints) + residencyPoints);
+
+  return {
+    total,
+    required: MINIMUM_VOTING_SCORE,
+    missing: Math.max(0, MINIMUM_VOTING_SCORE - total),
+    residencyPoints,
+    canVote: total >= MINIMUM_VOTING_SCORE,
+  };
 }
 
 /**

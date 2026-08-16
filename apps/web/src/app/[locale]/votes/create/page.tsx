@@ -12,10 +12,8 @@ import {
   Stepper,
   Receipt,
 } from '@/components/press';
+import { PROPOSAL_STATUS_LABELS_HE } from '@/components/space-admin/proposalStatusLabels';
 import { useAuth } from '@/providers/AuthProvider';
-import { startVoteCreationCheckout } from '@/services/payments/createVoteCheckout';
-import { paymentsEnabled } from '@/lib/payments-flag';
-import { CREATE_VOTE_COST, formatCurrency } from '@sync/shared';
 import styles from './page.module.css';
 
 // ---------------------------------------------------------------------------
@@ -25,12 +23,12 @@ const MSG_REQUIRED = 'צריך למלא את השדה הזה כדי להמשיך
 const MSG_GENERAL = 'משהו השתבש אצלנו, לא אצלכם. נסו שוב בעוד רגע.';
 
 // Press wizard is 4 editorial steps; the underlying validation stays 3-staged
-// (details → options → payment) - duration lives on the payment plate.
+// (details → options → submission) - duration lives on the final plate.
 const STEP_LABELS = [
   { label: 'נושא' },
   { label: 'אפשרויות' },
   { label: 'משך' },
-  { label: 'תשלום' },
+  { label: 'הגשה' },
 ];
 
 const DURATIONS = [
@@ -40,22 +38,20 @@ const DURATIONS = [
   { value: '30', label: '30 יום' },
 ];
 
+/* Where the proposal is addressed. A municipal issue is raised for the
+   creator's own town; a national one goes to the Knesset's desk, and every
+   resident in the country can support or oppose it. */
+const SCOPES = [
+  { value: 'municipal', label: 'היישוב שלי' },
+  { value: 'knesset', label: 'כנסת ישראל' },
+];
+
+const SCOPE_LABELS: Record<string, string> = {
+  municipal: 'היישוב שלי',
+  knesset: 'כנסת ישראל',
+};
+
 const STEP_COUNT = STEP_LABELS.length;
-
-/**
- * Vote creation is the ₪50 paid action, so it is closed while payments are off.
- * Read once at module scope: NEXT_PUBLIC_PAYMENTS_ENABLED is inlined at build
- * time, so it cannot change under a running client.
- *
- * Participation is FREE and entirely unaffected - residents keep voting.
- */
-const PAYMENTS_OPEN = paymentsEnabled();
-
-/** Coming-soon copy. States a condition, never a date, and asks for nothing. */
-const SOON_KICKER = 'בקרוב · COMING SOON';
-const SOON_LEAD = 'אנחנו משלימים את הסדרת התשלומים מול ספק הסליקה. עד שזה יושלם אי אפשר לפתוח הצבעה חדשה.';
-const SOON_FREE_NOTE = 'ההשתתפות בהצבעות פתוחה וחינמית: אפשר להצביע כבר עכשיו בכל הצבעה פעילה בעיר שלכם.';
-const SOON_NO_CHARGE = 'לא נגבה מכם דבר, ולא נפתח לכם תשלום, עד שהיצירה תיפתח כאן במלואה.';
 
 export default function CreateVotePage() {
   const router = useRouter();
@@ -72,14 +68,25 @@ export default function CreateVotePage() {
   const [descriptionError, setDescriptionError] = useState('');
   const [optionsError, setOptionsError] = useState('');
 
-  // There is no in-page success surface. A vote exists only after Green Invoice
-  // settles the fee and the return page finalises it against the server.
+  // Success surface - gated on the id the server returned for the proposal.
+  const [submittedVoteId, setSubmittedVoteId] = useState<string | null>(null);
 
   // Form state - unchanged
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [options, setOptions] = useState(['', '']);
   const [duration, setDuration] = useState(7); // days
+  const [scope, setScope] = useState<'municipal' | 'knesset'>('municipal');
+
+  /* Switching to the Knesset pre-sets the classic national ballot - for,
+     against, abstain - but only over untouched options: typed answers are
+     the proposer's, not the form's. */
+  const pickScope = (next: 'municipal' | 'knesset') => {
+    setScope(next);
+    if (next === 'knesset' && options.every((option) => !option.trim())) {
+      setOptions(['בעד', 'נגד', 'נמנע']);
+    }
+  };
 
   const filledOptions = options.filter((o) => o.trim());
 
@@ -156,12 +163,6 @@ export default function CreateVotePage() {
   };
 
   const handleSubmit = async () => {
-    // Belt and braces. The wizard is not rendered at all while payments are off
-    // (see the coming-soon return below), and /api/payments/create answers 503
-    // regardless - but no code path may hand a resident a checkout we cannot
-    // honour.
-    if (!PAYMENTS_OPEN) return;
-
     if (!isAuthenticated) {
       router.push('/sign-in?redirect=/votes/create');
       return;
@@ -176,76 +177,53 @@ export default function CreateVotePage() {
     setSubmitting(true);
     setError('');
 
-    // The only success path is a real Green Invoice checkout. A response that
-    // issues no hosted-form URL leaves the resident on the form with their
-    // draft intact and an honest error - it never renders a receipt, because
-    // nothing was charged and no vote was created.
-    const result = await startVoteCreationCheckout(
-      { fetch: globalThis.fetch.bind(globalThis) },
-      { voteTitle: title },
-    );
+    try {
+      // Submission is free and posts the proposal directly. There is no
+      // checkout here and no draft stashed anywhere: the row exists the moment
+      // the server answers, and the ₪50 obligation is created only if a space
+      // admin approves it (issue #75). Nothing is retried - there is no
+      // webhook to wait for.
+      const now = new Date();
+      const end = new Date(now.getTime() + duration * 24 * 60 * 60 * 1000);
+      const res = await fetch('/api/votes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          description,
+          scope,
+          options: filledOptions.map((label) => ({ label })),
+          startDate: now.toISOString(),
+          endDate: end.toISOString(),
+        }),
+      });
 
-    if (result.kind === 'error') {
-      setError(result.message);
+      if (!res.ok) {
+        setError(MSG_GENERAL);
+        setSubmitting(false);
+        return;
+      }
+
+      const data = await res.json();
+      setSubmittedVoteId(String(data.vote?.id ?? ''));
       setSubmitting(false);
-      return;
+    } catch (err: unknown) {
+      console.error('Proposal submission failed:', err);
+      setError(MSG_GENERAL);
+      setSubmitting(false);
     }
-
-    // Persist the pending vote for post-payment finalisation - same key and
-    // same shape the return page reads.
-    const pendingVote = {
-      title,
-      description,
-      options: filledOptions,
-      duration,
-      paymentId: result.payment.id,
-      orderId: result.payment.orderId,
-    };
-
-    sessionStorage.setItem('pendingVote', JSON.stringify(pendingVote));
-    window.location.href = result.payment.paymentUrl;
   };
 
-  // ----- Payments closed: coming-soon plate ------------------------------
-  // Returned BEFORE the auth skeleton on purpose - this state does not depend on
-  // who is reading, and a resident should never watch a spinner resolve into a
-  // form they cannot submit. No wizard, no price, no checkout, no signup.
-  if (!PAYMENTS_OPEN) {
+  // ----- Loading skeleton (press furniture) ------------------------------
+  if (isLoading) {
     return (
       <>
         <Header />
-        <main className={styles.main}>
+        <main className={`${styles.main} np-desk`}>
           <div className={styles.container}>
-            <header className={styles.head}>
-              <span className={styles.kicker}>
-                <span aria-hidden className={styles.kickerTick} />
-                טור הקוראים · יצירת הצבעה
-              </span>
-              <h1 className={styles.headline}>
-                יצירת הצבעה <span className={styles.red}>עוד לא נפתחה.</span>
-              </h1>
-              <p className={styles.standfirst}>{SOON_LEAD}</p>
-            </header>
-
-            <div className={styles.plate}>
-              <div className={styles.plateBody}>
-                <span className={styles.plateKicker}>{SOON_KICKER}</span>
-                <p className={styles.plateNote}>{SOON_FREE_NOTE}</p>
-                <p className={styles.plateNote}>{SOON_NO_CHARGE}</p>
-              </div>
-            </div>
-
-            <div className={styles.actionBar}>
-              <NewsButton
-                href="/votes"
-                variant="red"
-                size="lg"
-                className={styles.primaryAction}
-                trailing={<span aria-hidden>←</span>}
-              >
-                להצבעות הפעילות
-              </NewsButton>
-            </div>
+            <span className={`${styles.shimmer} ${styles.skHead}`} />
+            <span className={`${styles.shimmer} ${styles.skBar}`} />
+            <span className={`${styles.shimmer} ${styles.skCard}`} />
           </div>
         </main>
         <Footer />
@@ -253,16 +231,59 @@ export default function CreateVotePage() {
     );
   }
 
-  // ----- Loading skeleton (press furniture) ------------------------------
-  if (isLoading) {
+  // ----- Submitted surface ------------------------------------------------
+  // Gated on the id the server returned, not on a hash: at submission nothing
+  // has been signed and no chain record exists, so there is no seal to render.
+  if (submittedVoteId !== null) {
     return (
       <>
         <Header />
-        <main className={styles.main}>
+        <main className={`${styles.main} np-desk`}>
           <div className={styles.container}>
-            <span className={`${styles.shimmer} ${styles.skHead}`} />
-            <span className={`${styles.shimmer} ${styles.skBar}`} />
-            <span className={`${styles.shimmer} ${styles.skCard}`} />
+            <div className={`${styles.sheet} np-sheet`}>
+            <header className={styles.head}>
+              <span className={styles.kicker}>
+                <span aria-hidden className={styles.kickerTick} />
+                הוגש · SUBMITTED
+              </span>
+              <h1 className={styles.headline}>
+                ההצעה שלכם <span className={styles.red}>נשלחה לבדיקה.</span>
+              </h1>
+              <p className={styles.standfirst}>
+                מנהל/ת המרחב יבדקו את ההצעה. ההגשה לא חויבה - דמי יצירה של ₪50
+                ייווצרו רק אם ההצעה תאושר ותתפרסם.
+              </p>
+            </header>
+
+            <div className={styles.successGrid}>
+              <Receipt
+                kicker="קבלה · RECEIPT"
+                title={title}
+                rows={[
+                  { label: 'זירה', value: SCOPE_LABELS[scope] },
+                  { label: 'משך הצבעה', value: `${duration} ימים` },
+                  { label: 'אפשרויות', value: String(filledOptions.length) },
+                  {
+                    label: 'סטטוס',
+                    value: PROPOSAL_STATUS_LABELS_HE.in_review,
+                    strong: true,
+                  },
+                ]}
+                footer="תַּרְאוּ · כל הארץ · המהדורה הקהילתית"
+              />
+            </div>
+
+            <div className={styles.actionBar}>
+              <NewsButton
+                variant="red"
+                size="lg"
+                onClick={() => router.push('/votes')}
+                trailing={<span aria-hidden>←</span>}
+              >
+                לכל ההצבעות
+              </NewsButton>
+            </div>
+            </div>
           </div>
         </main>
         <Footer />
@@ -275,16 +296,17 @@ export default function CreateVotePage() {
     : { duration: 0.16, ease: [0.2, 0, 0, 1] as const };
 
   const primaryLabel = submitting
-    ? 'מעבד תשלום…'
+    ? 'שולחים את ההצעה…'
     : step < STEP_COUNT
       ? 'המשך'
-      : `צרו הצבעה · ${formatCurrency(CREATE_VOTE_COST)}`;
+      : 'שלחו את ההצעה לבדיקה';
 
   return (
     <>
       <Header />
-      <main className={styles.main}>
+      <main className={`${styles.main} np-desk`}>
         <div className={styles.container}>
+          <div className={`${styles.sheet} np-sheet`}>
           {/* Masthead-style header */}
           <header className={styles.head}>
             <span className={styles.kicker}>
@@ -295,8 +317,9 @@ export default function CreateVotePage() {
               כתבו את הכותרת <span className={styles.red}>של המחר.</span>
             </h1>
             <p className={styles.standfirst}>
-              הציעו נושא, נסחו את האפשרויות, וקבעו את משך ההצבעה. ההצעה תיחתם
-              בבלוקצ׳יין ותעלה לקלפי הקהילתית.
+              הציעו נושא, נסחו את האפשרויות, וקבעו את משך ההצבעה. ההגשה ללא
+              תשלום - ההצעה עוברת לבדיקה, ורק אחרי אישור היא מתפרסמת ונחתמת
+              בבלוקצ׳יין.
             </p>
           </header>
 
@@ -314,6 +337,18 @@ export default function CreateVotePage() {
             {step === 1 && (
               <div className={styles.plateBody}>
                 <span className={styles.plateKicker}>FIG. 1 · הצעת נושא</span>
+                <Segmented
+                  aria-label="לאן ההצעה מופנית"
+                  variant="red"
+                  segments={SCOPES}
+                  value={scope}
+                  onChange={(v) => pickScope(v as 'municipal' | 'knesset')}
+                />
+                <p className={styles.plateNote}>
+                  {scope === 'knesset'
+                    ? 'הצעה לאומית: עולה לשולחן הכנסת, וכל תושב בארץ יכול לתמוך או להתנגד.'
+                    : 'הצעה מקומית: עולה לתושבי היישוב שלכם בלבד.'}
+                </p>
                 <PressInput
                   label="כותרת ההצבעה"
                   placeholder="למשל: הקמת גן שעשועים חדש"
@@ -427,20 +462,18 @@ export default function CreateVotePage() {
 
             {step === 4 && (
               <div className={styles.plateBody}>
-                <span className={styles.plateKicker}>FIG. 4 · תשלום</span>
+                <span className={styles.plateKicker}>FIG. 4 · הגשה</span>
                 <Receipt
-                  kicker="קבלה · CREATE FEE"
+                  kicker="סיכום · SUBMISSION"
                   title={title || 'הצבעה חדשה'}
                   rows={[
+                    { label: 'זירה', value: SCOPE_LABELS[scope] },
                     { label: 'משך הצבעה', value: `${duration} ימים` },
                     { label: 'אפשרויות', value: String(filledOptions.length) },
-                    {
-                      label: 'דמי יצירת הצבעה',
-                      value: formatCurrency(CREATE_VOTE_COST),
-                      strong: true,
-                    },
+                    { label: 'עלות הגשה', value: 'ללא תשלום', strong: true },
+                    { label: 'דמי יצירה', value: '₪50 - רק אם ההצעה תאושר' },
                   ]}
-                  footer="תשלום מאובטח · Green Invoice · חתום בבלוקצ׳יין"
+                  footer="ההגשה עוברת לבדיקת מנהל/ת המרחב לפני פרסום."
                 />
               </div>
             )}
@@ -471,6 +504,7 @@ export default function CreateVotePage() {
             >
               {primaryLabel}
             </NewsButton>
+          </div>
           </div>
         </div>
       </main>

@@ -269,6 +269,8 @@
 .skel {
   display: block;
   block-size: 0.85em;
+  /* The desk's own ground is paper-2, so the bones need edge ink under the
+     sweep or they vanish into it. */
   background:
     linear-gradient(
         90deg,
@@ -277,7 +279,7 @@
         transparent
       )
       0 0 / 200% 100%,
-    var(--np-paper-2);
+    var(--np-paper-edge);
   animation: bag-shimmer 1.2s linear infinite;
 }
 

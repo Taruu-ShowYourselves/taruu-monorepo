@@ -149,7 +149,7 @@ export function NoiseSignalVisual() {
         </div>
 
         <p className={styles.signalCaption}>
-          קול אחד מדוד, ברור, שאי־אפשר להתעלם ממנו.
+          קול אחד מדוד, ברור, שאי-אפשר להתעלם ממנו.
         </p>
       </motion.div>
 

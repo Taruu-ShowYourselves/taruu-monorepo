@@ -1,11 +1,13 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  UNDATED_WEIGHT,
   blendHotness,
   buildEvidence,
+  freshnessWeight,
   isFresh,
   isIsraeliPress,
-  mediaScoreFromOutletCount,
+  mediaScoreFromOutlets,
   probeUrl,
   refsForDisplay,
   registrableDomain,
@@ -65,17 +67,49 @@ describe('isFresh', () => {
 });
 
 describe('scoring', () => {
-  it('maps outlet counts through the editorial table', () => {
-    assert.equal(mediaScoreFromOutletCount(0), 0);
-    assert.equal(mediaScoreFromOutletCount(1), 35);
-    assert.equal(mediaScoreFromOutletCount(3), 68);
-    assert.equal(mediaScoreFromOutletCount(50), 100);
+  it('maps whole effective-outlet counts through the editorial table', () => {
+    assert.equal(mediaScoreFromOutlets(0), 0);
+    assert.equal(mediaScoreFromOutlets(1), 35);
+    assert.equal(mediaScoreFromOutlets(3), 68);
+    assert.equal(mediaScoreFromOutlets(50), 100);
   });
 
-  it('blends hotness 60/40', () => {
-    assert.equal(blendHotness(100, 0), 60);
-    assert.equal(blendHotness(0, 100), 40);
-    assert.equal(blendHotness(80, 55), 70);
+  it('interpolates between table anchors for fractional counts', () => {
+    assert.equal(mediaScoreFromOutlets(0.5), 18); // halfway 0→35
+    assert.equal(mediaScoreFromOutlets(1.5), 45); // halfway 35→55
+    assert.equal(mediaScoreFromOutlets(2.4), 60); // 55 + 0.4·13, rounded
+  });
+
+  it('decays freshness with a 4-day half-life, discounts undated hits', () => {
+    assert.ok(freshnessWeight('2026-07-29', NOW) > 0.9); // published today
+    assert.ok(Math.abs(freshnessWeight('2026-07-25', NOW) - 0.5) < 0.06); // ~4d → ~half
+    assert.ok(freshnessWeight('2026-07-16', NOW) < 0.15); // ~13d → embers
+    assert.equal(freshnessWeight(null, NOW), UNDATED_WEIGHT);
+    assert.equal(freshnessWeight('garbage-date', NOW), UNDATED_WEIGHT);
+  });
+
+  it('blends hotness media 45 / stakes 35 / relevance 20', () => {
+    assert.equal(blendHotness({ relevance: 100, stakes: 100, media: 100 }), 100);
+    assert.equal(blendHotness({ relevance: 100, stakes: 0, media: 0 }), 20);
+    assert.equal(blendHotness({ relevance: 0, stakes: 100, media: 0 }), 35);
+    assert.equal(blendHotness({ relevance: 0, stakes: 0, media: 100 }), 45);
+  });
+
+  it('falls back to relevance when the stakes axis is missing', () => {
+    assert.equal(
+      blendHotness({ relevance: 80, stakes: null, media: 50 }),
+      Math.round(0.45 * 50 + 0.35 * 80 + 0.2 * 80)
+    );
+  });
+
+  /**
+   * The regression that motivated v3: a ceremonial item drowning in general
+   * topic coverage must rank under a binding bill with real, current press.
+   */
+  it('ranks a low-stakes saturated item under a high-stakes covered bill', () => {
+    const memorial = blendHotness({ relevance: 90, stakes: 10, media: 55 });
+    const conscription = blendHotness({ relevance: 85, stakes: 90, media: 78 });
+    assert.ok(conscription > memorial);
   });
 });
 
@@ -124,6 +158,7 @@ describe('buildEvidence', () => {
       })
     );
 
+    assert.equal(evidence.version, 3);
     assert.equal(evidence.outletsCounted, 2); // ynet + globes
     assert.equal(evidence.hits.length, 6);
     assert.deepEqual(evidence.queries, ['שאילתה 1']);
@@ -134,6 +169,16 @@ describe('buildEvidence', () => {
     assert.equal(by('https://www.calcalist.co.il/d').ok, false);
     assert.equal(by('https://www.nytimes.com/e').israeliPress, false);
     assert.equal(by('https://www.globes.co.il/f').counted, true);
+
+    // Uncounted hits carry no weight; the effective total is ynet's best
+    // (freshest) hit plus globes' undated discount — not one per article.
+    assert.equal(by('https://www.mako.co.il/c').weight, 0);
+    const ynetBest = by('https://www.ynet.co.il/b').weight;
+    assert.ok(ynetBest > by('https://www.ynet.co.il/a').weight);
+    assert.equal(
+      evidence.effectiveOutlets,
+      Math.round((ynetBest + UNDATED_WEIGHT) * 100) / 100
+    );
   });
 
   it('zeroes the outlet count when every ref is dead', async () => {
@@ -144,6 +189,7 @@ describe('buildEvidence', () => {
       fetchWith({ 'https://www.ynet.co.il/gone': 404 })
     );
     assert.equal(evidence.outletsCounted, 0);
+    assert.equal(evidence.effectiveOutlets, 0);
   });
 
   it('dedupes claim URLs before probing', async () => {

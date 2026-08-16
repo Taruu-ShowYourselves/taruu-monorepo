@@ -8,6 +8,7 @@
  */
 
 import type { Product } from '@sync/shared';
+import type { Locale } from '@/lib/i18n';
 
 export const MERCH_CATALOG: Product[] = [
   {
@@ -87,6 +88,85 @@ export const MERCH_CATALOG: Product[] = [
     ],
   },
 ];
+
+/**
+ * English display copy, keyed by product id. Hebrew stays the canonical
+ * source above; SKUs, prices and images are shared and never localized.
+ */
+interface ProductCopyEn {
+  name: string;
+  description: string;
+  variantLabels: Record<string, string>;
+}
+
+const CATALOG_EN: Record<string, ProductCopyEn> = {
+  'tee-press': {
+    name: 'The “Voice of the Citizens” Tee',
+    description:
+      'A heavy cotton tee with an editorial print: a front-page headline across the chest, ink on cream.',
+    variantLabels: {
+      s: 'S · Cream',
+      m: 'M · Cream',
+      l: 'L · Cream',
+      xl: 'XL · Cream',
+    },
+  },
+  'sticker-pack': {
+    name: 'Sticker Pack ■',
+    description:
+      'Six durable vinyl stickers: glyphs, headlines and the red tick. For the laptop, the pencil case, the wall.',
+    variantLabels: {
+      single: 'One sheet',
+      triple: 'Three sheets',
+    },
+  },
+  tote: {
+    name: 'The Tote Bag · THE LEDGER',
+    description:
+      'An organic cotton tote with a two-colour print. Carry the shopping, carry the community.',
+    variantLabels: {
+      natural: 'Natural',
+      black: 'Black',
+    },
+  },
+  mug: {
+    name: 'The Editors’ Mug',
+    description:
+      'A ceramic mug for the morning edition. One headline, one coffee, one day of local democracy.',
+    variantLabels: {
+      standard: '330 ml',
+    },
+  },
+  poster: {
+    name: 'The Manifesto Poster',
+    description:
+      'An A2 archival print: an oversized headline, a civic linocut, red ink. To frame and hang.',
+    variantLabels: {
+      a2: 'A2 · 42×59 cm',
+      a1: 'A1 · 59×84 cm',
+    },
+  },
+};
+
+/**
+ * Return the product with locale-appropriate display copy (name, description,
+ * variant labels). Identity, SKUs, prices and images are untouched; Hebrew
+ * returns the catalogue entry as-is.
+ */
+export function localizeProduct(product: Product, locale: Locale): Product {
+  if (locale === 'he') return product;
+  const copy = CATALOG_EN[product.id];
+  if (!copy) return product;
+  return {
+    ...product,
+    name: copy.name,
+    description: copy.description,
+    variants: product.variants.map((v) => ({
+      ...v,
+      label: copy.variantLabels[v.id] ?? v.label,
+    })),
+  };
+}
 
 /** Look up an active product by slug. */
 export function getProductBySlug(slug: string): Product | undefined {

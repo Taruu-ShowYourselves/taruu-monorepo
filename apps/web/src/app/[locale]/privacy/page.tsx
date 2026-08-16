@@ -2,73 +2,30 @@ import { Metadata } from 'next';
 import { LegalPage, type LegalSection } from '@/components/legal/LegalPage';
 import type { Locale } from '@/lib/i18n';
 
-export const metadata: Metadata = {
-  title: 'מדיניות פרטיות | תַּרְאוּ',
-  description: 'כיצד תַּרְאוּ אוספת, משתמשת ומגינה על המידע האישי שלכם.',
-};
-
-interface PageProps {
-  params: Promise<{ locale: Locale }>;
+interface PrivacyCopy {
+  title: string;
+  /** English-only convenience notice rendered as the first line of the standfirst. */
+  disclaimer?: string;
+  intro: string;
+  updated: string;
+  sections: LegalSection[];
 }
 
 const LAST_UPDATED = '2026-06-13';
 
-function content(locale: Locale): { title: string; intro: string; updated: string; sections: LegalSection[] } {
-  if (locale === 'en') {
-    return {
-      title: 'Privacy Policy',
-      intro:
-        'This policy explains what personal data Taro collects, how we use it, and who we share it with.',
-      updated: `Last updated: ${LAST_UPDATED}`,
-      sections: [
-        {
-          heading: '1. Data We Collect',
-          bullets: [
-            'Account & identity: name, email, and social sign-in (Google, Facebook, Instagram) used to compute your identity score.',
-            'Location: GPS coordinates at the moment of voting, used only to verify residency; stored as a hashed location proof.',
-            'Phone: phone number for SMS verification (via Twilio).',
-            'Payments: handled by Green Invoice; we store a payment record and transaction id, not your card details.',
-            'Voting activity: which votes you participated in (not your secret choice beyond what the protocol records).',
-          ],
-        },
-        {
-          heading: '2. How We Use Data',
-          paragraphs: [
-            'We use your data to verify eligibility, record votes, process payments, prevent fraud and double-voting, send receipts and notifications, and operate the platform.',
-          ],
-        },
-        {
-          heading: '3. Service Providers',
-          bullets: [
-            'Supabase: database and authentication.',
-            'Green Invoice: payment processing (Merchant of Record).',
-            'bags.fm: BAG memecoin infrastructure (the per-vote bags.fm token) on Solana.',
-            'Resend: transactional email.',
-            'Twilio: SMS verification.',
-            'Vercel: hosting.',
-          ],
-        },
-        {
-          heading: '4. Blockchain Data',
-          paragraphs: [
-            'Vote proofs and BAGS (bags.fm memecoins, one BAG per vote) are recorded on public blockchains. On-chain records are pseudonymous, public, and cannot be deleted.',
-          ],
-        },
-        {
-          heading: '5. Retention & Your Rights',
-          paragraphs: [
-            'We retain personal data only as long as needed for the purposes above or as required by law. Subject to applicable law, you may request access to or deletion of your personal data by contacting us. Note that on-chain records cannot be erased.',
-          ],
-        },
-        {
-          heading: '6. Contact',
-          paragraphs: ['Privacy requests: support@taruu.co.il'],
-        },
-      ],
-    };
-  }
+const METADATA: Record<Locale, Metadata> = {
+  he: {
+    title: 'מדיניות פרטיות | תַּרְאוּ',
+    description: 'כיצד תַּרְאוּ אוספת, משתמשת ומגינה על המידע האישי שלכם.',
+  },
+  en: {
+    title: 'Privacy Policy | Taruu',
+    description: 'How Taruu collects, uses, and protects your personal information.',
+  },
+};
 
-  return {
+const COPY: Record<Locale, PrivacyCopy> = {
+  he: {
     title: 'מדיניות פרטיות',
     intro: 'מדיניות זו מסבירה אילו נתונים אישיים תַּרְאוּ אוספת, כיצד אנו משתמשים בהם ועם מי אנו חולקים אותם.',
     updated: `עודכן לאחרונה: ${LAST_UPDATED}`,
@@ -117,11 +74,74 @@ function content(locale: Locale): { title: string; intro: string; updated: strin
         paragraphs: ['בקשות פרטיות: support@taruu.co.il'],
       },
     ],
-  };
+  },
+  en: {
+    title: 'Privacy Policy',
+    disclaimer:
+      'This English translation is provided for convenience only; the Hebrew original is the binding version.',
+    intro:
+      'This policy explains what personal data Taruu collects, how we use it, and with whom we share it.',
+    updated: `Last updated: ${LAST_UPDATED}`,
+    sections: [
+      {
+        heading: '1. Information We Collect',
+        bullets: [
+          'Account and identity: name, email, and social sign-in (Google, Facebook, Instagram) used to compute the identity score.',
+          'Location: GPS coordinates at the moment of voting, used solely to verify residence; stored as a hashed location proof (hash).',
+          'Phone: phone number for SMS verification (via Twilio).',
+          'Payments: processed by Green Invoice; we store a payment record and a transaction identifier only, not your credit card details.',
+          'Voting activity: which votes you participated in.',
+        ],
+      },
+      {
+        heading: '2. How We Use Information',
+        paragraphs: [
+          'We use the information to verify eligibility, record votes, process payments, prevent fraud and double voting, send receipts and notifications, and operate the platform.',
+        ],
+      },
+      {
+        heading: '3. Service Providers',
+        bullets: [
+          'Supabase: database and authentication.',
+          'Green Invoice: payment processing (Merchant of Record).',
+          'bags.fm: BAG infrastructure (a bags.fm coin per vote) on the Solana network.',
+          'Resend: transactional email.',
+          'Twilio: SMS verification.',
+          'Vercel: hosting.',
+        ],
+      },
+      {
+        heading: '4. Blockchain Data',
+        paragraphs: [
+          'Vote proofs and BAGS (bags.fm coins, one BAG per vote) are recorded on a public blockchain. These records are pseudonymous, public, and cannot be deleted.',
+        ],
+      },
+      {
+        heading: '5. Retention and Your Rights',
+        paragraphs: [
+          'We retain personal information only for as long as it is needed for the purposes above or as required by law. Subject to applicable law, you may request access to your personal information or its deletion by contacting us. Please note that records on the blockchain cannot be deleted.',
+        ],
+      },
+      {
+        heading: '6. Contact',
+        paragraphs: ['Privacy requests: support@taruu.co.il'],
+      },
+    ],
+  },
+};
+
+interface PageProps {
+  params: Promise<{ locale: Locale }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  return METADATA[locale];
 }
 
 export default async function PrivacyPage({ params }: PageProps) {
   const { locale } = await params;
-  const c = content(locale);
-  return <LegalPage locale={locale} title={c.title} intro={c.intro} updated={c.updated} sections={c.sections} />;
+  const t = COPY[locale];
+  const intro = t.disclaimer ? `${t.disclaimer} ${t.intro}` : t.intro;
+  return <LegalPage locale={locale} title={t.title} intro={intro} updated={t.updated} sections={t.sections} />;
 }

@@ -2,17 +2,17 @@
 
 .form {
   display: flex;
-  align-items: flex-end;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-}
-
-.fieldBlock {
-  display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  flex: 1;
-  min-inline-size: 16rem;
+}
+
+/* Input and button fused into one slab: stretch shares a single height and
+   baseline, zero gap keeps the seam tight; wrap drops the button whole onto
+   its own line on narrow screens instead of squeezing it. */
+.slab {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
 }
 
 .fieldMast {
@@ -45,7 +45,8 @@
   50% { opacity: 0; }
 }
 
-/* Live validity flag - lights up red when the address parses. */
+/* Live validity flag - hidden until the field holds anything to judge, gray
+   while the address doesn't parse, red plate the moment it does. */
 .validity {
   font-family: var(--np-font-mono);
   font-size: var(--text-xs);
@@ -54,10 +55,18 @@
   color: rgba(244, 241, 232, 0.35);
   border: var(--np-rule-hair) solid rgba(244, 241, 232, 0.25);
   padding: 1px var(--space-2);
+  opacity: 0;
+  transform: translateY(var(--space-1));
   transition:
+    opacity var(--np-dur-snap) var(--np-ease),
+    transform var(--np-dur-snap) var(--np-ease),
     color var(--np-dur-snap) var(--np-ease),
     background-color var(--np-dur-snap) var(--np-ease),
     border-color var(--np-dur-snap) var(--np-ease);
+}
+.validity[data-show] {
+  opacity: 1;
+  transform: translateY(0);
 }
 .validity[data-on] {
   color: var(--np-paper);
@@ -65,8 +74,14 @@
   border-color: var(--np-red);
 }
 
-/* Input frame carries the focus furniture: crop marks + progress rule. */
-.inputFrame { position: relative; }
+/* Input frame carries the focus furniture: crop marks + progress rule.
+   Raised above the adjoining button so the crop marks stay visible. */
+.inputFrame {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-inline-size: 16rem;
+}
 
 .inputFrame::before,
 .inputFrame::after {
@@ -129,8 +144,6 @@
   pointer-events: none;
 }
 .inputFrame:focus-within .bar { transform: scaleX(1); }
-
-.action { display: flex; }
 
 /* Loading ellipsis - discrete content animation, static fallback. */
 .sending::after {

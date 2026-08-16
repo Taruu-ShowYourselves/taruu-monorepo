@@ -1,8 +1,44 @@
+import type { Locale } from '@/lib/i18n';
+
 export interface StructuredKnessetTitle {
   kind: string;
   headline: string;
   tags: string[];
 }
+
+interface KnessetTitleCopy {
+  agendaKind: string;
+  fastTrackKind: string;
+  billKind: string;
+  lawKind: string;
+  recommendationKind: string;
+  amendmentTag: string;
+  temporaryProvisionTag: string;
+  legislativeAmendmentsTag: string;
+}
+
+const COPY: Record<Locale, KnessetTitleCopy> = {
+  he: {
+    agendaKind: 'סדר היום',
+    fastTrackKind: 'דיון מהיר',
+    billKind: 'הצעת חוק',
+    lawKind: 'חקיקה',
+    recommendationKind: 'המלצת מליאה',
+    amendmentTag: 'תיקון',
+    temporaryProvisionTag: 'הוראת שעה',
+    legislativeAmendmentsTag: 'תיקוני חקיקה',
+  },
+  en: {
+    agendaKind: 'Agenda',
+    fastTrackKind: 'Urgent debate',
+    billKind: 'Bill',
+    lawKind: 'Legislation',
+    recommendationKind: 'Plenum recommendation',
+    amendmentTag: 'Amendment',
+    temporaryProvisionTag: 'Temporary provision',
+    legislativeAmendmentsTag: 'Legislative amendments',
+  },
+};
 
 const MAX_HEADLINE = 52;
 const MAX_TAG = 30;
@@ -24,7 +60,7 @@ function shorten(value: string, limit: number): string {
   return `${slice.slice(0, boundary > limit * 0.62 ? boundary : undefined).trim()}…`;
 }
 
-function tagsForParenthetical(value: string): string[] {
+function tagsForParenthetical(value: string, t: KnessetTitleCopy): string[] {
   const content = compact(value);
   const tags: string[] = [];
   const amendment = content.match(
@@ -33,10 +69,10 @@ function tagsForParenthetical(value: string): string[] {
   const numbered = content.match(/^מס[׳'"]\s*(\d+)/u);
 
   if (amendment?.[1] || numbered?.[1]) {
-    tags.push(`תיקון ${amendment?.[1] ?? numbered?.[1]}`);
+    tags.push(`${t.amendmentTag} ${amendment?.[1] ?? numbered?.[1]}`);
   }
-  if (/הוראת שעה/u.test(content)) tags.push('הוראת שעה');
-  if (/תיקוני חקיקה/u.test(content)) tags.push('תיקוני חקיקה');
+  if (/הוראת שעה/u.test(content)) tags.push(t.temporaryProvisionTag);
+  if (/תיקוני חקיקה/u.test(content)) tags.push(t.legislativeAmendmentsTag);
 
   if (tags.length > 0) return tags;
 
@@ -70,19 +106,21 @@ function editorialHeadline(value: string): string {
  */
 export function structureKnessetTitle(
   officialTitle: string,
-  officialType?: string | null
+  officialType?: string | null,
+  locale: Locale = 'he'
 ): StructuredKnessetTitle {
+  const t = COPY[locale];
   let title = compact(officialTitle);
-  let kind = officialType || 'סדר היום';
+  let kind = officialType || t.agendaKind;
   const tags: string[] = [];
   const years: string[] = [];
 
   const prefixes: Array<[RegExp, string]> = [
-    [/^הצעה\s+רגילה\s+לסדר\s+היום\s+בנושא:\s*/u, 'סדר היום'],
-    [/^הצעה\s+לדיון\s+מהיר\s+בנושא:\s*/u, 'דיון מהיר'],
-    [/^הצעת\s+חוק\s+/u, 'הצעת חוק'],
-    [/^חוק\s+/u, 'חקיקה'],
-    [/^המלצה\s+/u, 'המלצת מליאה'],
+    [/^הצעה\s+רגילה\s+לסדר\s+היום\s+בנושא:\s*/u, t.agendaKind],
+    [/^הצעה\s+לדיון\s+מהיר\s+בנושא:\s*/u, t.fastTrackKind],
+    [/^הצעת\s+חוק\s+/u, t.billKind],
+    [/^חוק\s+/u, t.lawKind],
+    [/^המלצה\s+/u, t.recommendationKind],
   ];
 
   for (const [pattern, label] of prefixes) {
@@ -109,7 +147,7 @@ export function structureKnessetTitle(
   }
 
   title = title.replace(/\(([^()]*)\)/gu, (_match, content: string) => {
-    tags.push(...tagsForParenthetical(content));
+    tags.push(...tagsForParenthetical(content, t));
     return '';
   });
 

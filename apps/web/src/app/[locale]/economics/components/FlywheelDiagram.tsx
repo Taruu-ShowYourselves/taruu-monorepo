@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useReducedMotion } from '@/hooks';
+import type { Locale } from '@/lib/i18n';
 import styles from './FlywheelDiagram.module.css';
 
 const EASE = [0.2, 0, 0, 1] as const;
@@ -77,29 +78,100 @@ function StepIcon({ name }: { name: IconName }) {
   }
 }
 
-const flywheelSteps: FlywheelStep[] = [
-  { id: 'local', title: 'תושב מקומי', description: 'מצביע חינם, מאומת זהות ו-GPS', icon: 'resident' },
-  { id: 'coin', title: 'BAG נוצר ב-bags.fm', description: 'ההצבעה נרשמת בבלוקצ\'יין', icon: 'coin' },
-  { id: 'external', title: 'תומך חיצוני', description: 'מזהה נושא שחשוב לו', icon: 'globe' },
-  { id: 'trade', title: 'קונה את ה-BAG', description: 'תמיכה שמייצרת עמלות', icon: 'trade' },
-  { id: 'fees', title: 'עמלות לקרן ההצבעה', description: 'עמלות המסחר ב-BAG מיועדות לקרן של אותה הצבעה', icon: 'split' },
-  { id: 'result', title: 'תוצאה נקבעת', description: 'תעודה דיגיטלית לכל משתתף', icon: 'award' },
-];
+interface FlywheelCopy {
+  kicker: string;
+  headlineLead: string;
+  headlineAccent: string;
+  steps: FlywheelStep[];
+  resultLabel: string;
+  resultLead: string;
+  resultNum: string;
+  resultTail: string;
+  revenueTitle: string;
+  colStream: string;
+  colSource: string;
+  colAllocation: string;
+  revenueStreams: { stream: string; source: string; allocation: string }[];
+  noteHead: string;
+  sustainabilityPoints: string[];
+  /** Connector between nodes; the loop glyph is direction-neutral. */
+  connector: string;
+}
 
-const revenueStreams = [
-  { stream: 'יצירת הצבעה', source: '₪50 להצבעה חדשה', allocation: 'תפעול הפלטפורמה' },
-  { stream: 'עמלות מסחר', source: 'מסחר ב-BAG של ההצבעה', allocation: 'מיועד לקרן ההצבעה' },
-  { stream: 'רכישות חיצוניות', source: 'תמיכה → BAGS ב-bags.fm', allocation: 'מזין את קופת הקרן' },
-];
+const COPY: Record<Locale, FlywheelCopy> = {
+  he: {
+    kicker: 'גלגל התנופה · THE LEDGER LOOP',
+    headlineLead: 'כל הצבעה מפעילה מחזור כלכלי',
+    headlineAccent: 'סביב הנושא.',
+    steps: [
+      { id: 'local', title: 'תושב מקומי', description: 'מצביע חינם, מאומת זהות ו-GPS', icon: 'resident' },
+      { id: 'coin', title: 'BAG נוצר ב-bags.fm', description: 'ההצבעה נרשמת בבלוקצ\'יין', icon: 'coin' },
+      { id: 'external', title: 'תומך חיצוני', description: 'מזהה נושא שחשוב לו', icon: 'globe' },
+      { id: 'trade', title: 'קונה את ה-BAG', description: 'תמיכה שמייצרת עמלות', icon: 'trade' },
+      { id: 'fees', title: 'עמלות לקרן ההצבעה', description: 'עמלות המסחר ב-BAG מיועדות לקרן של אותה הצבעה', icon: 'split' },
+      { id: 'result', title: 'תוצאה נקבעת', description: 'תעודה דיגיטלית לכל משתתף', icon: 'award' },
+    ],
+    resultLabel: 'התוצאה',
+    resultLead: 'הצבעה ',
+    resultNum: 'אחת',
+    resultTail: ' יכולה לרכז מאחורי הנושא משאבים אמיתיים, לא רק קול.',
+    revenueTitle: 'זרמי הכנסה',
+    colStream: 'זרם',
+    colSource: 'מקור',
+    colAllocation: 'הקצאה',
+    revenueStreams: [
+      { stream: 'יצירת הצבעה', source: '₪50 להצבעה חדשה', allocation: 'תפעול הפלטפורמה' },
+      { stream: 'עמלות מסחר', source: 'מסחר ב-BAG של ההצבעה', allocation: 'מיועד לקרן ההצבעה' },
+      { stream: 'רכישות חיצוניות', source: 'תמיכה → BAGS ב-bags.fm', allocation: 'מזין את קופת הקרן' },
+    ],
+    noteHead: 'ללא תלות במשקיעים חיצוניים',
+    sustainabilityPoints: [
+      'הפלטפורמה מתקיימת מהיום הראשון',
+      'הרשויות מרוויחות, לא מוציאות',
+      'התושבים מצביעים ומקבלים תעודה דיגיטלית',
+      'תומכים חיצוניים מקבלים נכס סחיר ושקוף',
+    ],
+    connector: '←',
+  },
+  en: {
+    kicker: 'THE LEDGER LOOP',
+    headlineLead: 'Every vote sets an economic cycle turning',
+    headlineAccent: 'around the topic.',
+    steps: [
+      { id: 'local', title: 'Local resident', description: 'Votes free, identity and GPS verified', icon: 'resident' },
+      { id: 'coin', title: 'A BAG is created on bags.fm', description: 'The vote is recorded on the blockchain', icon: 'coin' },
+      { id: 'external', title: 'Outside backer', description: 'Spots a topic that matters to them', icon: 'globe' },
+      { id: 'trade', title: 'Buys the BAG', description: 'Support that generates fees', icon: 'trade' },
+      { id: 'fees', title: "Fees go to the vote's fund", description: "Trading fees on the vote's BAG are earmarked for that vote's fund", icon: 'split' },
+      { id: 'result', title: 'A result is set', description: 'A digital certificate for every participant', icon: 'award' },
+    ],
+    resultLabel: 'The result',
+    resultLead: '',
+    resultNum: 'One',
+    resultTail: ' vote can gather real resources behind a topic, not just a voice.',
+    revenueTitle: 'Revenue streams',
+    colStream: 'Stream',
+    colSource: 'Source',
+    colAllocation: 'Allocation',
+    revenueStreams: [
+      { stream: 'Creating a vote', source: '₪50 per new vote', allocation: 'Platform operations' },
+      { stream: 'Trading fees', source: "Trading in the vote's BAG", allocation: "Earmarked for the vote's fund" },
+      { stream: 'Outside purchases', source: 'Support → BAGS on bags.fm', allocation: "Feeds the fund's pot" },
+    ],
+    noteHead: 'No dependence on outside investors',
+    sustainabilityPoints: [
+      'The platform sustains itself from day one',
+      'Municipalities earn rather than spend',
+      'Residents vote and receive a digital certificate',
+      'Outside backers receive a tradable, transparent asset',
+    ],
+    connector: '→',
+  },
+};
 
-const sustainabilityPoints = [
-  'הפלטפורמה מתקיימת מהיום הראשון',
-  'הרשויות מרוויחות, לא מוציאות',
-  'התושבים מצביעים ומקבלים תעודה דיגיטלית',
-  'תומכים חיצוניים מקבלים נכס סחיר ושקוף',
-];
-
-export function FlywheelDiagram() {
+export function FlywheelDiagram({ locale }: { locale: Locale }) {
+  const t = COPY[locale];
+  const flywheelSteps = t.steps;
   const reduced = useReducedMotion();
 
   return (
@@ -108,10 +180,10 @@ export function FlywheelDiagram() {
         <header className={styles.head}>
           <span className={styles.kicker}>
             <span aria-hidden className={styles.kickerTick} />
-            גלגל התנופה · THE LEDGER LOOP
+            {t.kicker}
           </span>
           <h2 id="flywheel-title" className={styles.headline}>
-            כל הצבעה מפעילה מחזור כלכלי <span className={styles.red}>סביב הנושא.</span>
+            {t.headlineLead} <span className={styles.red}>{t.headlineAccent}</span>
           </h2>
         </header>
 
@@ -141,7 +213,7 @@ export function FlywheelDiagram() {
                 className={`${styles.connector} ${index === flywheelSteps.length - 1 ? styles.connectorLoop : ''}`}
                 aria-hidden
               >
-                {index === flywheelSteps.length - 1 ? '↺' : '←'}
+                {index === flywheelSteps.length - 1 ? '↺' : t.connector}
               </span>
             </motion.li>
           ))}
@@ -149,23 +221,24 @@ export function FlywheelDiagram() {
 
         {/* Result highlight - ink block callout */}
         <div className={styles.result}>
-          <span className={styles.resultLabel}>התוצאה</span>
+          <span className={styles.resultLabel}>{t.resultLabel}</span>
           <p className={styles.resultValue}>
-            הצבעה <span className={styles.resultNum}>אחת</span> יכולה לרכז מאחורי הנושא
-            משאבים אמיתיים, לא רק קול.
+            {t.resultLead}
+            <span className={styles.resultNum}>{t.resultNum}</span>
+            {t.resultTail}
           </p>
         </div>
 
         {/* Revenue streams - boxed ledger table */}
         <div className={styles.revenue}>
-          <h3 className={styles.sectionTitle}>זרמי הכנסה</h3>
-          <div className={styles.table} role="table" aria-label="זרמי הכנסה">
+          <h3 className={styles.sectionTitle}>{t.revenueTitle}</h3>
+          <div className={styles.table} role="table" aria-label={t.revenueTitle}>
             <div className={`${styles.row} ${styles.rowHead}`} role="row">
-              <span role="columnheader">זרם</span>
-              <span role="columnheader">מקור</span>
-              <span role="columnheader">הקצאה</span>
+              <span role="columnheader">{t.colStream}</span>
+              <span role="columnheader">{t.colSource}</span>
+              <span role="columnheader">{t.colAllocation}</span>
             </div>
-            {revenueStreams.map((item) => (
+            {t.revenueStreams.map((item) => (
               <div key={item.stream} className={styles.row} role="row">
                 <span className={styles.cellStream} role="cell">{item.stream}</span>
                 <span className={styles.cellSource} role="cell">{item.source}</span>
@@ -177,9 +250,9 @@ export function FlywheelDiagram() {
 
         {/* Sustainability note - red block pull-quote + checklist */}
         <div className={styles.note}>
-          <span className={styles.noteHead}>ללא תלות במשקיעים חיצוניים</span>
+          <span className={styles.noteHead}>{t.noteHead}</span>
           <ul className={styles.noteList}>
-            {sustainabilityPoints.map((point) => (
+            {t.sustainabilityPoints.map((point) => (
               <li key={point} className={styles.noteItem}>
                 <span className={styles.check} aria-hidden>✓</span>
                 {point}

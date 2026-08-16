@@ -36,8 +36,18 @@
   opacity: 0.035;
 }
 
+/* The page rests on section edges, and an edge parks under the pinned dock -
+   so what a section actually gets is 100svh minus the nav, not 100svh. Left
+   to centre its content in the full height, every section put its last rows
+   in the strip below the fold: a route's call to action, a desk's footer.
+   Reserving the dock here means each one centres inside the band the reader
+   can see, and a section with more content than that grows past the screen
+   and earns its own second stop. */
 .siteLayer :global(main > section) {
   min-block-size: 100svh;
+  /* The dock's height and a hair: flush against it, a kicker sits on the
+     dock's own bottom rule and reads as part of the nav. */
+  padding-block-start: calc(var(--np-nav-h) + var(--space-2));
   scroll-margin-block-start: 4.5rem;
   background-color: transparent !important;
 }
@@ -57,7 +67,10 @@
   display: none;
 }
 
-.liveOverlay:target {
+/* Set from state, not :target: the overlay now mounts only while the hash
+   names it (see HomepageExperience), and a :target selector can't be trusted
+   to match a node inserted after the navigation that targeted it. */
+.liveOverlayOpen {
   display: block;
   animation: live-overlay-in 420ms var(--np-ease, cubic-bezier(0.16, 1, 0.3, 1));
 }
@@ -106,7 +119,7 @@
     margin-block-start: 0;
   }
 
-  .liveOverlay:target {
+  .liveOverlayOpen {
     animation: none;
   }
 }

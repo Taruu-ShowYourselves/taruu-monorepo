@@ -12,13 +12,65 @@ import {
 } from '@/app/[locale]/votes/[id]/flow/submitParticipation';
 import type { DeskOption } from '@/components/press/sections/DeskTopicRow';
 import styles from './Feed.module.css';
+import { localePrefix, type Locale } from '@/lib/i18n';
+
+interface FeedBallotCopy {
+  recordedNote: string;
+  recordedFallback: string;
+  recordedTrust: (count: string) => string;
+  fullRecordLink: string;
+  gateNote: string;
+  noVotes: string;
+  openTrust: string;
+  closedButton: string;
+  signInButton: string;
+  submittingButton: string;
+  confirmButton: string;
+  /** Direction-semantic CTA glyph: mirrored between RTL and LTR. */
+  arrow: string;
+}
+
+const COPY: Record<Locale, FeedBallotCopy> = {
+  he: {
+    recordedNote: 'הקול שלכם נרשם:',
+    recordedFallback: 'עמדה שנרשמה',
+    recordedTrust: (count) =>
+      `${count} קולות מאומתים · הקול נרשם פעם אחת ואי אפשר לשנות אותו.`,
+    fullRecordLink: 'לרשומה המלאה ←',
+    gateNote: 'צריך חשבון כדי לרשום קול. נשמור את הבחירה ונחזיר אתכם בדיוק לכאן.',
+    noVotes: 'עדיין אין קולות. הקול הראשון פתוח.',
+    openTrust: 'הקול נרשם פעם אחת, משויך לתושב מאומת, ואי אפשר לשנות אותו בדיעבד.',
+    closedButton: 'ההצבעה סגורה',
+    signInButton: 'התחברו והצביעו',
+    submittingButton: 'רושמים את הקול…',
+    confirmButton: 'אשרו והצביעו',
+    arrow: '←',
+  },
+  en: {
+    recordedNote: 'Your vote is on record:',
+    recordedFallback: 'a recorded position',
+    recordedTrust: (count) =>
+      `${count} verified votes · A vote is recorded once and cannot be changed.`,
+    fullRecordLink: 'Full record →',
+    gateNote:
+      'You need an account to record a vote. We will keep your choice and bring you back exactly here.',
+    noVotes: 'No votes yet. The first voice is open.',
+    openTrust:
+      'A vote is recorded once, tied to a verified resident, and cannot be changed after the fact.',
+    closedButton: 'The vote is closed',
+    signInButton: 'Sign in and vote',
+    submittingButton: 'Recording your vote…',
+    confirmButton: 'Confirm and vote',
+    arrow: '→',
+  },
+};
 
 interface FeedBallotProps {
   voteId: string;
   question: string;
   options: DeskOption[];
   totalVotes: number;
-  locale: string;
+  locale: Locale;
   /** Card anchor, so an auth detour returns the reader to this exact card. */
   anchor: string;
   /** The option the server already holds for this reader, if any. */
@@ -48,6 +100,7 @@ export function FeedBallot({
   recordedOptionId,
   onRecorded,
 }: FeedBallotProps) {
+  const t = COPY[locale];
   const router = useRouter();
   const { isAuthenticated } = useAuth();
 
@@ -57,6 +110,11 @@ export function FeedBallot({
   const [errorCode, setErrorCode] = useState<ParticipationRejectionCode | null>(null);
 
   const blocked = errorCode !== null && isTerminalRejection(errorCode);
+
+  // An empty tally printed as rows of 0% over hollow tracks reads as a broken
+  // poll, not an open one - below zero votes the numbers stay off the page and
+  // one editorial line says what the zero means.
+  const hasVotes = totalVotes > 0;
 
   const recordedText = useMemo(
     () => options.find((option) => option.id === recordedOptionId)?.text ?? null,
@@ -93,21 +151,21 @@ export function FeedBallot({
     [voteId]
   );
 
-  const backHere = `/${locale}/feed#${anchor}`;
+  const backHere = `${localePrefix(locale)}/feed#${anchor}`;
 
   const handleConfirm = useCallback(async () => {
     if (!selected || submitting || blocked) return;
 
     if (!isAuthenticated) {
       parkChoice(selected);
-      router.push(`/${locale}/sign-in?redirect=${encodeURIComponent(backHere)}`);
+      router.push(`${localePrefix(locale)}/sign-in?redirect=${encodeURIComponent(backHere)}`);
       return;
     }
 
     setSubmitting(true);
     setError(null);
     setErrorCode(null);
-    const result = await submitParticipation({ voteId, optionId: selected });
+    const result = await submitParticipation({ voteId, optionId: selected, locale });
     setSubmitting(false);
 
     if (result.status === 'rejected') {
@@ -116,12 +174,12 @@ export function FeedBallot({
         result.code === 'IDENTITY_NOT_VERIFIED'
       ) {
         parkChoice(selected);
-        router.push(`/${locale}/verification?redirect=${encodeURIComponent(backHere)}`);
+        router.push(`${localePrefix(locale)}/verification?redirect=${encodeURIComponent(backHere)}`);
         return;
       }
       if (result.code === 'UNAUTHENTICATED') {
         parkChoice(selected);
-        router.push(`/${locale}/sign-in?redirect=${encodeURIComponent(backHere)}`);
+        router.push(`${localePrefix(locale)}/sign-in?redirect=${encodeURIComponent(backHere)}`);
         return;
       }
       setError(result.message);
@@ -151,7 +209,7 @@ export function FeedBallot({
       <div className={styles.ballot}>
         <p className={styles.recordedNote}>
           <span aria-hidden>✓ </span>
-          הקול שלכם נרשם: <strong>{recordedText ?? 'עמדה שנרשמה'}</strong>
+          {t.recordedNote} <strong>{recordedText ?? t.recordedFallback}</strong>
         </p>
 
         <ul className={styles.results}>
@@ -165,24 +223,27 @@ export function FeedBallot({
                 ) : null}
                 {option.text}
               </span>
-              <span className={styles.track} aria-hidden>
-                <span
-                  className={`${styles.fill} ${option.id === recordedOptionId ? styles.fillMine : ''}`}
-                  style={{ inlineSize: `${option.pct}%` }}
-                />
-              </span>
-              <span className={styles.resultPct}>{option.pct}%</span>
+              {hasVotes ? (
+                <>
+                  <span className={styles.track} aria-hidden>
+                    <span
+                      className={`${styles.fill} ${option.id === recordedOptionId ? styles.fillMine : ''}`}
+                      style={{ inlineSize: `${option.pct}%` }}
+                    />
+                  </span>
+                  <span className={styles.resultPct}>{option.pct}%</span>
+                </>
+              ) : null}
             </li>
           ))}
         </ul>
 
         <p className={styles.trust}>
-          {totalVotes.toLocaleString('he-IL')} קולות מאומתים · הקול נרשם פעם אחת
-          ואי אפשר לשנות אותו.
+          {t.recordedTrust(totalVotes.toLocaleString('he-IL'))}
         </p>
 
-        <Link href={`/${locale}/votes/${voteId}`} className={styles.textLink}>
-          לרשומה המלאה ←
+        <Link href={`${localePrefix(locale)}/votes/${voteId}`} className={styles.textLink}>
+          {t.fullRecordLink}
         </Link>
       </div>
     );
@@ -210,14 +271,18 @@ export function FeedBallot({
                       {isSelected ? '■' : '□'}
                     </span>
                     <span className={styles.optionLabel}>{option.text}</span>
-                    <span className={styles.optionPct}>{option.pct}%</span>
+                    {hasVotes ? (
+                      <span className={styles.optionPct}>{option.pct}%</span>
+                    ) : null}
                   </span>
-                  <span className={styles.track} aria-hidden>
-                    <span
-                      className={`${styles.fill} ${isSelected ? styles.fillSelected : ''}`}
-                      style={{ inlineSize: `${option.pct}%` }}
-                    />
-                  </span>
+                  {hasVotes ? (
+                    <span className={styles.track} aria-hidden>
+                      <span
+                        className={`${styles.fill} ${isSelected ? styles.fillSelected : ''}`}
+                        style={{ inlineSize: `${option.pct}%` }}
+                      />
+                    </span>
+                  ) : null}
                 </button>
               </li>
             );
@@ -225,15 +290,22 @@ export function FeedBallot({
         </ul>
       </fieldset>
 
+      {!hasVotes ? (
+        <p className={styles.noVotesNote}>
+          <span aria-hidden className={styles.mark}>
+            ■{' '}
+          </span>
+          {t.noVotes}
+        </p>
+      ) : null}
+
       {!isAuthenticated ? (
         <p className={styles.gateNote}>
           <span aria-hidden>■ </span>
-          צריך חשבון כדי לרשום קול. נשמור את הבחירה ונחזיר אתכם בדיוק לכאן.
+          {t.gateNote}
         </p>
       ) : (
-        <p className={styles.trust}>
-          הקול נרשם פעם אחת, משויך לתושב מאומת, ואי אפשר לשנות אותו בדיעבד.
-        </p>
+        <p className={styles.trust}>{t.openTrust}</p>
       )}
 
       {error ? (
@@ -249,15 +321,15 @@ export function FeedBallot({
           size="lg"
           onClick={handleConfirm}
           disabled={!selected || submitting || blocked}
-          trailing={blocked ? undefined : <span aria-hidden>←</span>}
+          trailing={blocked ? undefined : <span aria-hidden>{t.arrow}</span>}
         >
           {blocked
-            ? 'ההצבעה סגורה'
+            ? t.closedButton
             : !isAuthenticated
-              ? 'התחברו והצביעו'
+              ? t.signInButton
               : submitting
-                ? 'רושמים את הקול…'
-                : 'אשרו והצביעו'}
+                ? t.submittingButton
+                : t.confirmButton}
         </NewsButton>
       </div>
     </div>

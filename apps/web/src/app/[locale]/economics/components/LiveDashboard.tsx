@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { MunicipalityLink } from '@/components/uikit/municipality-link';
 import { useReducedMotion } from '@/hooks';
+import type { Locale } from '@/lib/i18n';
 import styles from './LiveDashboard.module.css';
 
 const EASE = [0.2, 0, 0, 1] as const;
@@ -28,7 +29,62 @@ interface TrendingCoin {
   imageUrl?: string | null;
 }
 
-export function LiveDashboard() {
+interface DashboardCopy {
+  kicker: string;
+  headlineLead: string;
+  headlineAccent: string;
+  standfirst: string;
+  loadError: string;
+  preLaunchTitle: string;
+  preLaunchBody: string;
+  trendingTitle: string;
+  statRaised: string;
+  statActiveVotes: string;
+  statVoters: string;
+  statMunicipalities: string;
+  /** BCP 47 tag for the currency and count formatting. */
+  numberLocale: string;
+}
+
+const COPY: Record<Locale, DashboardCopy> = {
+  he: {
+    kicker: 'הדשבורד החי · LIVE',
+    headlineLead: 'כל שקל בקרן',
+    headlineAccent: 'גלוי בזמן אמת.',
+    standfirst:
+      'נתונים חיים מכל הרשויות המקומיות ברשת. שקיפות מלאה, בלי חדרים סגורים.',
+    loadError: 'לא הצלחנו לטעון את הנתונים כרגע.',
+    preLaunchTitle: 'הדשבורד החי ייפתח עם ההצבעה הראשונה.',
+    preLaunchBody:
+      'כשהקרן הקהילתית הראשונה תיפתח, כל גיוס, עסקה ומגמה יופיעו כאן בזמן אמת.',
+    trendingTitle: 'BAGS מובילים ב-bags.fm',
+    statRaised: 'סה״כ גויס לקרנות',
+    statActiveVotes: 'הצבעות פעילות',
+    statVoters: 'תושבים שהצביעו',
+    statMunicipalities: 'רשויות מקומיות',
+    numberLocale: 'he-IL',
+  },
+  en: {
+    kicker: 'THE LIVE DASHBOARD · LIVE',
+    headlineLead: 'Every shekel in the fund',
+    headlineAccent: 'is visible in real time.',
+    standfirst:
+      'Live figures from every municipality on the network. Full transparency, no closed rooms.',
+    loadError: 'We could not load the figures right now.',
+    preLaunchTitle: 'The live dashboard opens with the first vote.',
+    preLaunchBody:
+      'When the first community fund opens, every raise, transaction and trend appears here in real time.',
+    trendingTitle: 'Leading BAGS on bags.fm',
+    statRaised: 'Total raised for funds',
+    statActiveVotes: 'Active votes',
+    statVoters: 'Residents who voted',
+    statMunicipalities: 'Municipalities',
+    numberLocale: 'en-GB',
+  },
+};
+
+export function LiveDashboard({ locale }: { locale: Locale }) {
+  const t = COPY[locale];
   const reduced = useReducedMotion();
   const [stats, setStats] = useState<NetworkStats | null>(null);
   const [coins, setCoins] = useState<TrendingCoin[]>([]);
@@ -54,7 +110,7 @@ export function LiveDashboard() {
         }
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
-        setError('לא הצלחנו לטעון את הנתונים כרגע.');
+        setError(t.loadError);
       } finally {
         setLoading(false);
       }
@@ -64,17 +120,18 @@ export function LiveDashboard() {
     // Refresh every 30 seconds
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [t.loadError]);
 
   const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('he-IL', {
+    new Intl.NumberFormat(t.numberLocale, {
       style: 'currency',
       currency: 'ILS',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
 
-  const formatNumber = (num: number) => new Intl.NumberFormat('he-IL').format(num);
+  const formatNumber = (num: number) =>
+    new Intl.NumberFormat(t.numberLocale).format(num);
 
   const formatPercent = (num: number) => {
     const sign = num >= 0 ? '+' : '';
@@ -85,10 +142,13 @@ export function LiveDashboard() {
   const hasActivity = Boolean(stats && stats.totalVoters > 0) || coins.length > 0;
 
   const statCards = [
-    { label: 'סה״כ גויס לקרנות', value: stats ? formatCurrency(stats.totalRaised) : '₪0' },
-    { label: 'הצבעות פעילות', value: stats ? formatNumber(stats.activeVotes) : '0' },
-    { label: 'תושבים שהצביעו', value: stats ? formatNumber(stats.totalVoters) : '0' },
-    { label: 'רשויות מקומיות', value: stats ? formatNumber(stats.municipalities) : '0' },
+    { label: t.statRaised, value: stats ? formatCurrency(stats.totalRaised) : '₪0' },
+    { label: t.statActiveVotes, value: stats ? formatNumber(stats.activeVotes) : '0' },
+    { label: t.statVoters, value: stats ? formatNumber(stats.totalVoters) : '0' },
+    {
+      label: t.statMunicipalities,
+      value: stats ? formatNumber(stats.municipalities) : '0',
+    },
   ];
 
   return (
@@ -97,14 +157,12 @@ export function LiveDashboard() {
         <header className={styles.head}>
           <span className={styles.kicker}>
             <span aria-hidden className={styles.kickerLive} />
-            הדשבורד החי · LIVE
+            {t.kicker}
           </span>
           <h2 id="dashboard-title" className={styles.headline}>
-            כל שקל בקרן <span className={styles.red}>גלוי בזמן אמת.</span>
+            {t.headlineLead} <span className={styles.red}>{t.headlineAccent}</span>
           </h2>
-          <p className={styles.standfirst}>
-            נתונים חיים מכל הרשויות המקומיות ברשת. שקיפות מלאה, בלי חדרים סגורים.
-          </p>
+          <p className={styles.standfirst}>{t.standfirst}</p>
         </header>
 
         {loading ? (
@@ -122,10 +180,8 @@ export function LiveDashboard() {
           <div className={styles.notice} role="status">
             <span className={`${styles.noticeGlyph} ${styles.noticeGlyphLive}`} aria-hidden>●</span>
             <div className={styles.noticeBody}>
-              <p className={styles.noticeTitle}>הדשבורד החי ייפתח עם ההצבעה הראשונה.</p>
-              <p className={styles.noticeText}>
-                כשהקרן הקהילתית הראשונה תיפתח, כל גיוס, עסקה ומגמה יופיעו כאן בזמן אמת.
-              </p>
+              <p className={styles.noticeTitle}>{t.preLaunchTitle}</p>
+              <p className={styles.noticeText}>{t.preLaunchBody}</p>
             </div>
           </div>
         ) : (
@@ -148,7 +204,7 @@ export function LiveDashboard() {
 
             {coins.length > 0 && (
               <div className={styles.trending}>
-                <h3 className={styles.sectionTitle}>BAGS מובילים ב-bags.fm</h3>
+                <h3 className={styles.sectionTitle}>{t.trendingTitle}</h3>
                 <div className={styles.coinsList}>
                   {coins.map((coin, index) => (
                     <motion.div
@@ -180,6 +236,7 @@ export function LiveDashboard() {
                         <MunicipalityLink
                           name={coin.municipality}
                           className={styles.coinMunicipality}
+                          locale={locale}
                         />
                       </div>
                       <div className={styles.coinStats}>

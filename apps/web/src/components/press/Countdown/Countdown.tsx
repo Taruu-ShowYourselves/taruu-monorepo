@@ -1,7 +1,40 @@
 'use client';
 
 import { Fragment, useEffect, useState } from 'react';
+import type { Locale } from '@/lib/i18n';
 import styles from './Countdown.module.css';
+
+interface CountdownCopy {
+  unitLabels: Record<'days' | 'hours' | 'minutes' | 'seconds', string>;
+  sectionAria: string;
+  kicker: string;
+  liveFlag: string;
+}
+
+const COPY: Record<Locale, CountdownCopy> = {
+  he: {
+    unitLabels: {
+      days: 'ימים',
+      hours: 'שעות',
+      minutes: 'דקות',
+      seconds: 'שניות',
+    },
+    sectionAria: 'ספירה לאחור לפתיחה הארצית',
+    kicker: 'הפתיחה הארצית · LAUNCH',
+    liveFlag: 'ההצבעה פתוחה · LIVE',
+  },
+  en: {
+    unitLabels: {
+      days: 'days',
+      hours: 'hours',
+      minutes: 'minutes',
+      seconds: 'seconds',
+    },
+    sectionAria: 'Countdown to the national launch',
+    kicker: 'The national launch',
+    liveFlag: 'Voting is open · LIVE',
+  },
+};
 
 /** National grand opening - 04.08.26, midnight Israel time (IDT, UTC+3). */
 const LAUNCH_AT = Date.parse('2026-08-04T00:00:00+03:00');
@@ -45,15 +78,11 @@ export function useCountdown(): Remaining | null | 'pending' {
   return remaining;
 }
 
-const UNITS = [
-  ['days', 'ימים'],
-  ['hours', 'שעות'],
-  ['minutes', 'דקות'],
-  ['seconds', 'שניות'],
-] as const;
+const UNITS = ['days', 'hours', 'minutes', 'seconds'] as const;
 
 interface CountdownClockProps {
   className?: string;
+  locale?: Locale;
 }
 
 /**
@@ -61,8 +90,9 @@ interface CountdownClockProps {
  * inheriting the surrounding text color so it reads on paper and ink alike.
  * Renders nothing once the launch has passed.
  */
-export function CountdownClock({ className }: CountdownClockProps) {
+export function CountdownClock({ className, locale = 'he' }: CountdownClockProps) {
   const remaining = useCountdown();
+  const t = COPY[locale];
 
   if (remaining === null) return null;
 
@@ -72,7 +102,7 @@ export function CountdownClock({ className }: CountdownClockProps) {
       dir="ltr"
       role="timer"
     >
-      {UNITS.map(([key, label], i) => (
+      {UNITS.map((key, i) => (
         <Fragment key={key}>
           {i > 0 && (
             <span className={styles.sep} aria-hidden>
@@ -83,7 +113,7 @@ export function CountdownClock({ className }: CountdownClockProps) {
             <span className={styles.digits} suppressHydrationWarning>
               {remaining === 'pending' ? '--' : pad(remaining[key])}
             </span>
-            <span className={styles.unitLabel}>{label}</span>
+            <span className={styles.unitLabel}>{t.unitLabels[key]}</span>
           </span>
         </Fragment>
       ))}
@@ -95,24 +125,25 @@ export function CountdownClock({ className }: CountdownClockProps) {
  * Grand-opening countdown strip - press furniture. Full-width band under the
  * ticker: launch kicker, date stamp and the live clock.
  */
-export function Countdown() {
+export function Countdown({ locale = 'he' }: { locale?: Locale }) {
   const remaining = useCountdown();
   const live = remaining === null;
+  const t = COPY[locale];
 
   return (
-    <section className={styles.countdown} aria-label="ספירה לאחור לפתיחה הארצית">
+    <section className={styles.countdown} aria-label={t.sectionAria}>
       <div className={styles.inner}>
         <div className={styles.label}>
           <span className={styles.kicker}>
             <span aria-hidden className={styles.tick} />
-            הפתיחה הארצית · LAUNCH
+            {t.kicker}
           </span>
         </div>
 
         {live ? (
-          <span className={styles.liveFlag}>ההצבעה פתוחה · LIVE</span>
+          <span className={styles.liveFlag}>{t.liveFlag}</span>
         ) : (
-          <CountdownClock />
+          <CountdownClock locale={locale} />
         )}
       </div>
     </section>

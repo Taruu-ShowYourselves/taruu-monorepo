@@ -1,0 +1,80 @@
+/* ============================================================
+ * SpaceAdminNav - the Segmented visual language on real links.
+ * Boxed row, ink hairlines between cells, active cell inverts to ink.
+ * On narrow viewports the row scrolls horizontally rather than wrapping.
+ * ============================================================ */
+
+.nav {
+  display: flex;
+  flex-wrap: nowrap;
+  width: 100%;
+  background: var(--np-paper-box);
+  border: var(--np-rule) solid var(--np-ink);
+  border-radius: 0;
+  overflow-x: auto;
+  scroll-snap-type: inline mandatory;
+  scrollbar-width: none;
+}
+
+.nav::-webkit-scrollbar {
+  display: none;
+}
+
+.cell {
+  flex: 1 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  scroll-snap-align: start;
+  min-block-size: var(--space-11);
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-decoration: none;
+  color: var(--np-ink);
+  background: transparent;
+  /* Logical divider, RTL-safe. */
+  border-inline-start: var(--np-rule-hair) solid var(--np-ink);
+  transition:
+    background-color var(--np-dur-snap) var(--np-ease),
+    color var(--np-dur-snap) var(--np-ease);
+}
+
+.cell:first-child {
+  border-inline-start: 0;
+}
+
+.cell:hover:not(.active) {
+  background: var(--np-paper-2);
+  color: var(--np-ink);
+}
+
+.cell:focus-visible {
+  outline: var(--np-rule) solid var(--np-red);
+  outline-offset: calc(-1 * var(--np-rule));
+}
+
+.active {
+  background: var(--np-ink);
+  color: var(--np-paper);
+}
+
+.active:hover {
+  color: var(--np-paper);
+}
+
+@media (min-width: 768px) {
+  .nav {
+    scroll-snap-type: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell {
+    transition: none;
+  }
+}

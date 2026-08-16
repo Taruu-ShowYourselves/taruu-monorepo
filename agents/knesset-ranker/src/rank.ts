@@ -3,12 +3,15 @@
  *
  * Pipeline: pull active votes scoped to the Knesset desk (title + the AI
  * document summary produced by the sibling docs job) → hand batches to a
- * Claude agent that judges how relevant/pressing each item is to the
- * Israeli public and hunts live press coverage with WebSearch → the CODE
- * (src/media.ts) HTTP-validates every ref, counts distinct fresh Israeli
- * outlets, computes the media sub-score from that count and blends hotness
- * 60/40 with relevance → upsert into knesset_rankings with the full
- * search-and-count evidence in media_evidence.
+ * Claude agent that judges each item on two axes — relevance (how much the
+ * topic touches the public) and stakes (what actually changes if it
+ * passes; ceremonial and declaratory items score low) — and hunts press
+ * coverage of THE ITEM ITSELF with WebSearch (general topic coverage is
+ * out of bounds) → the CODE (src/media.ts) HTTP-validates every ref,
+ * decay-weights each counted outlet by publication freshness, computes the
+ * media sub-score from the effective-outlet total and blends hotness
+ * media 45 / stakes 35 / relevance 20 → upsert into knesset_rankings with
+ * the full search-and-count evidence in media_evidence.
  *
  * Runs on the Claude Agent SDK with local Claude Code credentials — no
  * ANTHROPIC_API_KEY required. Safe to re-run: votes ranked within
@@ -24,7 +27,7 @@ import {
   type CoverageClaim,
   blendHotness,
   buildEvidence,
-  mediaScoreFromOutletCount,
+  mediaScoreFromOutlets,
   refsForDisplay,
 } from './media.js';
 
@@ -32,7 +35,7 @@ loadAgentEnv();
 
 const KNESSET_SCOPE = 'כנסת ישראל';
 const BATCH_SIZE = 6;
-const MODEL_TAG = 'claude-agent-sdk+counted-media/v2';
+const MODEL_TAG = 'claude-agent-sdk+counted-media/v3';
 
 /**
  * Account-level failures (spend cap, expired login) hit every remaining
@@ -72,6 +75,11 @@ interface RankableVote {
 export interface AgentFinding {
   voteId: string;
   relevance: number;
+  /**
+   * What actually changes if the item passes (0–100). Null when the agent
+   * omitted the axis — the blend then falls back to relevance.
+   */
+  stakes: number | null;
   /** Curated Hebrew headline; empty when the agent declined to write one. */
   headline: string;
   rationale: string;
@@ -134,20 +142,22 @@ function buildPrompt(votes: RankableVote[]): string {
     })
     .join('\n\n');
 
-  return `אתה עורך ראשי בדסק פרלמנטרי של עיתון אזרחי ישראלי. לפניך סעיפים מסדר היום של מליאת הכנסת. לכל סעיף בצע שלוש משימות:
+  return `אתה עורך ראשי בדסק פרלמנטרי של עיתון אזרחי ישראלי. לפניך סעיפים מסדר היום של מליאת הכנסת. לכל סעיף בצע ארבע משימות:
 
-1. relevance (0–100): שפוט עד כמה הנושא רלוונטי ודוחק לציבור הישראלי הרחב — השפעה ישירה על חיי היומיום, היקף האוכלוסייה המושפעת, דחיפות בזמן. נושאים טכניים/פרוצדורליים (הצהרות אמונים, הארכות תוקף שגרתיות) נמוכים אלא אם יש סערה ציבורית סביבם.
+1. relevance (0–100): שפוט עד כמה הנושא רלוונטי לציבור הישראלי הרחב — השפעה ישירה על חיי היומיום, היקף האוכלוסייה המושפעת, דחיפות בזמן.
 
-2. headline: כתוב כותרת עיתונאית בעברית שמתארת מה הסעיף *עושה*, לא איך הוא נקרא. עד 9 מילים, בלי שנה עברית, בלי "הצעת חוק"/"תיקון מס'", בלי נקודה בסוף. אל תמציא עובדות שאינן בכותרת או בתקציר — אם אין מספיק מידע, החזר את נושא הסעיף בניסוח קצר. דוגמה: "חוק שירות ביטחון (תיקון מס' 29 - הוראת שעה)" → "הארכת הוראת השעה לגיוס חובה".
+2. stakes (0–100): שפוט מה משתנה בפועל אם הסעיף עובר — תקציב, זכויות, חובות, סמכויות, היקף אוכלוסייה מושפעת. סעיפים הצהרתיים וטקסיים — ימי זיכרון והנצחה, ציון מועדים, ברכות, הצהרות אמונים, הארכות תוקף שגרתיות — מקבלים stakes נמוך (0–15) גם כשהנושא רגיש או מסוקר מאוד, אלא אם ההצבעה עצמה נתונה במאבק פוליטי של ממש. אל תבלבל בין חשיבות רגשית של נושא לבין מה שההצבעה משנה.
 
-3. איסוף סיקור: חפש באמצעות WebSearch סיקור עיתונאי ישראלי מה־${FRESH_DAYS} הימים האחרונים (חפש בעברית: מילות מפתח מהכותרת, עם "חדשות" או שם אתר). לפחות חיפוש אחד לכל סעיף. החזר אך ורק כתובות URL אמיתיות שהופיעו בתוצאות החיפוש — לעולם אל תמציא ואל תשחזר כתובת מהזיכרון. לכל כתובת צרף תאריך פרסום בפורמט YYYY-MM-DD אם הוא מופיע בתוצאה (אחרת null). עד ${MAX_COVERAGE_PER_VOTE} כתובות לסעיף, מאתרי חדשות ישראליים בלבד. כלול גם את שאילתות החיפוש שהרצת (עד ${MAX_QUERIES}).
+3. headline: כתוב כותרת עיתונאית בעברית שמתארת מה הסעיף *עושה*, לא איך הוא נקרא. עד 9 מילים, בלי שנה עברית, בלי "הצעת חוק"/"תיקון מס'", בלי נקודה בסוף. אל תמציא עובדות שאינן בכותרת או בתקציר — אם אין מספיק מידע, החזר את נושא הסעיף בניסוח קצר. דוגמה: "חוק שירות ביטחון (תיקון מס' 29 - הוראת שעה)" → "הארכת הוראת השעה לגיוס חובה".
 
-אל תחשב ציון תקשורת ואל תחשב hotness — המערכת סופרת את הסיקור המאומת ומחשבת בעצמה.
+4. איסוף סיקור: חפש באמצעות WebSearch סיקור עיתונאי ישראלי מה־${FRESH_DAYS} הימים האחרונים (חפש בעברית: מילות מפתח מהכותרת, עם "חדשות" או שם אתר). לפחות חיפוש אחד לכל סעיף. כלל האצבע המחייב — אַבּאוּטנֶס: החזר רק כתבות שעוסקות בסעיף עצמו או במהלך הפוליטי סביבו (החקיקה, ההצבעה, הדיון בכנסת, המחלוקת הקואליציונית). סיקור כללי של הנושא איננו סיקור של הסעיף: לסעיף הנצחה על 7 באוקטובר, כתבות כלליות על 7 באוקטובר אינן נחשבות — רק כתבות על הצעת ההנצחה עצמה. כשאין סיקור של הסעיף עצמו, החזר coverage ריק — זה ממצא לגיטימי. החזר אך ורק כתובות URL אמיתיות שהופיעו בתוצאות החיפוש — לעולם אל תמציא ואל תשחזר כתובת מהזיכרון. לכל כתובת צרף תאריך פרסום בפורמט YYYY-MM-DD אם הוא מופיע בתוצאה (אחרת null). עד ${MAX_COVERAGE_PER_VOTE} כתובות לסעיף, מאתרי חדשות ישראליים בלבד. כלול גם את שאילתות החיפוש שהרצת (עד ${MAX_QUERIES}).
+
+אל תחשב ציון תקשורת ואל תחשב hotness — המערכת סופרת את הסיקור המאומת, משקללת אותו לפי טריות, ומחשבת בעצמה.
 
 חשוב: המענה האחרון שלך חייב להיות ה-JSON המלא. אל תחזיר הודעת ביניים כמו "החיפושים רצים ברקע" או "ממתין לתוצאות" — סיים את כל החיפושים ורק אז ענה. אין דרך להשלים תשובה אחר כך.
 
 החזר JSON בלבד — מערך, בלי טקסט נוסף ובלי גדרות קוד:
-[{"voteId": "...", "relevance": 0, "headline": "כותרת קצרה בעברית", "rationale": "משפט אחד בעברית", "queries": ["..."], "coverage": [{"url": "https://...", "publishedAt": "YYYY-MM-DD או null"}]}]
+[{"voteId": "...", "relevance": 0, "stakes": 0, "headline": "כותרת קצרה בעברית", "rationale": "משפט אחד בעברית", "queries": ["..."], "coverage": [{"url": "https://...", "publishedAt": "YYYY-MM-DD או null"}]}]
 
 הסעיפים:
 
@@ -200,6 +210,9 @@ export function parseFindings(raw: string, batch: RankableVote[]): AgentFinding[
     findings.push({
       voteId,
       relevance: clamp(e.relevance),
+      // Absent ≠ zero: a model that skipped the axis must not zero 35% of
+      // the blend — null lets blendHotness fall back to relevance.
+      stakes: e.stakes === undefined || e.stakes === null ? null : clamp(e.stakes),
       headline: cleanHeadline(e.headline),
       rationale: String(e.rationale ?? '').slice(0, 500),
       queries: (Array.isArray(e.queries) ? e.queries : [])
@@ -307,12 +320,16 @@ async function main(): Promise<void> {
         finding.coverage,
         new Date()
       );
-      const media = mediaScoreFromOutletCount(evidence.outletsCounted);
-      const hotness = blendHotness(finding.relevance, media);
+      const media = mediaScoreFromOutlets(evidence.effectiveOutlets);
+      const hotness = blendHotness({
+        relevance: finding.relevance,
+        stakes: finding.stakes,
+        media,
+      });
       const dead = evidence.hits.filter((h) => !h.ok).length;
 
       console.log(
-        `  ${String(hotness).padStart(3)}° (rel ${finding.relevance}, media ${media} ← ${evidence.outletsCounted} outlets, ${evidence.hits.length} refs${dead ? `, ${dead} dead` : ''}) ${title.slice(0, 60)}`
+        `  ${String(hotness).padStart(3)}° (rel ${finding.relevance}, stakes ${finding.stakes ?? '—'}, media ${media} ← ${evidence.effectiveOutlets} eff. of ${evidence.outletsCounted} outlets, ${evidence.hits.length} refs${dead ? `, ${dead} dead` : ''}) ${title.slice(0, 60)}`
       );
       // The headline is the one output a human has to judge rather than read
       // off a score, so a dry run has to show it - otherwise the only way to
@@ -327,6 +344,7 @@ async function main(): Promise<void> {
           vote_id: finding.voteId,
           hotness,
           relevance: finding.relevance,
+          stakes: finding.stakes,
           media,
           // Null, not '', so the app's `?? fallback` sees an absent headline.
           headline: finding.headline || null,

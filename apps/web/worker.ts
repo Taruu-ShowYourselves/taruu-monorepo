@@ -40,6 +40,13 @@ const CRON_ROUTES: Record<string, string> = {
   '0 * * * *': '/api/cron/resolve-votes',
   '*/10 * * * *': '/api/cron/mint-nfts',
   '0 */6 * * *': '/api/cron/knesset-agenda',
+  // The government mirror. The roster moves on reshuffles, so once a day is
+  // plenty; the roll-call sync is deliberately incremental (a bounded number
+  // of upstream fetches per run), so it wants the more frequent slot to
+  // converge on a sitting day. It reads the term from the roster, which is
+  // why it runs after it rather than beside it.
+  '30 3 * * *': '/api/cron/knesset-roster',
+  '20 */2 * * *': '/api/cron/knesset-rollcalls',
 };
 
 /**

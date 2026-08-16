@@ -1,0 +1,612 @@
+/* The live map - the paper's weather page, set as one editorial spread.
+   The country stands at the full height of the section on the far column
+   (physical left in the Hebrew edition - the inline end); the reading
+   matter - kicker, headline, figures, the chosen town's docket, the ranked
+   list - is one start-aligned column beside it. Below the locality desk,
+   one viewport tall under the nav. */
+
+.section {
+  position: relative;
+  isolation: isolate;
+  min-block-size: calc(100svh - var(--np-nav-h));
+  display: grid;
+  padding-block: clamp(var(--space-4), 2.5vh, var(--space-8));
+  border-block-start: var(--np-rule-heavy) solid var(--np-ink);
+}
+
+.section::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: var(--np-paper);
+}
+
+.inner {
+  inline-size: min(100% - 2 * var(--np-gutter), 78rem);
+  margin-inline: auto;
+  display: grid;
+  /* Text column at the inline start (right, in Hebrew), the country taking
+     the rest. */
+  grid-template-columns: minmax(20rem, 34rem) minmax(0, 1fr);
+  align-items: stretch;
+  column-gap: clamp(var(--space-8), 5vw, var(--space-16));
+  row-gap: var(--space-6);
+  min-block-size: 0;
+}
+
+/* ---- The reading column -------------------------------------------------- */
+
+.column {
+  display: grid;
+  align-content: start;
+  gap: var(--space-5);
+  min-block-size: 0;
+  max-block-size: 100%;
+  overflow-y: auto;
+  text-align: start;
+}
+
+/* The paper's own scroll rail: a red hairline in its own gutter beside the
+   reading, never the browser's fat overlay drawn across it. The webkit
+   pseudos are what buy both the 3px and the reserved gutter - setting the
+   standard scrollbar properties alongside them makes Chrome throw the
+   pseudos away and fall back to the overlay, so those are scoped to the
+   engines that have nothing else (Firefox). */
+.column,
+.docketList {
+  /* Air between the text and the rail. */
+  padding-inline-end: var(--space-2);
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  .column,
+  .docketList {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  .column:hover,
+  .column:focus-within,
+  .column[data-scrolling],
+  .column[data-scrolling] .docketList,
+  .column:hover .docketList {
+    scrollbar-color: var(--np-red) transparent;
+  }
+}
+
+.column::-webkit-scrollbar,
+.docketList::-webkit-scrollbar {
+  inline-size: 3px;
+}
+
+/* The rail runs a short stretch of the column, not its full height - a
+   red line the length of the page read as a border, not an instrument. */
+.column::-webkit-scrollbar-track {
+  background: transparent;
+  margin-block: 22%;
+}
+
+.docketList::-webkit-scrollbar-track {
+  background: transparent;
+  margin-block: 12%;
+}
+
+/* Present only when wanted: while the pointer is over the reading column,
+   while it is being scrolled (data-scrolling, stamped by the client), or
+   while focus is inside it. The rest of the time the rail is bare paper. */
+.column::-webkit-scrollbar-thumb,
+.docketList::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+}
+
+.column:hover::-webkit-scrollbar-thumb,
+.column:focus-within::-webkit-scrollbar-thumb,
+.column[data-scrolling]::-webkit-scrollbar-thumb,
+.column:hover .docketList::-webkit-scrollbar-thumb,
+.column:focus-within .docketList::-webkit-scrollbar-thumb,
+.column[data-scrolling] .docketList::-webkit-scrollbar-thumb {
+  background: var(--np-red);
+}
+
+.head {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+}
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--np-red-ink);
+}
+
+.kickerTick {
+  inline-size: 0.7em;
+  block-size: 0.7em;
+  background: var(--np-red);
+}
+
+.headline {
+  margin: 0;
+  font-family: var(--np-font-display);
+  font-weight: 900;
+  font-size: clamp(var(--text-3xl), 3.4vw, var(--text-5xl));
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  color: var(--np-ink);
+  text-wrap: balance;
+}
+
+.standfirst {
+  margin: 0;
+  max-inline-size: 42ch;
+  font-family: var(--np-font-body);
+  font-size: clamp(var(--text-sm), 1.2vw, var(--text-base));
+  line-height: 1.55;
+  color: var(--np-ink-soft);
+}
+
+/* The figures line: bold counts over mono labels, under one hairline -
+   the recruitment count leads it in red. */
+.figures {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(var(--space-6), 3vw, var(--space-10));
+  padding-block-start: var(--space-3);
+  border-block-start: var(--np-rule-hair) solid var(--np-paper-edge);
+}
+
+.figure {
+  display: grid;
+  justify-items: start;
+  gap: 0.15rem;
+}
+
+.figureNum {
+  margin: 0;
+  font-family: var(--np-font-display);
+  font-weight: 900;
+  font-size: clamp(var(--text-2xl), 2.4vw, var(--text-3xl));
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--np-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.figureNumRed {
+  color: var(--np-red-ink);
+}
+
+.figureLabel {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--np-ink-faint);
+}
+
+/* ---- Entrance ------------------------------------------------------------ */
+
+/* Armed after mount, seen on first view: the column and the country rise in
+   a stagger, the pins land one by one, the figures count up (in the
+   client). Without JS neither attribute exists and everything prints. */
+.column > *,
+.mapWrap {
+  transition:
+    opacity 0.6s var(--np-ease),
+    transform 0.6s var(--np-ease);
+}
+
+.section[data-armed]:not([data-seen]) .column > *,
+.section[data-armed]:not([data-seen]) .mapWrap {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+.section[data-seen] .column > :nth-child(2) { transition-delay: 80ms; }
+.section[data-seen] .column > :nth-child(3) { transition-delay: 160ms; }
+.section[data-seen] .column > :nth-child(4) { transition-delay: 240ms; }
+.section[data-seen] .column > :nth-child(5) { transition-delay: 320ms; }
+.section[data-seen] .mapWrap { transition-delay: 120ms; }
+
+.section[data-armed]:not([data-seen]) .pin {
+  opacity: 0;
+}
+
+.section[data-seen] .pin {
+  animation: pin-land 0.5s var(--np-ease) both;
+}
+
+@keyframes pin-land {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---- The docket and the list --------------------------------------------- */
+
+/* The chosen town's docket: a sheet on the desk, same furniture as the
+   locality panel. */
+.docket {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--np-paper-box);
+  border: var(--np-rule) solid var(--np-ink);
+  border-radius: var(--np-radius-card);
+  box-shadow: var(--np-shadow-float);
+}
+
+.docketTown {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-family: var(--np-font-display);
+  font-weight: 900;
+  font-size: var(--text-2xl);
+  letter-spacing: -0.02em;
+  color: var(--np-ink);
+}
+
+.docketName {
+  display: inline-block;
+  animation: map-rise var(--np-dur) var(--np-ease) both;
+}
+
+.docketCount {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--np-red-ink);
+  white-space: nowrap;
+}
+
+.docketList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  /* The full agenda, scrolled in place: the sheet keeps its size on the desk
+     and the reader leafs through it rather than the section growing. */
+  max-block-size: clamp(11rem, 30vh, 18rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.docketItem {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-block: var(--space-2);
+  font-family: var(--np-font-body);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  color: var(--np-ink-soft);
+  border-block-start: var(--np-rule-hair) solid var(--np-paper-edge);
+}
+
+.docketTitle {
+  min-inline-size: 0;
+}
+
+/* The tally beside each topic: bold, tabular, unmissable. */
+.docketBallots {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 900;
+  color: var(--np-ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.deskLink {
+  justify-self: start;
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--np-ink);
+  text-decoration: none;
+  border-block-end: var(--np-rule-hair) solid currentColor;
+  transition: color var(--np-dur-snap) var(--np-ease);
+}
+
+.deskLink:hover,
+.deskLink:focus-visible {
+  color: var(--np-red-ink);
+}
+
+/* The active towns, ranked by heat - each row a control that steers the map. */
+.townList {
+  display: grid;
+}
+
+.townRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2);
+  background: none;
+  border: 0;
+  border-block-start: var(--np-rule-hair) solid var(--np-paper-edge);
+  border-inline-start: var(--np-rule) solid transparent;
+  cursor: pointer;
+  text-align: start;
+  transition:
+    background-color var(--np-dur-snap) var(--np-ease),
+    border-color var(--np-dur-snap) var(--np-ease);
+}
+
+.townRow:hover {
+  background: var(--np-paper-box);
+}
+
+.townRow[data-active] {
+  border-inline-start-color: var(--np-red);
+  background: var(--np-paper-box);
+}
+
+.townRow:focus-visible {
+  outline: var(--np-rule) solid var(--np-red);
+  outline-offset: -2px;
+}
+
+.townName {
+  font-family: var(--np-font-body);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--np-ink);
+}
+
+.townCount {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  color: var(--np-ink-faint);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.empty {
+  margin: 0;
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  color: var(--np-ink-soft);
+}
+
+/* ---- The country --------------------------------------------------------- */
+
+.mapWrap {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  justify-items: center;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: 0;
+}
+
+.map {
+  block-size: clamp(18rem, 60svh, 44rem);
+  inline-size: auto;
+  max-inline-size: 100%;
+  aspect-ratio: 360 / 710;
+  overflow: visible;
+}
+
+.outline {
+  fill: var(--np-paper-box);
+  stroke: var(--np-ink);
+  stroke-width: 1.6;
+}
+
+.legend {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--np-font-mono);
+  font-size: var(--text-xs);
+  color: var(--np-ink-faint);
+}
+
+.legendDot {
+  inline-size: 0.6em;
+  block-size: 0.6em;
+  border-radius: var(--np-radius-pill);
+  background: var(--np-red);
+}
+
+/* ---- Pins ---------------------------------------------------------------- */
+
+.pin {
+  cursor: pointer;
+}
+
+.pinHit {
+  fill: transparent;
+  pointer-events: all;
+}
+
+.pinCore {
+  fill: var(--np-red);
+  stroke: var(--np-paper);
+  stroke-width: 1.4;
+  transition: fill var(--np-dur-snap) var(--np-ease);
+  pointer-events: none;
+}
+
+.pin:hover .pinCore {
+  fill: var(--np-red-dark, var(--np-red));
+}
+
+/* The topic count printed inside the pin - the map's own bold numbers. */
+.pinCount {
+  fill: var(--np-paper);
+  font-family: var(--np-font-mono);
+  font-size: 7.5px;
+  font-weight: 900;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* The chosen town says its name on the map: bold mono, paper halo so it
+   stays legible over the outline and neighbouring pins. */
+.pinLabel {
+  fill: var(--np-ink);
+  font-family: var(--np-font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  paint-order: stroke fill;
+  stroke: var(--np-paper);
+  stroke-width: 3.5px;
+  stroke-linejoin: round;
+  pointer-events: none;
+  user-select: none;
+  animation: map-rise var(--np-dur) var(--np-ease) both;
+}
+
+/* The halo breathes only on the chosen town: the map has one voice at a
+   time, and it is the one the docket is reading from. */
+.pinHalo {
+  fill: none;
+  stroke: var(--np-red);
+  stroke-width: 1;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pin[data-active] .pinHalo {
+  opacity: 0.7;
+  animation: map-halo 1.8s var(--np-ease) infinite;
+}
+
+.pin[data-active] .pinCore {
+  fill: var(--np-ink);
+}
+
+@keyframes map-halo {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+@keyframes map-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---- Widths -------------------------------------------------------------- */
+
+/* Two-column widths get the hard one-screen promise. The homepage's site
+   layer already sizes every `main > section` at 100svh and reserves the
+   pinned dock's height as padding-block-start (HomepageExperience.module.css),
+   so "one viewport including the navbar" is exactly block-size: 100svh here -
+   the nav sits inside the section's own top padding. The reading column
+   scrolls inside itself; the country takes the full remaining height. */
+@media (min-width: 801px) {
+  .section {
+    block-size: 100svh;
+  }
+
+  .inner {
+    block-size: 100%;
+    min-block-size: 0;
+    overflow: hidden;
+  }
+
+  .map {
+    block-size: 100%;
+    min-block-size: 0;
+    max-block-size: 46rem;
+  }
+}
+
+/* Stacked: the column dissolves so the country can sit between the head and
+   the docket - headline first, the map it introduces, then the reading. The
+   one-screen promise holds as a minimum, not a clip. */
+@media (max-width: 800px) {
+  .inner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .column {
+    display: contents;
+  }
+
+  .head {
+    order: 0;
+  }
+
+  .mapWrap {
+    order: 1;
+  }
+
+  .figures {
+    order: 2;
+  }
+
+  .docket,
+  .empty {
+    order: 4;
+  }
+
+  .townList {
+    order: 5;
+  }
+
+  .map {
+    block-size: clamp(14rem, 44svh, 26rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .column > *,
+  .mapWrap {
+    transition: none;
+  }
+
+  .section[data-armed]:not([data-seen]) .column > *,
+  .section[data-armed]:not([data-seen]) .mapWrap,
+  .section[data-armed]:not([data-seen]) .pin {
+    opacity: 1;
+    transform: none;
+  }
+
+  .section[data-seen] .pin {
+    animation: none;
+  }
+
+  .pin[data-active] .pinHalo {
+    animation: none;
+    opacity: 0.5;
+    transform: scale(1.3);
+  }
+
+  .docketName,
+  .pinLabel {
+    animation: none;
+  }
+}

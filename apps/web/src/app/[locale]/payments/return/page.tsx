@@ -1,164 +1,27 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { NewsButton } from '@/components/press';
-import {
-  decideReturnPhase,
-  classifyFinalizeResponse,
-} from '@/services/payments/createVoteCheckout';
 import styles from './page.module.css';
 
-interface PendingVote {
-  title: string;
-  description: string;
-  options: string[];
-  duration: number;
-  paymentId?: string;
-  orderId?: string;
-}
-
-type Phase = 'finalising' | 'created' | 'processing' | 'received' | 'failed' | 'error';
-
-const SLEEP = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
 /**
- * Green Invoice returns the buyer here after checkout. For a vote-creation payment we
- * finalise the vote (the draft was stashed in sessionStorage before redirect);
- * the server re-verifies the payment, so a stale draft can never publish for
- * free. Any other payment that lands here gets a plain acknowledgement.
+ * Green Invoice returns the buyer here after checkout.
+ *
+ * This page is a plain acknowledgement and knows nothing about proposals.
+ * Raising a proposal is free and no longer passes through a checkout at all
+ * (issue #75): the ₪50 creation fee is an obligation created when a space admin
+ * approves, so there is no draft to finalise on the way back, no state to hold
+ * and no effect to run. What still lands here is a participation purchase.
+ *
+ * Known gap, deliberately left alone: Green Invoice appends `?status=failed` to
+ * its failure URL and this page has never read it, so a declined participation
+ * payment sees the acknowledgement below. Fixing that is a real improvement to
+ * the participation flow and belongs with it, not here.
  */
 export default function PaymentReturnPage() {
   const router = useRouter();
-  const [phase, setPhase] = useState<Phase>('finalising');
-  const [voteId, setVoteId] = useState<string | null>(null);
-  const ran = useRef(false);
-
-  useEffect(() => {
-    if (ran.current) return;
-    ran.current = true;
-
-    const raw = sessionStorage.getItem('pendingVote');
-
-    // Green Invoice's failureUrl sends a declined buyer back with
-    // `?status=failed`. Read it off the location rather than with the Next
-    // search-params hook: this client page has no Suspense boundary, and that
-    // hook would force a client-side-rendering bailout at build time.
-    const statusParam = new URLSearchParams(window.location.search).get('status');
-    const decided = decideReturnPhase({ statusParam, hasDraft: Boolean(raw) });
-
-    if (decided === 'failed') {
-      // The payment did not go through. Drop the draft and stop here: the
-      // finalisation POST must never run on this path, and the resident must
-      // never be told their vote is on its way.
-      sessionStorage.removeItem('pendingVote');
-      setPhase('failed');
-      return;
-    }
-
-    if (decided === 'received' || !raw) {
-      // Not a vote-creation return - just acknowledge the payment.
-      setPhase('received');
-      return;
-    }
-
-    let draft: PendingVote;
-    try {
-      draft = JSON.parse(raw) as PendingVote;
-    } catch {
-      setPhase('error');
-      return;
-    }
-
-    const now = new Date();
-    const end = new Date(now.getTime() + draft.duration * 24 * 60 * 60 * 1000);
-    const payload = {
-      title: draft.title,
-      description: draft.description,
-      options: draft.options.map((label) => ({ label })),
-      startDate: now.toISOString(),
-      endDate: end.toISOString(),
-      paymentTxId: draft.paymentId,
-    };
-
-    (async () => {
-      // The payment webhook may land a beat after the buyer returns, so a 402
-      // (payment-not-yet-completed) is retried a few times before giving up.
-      for (let attempt = 0; attempt < 4; attempt++) {
-        try {
-          const res = await fetch('/api/votes', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-          const reaction = classifyFinalizeResponse(res.status);
-          if (reaction === 'created') {
-            const data = await res.json();
-            sessionStorage.removeItem('pendingVote');
-            setVoteId(data.vote?.id ?? null);
-            setPhase('created');
-            return;
-          }
-          if (reaction === 'retry' && attempt < 3) {
-            await SLEEP(2000);
-            continue;
-          }
-          // A retry with no attempts left = payment still settling; 'processing'
-          // = payment already consumed, which most often means a prior attempt
-          // already created the vote (e.g. a network blip after the server
-          // committed). Neither is a hard error - send the user to their
-          // dashboard to find the vote.
-          setPhase(reaction === 'error' ? 'error' : 'processing');
-          return;
-        } catch {
-          if (attempt < 3) {
-            await SLEEP(2000);
-            continue;
-          }
-          setPhase('error');
-          return;
-        }
-      }
-    })();
-  }, []);
-
-  const COPY: Record<Phase, { kicker: string; title: React.ReactNode; body: string }> = {
-    finalising: {
-      kicker: 'מעבדים · PROCESSING',
-      title: <>רושמים את ההצבעה<span className={styles.red}>…</span></>,
-      body: 'התשלום התקבל. אנחנו מפרסמים את הנושא שלכם, רגע אחד.',
-    },
-    created: {
-      kicker: 'פורסם · PUBLISHED',
-      title: <>ההצבעה <span className={styles.red}>עלתה לאוויר.</span></>,
-      body: 'הנושא שלכם פתוח עכשיו לתושבי הרשות. שתפו אותו כדי לאסוף קולות.',
-    },
-    processing: {
-      kicker: 'כמעט שם · PENDING',
-      title: <>מאמתים את <span className={styles.red}>התשלום.</span></>,
-      body: 'התשלום עדיין נחתם. ההצבעה תפורסם תוך רגעים. אפשר לבדוק בלוח שלי.',
-    },
-    received: {
-      kicker: 'התקבל · RECEIVED',
-      title: <>התשלום <span className={styles.red}>התקבל.</span></>,
-      body: 'תודה. אפשר להמשיך מהלוח האישי.',
-    },
-    failed: {
-      kicker: 'לא בוצע · DECLINED',
-      title: <>התשלום <span className={styles.red}>לא עבר.</span></>,
-      body: 'התשלום לא הושלם, וההצבעה לא נוצרה. אין חיוב. אפשר לנסות שוב, ואם חויבתם בטעות פנו אלינו ונסדר.',
-    },
-    error: {
-      kicker: 'תקלה · ERROR',
-      title: <>משהו <span className={styles.red}>השתבש.</span></>,
-      body: 'לא הצלחנו לסיים את הרישום. אם חויבתם, פנו אלינו ונסדר. לא תחויבו פעמיים.',
-    },
-  };
-
-  const c = COPY[phase];
-  const busy = phase === 'finalising';
 
   return (
     <>
@@ -167,38 +30,17 @@ export default function PaymentReturnPage() {
         <div className={styles.inner}>
           <span className={styles.kicker}>
             <span aria-hidden className={styles.kickerTick} />
-            {c.kicker}
+            התקבל · RECEIVED
           </span>
-          <h1 className={styles.headline}>{c.title}</h1>
-          <p className={styles.standfirst}>{c.body}</p>
-
-          {busy && <div className={styles.bar} aria-hidden />}
+          <h1 className={styles.headline}>
+            התשלום <span className={styles.red}>התקבל.</span>
+          </h1>
+          <p className={styles.standfirst}>תודה. אפשר להמשיך מהלוח האישי.</p>
 
           <div className={styles.actions}>
-            {phase === 'created' && (
-              <NewsButton
-                variant="red"
-                size="lg"
-                onClick={() => router.push(voteId ? `/votes/${voteId}` : '/votes')}
-              >
-                {voteId ? 'לצפייה בהצבעה' : 'לכל ההצבעות'}
-              </NewsButton>
-            )}
-            {(phase === 'processing' || phase === 'received') && (
-              <NewsButton variant="red" size="lg" onClick={() => router.push('/dashboard')}>
-                ללוח שלי
-              </NewsButton>
-            )}
-            {(phase === 'error' || phase === 'failed') && (
-              <>
-                <NewsButton variant="ink" size="md" onClick={() => router.push('/votes/create')}>
-                  לניסיון נוסף
-                </NewsButton>
-                <NewsButton variant="red" size="md" onClick={() => router.push('/support')}>
-                  לפנייה לתמיכה
-                </NewsButton>
-              </>
-            )}
+            <NewsButton variant="red" size="lg" onClick={() => router.push('/dashboard')}>
+              ללוח שלי
+            </NewsButton>
           </div>
         </div>
       </main>

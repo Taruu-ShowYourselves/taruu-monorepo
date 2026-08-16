@@ -54,6 +54,71 @@
   visibility: hidden;
 }
 
+/* Thesis-only intro (the homepage - see IntroStory).
+ *
+ * The 480svh runway above buys scrub room for three acts handing off to each
+ * other. With one act there is nothing to hand off: the scroll plays the
+ * ledger reveal and gets out of the way, so the runway is cut to match.
+ * Leaving it at 480svh printed four screens of a motionless wordmark before
+ * the desks came up.
+ *
+ * The scene also has to be visible before GSAP loads - it is the only one on
+ * stage, and the full story's first `gsap.set` (which reveals the question
+ * and leaves this hidden) never runs here. */
+/* 200svh is a floor, not a taste: HomepageExperience docks the site layer with
+   `margin-block-start: -100svh`, so the dock's top sits at `height - 100svh`.
+   Below 200svh that lands above the fold, the stage-handoff scrub is already
+   part-played at scroll 0, and the thesis opens with its headline dragged off
+   the top of the screen. The 30svh over the floor is the beat the wordmark
+   holds still before the page starts moving under it. */
+.cinematic.thesisOnly {
+  /* ~85svh of runway per beat: enough scroll for a claim to arrive, hold, and
+     clear before the next one, without the page feeling stuck on any of them.
+     Five beats, so the floor described above is comfortably cleared. */
+  height: 430svh;
+}
+
+/* The opening holds one beat and hands straight over to the desks, so this is
+   the shortest runway that still works rather than a stage for an argument.
+   The floor is set by the handoff, not by the copy: HomepageExperience docks
+   the site layer at `height - 100svh` and scrubs it over the viewport before
+   that, so anything under 300svh starts sliding the masthead up over a
+   wordmark the reader has not finished reading.
+
+   The opening is a splash now, not a scrub: everything is on stage within a
+   second of load, so the runway only has to hold the hero fully visible at
+   rest. 200svh is exactly that - the site layer's -100svh overlap begins the
+   moment the reader scrolls, and not a pixel before. */
+.cinematic.openingRunway {
+  height: 200svh;
+}
+
+/* Four beats rather than five, and it opens mid-page with the reader already
+   moving - so it needs its claims' worth of runway and no more. */
+.cinematic.beatsRunway {
+  height: 340svh;
+}
+
+.thesisOnly .thesisScene {
+  visibility: visible;
+}
+
+/* The opening's field is ground, not subject: the wordmark and the offer are
+   what the screen is for, and the survey stands behind them - far enough back
+   that no reading competes with the line, close enough that the claim about a
+   live country has something under it. */
+.openingRunway .thesisLedger {
+  opacity: 0.62;
+}
+
+.openingRunway .ledgerMetric {
+  filter: blur(calc((1 - var(--depth, 0.5)) * 2px + 0.4px));
+}
+
+.openingRunway .ledgerHeader {
+  display: none;
+}
+
 .questionScene {
   overflow: hidden;
   padding: 0;
@@ -112,25 +177,54 @@
   filter: saturate(0.86);
 }
 
+/* Physical top-left in both directions: the switch marks the edition's
+   language, so it stays put when the document flips to LTR. */
+.localeSwitch {
+  position: absolute;
+  z-index: 7;
+  top: clamp(1.4rem, 3.5vh, 2.6rem);
+  left: clamp(1.25rem, 4.5vw, 5rem);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding-block-end: 0.24rem;
+  border-block-end: 1.5px solid var(--intro-red);
+  font-family: var(--np-font-mono);
+  font-size: clamp(0.62rem, 0.78vw, 0.76rem);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--intro-ink);
+  transition:
+    color 220ms var(--np-ease),
+    border-color 220ms var(--np-ease);
+}
+
+.localeSwitch:hover,
+.localeSwitch:focus-visible {
+  color: var(--intro-red);
+  border-color: var(--intro-ink);
+}
+
+.localeSwitch:focus-visible {
+  outline: 2px solid rgba(224, 48, 30, 0.28);
+  outline-offset: 4px;
+}
+
 .introBrand {
   position: absolute;
   inset-inline-start: clamp(1.5rem, 4.5vw, 5rem);
   inset-block-end: clamp(3.4rem, 6vh, 5.4rem);
   z-index: 5;
-  display: grid;
-  grid-template-areas:
-    "logo links"
-    "socials links";
-  grid-template-columns: auto auto;
+  display: flex;
   direction: rtl;
   align-items: center;
-  column-gap: clamp(0.9rem, 1.5vw, 1.5rem);
-  row-gap: 0.42rem;
+  gap: clamp(0.9rem, 1.5vw, 1.5rem);
   color: var(--intro-ink);
 }
 
 .introLogo {
-  grid-area: logo;
   font-family: var(--np-font-display);
   font-size: clamp(2rem, 3.2vw, 4rem);
   font-weight: 900;
@@ -143,12 +237,10 @@
 }
 
 .introSocials {
-  grid-area: socials;
   display: flex;
   direction: ltr;
   align-items: center;
   justify-content: center;
-  justify-self: center;
   gap: 0.42rem;
 }
 
@@ -195,63 +287,32 @@
   stroke: none;
 }
 
-.introQuickNav {
-  grid-area: links;
-  display: flex;
-  align-items: center;
-  gap: clamp(1.1rem, 2vw, 2.2rem);
-  direction: rtl;
-  inline-size: auto;
-}
-
-.introQuickNav a {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding-block: 0.35rem;
-  font-family: var(--np-font-display);
-  font-size: clamp(0.66rem, 0.78vw, 0.82rem);
-  font-weight: 800;
-  color: var(--intro-ink);
-  text-align: start;
-  text-decoration: none;
-  white-space: nowrap;
-  transition:
-    color 200ms var(--np-ease),
-    transform 200ms var(--np-ease);
-}
-
-.introQuickNav a:hover,
-.introQuickNav a:focus-visible {
-  color: var(--intro-red);
-  transform: translateY(-2px);
-  outline: none;
-}
-
-.introQuickNav span {
-  font-family: var(--np-font-mono);
-  font-size: 0.48rem;
-  color: var(--intro-red);
-}
-
-.introQuickNav i {
-  font-family: var(--np-font-mono);
-  font-size: 0.62rem;
-  font-style: normal;
-  color: var(--intro-red);
-}
-
+/* Two columns on one row: the headline + its action row sit on the right, the
+   live ledger sits on the left and centres against them. The closing sentence
+   is the only absolute piece - it has to keep its bottom-left corner so the
+   scroll split can throw the two halves apart. */
 .questionCopy {
   position: absolute;
   z-index: 3;
   inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  align-content: start;
+  align-items: center;
+  column-gap: clamp(1.25rem, 3vw, 3.5rem);
+  padding: clamp(5rem, 13svh, 10rem) 4.5% 0;
   direction: rtl;
   will-change: transform, opacity, filter;
 }
 
+.questionLead {
+  display: grid;
+  justify-items: start;
+  gap: clamp(1.4rem, 3.2vh, 2.6rem);
+  min-inline-size: 0;
+}
+
 .question {
-  position: absolute;
-  inset: 0;
   margin: 0;
   font-family: var(--np-font-display);
   font-size: clamp(3.2rem, 5.35vw, 6.5rem);
@@ -262,9 +323,8 @@
 }
 
 .questionSentence {
-  position: absolute;
   display: block;
-  inline-size: min(58vw, 64rem);
+  inline-size: 100%;
   text-align: start;
   text-wrap: balance;
   text-shadow:
@@ -275,13 +335,16 @@
 }
 
 .questionTopRight {
-  inset-block-start: 12%;
-  right: 5.5%;
+  max-inline-size: 64rem;
 }
 
+/* Absolute so the scroll split can still throw it out to the bottom-left while
+   the lead block keeps its normal flow. Insets resolve against .questionCopy's
+   padding box, so 0 lines it up with the ledger column below it. */
 .questionBottomLeft {
+  position: absolute;
   right: auto;
-  left: 4.5%;
+  left: 0;
   inset-block-end: 14%;
   inline-size: min(42vw, 47rem);
 }
@@ -321,14 +384,11 @@
 }
 
 .questionActions {
-  position: absolute;
+  position: relative;
   z-index: 6;
-  right: 5.5%;
-  left: auto;
-  inset-block-start: 39%;
-  inset-block-end: auto;
   display: flex;
   direction: rtl;
+  flex-wrap: wrap;
   align-items: center;
   gap: clamp(0.9rem, 1.6vw, 1.5rem);
   will-change: transform;
@@ -383,6 +443,41 @@
 .questionSecondary:focus-visible {
   gap: 0.8rem;
   color: var(--intro-ink);
+}
+
+.questionStats {
+  z-index: 4;
+  display: flex;
+  gap: clamp(1rem, 2.5vw, 2.5rem);
+  margin: 0;
+  direction: rtl;
+}
+
+.questionStats div {
+  display: grid;
+  flex: 1 1 0;
+  gap: 0.2rem;
+  min-inline-size: 0;
+  max-inline-size: 17rem;
+  padding-inline-start: clamp(1rem, 1.6vw, 1.6rem);
+  border-inline-start: 1px solid rgba(25, 24, 22, 0.24);
+}
+
+.questionStats dt {
+  font-family: var(--np-font-body);
+  font-size: clamp(0.7rem, 0.86vw, 0.95rem);
+  font-weight: 750;
+  line-height: 1.28;
+  color: var(--intro-soft);
+}
+
+.questionStats dd {
+  margin: 0;
+  font-family: var(--np-font-display);
+  font-size: clamp(1.9rem, 3.1vw, 3.2rem);
+  font-weight: 900;
+  line-height: 1;
+  color: var(--intro-red);
 }
 
 .thesisLedger {
@@ -466,10 +561,15 @@
   box-shadow: 0 0 0 3px rgba(224, 48, 30, 0.14);
 }
 
+/* The marks are placed as percentages of this box, so the box - not each of
+   the eight marks - is what keeps them clear of the pinned nav at the top and
+   the runway's own footer at the bottom. Measured against the full frame, the
+   two highest marks sat under the dock and the drift carried one of them off
+   the screen entirely by the last beat. */
 .thesisMetricMap {
   position: absolute;
   z-index: 2;
-  inset-block: 0;
+  inset-block: clamp(5rem, 11vh, 7.5rem) clamp(2.5rem, 7vh, 5rem);
   right: auto;
   left: 50%;
   inline-size: min(calc(100% - 4rem), 86rem);
@@ -600,6 +700,166 @@
     box-shadow: 0 0 0 0.75rem rgba(224, 48, 30, 0);
   }
 }
+
+/* ======================================================================
+   The opening beat's field: every figure drawn by its own instrument (see
+   ledgerMarks.tsx), over four motif plates - one per part of the argument
+   the beats make. Both layers ride the existing depth parallax.
+   ====================================================================== */
+
+.thesisLedgerMotif .ledgerMetric dd {
+  font-size: clamp(1.1rem, 1.75vw, 1.9rem);
+}
+
+/* The instrument, between the label and the reading. Sized so it reads as an
+   instrument face rather than an icon, and inked at the weight of the number
+   it explains. */
+.ledgerMarkGlyph {
+  display: block;
+  inline-size: min(9.5vw, 6.4rem);
+  block-size: auto;
+  margin-block-end: 0.42rem;
+  color: color-mix(in srgb, var(--intro-ink) 72%, transparent);
+  overflow: visible;
+}
+
+/* An uncounted figure: the same instrument, empty and quieter. */
+.ledgerMarkGlyph[data-empty] {
+  color: color-mix(in srgb, var(--intro-soft) 55%, transparent);
+}
+
+/* ---- The instruments keep measuring ------------------------------------
+   The count-up lands the reading; after it, each instrument stays faintly
+   alive - bars breathe, dots and hatches shimmer - so the field reads as a
+   survey still running rather than a chart that was printed once. All of it
+   is opacity/scale on the SVG's own children; nothing touches the drawn
+   geometry, so an empty instrument idles too, just quieter. */
+.ledgerMarkGlyph[data-mark='bars'] rect {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: ledger-bar-breathe 2.9s ease-in-out infinite alternate;
+}
+
+.ledgerMarkGlyph[data-mark='bars'] rect:nth-child(2n) { animation-delay: 0.45s; }
+.ledgerMarkGlyph[data-mark='bars'] rect:nth-child(3n) { animation-delay: 0.9s; }
+.ledgerMarkGlyph[data-mark='bars'] rect:nth-child(5n) { animation-delay: 1.4s; }
+
+@keyframes ledger-bar-breathe {
+  from { transform: scaleY(1); }
+  to { transform: scaleY(1.14); }
+}
+
+.ledgerMarkGlyph[data-mark='dots'] circle,
+.ledgerMarkGlyph[data-mark='hatch'] line,
+.ledgerMarkGlyph[data-mark='tally'] line {
+  animation: ledger-shimmer 3.4s ease-in-out infinite;
+}
+
+.ledgerMarkGlyph[data-mark='dots'] circle:nth-child(2n),
+.ledgerMarkGlyph[data-mark='hatch'] line:nth-child(2n),
+.ledgerMarkGlyph[data-mark='tally'] line:nth-child(2n) { animation-delay: 0.7s; }
+
+.ledgerMarkGlyph[data-mark='dots'] circle:nth-child(3n),
+.ledgerMarkGlyph[data-mark='hatch'] line:nth-child(3n) { animation-delay: 1.5s; }
+
+.ledgerMarkGlyph[data-mark='dots'] circle:nth-child(5n),
+.ledgerMarkGlyph[data-mark='hatch'] line:nth-child(5n) { animation-delay: 2.2s; }
+
+@keyframes ledger-shimmer {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+/* The ring and the trace pulse as wholes - their strokes carry the reading,
+   and dimming individual segments would redraw the figure. */
+.ledgerMarkGlyph[data-mark='ring'],
+.ledgerMarkGlyph[data-mark='trace'] {
+  animation: ledger-gauge-pulse 3.1s ease-in-out infinite;
+}
+
+@keyframes ledger-gauge-pulse {
+  0%, 100% { opacity: 1; }
+  55% { opacity: 0.68; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ledgerMarkGlyph[data-mark='bars'] rect,
+  .ledgerMarkGlyph[data-mark='dots'] circle,
+  .ledgerMarkGlyph[data-mark='hatch'] line,
+  .ledgerMarkGlyph[data-mark='tally'] line,
+  .ledgerMarkGlyph[data-mark='ring'],
+  .ledgerMarkGlyph[data-mark='trace'] {
+    animation: none;
+  }
+}
+
+/* The plates. Each is a flat pattern rather than a picture: the field is a
+   survey, and a photograph in it would be the only lit thing on the page. */
+.ledgerMotifs {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+}
+
+.motifPlate {
+  position: absolute;
+  inset-block-start: var(--motif-y);
+  inset-inline-start: var(--motif-x);
+  inline-size: clamp(7rem, 13vw, 11.5rem);
+  block-size: clamp(5rem, 9vw, 8rem);
+  /* Behind the instruments, never level with them: the plates say what part of
+     the argument the field is standing in, and a plate that competes with a
+     figure has stopped being a backdrop. */
+  opacity: calc(0.05 + var(--depth) * 0.16);
+  filter: blur(calc((1 - var(--depth)) * 0.9px));
+  will-change: transform;
+}
+
+/* The map the topics are read off: plates of a survey sheet, cut unevenly. */
+.motifPlate[data-motif="map"] {
+  background-image:
+    linear-gradient(var(--intro-ink) 1.5px, transparent 1.5px),
+    linear-gradient(90deg, var(--intro-ink) 1.5px, transparent 1.5px);
+  background-size: 2.1rem 2.1rem;
+  clip-path: polygon(0 12%, 62% 0, 100% 24%, 88% 78%, 34% 100%, 6% 66%);
+}
+
+/* The ballot it turns into: marks made by hand, in no particular order. */
+.motifPlate[data-motif="ballot"] {
+  background-image:
+    linear-gradient(45deg, transparent 46%, var(--intro-ink) 46%, var(--intro-ink) 54%, transparent 54%),
+    linear-gradient(-45deg, transparent 46%, var(--intro-ink) 46%, var(--intro-ink) 54%, transparent 54%);
+  background-size: 2.6rem 2.6rem;
+  background-position: 0 0, 0 0;
+  mask-image: radial-gradient(ellipse at 40% 40%, #000 30%, transparent 74%);
+}
+
+/* The statute the mandate is enforced through: set lines of a printed act. */
+.motifPlate[data-motif="statute"] {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--intro-ink) 0 2px,
+    transparent 2px 0.72rem
+  );
+  mask-image: linear-gradient(
+    to left,
+    #000 0 42%,
+    rgba(0, 0, 0, 0.45) 42% 70%,
+    transparent 92%
+  );
+}
+
+/* The ledger the score accrues in: ruled columns. */
+.motifPlate[data-motif="ledger"] {
+  background-image:
+    repeating-linear-gradient(to right, var(--intro-ink) 0 2px, transparent 2px 3.1rem),
+    linear-gradient(var(--intro-ink) 2px, transparent 2px);
+  background-size: auto, 100% 100%;
+  background-repeat: repeat, no-repeat;
+}
+
+
 
 @keyframes question-highlight {
   from {
@@ -1521,67 +1781,220 @@
   text-align: center;
 }
 
+/* Only the thesis-only intro has a scrub free to hand the beats off one at a
+   time (see the solo timeline). The full story spends its runway on three acts
+   and arrives here at the end, so there the beats simply stack into a column
+   and are all present at once. */
 .thesisCopy {
   position: relative;
   z-index: 4;
   display: grid;
   justify-items: center;
-  inline-size: min(92vw, 65rem);
-  transform: translateY(clamp(-7rem, -10svh, -4rem));
+  row-gap: clamp(1.1rem, 2.4vw, 2rem);
+  inline-size: min(92vw, 44rem);
+  /* One fluid step, and every line in the scene is a fixed ratio of it.
+     Each size used to carry its own clamp on its own vw slope (6vw wordmark,
+     3vw ask, 1.7vw lede), so the hierarchy re-ranked itself as the window
+     moved - at some widths the ask nearly met the wordmark and the lede fell
+     off the bottom of the scale. Sized off one step in the page's own 1.2
+     ratio, the intervals hold at every width. */
+  --beat-step: clamp(1.05rem, 0.85rem + 0.95vw, 1.9rem);
+  --beat-line: calc(var(--beat-step) * 1.728); /* step ^ 3 */
+  /* ^5, not ^6: at six steps the mark was three times the line it exists to
+     say, and the scene read as a logo with two captions under it rather than
+     as one sentence. */
+  --beat-mark: calc(var(--beat-step) * 2.488);
+  transform: translateY(clamp(-5rem, -7svh, -2rem));
   will-change: transform, opacity;
 }
 
-.thesisKicker {
-  font-family: var(--np-font-mono);
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
+/* The wordmark and what it does are one unit; the offer is the answer to
+   them, so it stands off on a gap of its own rather than on a third equal
+   interval. Both intervals are the type step, so the rhythm scales with the
+   type instead of drifting against it. */
+.thesisBeat {
+  display: grid;
+  justify-items: center;
+  row-gap: calc(var(--beat-step) * 0.55);
+  inline-size: 100%;
+  will-change: transform, opacity;
+}
+
+/* One mark, every beat on it: the grid areas overlap so a beat leaving and a
+   beat arriving occupy the same spot, and the scene height never depends on
+   how many beats there are. */
+.thesisOnly .thesisCopy {
+  grid-template-areas: "beat";
+  place-items: center;
+  row-gap: 0;
+}
+
+.thesisOnly .thesisBeat {
+  grid-area: beat;
+}
+
+/* The copy is the message now, and it stands where the metric field used to
+   have the stage to itself - the marks are surveyed into fixed slots that a
+   46rem column of prose runs straight through, and behind the legitimacy beat
+   it is a live carousel rather than a scatter.
+
+   So the column carries its own plate: a rectangle of paper that blurs
+   whatever is behind it, feathered on all four edges so it never cuts the
+   field on a hard line. The panel is what makes the type legible, which lets
+   the field itself stay readable as a field instead of being washed out. */
+.thesisCopy::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: clamp(-3.5rem, -5vw, -2rem) clamp(-5rem, -7vw, -2.5rem);
+  background: rgb(from var(--np-paper) r g b / 0.74);
+  backdrop-filter: blur(14px) saturate(1.05);
+  -webkit-backdrop-filter: blur(14px) saturate(1.05);
+  /* Two axes intersected: a rectangle whose edges dissolve rather than end.
+     The mask carries the backdrop blur with it, so the blur fades out at the
+     same rate the paper does. */
+  mask-image:
+    linear-gradient(to right, transparent 0%, #000 13%, #000 87%, transparent 100%),
+    linear-gradient(to bottom, transparent 0%, #000 15%, #000 85%, transparent 100%);
+  mask-composite: intersect;
+  -webkit-mask-composite: source-in;
+}
+
+/* Opening beat: the wordmark, at the scale it earned in the full story.
+   Hebrew display type carries nikud below the baseline - at 0.92 the vowel
+   marks under תַּרְאוּ ran into the line under it, and -0.05em closed the
+   letters on each other at the sizes this reaches. */
+.thesisWordmark {
+  margin: 0;
+  font-family: var(--np-font-display);
+  font-size: var(--beat-mark);
+  font-weight: 800;
+  /* The nikud hang below the baseline and are part of the mark, so the line
+     box has to carry them - at 1.02 they sat in the lede's gap. */
+  line-height: 1.18;
+  letter-spacing: -0.035em;
+}
+
+.thesisWordmark span {
   color: var(--intro-red);
 }
 
-.thesisTitle {
-  max-inline-size: 10.5ch;
-  margin: 0.85rem auto 1.45rem;
-  font-family: var(--np-font-display);
-  font-size: clamp(3.1rem, 5.2vw, 6.2rem);
+/* Emphasis inside copy: the paper's red, at the weight the line already has,
+   so it stresses a phrase without turning it into a second heading. */
+.stress {
+  font-weight: inherit;
+  color: var(--intro-red);
+}
+
+.thesisLede {
+  margin: 0;
+  /* Wide enough that the sentence sets in two lines rather than three short
+     ones stacked under a mark four times its size. */
+  max-inline-size: 36ch;
+  font-family: var(--np-font-body);
+  font-size: var(--beat-step);
+  line-height: 1.5;
+  text-align: center;
+  text-wrap: balance;
+  color: var(--intro-soft);
+}
+
+/* The offer itself, in the brand's own imperative. Two lines by construction:
+   a red mono lead-in, the paper's own kicker idiom, and the sentence under it
+   at beat scale - so the break falls where the sense does instead of wherever
+   the measure ran out. */
+.thesisAsk {
+  /* The unit above it is brand + explanation; this is the answer to both. */
+  margin: calc(var(--beat-step) * 0.9) 0 0;
+  display: grid;
+  justify-items: center;
+  row-gap: calc(var(--beat-step) * 0.4);
+  text-align: center;
+}
+
+.thesisAskLead {
+  font-family: var(--np-font-mono);
+  font-size: calc(var(--beat-step) * 0.72);
   font-weight: 800;
-  line-height: 0.92;
-  letter-spacing: -0.05em;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--intro-red);
+}
+
+.thesisAskQuote {
+  /* The measure has to sit on the sized element: `ch` resolves against the
+     element's own font-size, so on the wrapper (inherited 16px) it was a
+     190px column and the sentence broke between its own quote marks. */
+  max-inline-size: 22ch;
+  font-family: var(--np-font-display);
+  font-size: var(--beat-line);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+  color: var(--intro-ink);
+}
+
+/* The splash's door. The beat grid's row-gap spaces the copy lines against
+   each other; the button is an instrument, not a line, and stands half a step
+   further off so the standfirst finishes before the ask begins. */
+.openingCta {
+  margin-block-start: calc(var(--beat-step) * 0.5);
+}
+
+/* The opening story's purpose line, at beat scale under the wordmark. It is
+   the homepage's h1: heading margins reset so the beat grid's own row-gap
+   spaces it like every other line in the column. */
+.openingHeadline {
+  margin: 0;
+  max-inline-size: 24ch;
+  font-family: var(--np-font-display);
+  font-size: var(--beat-line);
+  font-weight: 800;
+  line-height: 1.18;
+  letter-spacing: -0.03em;
+  text-align: center;
+  text-wrap: balance;
+  color: var(--intro-ink);
+}
+
+/* Each following beat is one sentence of the argument, at a size that holds a
+   full clause without turning into a paragraph. */
+.thesisBeatLine {
+  margin: 0;
+  max-inline-size: 22ch;
+  font-family: var(--np-font-display);
+  font-size: var(--beat-line);
+  font-weight: 800;
+  line-height: 1.18;
+  letter-spacing: -0.03em;
   text-align: center;
   text-wrap: balance;
 }
 
-.thesisTitle span,
-.thesisTitle em {
-  display: block;
-}
-
-.thesisTitle em {
-  font-style: normal;
-  color: var(--intro-red);
-}
-
-.thesisRule {
-  display: block;
-  inline-size: min(100%, 50rem);
-  block-size: 1px;
-  background: var(--intro-ink);
-  transform: scaleX(0);
-  transform-origin: center;
-}
-
-.thesisLede {
-  max-inline-size: 45rem;
-  margin: 1.35rem auto 0;
+/* The condition the claim holds under, at reading scale: the claim is what
+   the screen is for, and a clause set at the same weight turned the beat
+   into a paragraph nobody reads at a glance. */
+.thesisBeatNote {
+  margin: calc(var(--beat-step) * 0.5) 0 0;
+  max-inline-size: 44ch;
   font-family: var(--np-font-body);
-  font-size: clamp(1.05rem, 1.75vw, 1.45rem);
+  font-size: var(--beat-step);
   line-height: 1.5;
   text-align: center;
+  text-wrap: pretty;
   color: var(--intro-soft);
 }
 
-/* Below desktop, the identity becomes a compact product dock. It stays out of
-   the headline's reading path while keeping the primary destinations present. */
+/* Short laptops: the beat is bounded by height, not width. One step down and
+   the whole scene follows it, in ratio. */
+@media (min-width: 1101px) and (max-height: 820px) {
+  .thesisCopy {
+    --beat-step: clamp(0.98rem, 0.86rem + 0.42vw, 1.22rem);
+  }
+}
+
+/* Below desktop, the identity becomes a compact dock. */
 @media (max-width: 1100px) {
   .introBrand {
     z-index: 8;
@@ -1591,14 +2004,9 @@
     inset-block-end: 0;
     inline-size: 100vw;
     max-inline-size: none;
-    display: grid;
-    grid-template-areas:
-      "logo links"
-      "socials links";
-    grid-template-columns: auto minmax(0, 1fr);
+    display: flex;
     align-items: center;
-    column-gap: clamp(0.8rem, 2.2vw, 1.6rem);
-    row-gap: 0;
+    gap: clamp(0.8rem, 2.2vw, 1.6rem);
     padding: 0.7rem clamp(1rem, 3vw, 2rem);
     border-block-start: 1px solid rgba(25, 24, 22, 0.28);
     background: color-mix(in srgb, var(--intro-white) 96%, transparent);
@@ -1608,7 +2016,6 @@
   }
 
   .introLogo {
-    grid-area: logo;
     position: relative;
     padding-inline-end: clamp(0.8rem, 2vw, 1.35rem);
     border-inline-end: 1px solid rgba(25, 24, 22, 0.22);
@@ -1616,8 +2023,6 @@
   }
 
   .introSocials {
-    grid-area: socials;
-    justify-self: center;
   }
 
   .introSocials a {
@@ -1625,42 +2030,6 @@
     block-size: 1.25rem;
   }
 
-  .introQuickNav {
-    grid-area: links;
-    display: flex;
-    justify-content: end;
-    inline-size: 100%;
-    gap: clamp(1rem, 2.8vw, 2.4rem);
-    margin: 0;
-    padding: 0;
-  }
-
-  .introQuickNav a {
-    position: relative;
-    min-inline-size: 0;
-    gap: 0;
-    padding-block: 0.65rem;
-    font-size: clamp(0.66rem, 1.35vw, 0.82rem);
-    text-align: center;
-  }
-
-  .introQuickNav a:first-child {
-    color: var(--intro-red);
-  }
-
-  .introQuickNav a:first-child::after {
-    content: "";
-    position: absolute;
-    inset-inline: 0;
-    inset-block-end: 0;
-    block-size: 2px;
-    background: var(--intro-red);
-  }
-
-  .introQuickNav span,
-  .introQuickNav i {
-    display: none;
-  }
 }
 
 @media (max-width: 800px) {
@@ -1677,63 +2046,24 @@
     inset-inline: auto;
     inset-inline-start: calc(100% - 100vw);
     inset-block-end: 0;
-    display: grid;
-    grid-template-areas:
-      "logo links"
-      "socials links";
-    grid-template-columns: auto minmax(0, 1fr);
-    column-gap: 0.65rem;
-    row-gap: 0;
+    display: flex;
+    gap: 0.65rem;
     box-sizing: border-box;
     inline-size: 100vw;
     padding: 0.55rem 0 0.38rem;
   }
 
   .introLogo {
-    grid-area: logo;
     margin-inline-start: 1rem;
-    padding-inline-end: 0.8rem;
     font-size: 1.85rem;
   }
 
   .introSocials {
-    grid-area: socials;
-    justify-self: center;
   }
 
   .introSocials a {
     inline-size: 1.1rem;
     block-size: 1.1rem;
-  }
-
-  .introQuickNav {
-    grid-area: links;
-    display: flex;
-    justify-content: stretch;
-    inline-size: 100%;
-    gap: 0.25rem;
-    align-self: stretch;
-    margin-block-start: 0;
-    padding: 0.12rem 0.75rem;
-    border-block-start: 0;
-  }
-
-  .introQuickNav a {
-    flex: 1 1 0;
-    min-inline-size: 0;
-    gap: 0;
-    padding-block: 0.35rem;
-    font-size: clamp(0.61rem, 2.8vw, 0.7rem);
-    text-align: center;
-  }
-
-  .introQuickNav a:first-child::after {
-    inset-block-end: -0.14rem;
-  }
-
-  .introQuickNav span,
-  .introQuickNav i {
-    display: none;
   }
 
   .questionScene {
@@ -1760,25 +2090,30 @@
     block-size: 90%;
   }
 
-  .questionSentence {
-    inline-size: calc(100% - 2.5rem);
+  /* One column: headline, actions, then the ledger under them. */
+  .questionCopy {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    row-gap: clamp(1.5rem, 4svh, 2.4rem);
+    padding: clamp(4.75rem, 10svh, 5.5rem) 1.25rem 0;
+  }
+
+  .questionLead {
+    gap: 1.1rem;
   }
 
   .questionTopRight {
-    inset-block-start: clamp(4.75rem, 10svh, 5.5rem);
-    inset-inline-start: 1.25rem;
+    max-inline-size: none;
   }
 
   .questionBottomLeft {
-    inset-inline-end: 1.25rem;
+    inline-size: 100%;
+    left: 0;
+    inset-inline-end: 0;
     inset-block-end: clamp(8.2rem, 22%, 11.5rem);
   }
 
   .questionActions {
-    right: 1.25rem;
-    left: auto;
-    inset-block-start: 36%;
-    inset-block-end: auto;
     align-items: center;
     flex-direction: row;
     gap: 0.55rem;
@@ -1792,6 +2127,25 @@
 
   .questionSecondary {
     font-size: 0.72rem;
+  }
+
+  .questionStats {
+    justify-content: space-between;
+    gap: 0.6rem;
+  }
+
+  .questionStats div {
+    gap: 0.15rem;
+    max-inline-size: none;
+    padding-inline-start: 0.55rem;
+  }
+
+  .questionStats dt {
+    font-size: clamp(0.52rem, 2.35vw, 0.68rem);
+  }
+
+  .questionStats dd {
+    font-size: clamp(1.25rem, 6.2vw, 1.85rem);
   }
 
   .thesisLedger {
@@ -2073,7 +2427,6 @@
   }
 
   .signalList li .signalTitle {
-    overflow: visible;
     font-size: 0.88rem;
     line-height: 1.12;
     -webkit-line-clamp: 2;
@@ -2131,19 +2484,20 @@
     padding-inline: 1rem;
   }
 
+  /* The phone gets a smaller step, not a different scale: the same three
+     ratios, moved down together. */
   .thesisCopy {
     z-index: 4;
-    transform: translateY(-22svh);
-  }
-
-  .thesisTitle {
-    margin-block: 0.55rem 0.75rem;
-    font-size: clamp(2.35rem, 11.5vw, 3.65rem);
+    transform: translateY(-10svh);
+    --beat-step: clamp(0.95rem, 0.8rem + 0.9vw, 1.25rem);
   }
 
   .thesisLede {
-    margin-block-start: 0.7rem;
-    font-size: 0.82rem;
+    max-inline-size: 28ch;
+  }
+
+  .thesisBeatLine {
+    line-height: 1.25;
   }
 }
 
@@ -2176,8 +2530,17 @@
     opacity: 0;
   }
 
-  .reduced .thesisRule {
-    transform: scaleX(1);
+  /* No scrub to hand the beats off, so the stack unwinds into a column and
+     every claim is simply present. */
+  .reduced.thesisOnly .thesisCopy {
+    grid-template-areas: none;
+    row-gap: clamp(2rem, 5vh, 3.5rem);
+    transform: none;
+  }
+
+  .reduced.thesisOnly .thesisBeat {
+    grid-area: auto;
+    opacity: 1;
   }
 
   .pinRadar,
@@ -2195,5 +2558,112 @@
   /* No dwell animation means no meter to read - hide the empty rail. */
   .tocProgress {
     visibility: hidden;
+  }
+}
+
+
+/* ---- Per-beat backdrops ----------------------------------------------
+   Each stage is a full-field layer holding real components of the site; the
+   scroll timeline hands the field from one to the next as the beats change. */
+.beatStage {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* ---- The live desk, backing the legitimacy beat ----------------------
+   The real carousel, one plane back: scaled up so its tiles read at the size
+   they do on the desk, blurred until the type in front of it wins, and
+   drained of contrast so the beat is never competing with a headline. */
+.deskBackdrop {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+/* Pulled up so the carousel fills the frame rather than the desk's own
+   headline: the beat on stage is the headline here. */
+.deskBackdropInner {
+  /* Scale and pan travel together: the pan has to stay inside the slack the
+     inset and the scale leave, and both change with the frame. */
+  --desk-scale: 1.06;
+  --desk-pan: 2.6%;
+  position: absolute;
+  inset: -34% -6% -6%;
+  transform: scale(var(--desk-scale));
+  transform-origin: center;
+  filter: blur(3.4px) saturate(0.72);
+  opacity: 0.5;
+  /* The desk is a carousel, so the room the beat stands in moves like one:
+     a slow pan across the tiles, reversing inside the slack the -6% inset
+     leaves so an edge is never exposed. */
+  animation: deskPan 34s ease-in-out infinite alternate;
+  /* The top edge is where the desk's own masthead sits; fade it out rather
+     than letting two headlines share the screen. */
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 100%);
+}
+
+@keyframes deskPan {
+  from {
+    transform: scale(var(--desk-scale)) translate3d(calc(-1 * var(--desk-pan)), 0, 0);
+  }
+  to {
+    transform: scale(var(--desk-scale)) translate3d(var(--desk-pan), 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deskBackdropInner {
+    animation: none;
+  }
+}
+
+/* The desk sections inside carry their own paper and rules. The copy plate now
+   does the work of clearing the type, so this scrim only has to keep the field
+   from competing - it lifts off the centre rather than bleaching it, and the
+   tiles stay readable as tiles. */
+.deskBackdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 74% 62% at 50% 46%,
+    rgb(from var(--np-paper) r g b / 0.46) 30%,
+    rgb(from var(--np-paper) r g b / 0.34) 64%,
+    rgb(from var(--np-paper) r g b / 0.14) 100%
+  );
+}
+
+/* The desk is a full-field layer, so it survives a narrow window where the
+   surveyed card slots do not: the beat column widens until the side gutters
+   are gone, and the cards move into a strip instead (see BeatStages). Pull the
+   crop back as the frame narrows so the carousel still reads as tiles rather
+   than as one enlarged tile. */
+@media (max-width: 1100px) {
+  .deskBackdropInner {
+    --desk-scale: 1.02;
+    --desk-pan: 1.7%;
+    inset: -22% -4% -4%;
+  }
+}
+
+/* Phone: the desk stacks into its own tall bento here, so the crop that framed
+   a wide carousel would enlarge a single tile. Sit nearly flush instead and let
+   the stack itself be the texture. */
+@media (max-width: 800px) {
+  .deskBackdropInner {
+    /* The desk's own masthead is proportionally taller in a phone column, so
+       both the crop and the fade have to reach further before the tiles start
+       - a legible second headline behind the beat is the one failure here. */
+    --desk-scale: 1.03;
+    --desk-pan: 1.1%;
+    inset: -26% -2% -2%;
+    filter: blur(2.6px) saturate(0.75);
+    opacity: 0.42;
+    mask-image: linear-gradient(to bottom, transparent 0%, #000 24%, #000 100%);
   }
 }
