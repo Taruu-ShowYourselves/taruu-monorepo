@@ -157,6 +157,28 @@
   gap: var(--space-3);
 }
 
+/* Language switcher - discreet locale toggle beside the CTA */
+.langSwitch {
+  font-family: var(--font-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--lc-ink-soft);
+  text-decoration: none;
+  padding: var(--space-2) var(--space-2);
+  border-radius: var(--radius-md);
+  transition: color var(--duration-fast) var(--lc-ease-brand);
+}
+
+.langSwitch:hover,
+.langSwitch:focus-visible {
+  color: var(--lc-ink);
+}
+
+.langSwitch:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
 .ctaLink {
   display: none;
   text-decoration: none;

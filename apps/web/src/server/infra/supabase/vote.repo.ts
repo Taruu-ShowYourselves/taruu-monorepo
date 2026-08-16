@@ -13,6 +13,7 @@ import {
   createVote as dbCreateVote,
   createVoteOptions as dbCreateVoteOptions,
 } from '@/lib/supabase/db';
+import { UniqueViolationError } from '@/lib/supabase/errors';
 import type {
   Vote,
   VoteOption,
@@ -20,7 +21,7 @@ import type {
   InsertTables,
 } from '@/lib/supabase/types';
 import type { PublicVoteStatus } from '@/server/domain/votes/vote';
-import { dbError, type AppError } from '@/server/http/errors';
+import { conflict, dbError, type AppError } from '@/server/http/errors';
 
 export function listVotes(filter: {
   municipality?: string;
@@ -46,7 +47,12 @@ export function listActiveVotesWithOptions(
 
 export function insertVote(row: InsertTables<'votes'>): ResultAsync<Vote, AppError> {
   return ResultAsync.fromPromise(dbCreateVote(row), (cause) =>
-    dbError('votes.insert', cause)
+    // `ux_votes_live_topic` - the municipality already has an open ballot under
+    // this title. A conflict, not an outage: the proposer should be told the
+    // topic is already on the table, not shown a 500.
+    cause instanceof UniqueViolationError
+      ? conflict('a proposal with this title is already open in this municipality')
+      : dbError('votes.insert', cause)
   );
 }
 

@@ -6,6 +6,7 @@ import {
   findVoteByMunicipalityAndTitle,
   upsertVoteSource,
 } from '@/lib/supabase/db';
+import { UniqueViolationError } from '@/lib/supabase/errors';
 import { secureEqual } from '@/lib/secureCompare';
 
 const INGEST_SECRET = process.env.INGEST_SECRET;
@@ -129,21 +130,35 @@ export async function POST(request: NextRequest) {
 
       if (!vote) {
         const days = raw.vote_days ?? DEFAULT_VOTE_DAYS;
-        vote = await createVote({
-          creator_id: INGEST_CREATOR_ID,
-          title: raw.title.trim(),
-          description: raw.description.trim(),
-          municipality_id: raw.municipality,
-          status: 'pending',
-          end_date: new Date(Date.now() + days * 86_400_000).toISOString(),
-        });
-        await createVoteOptions(
-          (raw.options ?? DEFAULT_OPTIONS).map((text) => ({
-            vote_id: vote!.id,
-            text: text.trim(),
-          }))
-        );
-        created = true;
+        try {
+          vote = await createVote({
+            creator_id: INGEST_CREATOR_ID,
+            title: raw.title.trim(),
+            description: raw.description.trim(),
+            municipality_id: raw.municipality,
+            status: 'pending',
+            end_date: new Date(Date.now() + days * 86_400_000).toISOString(),
+          });
+          await createVoteOptions(
+            (raw.options ?? DEFAULT_OPTIONS).map((text) => ({
+              vote_id: vote!.id,
+              text: text.trim(),
+            }))
+          );
+          created = true;
+        } catch (error) {
+          // The lookup above and this insert are not one atomic step: a second
+          // ingest run - or a retry of this one - can create the topic in
+          // between. `ux_votes_live_topic` catches that, and the row the other
+          // writer landed is exactly the row we wanted, so adopt it and carry
+          // on refreshing its engagement.
+          if (!(error instanceof UniqueViolationError)) throw error;
+          vote = await findVoteByMunicipalityAndTitle(
+            raw.municipality,
+            raw.title.trim()
+          );
+          if (!vote) throw error;
+        }
       }
 
       await upsertVoteSource({

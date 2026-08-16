@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   getVoteWithOptions,
   getUserVote,
+  getCardArtByVoteIds,
   getKnessetItemsByVoteIds,
 } from '@/lib/supabase/db';
 import { getSessionFromRequest } from '@/services/auth/session';
@@ -31,7 +32,13 @@ export async function GET(
 
     // Knesset-agenda votes carry their plenum context (background block on
     // the detail page). getKnessetItemsByVoteIds returns [] on any failure.
-    const [knessetItem] = await getKnessetItemsByVoteIds([voteData.id]);
+    // The plate is fetched alongside: the desks have printed it since the art
+    // job shipped, and the detail page is where a reader arrives from them -
+    // reaching the full story and losing the artwork read as a broken page.
+    const [[knessetItem], art] = await Promise.all([
+      getKnessetItemsByVoteIds([voteData.id]),
+      getCardArtByVoteIds([voteData.id]),
+    ]);
     const knesset = knessetItem
       ? {
           knessetNum: knessetItem.knesset_num,
@@ -72,6 +79,8 @@ export async function GET(
       createdAt: voteData.created_at,
       updatedAt: voteData.updated_at,
       knesset,
+      /** Duotone plate from the art job; null until the vote has been plated. */
+      artUrl: art.get(voteData.id) ?? null,
     };
 
     // Signed-in caller: surface their existing choice (contract: option id).

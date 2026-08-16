@@ -23,7 +23,7 @@ const MSG_REQUIRED = 'צריך למלא את השדה הזה כדי להמשיך
 const MSG_GENERAL = 'משהו השתבש אצלנו, לא אצלכם. נסו שוב בעוד רגע.';
 
 // Press wizard is 4 editorial steps; the underlying validation stays 3-staged
-// (details → options → submission) — duration lives on the final plate.
+// (details → options → submission) - duration lives on the final plate.
 const STEP_LABELS = [
   { label: 'נושא' },
   { label: 'אפשרויות' },
@@ -37,6 +37,19 @@ const DURATIONS = [
   { value: '14', label: '14 יום' },
   { value: '30', label: '30 יום' },
 ];
+
+/* Where the proposal is addressed. A municipal issue is raised for the
+   creator's own town; a national one goes to the Knesset's desk, and every
+   resident in the country can support or oppose it. */
+const SCOPES = [
+  { value: 'municipal', label: 'היישוב שלי' },
+  { value: 'knesset', label: 'כנסת ישראל' },
+];
+
+const SCOPE_LABELS: Record<string, string> = {
+  municipal: 'היישוב שלי',
+  knesset: 'כנסת ישראל',
+};
 
 const STEP_COUNT = STEP_LABELS.length;
 
@@ -55,7 +68,7 @@ export default function CreateVotePage() {
   const [descriptionError, setDescriptionError] = useState('');
   const [optionsError, setOptionsError] = useState('');
 
-  // Success surface — gated on the id the server returned for the proposal.
+  // Success surface - gated on the id the server returned for the proposal.
   const [submittedVoteId, setSubmittedVoteId] = useState<string | null>(null);
 
   // Form state - unchanged
@@ -63,6 +76,17 @@ export default function CreateVotePage() {
   const [description, setDescription] = useState('');
   const [options, setOptions] = useState(['', '']);
   const [duration, setDuration] = useState(7); // days
+  const [scope, setScope] = useState<'municipal' | 'knesset'>('municipal');
+
+  /* Switching to the Knesset pre-sets the classic national ballot - for,
+     against, abstain - but only over untouched options: typed answers are
+     the proposer's, not the form's. */
+  const pickScope = (next: 'municipal' | 'knesset') => {
+    setScope(next);
+    if (next === 'knesset' && options.every((option) => !option.trim())) {
+      setOptions(['בעד', 'נגד', 'נמנע']);
+    }
+  };
 
   const filledOptions = options.filter((o) => o.trim());
 
@@ -157,7 +181,7 @@ export default function CreateVotePage() {
       // Submission is free and posts the proposal directly. There is no
       // checkout here and no draft stashed anywhere: the row exists the moment
       // the server answers, and the ₪50 obligation is created only if a space
-      // admin approves it (issue #75). Nothing is retried — there is no
+      // admin approves it (issue #75). Nothing is retried - there is no
       // webhook to wait for.
       const now = new Date();
       const end = new Date(now.getTime() + duration * 24 * 60 * 60 * 1000);
@@ -167,6 +191,7 @@ export default function CreateVotePage() {
         body: JSON.stringify({
           title,
           description,
+          scope,
           options: filledOptions.map((label) => ({ label })),
           startDate: now.toISOString(),
           endDate: end.toISOString(),
@@ -194,7 +219,7 @@ export default function CreateVotePage() {
     return (
       <>
         <Header />
-        <main className={styles.main}>
+        <main className={`${styles.main} np-desk`}>
           <div className={styles.container}>
             <span className={`${styles.shimmer} ${styles.skHead}`} />
             <span className={`${styles.shimmer} ${styles.skBar}`} />
@@ -213,8 +238,9 @@ export default function CreateVotePage() {
     return (
       <>
         <Header />
-        <main className={styles.main}>
+        <main className={`${styles.main} np-desk`}>
           <div className={styles.container}>
+            <div className={`${styles.sheet} np-sheet`}>
             <header className={styles.head}>
               <span className={styles.kicker}>
                 <span aria-hidden className={styles.kickerTick} />
@@ -224,7 +250,7 @@ export default function CreateVotePage() {
                 ההצעה שלכם <span className={styles.red}>נשלחה לבדיקה.</span>
               </h1>
               <p className={styles.standfirst}>
-                מנהל/ת המרחב יבדקו את ההצעה. ההגשה לא חויבה — דמי יצירה של ₪50
+                מנהל/ת המרחב יבדקו את ההצעה. ההגשה לא חויבה - דמי יצירה של ₪50
                 ייווצרו רק אם ההצעה תאושר ותתפרסם.
               </p>
             </header>
@@ -234,6 +260,7 @@ export default function CreateVotePage() {
                 kicker="קבלה · RECEIPT"
                 title={title}
                 rows={[
+                  { label: 'זירה', value: SCOPE_LABELS[scope] },
                   { label: 'משך הצבעה', value: `${duration} ימים` },
                   { label: 'אפשרויות', value: String(filledOptions.length) },
                   {
@@ -256,6 +283,7 @@ export default function CreateVotePage() {
                 לכל ההצבעות
               </NewsButton>
             </div>
+            </div>
           </div>
         </main>
         <Footer />
@@ -276,8 +304,9 @@ export default function CreateVotePage() {
   return (
     <>
       <Header />
-      <main className={styles.main}>
+      <main className={`${styles.main} np-desk`}>
         <div className={styles.container}>
+          <div className={`${styles.sheet} np-sheet`}>
           {/* Masthead-style header */}
           <header className={styles.head}>
             <span className={styles.kicker}>
@@ -289,7 +318,7 @@ export default function CreateVotePage() {
             </h1>
             <p className={styles.standfirst}>
               הציעו נושא, נסחו את האפשרויות, וקבעו את משך ההצבעה. ההגשה ללא
-              תשלום — ההצעה עוברת לבדיקה, ורק אחרי אישור היא מתפרסמת ונחתמת
+              תשלום - ההצעה עוברת לבדיקה, ורק אחרי אישור היא מתפרסמת ונחתמת
               בבלוקצ׳יין.
             </p>
           </header>
@@ -308,6 +337,18 @@ export default function CreateVotePage() {
             {step === 1 && (
               <div className={styles.plateBody}>
                 <span className={styles.plateKicker}>FIG. 1 · הצעת נושא</span>
+                <Segmented
+                  aria-label="לאן ההצעה מופנית"
+                  variant="red"
+                  segments={SCOPES}
+                  value={scope}
+                  onChange={(v) => pickScope(v as 'municipal' | 'knesset')}
+                />
+                <p className={styles.plateNote}>
+                  {scope === 'knesset'
+                    ? 'הצעה לאומית: עולה לשולחן הכנסת, וכל תושב בארץ יכול לתמוך או להתנגד.'
+                    : 'הצעה מקומית: עולה לתושבי היישוב שלכם בלבד.'}
+                </p>
                 <PressInput
                   label="כותרת ההצבעה"
                   placeholder="למשל: הקמת גן שעשועים חדש"
@@ -426,10 +467,11 @@ export default function CreateVotePage() {
                   kicker="סיכום · SUBMISSION"
                   title={title || 'הצבעה חדשה'}
                   rows={[
+                    { label: 'זירה', value: SCOPE_LABELS[scope] },
                     { label: 'משך הצבעה', value: `${duration} ימים` },
                     { label: 'אפשרויות', value: String(filledOptions.length) },
                     { label: 'עלות הגשה', value: 'ללא תשלום', strong: true },
-                    { label: 'דמי יצירה', value: '₪50 — רק אם ההצעה תאושר' },
+                    { label: 'דמי יצירה', value: '₪50 - רק אם ההצעה תאושר' },
                   ]}
                   footer="ההגשה עוברת לבדיקת מנהל/ת המרחב לפני פרסום."
                 />
@@ -462,6 +504,7 @@ export default function CreateVotePage() {
             >
               {primaryLabel}
             </NewsButton>
+          </div>
           </div>
         </div>
       </main>

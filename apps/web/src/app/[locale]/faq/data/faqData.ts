@@ -96,6 +96,94 @@ export const faqData: FAQItem[] = [
   },
 ];
 
+/** English mirror of `faqData` - same ids and categories, translated copy. */
+export const faqDataEn: FAQItem[] = [
+  {
+    id: 'what-is-taru',
+    question: 'What is Taruu?',
+    answer:
+      'A platform for local votes that presents a verified picture of where residents stand on local issues, transparently and in a way that cannot be forged.',
+    category: 'general',
+  },
+  {
+    id: 'is-it-real',
+    question: 'Is this really happening, or just an idea?',
+    answer:
+      'It is happening. The first vote launches on 04.08.26, nationwide at once. You can join now, free of charge and with no commitment, and be among the first.',
+    category: 'general',
+  },
+  {
+    id: 'first-municipality',
+    question: 'Which municipalities does it operate in?',
+    answer:
+      'All of them. We are opening nationwide at once: every municipality in Israel, from day one.',
+    category: 'general',
+  },
+  {
+    id: 'who-can-vote',
+    question: 'Who can vote?',
+    answer:
+      'Residents who are within the boundaries of the relevant municipality at the time of the vote. Every vote belongs to one real resident.',
+    category: 'voting',
+  },
+  {
+    id: 'view-results',
+    question: 'Can I see the results?',
+    answer:
+      'Yes. All results are open and visible on the public votes page, in real time.',
+    category: 'voting',
+  },
+  {
+    id: 'next-vote',
+    question: 'When is the next vote?',
+    answer:
+      'The first vote is on 04.08.26. After it, we will publish a regularly updated voting calendar.',
+    category: 'voting',
+  },
+  {
+    id: 'voting-cost',
+    question: 'How much does it cost to vote?',
+    answer:
+      'Nothing. Participating in votes is free, with no payment and no barriers. Only identity and location verification are required, so that every vote is attributed to one real resident.',
+    category: 'voting',
+  },
+  {
+    id: 'where-money-goes',
+    question: 'Where does the community fund’s money go?',
+    answer:
+      'The fund is filled by external investments in each vote’s BAG, not by residents’ money. It is managed in full transparency, under rules defined in advance, and every movement it makes is visible. The money goes back to the community, not to us.',
+    category: 'payments',
+  },
+  {
+    id: 'location-verification',
+    question: 'Why is location verification (GPS) required?',
+    answer:
+      'To confirm that whoever votes on a local issue actually lives in the area, and so reduce manipulation from outside. It is a one-time check at the moment of voting only. We do not track you and we do not store movement histories.',
+    category: 'security',
+  },
+  {
+    id: 'blockchain',
+    question: 'Where does blockchain come in? Does it complicate things?',
+    answer:
+      'The blockchain works behind the scenes and does one simple thing: it fixes the votes in place so they cannot be changed or forged after the fact. You simply vote, and everything else happens in the background.',
+    category: 'security',
+  },
+  {
+    id: 'legal-binding',
+    question: 'Does this bind the council legally? Will it listen?',
+    answer:
+      'Taruu does not replace the council and does not bind it legally. It produces a single local picture, verified and clear, that is hard to ignore, and so strengthens the civic hand and an orderly dialogue with elected officials.',
+    category: 'legal',
+  },
+  {
+    id: 'unsubscribe',
+    question: 'How do I unsubscribe from updates?',
+    answer:
+      'Every email we send has an unsubscribe link at the bottom. One click and you are out.',
+    category: 'account',
+  },
+];
+
 export const faqCategories: Record<FAQCategory, string> = {
   general: 'כללי',
   voting: 'הצבעות',
@@ -103,6 +191,16 @@ export const faqCategories: Record<FAQCategory, string> = {
   payments: 'כסף ושקיפות',
   legal: 'משפטי',
   account: 'חשבון',
+};
+
+/** English mirror of `faqCategories`. */
+export const faqCategoriesEn: Record<FAQCategory, string> = {
+  general: 'General',
+  voting: 'Voting',
+  security: 'Security and Privacy',
+  payments: 'Money and Transparency',
+  legal: 'Legal',
+  account: 'Account',
 };
 
 /** Display order for grouped category sections. */

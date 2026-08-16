@@ -7,11 +7,69 @@ import {
   isMunicipality,
   municipalityHref,
 } from '@/components/uikit/municipality-link';
-import { i18n } from '@/lib/i18n/config';
+import { localePrefix } from '@/lib/i18n/config';
+import type { Locale } from '@/lib/i18n';
 import { useReducedMotion } from '@/hooks';
 import { NewsButton } from '@/components/press/NewsButton';
 import { VoteWidget } from './VoteWidget';
 import styles from './VoteWidget.module.css';
+
+interface LiveVoteWidgetCopy {
+  verifiedCountOf: (count: number) => string;
+  noVotesYet: string;
+  skeletonAria: string;
+  skeletonKicker: string;
+  dispatchAria: string;
+  dispatchKicker: string;
+  dispatchPlace: string;
+  issueSuffixOf: (issueNo: string) => string;
+  dispatchQuestion: string;
+  dispatchText: string;
+  dispatchCta: string;
+  arrow: string;
+  metaVerified: string;
+  metaSigned: string;
+  metaForgeryProof: string;
+}
+
+const COPY: Record<Locale, LiveVoteWidgetCopy> = {
+  he: {
+    verifiedCountOf: (count) => `${count.toLocaleString('he-IL')} קולות מאומתים`,
+    noVotesYet: 'עדיין אין קולות - היו ראשונים',
+    skeletonAria: 'טוען הצבעה',
+    skeletonKicker: 'הצבעה חיה',
+    dispatchAria: 'ההצבעות נפתחות בקרוב',
+    dispatchKicker: 'נפתחים בקרוב',
+    dispatchPlace: 'ישראל',
+    issueSuffixOf: (issueNo) => ` · גיליון ${issueNo}`,
+    dispatchQuestion: 'ההצבעה הראשונה נפתחת ב-04.08.26.',
+    dispatchText:
+      'בכל הארץ בבת אחת. הצטרפו לקבוצת המייסדים כדי לקבל עדכון ברגע שהקלפי נפתחת.',
+    dispatchCta: 'קבוצת המייסדים',
+    arrow: '←',
+    metaVerified: 'מאומת · זהות + GPS',
+    metaSigned: 'חתום בבלוקצ׳יין',
+    metaForgeryProof: 'בלתי ניתן לזיוף',
+  },
+  en: {
+    verifiedCountOf: (count) => `${count.toLocaleString('en-US')} verified votes`,
+    noVotesYet: 'No votes yet - be the first',
+    skeletonAria: 'Loading vote',
+    skeletonKicker: 'Live vote',
+    dispatchAria: 'Voting opens soon',
+    dispatchKicker: 'Opening soon',
+    dispatchPlace: 'Israel',
+    issueSuffixOf: (issueNo) => ` · Issue ${issueNo}`,
+    dispatchQuestion: 'The first vote opens on 04.08.26.',
+    dispatchText:
+      'Across the country, all at once. Join the founders group to be notified the moment the ballot box opens.',
+    dispatchCta: 'The founders group',
+    arrow: '→',
+    metaVerified: 'Verified · identity + GPS',
+    metaSigned: 'Signed on the blockchain',
+    metaForgeryProof: 'Tamper-proof',
+  },
+};
 
 interface ApiVoteOption {
   id: string;
@@ -73,6 +131,7 @@ function toWidgetOptions(vote: ApiVote) {
 interface LiveVoteWidgetProps {
   /** Editorial issue number passed through to the widget header. */
   issueNo?: string;
+  locale?: Locale;
 }
 
 /**
@@ -83,7 +142,8 @@ interface LiveVoteWidgetProps {
  * rotation so the ballot is never yanked mid-interaction. While fetching it
  * shows a press skeleton; with no open votes it shows the pre-launch dispatch.
  */
-export function LiveVoteWidget({ issueNo }: LiveVoteWidgetProps) {
+export function LiveVoteWidget({ issueNo, locale = 'he' }: LiveVoteWidgetProps) {
+  const t = COPY[locale];
   const reduced = useReducedMotion();
   const [status, setStatus] = useState<'loading' | 'ready'>('loading');
   const [rotation, setRotation] = useState<ApiVote[]>([]);
@@ -124,9 +184,9 @@ export function LiveVoteWidget({ issueNo }: LiveVoteWidgetProps) {
 
   if (!vote) {
     return status === 'loading' ? (
-      <BallotSkeleton />
+      <BallotSkeleton locale={locale} />
     ) : (
-      <PreLaunchDispatch issueNo={issueNo} />
+      <PreLaunchDispatch issueNo={issueNo} locale={locale} />
     );
   }
 
@@ -145,21 +205,22 @@ export function LiveVoteWidget({ issueNo }: LiveVoteWidgetProps) {
             municipality={vote.municipality}
             municipalityHref={
               isMunicipality(vote.municipality)
-                ? municipalityHref(vote.municipality)
+                ? municipalityHref(vote.municipality, locale)
                 : vote.municipality === KNESSET_SCOPE
-                  ? `/${i18n.defaultLocale}/knesset`
+                  ? `${localePrefix(locale)}/knesset`
                   : undefined
             }
             question={vote.title}
             options={toWidgetOptions(vote)}
             totalLabel={
               vote.participantCount > 0
-                ? `${vote.participantCount.toLocaleString('he-IL')} קולות מאומתים`
-                : 'עדיין אין קולות - היו ראשונים'
+                ? t.verifiedCountOf(vote.participantCount)
+                : t.noVotesYet
             }
-            href={`/votes/${vote.id}`}
+            href={`${localePrefix(locale)}/votes/${vote.id}`}
             issueNo={issueNo}
             onSelectOption={() => setPaused(true)}
+            locale={locale}
           />
         </motion.div>
       </AnimatePresence>
@@ -168,13 +229,14 @@ export function LiveVoteWidget({ issueNo }: LiveVoteWidgetProps) {
 }
 
 /** Press skeleton shown while the ballot fetch is in flight. */
-function BallotSkeleton() {
+function BallotSkeleton({ locale }: { locale: Locale }) {
+  const t = COPY[locale];
   return (
-    <section className={styles.widget} aria-busy="true" aria-label="טוען הצבעה">
+    <section className={styles.widget} aria-busy="true" aria-label={t.skeletonAria}>
       <header className={styles.head}>
         <span className={styles.kicker}>
           <span className={styles.live} aria-hidden />
-          הצבעה חיה
+          {t.skeletonKicker}
         </span>
       </header>
       <div className={styles.skel}>
@@ -189,26 +251,24 @@ function BallotSkeleton() {
 }
 
 /** No open votes yet - the honest pre-launch dispatch with the founders CTA. */
-function PreLaunchDispatch({ issueNo }: { issueNo?: string }) {
+function PreLaunchDispatch({ issueNo, locale }: { issueNo?: string; locale: Locale }) {
+  const t = COPY[locale];
   return (
-    <section className={styles.widget} aria-label="ההצבעות נפתחות בקרוב">
+    <section className={styles.widget} aria-label={t.dispatchAria}>
       <header className={styles.head}>
         <span className={styles.kicker}>
           <span className={styles.live} aria-hidden />
-          נפתחים בקרוב
+          {t.dispatchKicker}
         </span>
         <span className={styles.place}>
-          ישראל
-          {issueNo ? ` · גיליון ${issueNo}` : ''}
+          {t.dispatchPlace}
+          {issueNo ? t.issueSuffixOf(issueNo) : ''}
         </span>
       </header>
 
-      <h3 className={styles.question}>ההצבעה הראשונה נפתחת ב־04.08.26.</h3>
+      <h3 className={styles.question}>{t.dispatchQuestion}</h3>
 
-      <p className={styles.dispatchText}>
-        בכל הארץ בבת אחת. הצטרפו לקבוצת המייסדים כדי לקבל עדכון ברגע שהקלפי
-        נפתחת.
-      </p>
+      <p className={styles.dispatchText}>{t.dispatchText}</p>
 
       <div className={styles.actions}>
         <NewsButton
@@ -217,18 +277,18 @@ function PreLaunchDispatch({ issueNo }: { issueNo?: string }) {
           rel="noopener noreferrer"
           variant="red"
           size="lg"
-          trailing={<span aria-hidden>←</span>}
+          trailing={<span aria-hidden>{t.arrow}</span>}
         >
-          קבוצת המייסדים
+          {t.dispatchCta}
         </NewsButton>
       </div>
 
       <footer className={styles.meta}>
-        <span>מאומת · זהות + GPS</span>
+        <span>{t.metaVerified}</span>
         <span className={styles.sep} aria-hidden>■</span>
-        <span>חתום בבלוקצ׳יין</span>
+        <span>{t.metaSigned}</span>
         <span className={styles.sep} aria-hidden>■</span>
-        <span>בלתי ניתן לזיוף</span>
+        <span>{t.metaForgeryProof}</span>
       </footer>
     </section>
   );

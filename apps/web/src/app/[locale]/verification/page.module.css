@@ -8,7 +8,7 @@
 .main {
   position: relative;
   min-height: 100dvh;
-  background: var(--np-paper);
+  background: var(--np-desk);
   padding-block: clamp(var(--space-8), 5vw, var(--space-16))
     clamp(var(--space-16), 8vw, var(--space-32));
 }
@@ -19,6 +19,11 @@
   max-width: var(--container-4xl);
   margin-inline: auto;
   padding-inline: var(--np-gutter);
+}
+
+/* The procedure prints on one lifted sheet; `.main` is the desk. See
+   .np-desk / .np-sheet in globals.css. */
+.sheet {
   display: grid;
   gap: clamp(var(--space-6), 3vw, var(--space-10));
 }
@@ -142,6 +147,8 @@
 /* ---------- State panel (phase-driven press furniture) ---------- */
 
 .panel {
+  /* Anchor for the one-shot CheerBurst on the done panel. */
+  position: relative;
   display: grid;
   gap: var(--space-6);
   background: var(--np-paper-box);

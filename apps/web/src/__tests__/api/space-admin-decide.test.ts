@@ -1,5 +1,5 @@
 /**
- * Proposal decisions — SPACE-05.
+ * Proposal decisions - SPACE-05.
  *
  * Five properties are load-bearing here and each gets its own case: approval is
  * the only decision that publishes, a decision that lost a race is a 409 and
@@ -9,8 +9,8 @@
  *
  * The repositories are mocked, so what this file proves is the *use-case*
  * chain: which guard fires first, which repository was reached, and which was
- * not. The SQL-level guarantees — the conditional UPDATE and the partial unique
- * index — are the repository's and the database's, not this file's.
+ * not. The SQL-level guarantees - the conditional UPDATE and the partial unique
+ * index - are the repository's and the database's, not this file's.
  */
 
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
@@ -56,8 +56,8 @@ vi.mock('@/server/infra/supabase/space-audit.repo', () => ({
 /**
  * Approval charges the ₪50 creation fee (05-10) through this port before it
  * publishes, and the real implementation reaches Supabase. A permanently
- * succeeding stub keeps this file about the guard chain; the charge itself —
- * who is billed, the ordering, what a decline leaves behind — is
+ * succeeding stub keeps this file about the guard chain; the charge itself -
+ * who is billed, the ordering, what a decline leaves behind - is
  * space-admin-approve-charge.test.ts's subject, and is not duplicated here.
  */
 vi.mock('@/server/infra/payments/creation-fee', () => ({
@@ -83,7 +83,7 @@ import { GET as GET_DETAIL } from '@/app/api/space-admin/[spaceId]/proposals/[vo
 
 const VOTE_ID = '55555555-5555-4555-8555-555555555555';
 const REASON = 'ההצעה עומדת בכללי המרחב ולכן אושרה לפרסום';
-const SELF_SUBMITTED_HE = 'הצעה שהגשתם — ההכרעה שמורה למנהל אחר.';
+const SELF_SUBMITTED_HE = 'הצעה שהגשתם - ההכרעה שמורה למנהל אחר.';
 const PAST = '2026-07-01T00:00:00.000Z';
 const FUTURE = '2099-01-01T00:00:00.000Z';
 
@@ -133,7 +133,7 @@ beforeEach(() => {
   (insertAuditRow as Mock).mockReturnValue(okAsync(auditRow()));
 });
 
-describe('POST …/decide — the three decisions', () => {
+describe('POST …/decide - the three decisions', () => {
   it('publishes an approved proposal whose start date has passed', async () => {
     const res = await DECIDE(post({ decision: 'approve', reason: REASON }), ctx());
 
@@ -194,7 +194,7 @@ describe('POST …/decide — the three decisions', () => {
   });
 });
 
-describe('POST …/decide — the reason is mandatory', () => {
+describe('POST …/decide - the reason is mandatory', () => {
   it('refuses a nine-character reason before any database work', async () => {
     const res = await DECIDE(post({ decision: 'approve', reason: 'תשעה תוו' }), ctx());
 
@@ -221,7 +221,7 @@ describe('POST …/decide — the reason is mandatory', () => {
   });
 });
 
-describe('POST …/decide — object-level and capability refusals', () => {
+describe('POST …/decide - object-level and capability refusals', () => {
   it('refuses the submitter their own proposal, whatever the UI rendered', async () => {
     (findProposalInScope as Mock).mockReturnValue(
       okAsync(detailRow({ creator_id: SESSION.userId }))
@@ -235,7 +235,7 @@ describe('POST …/decide — object-level and capability refusals', () => {
     expect(insertAuditRow).not.toHaveBeenCalled();
   });
 
-  it('answers 403 — never 404 — for a vote that belongs to another space', async () => {
+  it('answers 403 - never 404 - for a vote that belongs to another space', async () => {
     (findProposalInScope as Mock).mockReturnValue(okAsync(null));
 
     const res = await DECIDE(post({ decision: 'approve', reason: REASON }), ctx());
@@ -290,7 +290,7 @@ describe('POST …/decide — object-level and capability refusals', () => {
   });
 });
 
-describe('POST …/decide — a decision that already happened', () => {
+describe('POST …/decide - a decision that already happened', () => {
   it('is a 409 when the proposal is no longer in review', async () => {
     (findProposalInScope as Mock).mockReturnValue(okAsync(detailRow({ status: 'rejected' })));
 
@@ -320,7 +320,7 @@ describe('POST …/decide — a decision that already happened', () => {
   });
 });
 
-describe('POST …/decide — a failed audit write fails the decision', () => {
+describe('POST …/decide - a failed audit write fails the decision', () => {
   it('surfaces the audit failure rather than reporting a silent success', async () => {
     (insertAuditRow as Mock).mockReturnValue(
       errAsync({ kind: 'DB' as const, op: 'space_audit_log.insert' })
@@ -332,7 +332,7 @@ describe('POST …/decide — a failed audit write fails the decision', () => {
   });
 });
 
-describe('GET …/proposals/[voteId] — the detail panel', () => {
+describe('GET …/proposals/[voteId] - the detail panel', () => {
   it('returns the proposal detail for a deep link inside the space', async () => {
     const res = await GET_DETAIL(get(), ctx());
 

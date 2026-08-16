@@ -11,7 +11,7 @@ import { z } from 'zod';
  * All ten `vote_status` labels the database can hold. Kept identical to the
  * `VoteStatus` union in ../types/vote.ts.
  *
- * 'cancelled' is deliberately absent — it was never a database label, only an
+ * 'cancelled' is deliberately absent - it was never a database label, only an
  * API-level alias that `normalizeStatusFilter` still maps to 'ended'.
  *
  * This schema describes what a status *can be*, not what is publicly visible.
@@ -125,6 +125,13 @@ export const CreateVoteRequestSchema = z.object({
   title: z.string().min(5).max(200),
   description: z.string().min(10).max(2000),
   municipality: z.string().min(1),
+  /**
+   * Where the proposal is addressed: the creator's own municipality (the
+   * default, and the only value before this field existed) or the Knesset -
+   * a national ballot other residents support or oppose. Optional so
+   * pre-field clients keep validating.
+   */
+  scope: z.enum(['municipal', 'knesset']).optional(),
   options: z.array(VoteOptionInputSchema).min(2).max(10),
   startDate: z.string().datetime(),
   endDate: z.string().datetime(),
@@ -133,7 +140,7 @@ export const CreateVoteRequestSchema = z.object({
   //
   // Not `.strict()`, deliberately: a bundle deployed before this change still
   // sends the field, and zod strips unknown keys rather than rejecting the
-  // request. That tolerance is for old clients in flight only — every caller in
+  // request. That tolerance is for old clients in flight only - every caller in
   // this repository has been updated to stop sending it.
 });
 
@@ -183,7 +190,7 @@ export const ParticipateRequestSchema = z.object({
 
 /**
  * `alreadyRecorded` is true when the caller had already voted on this vote and
- * the server returned the EXISTING ballot instead of creating a second one —
+ * the server returned the EXISTING ballot instead of creating a second one -
  * a double-click, a retry, or a replay. It is a successful outcome, not an
  * error, and the tally was not moved a second time.
  */

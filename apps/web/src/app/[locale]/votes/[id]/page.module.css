@@ -7,7 +7,7 @@
   min-height: 100vh;
   padding-top: calc(var(--header-height) + var(--space-6));
   padding-bottom: var(--space-16);
-  background: var(--np-paper);
+  background: var(--np-desk);
   color: var(--np-ink);
 }
 
@@ -16,6 +16,14 @@
   max-width: 1180px;
   margin-inline: auto;
   padding-inline: var(--np-gutter);
+}
+
+/* One vote, one sheet; `.main` is the desk. See .np-desk / .np-sheet in
+   globals.css. */
+.sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
 }
 
 /* ------------------------------------------------------------------ */
@@ -90,8 +98,33 @@
 /* ------------------------------------------------------------------ */
 /* Article masthead                                                   */
 /* ------------------------------------------------------------------ */
+/* The masthead is its own size container: the headline below scales with the
+   column it sits in, not with the window. On a wide screen the sheet splits
+   into two columns, so a viewport-based size set 80px type inside a 600px
+   column and wrapped the citation across four lines. */
 .head {
+  position: relative;
+  container-type: inline-size;
+  isolation: isolate;
   margin-block-end: var(--space-6);
+}
+
+/* The desk's plate, printed under the masthead. Multiply sinks its cream
+   ground into the newsprint; the mask fades it out before it reaches the
+   stats rule, so the figures stay on clean paper. */
+.headArt {
+  position: absolute;
+  inset-block: 0;
+  inset-inline: 0;
+  z-index: -1;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  opacity: 0.13;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  user-select: none;
+  mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
 }
 
 .kicker {
@@ -114,12 +147,25 @@
 .title {
   font-family: var(--np-font-display);
   font-weight: 900;
-  font-size: clamp(var(--text-4xl), 5.5vw, var(--text-8xl));
-  line-height: 0.88;
-  letter-spacing: -0.04em;
+  /* 7.5% of the column, floored at 3xl and capped at 6xl. The cap is what
+     matters: past it the headline stops being a headline and starts being a
+     wall, and Hebrew display type at 900 has no room to breathe at 80px in a
+     600px measure. */
+  font-size: clamp(var(--text-3xl), 7.5cqi, var(--text-6xl));
+  line-height: 0.95;
+  letter-spacing: -0.03em;
   color: var(--np-ink);
   margin-block: var(--space-3) var(--space-5);
   overflow-wrap: break-word;
+  text-wrap: balance;
+}
+
+/* A legal citation gets one step down and a little more leading - it is read
+   as a sentence, not shouted as a headline. */
+.titleLong {
+  font-size: clamp(var(--text-2xl), 5.2cqi, var(--text-4xl));
+  line-height: 1.06;
+  letter-spacing: -0.02em;
 }
 
 .stats {

@@ -40,7 +40,7 @@ describe('formatBillTitle', () => {
       qualifier: null,
     });
     expect(formatBillTitle('חוק-יסוד: לימוד תורה')).toEqual({
-      kicker: 'חוק־יסוד',
+      kicker: 'חוק-יסוד',
       headline: 'לימוד תורה',
       qualifier: null,
     });
@@ -101,6 +101,7 @@ describe('topicHeadline', () => {
     title: 'הצעת חוק שירות ביטחון (תיקון מס\' 29), התשפ"ו-2026',
     titleParts: formatBillTitle('הצעת חוק שירות ביטחון (תיקון מס\' 29), התשפ"ו-2026'),
     description: '',
+    artUrl: null,
     participantCount: 0,
     endDate: '2026-08-10',
     options: [],

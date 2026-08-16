@@ -3,7 +3,7 @@ import 'server-only';
 /**
  * Capability grants: create, revoke, and the platform-admin suspension.
  *
- * The first two follow the phase's audited-mutation chain — resolve a scope,
+ * The first two follow the phase's audited-mutation chain - resolve a scope,
  * perform one conditional write, append the audit row inside the same chain,
  * and only then map to a response. The audit write is not a side effect fired
  * after success; it is a link in the chain, so a failed append fails the
@@ -36,7 +36,7 @@ export interface GrantMutationResult {
   grantId: string;
   userId: string;
   capability: Capability;
-  /** False once the grant is revoked or suspended — the row itself remains. */
+  /** False once the grant is revoked or suspended - the row itself remains. */
   active: boolean;
 }
 
@@ -108,7 +108,7 @@ export function revokeCapability(
  * wildcard the CONTEXT decision rejected: a token that opens every scoped
  * repository in the codebase, handed to a bearer whose authority is supposed to
  * be exactly one action wide. `users.is_platform_admin` is that one action's
- * gate and confers nothing else — it is not a general admin boolean, and eleven
+ * gate and confers nothing else - it is not a general admin boolean, and eleven
  * space capabilities do not add up to it.
  *
  * A denial here returns the same reason-free `forbidden()` as everywhere else,

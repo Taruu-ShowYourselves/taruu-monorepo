@@ -1,5 +1,5 @@
 /**
- * Proposal review — pure transition rules.
+ * Proposal review - pure transition rules.
  *
  * `pending` in this codebase means "scheduled, has not started yet"; it has
  * never meant "awaiting approval". The review states are separate labels and
@@ -48,7 +48,7 @@ export const reviewerMayDecide = (a: {
   reviewerId: string;
 }): boolean => a.submitterId !== a.reviewerId;
 
-/** The audit `action` string for a decision. Stable — the audit log is append-only. */
+/** The audit `action` string for a decision. Stable - the audit log is append-only. */
 export const auditActionFor = (d: Decision): string =>
   d === 'approve'
     ? 'proposal.approved'
@@ -64,7 +64,7 @@ export const auditActionFor = (d: Decision): string =>
 export const capabilityFor = (d: Decision): 'proposal.approve' | 'proposal.reject' =>
   d === 'approve' ? 'proposal.approve' : 'proposal.reject';
 
-/** Status chip labels for the proposals surface — server and UI cannot drift. */
+/** Status chip labels for the proposals surface - server and UI cannot drift. */
 export const REVIEW_STATUS_LABELS_HE: Record<ReviewVoteStatus | 'active', string> = {
   draft: 'טיוטה',
   in_review: 'בבדיקה',

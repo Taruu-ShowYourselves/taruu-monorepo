@@ -1,5 +1,5 @@
 /**
- * Object-level authorization — SPACE-03, the phase's headline criterion.
+ * Object-level authorization - SPACE-03, the phase's headline criterion.
  *
  * A space admin who swaps `spaceId` in the URL must get the *same* opaque 403
  * they would get for a space that does not exist, for a malformed id, and for a
@@ -100,7 +100,7 @@ beforeEach(() => {
   (listProposals as Mock).mockReturnValue(okAsync([proposalRow()]));
 });
 
-describe('GET /api/space-admin/[spaceId] — overview', () => {
+describe('GET /api/space-admin/[spaceId] - overview', () => {
   it('returns 200 for the space the caller actually administers', async () => {
     const res = await GET_OVERVIEW(req(`/api/space-admin/${SPACE_A}`), ctx(SPACE_A));
     expect(res.status).toBe(200);

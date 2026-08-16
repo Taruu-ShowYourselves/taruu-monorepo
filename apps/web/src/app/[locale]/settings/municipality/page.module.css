@@ -2,7 +2,7 @@
 
 .main {
   position: relative;
-  background: var(--np-paper);
+  background: var(--np-desk);
   min-height: 60vh;
   padding-block: var(--space-10) var(--space-16);
 }
@@ -146,4 +146,12 @@
   .spinner {
     animation: none;
   }
+}
+
+/* The form lies on a lifted sheet; `.main` is the desk. See .np-desk /
+   .np-sheet in globals.css - this only adds the page's own rhythm. */
+.sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
 }

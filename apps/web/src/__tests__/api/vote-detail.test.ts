@@ -15,6 +15,7 @@ import { GET } from '@/app/api/votes/[id]/route';
 vi.mock('@/lib/supabase/db', () => ({
   getVoteWithOptions: vi.fn(),
   getKnessetItemsByVoteIds: vi.fn(),
+  getCardArtByVoteIds: vi.fn(),
   getUserVote: vi.fn(),
 }));
 
@@ -26,6 +27,7 @@ vi.mock('@/services/auth/session', () => ({
 import {
   getVoteWithOptions,
   getKnessetItemsByVoteIds,
+  getCardArtByVoteIds,
   getUserVote,
 } from '@/lib/supabase/db';
 import { getSessionFromRequest } from '@/services/auth/session';
@@ -52,6 +54,7 @@ describe('Vote Detail API Routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (getKnessetItemsByVoteIds as Mock).mockResolvedValue([]);
+    (getCardArtByVoteIds as Mock).mockResolvedValue(new Map<string, string>());
     (getUserVote as Mock).mockResolvedValue(null);
     (getSessionFromRequest as Mock).mockResolvedValue(null);
   });
@@ -195,6 +198,31 @@ describe('Vote Detail API Routes', () => {
 
       expect(response.status).toBe(200);
       expect(data.vote.participantCount).toBe(0);
+    });
+
+    it('serves the card-art plate so the detail page can print what the desk printed', async () => {
+      (getVoteWithOptions as Mock).mockResolvedValue(mockVoteWithOptions);
+      (getCardArtByVoteIds as Mock).mockResolvedValue(
+        new Map([['vote-123', 'https://storage/vote-art/vote-123.webp']])
+      );
+
+      const request = new NextRequest('http://localhost:3000/api/votes/vote-123');
+      const response = await GET(request, { params: Promise.resolve({ id: 'vote-123' }) });
+      const data = await response.json();
+
+      expect(getCardArtByVoteIds).toHaveBeenCalledWith(['vote-123']);
+      expect(data.vote.artUrl).toBe('https://storage/vote-art/vote-123.webp');
+    });
+
+    it('serves the vote with a null plate when the art job has not reached it', async () => {
+      (getVoteWithOptions as Mock).mockResolvedValue(mockVoteWithOptions);
+
+      const request = new NextRequest('http://localhost:3000/api/votes/vote-123');
+      const response = await GET(request, { params: Promise.resolve({ id: 'vote-123' }) });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.vote.artUrl).toBeNull();
     });
 
     it('should attach Knesset plenum context when the vote has an agenda item', async () => {

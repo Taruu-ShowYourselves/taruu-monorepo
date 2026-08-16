@@ -129,8 +129,10 @@ function SocialConnectionsContent() {
   return (
     <>
       <Header />
-      <main className={styles.main}>
+      <main className={`${styles.main} np-desk`}>
         <div className={styles.container}>
+          {/* The form sits on a lifted sheet; the main is the desk. */}
+          <div className={`${styles.sheet} np-sheet`}>
           <header className={styles.head}>
             <span className={styles.kicker}>
               <span aria-hidden className={styles.kickerTick} />
@@ -370,6 +372,7 @@ function SocialConnectionsContent() {
             >
               חזרה ללוח הבקרה
             </NewsButton>
+          </div>
           </div>
         </div>
       </main>

@@ -10,19 +10,41 @@
  * and the participation gate (J2) agree on one rule.
  */
 
-import type { UserProfile } from '@sync/shared';
+import { votingGate, type UserProfile, type VotingGate } from '@sync/shared';
 
 type MaybeUser = Pick<UserProfile, 'verificationStatus'> | null | undefined;
 
 /**
- * True when the user may participate in a vote. Either the full residency
- * program has completed, OR they have logged at least one successful check-in
- * (the first check-in gates voting; further check-ins never block).
+ * True when residency is evidenced. Either the full residency program has
+ * completed, OR at least one successful check-in has been logged (the first
+ * check-in counts; further check-ins never block).
+ *
+ * Named for what it establishes rather than what it permits: since the ballot
+ * threshold rose to {@link MINIMUM_VOTING_SCORE}, residency is 40 of the 80
+ * points rather than the whole gate. `voterGate` is the question the UI asks.
  */
-export function isEligibleToVote(user: MaybeUser): boolean {
+export function hasVerifiedResidency(user: MaybeUser): boolean {
   const status = user?.verificationStatus;
   if (!status) return false;
   return status.phase === 'completed' || (status.checkInsCompleted ?? 0) >= 1;
+}
+
+/** @deprecated Residency alone no longer opens the ballot - use {@link voterGate}. */
+export const isEligibleToVote = hasVerifiedResidency;
+
+/**
+ * What the reader still owes the ballot box, scored the way the server scores
+ * it (`services/verification/eligibility.ts`). The client never decides
+ * anything with this - the server is still the only authority - it decides what
+ * to *say*, and how many points to print.
+ */
+export function voterGate(
+  user: (Pick<UserProfile, 'identityScore'> & MaybeUser) | null | undefined
+): VotingGate {
+  return votingGate({
+    identityPoints: user?.identityScore?.total ?? 0,
+    residencyVerified: hasVerifiedResidency(user),
+  });
 }
 
 /**

@@ -1,5 +1,5 @@
 /**
- * Default-deny capability resolution — SPACE-02.
+ * Default-deny capability resolution - SPACE-02.
  *
  * Holding one capability must open exactly the endpoints that require it and
  * no others. The branded `SpaceScope` stops a caller-supplied space id reaching
@@ -111,7 +111,7 @@ beforeEach(() => {
 });
 
 /**
- * Overview is reachable on *membership* — any single grant — because there is
+ * Overview is reachable on *membership* - any single grant - because there is
  * deliberately no twelfth `space.read` capability. The proposal queue needs
  * `proposal.read` and nothing else will do.
  */
@@ -194,7 +194,7 @@ describe('the overview only bills a figure to a caller who may see it', () => {
 
     const body = await (await ENDPOINTS.overview()).json();
 
-    // Absent, not zero — and the repositories behind them are never called.
+    // Absent, not zero - and the repositories behind them are never called.
     expect(body.figures.membersInSpace).toBeNull();
     expect(body.figures.notificationsSentThisMonth).toBeNull();
     expect(countSpaceMembers).not.toHaveBeenCalled();

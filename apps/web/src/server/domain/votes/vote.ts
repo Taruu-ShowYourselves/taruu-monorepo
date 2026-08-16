@@ -95,7 +95,7 @@ export function initialStatus(startDate: Date, now: Date): 'active' | 'pending' 
 }
 
 /**
- * Every new proposal enters review. `pending` is NOT this state — it means
+ * Every new proposal enters review. `pending` is NOT this state - it means
  * "approved and scheduled, not yet open". `initialStatus` still decides
  * between active and pending, but only at approval time.
  *
@@ -108,14 +108,14 @@ export const submissionStatus = (): 'in_review' => 'in_review';
  * The only statuses a vote may be shown at under a public read path.
  *
  * An allow-list, never a deny-list: a status invented later is invisible until
- * someone deliberately adds it here. This one constant does both jobs — the
+ * someone deliberately adds it here. This one constant does both jobs - the
  * default filter when no status is supplied, and the validation set for an
  * explicitly supplied one. There is deliberately no second
  * "publicly filterable" list; two nearly-identical allow-lists is exactly how
  * one of them drifts.
  *
  * `'pending'` is IN, deliberately. In this codebase it means "approved and
- * scheduled, not yet open" — never "awaiting approval" — and /he/votes shows
+ * scheduled, not yet open" - never "awaiting approval" - and /he/votes shows
  * scheduled votes today. The security goal here is excluding the four *review*
  * states (draft, in_review, changes_requested, rejected), which this list still
  * does; dropping `'pending'` alongside them would be an unrelated behaviour
@@ -144,14 +144,14 @@ export type { ReviewVoteStatus } from '@/server/domain/space/review';
 
 /**
  * Normalise a raw `?status=` query parameter to a public status, or `null`
- * meaning "no filter — fall back to the allow-list".
+ * meaning "no filter - fall back to the allow-list".
  *
  * Client compatibility: the API once accepted 'cancelled'; the DB knows 'ended'
  * and never had a 'cancelled' label.
  *
  * Every review status returns `null` rather than being rejected, so
  * `?status=in_review` degrades to the ordinary public list instead of selecting
- * drafts — and instead of becoming an existence oracle for the review
+ * drafts - and instead of becoming an existence oracle for the review
  * vocabulary via a distinctive 400.
  */
 export function normalizeStatusFilter(status: string | null): PublicVoteStatus | null {

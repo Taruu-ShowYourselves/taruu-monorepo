@@ -8,6 +8,7 @@ import { formatCurrency } from '@sync/shared';
 import type { MerchOrder, MerchOrderStatus } from '@sync/shared';
 import type { Locale } from '@/lib/i18n';
 import styles from './ThankYouView.module.css';
+import { localePrefix } from '@/lib/i18n';
 
 interface ThankYouViewProps {
   locale: Locale;
@@ -125,7 +126,7 @@ export function ThankYouView({ locale }: ThankYouViewProps) {
 
         <div className={styles.actions}>
           <NewsButton
-            href={`/${locale}/store`}
+            href={`${localePrefix(locale)}/store`}
             variant="red"
             size="lg"
             trailing={<span aria-hidden>←</span>}

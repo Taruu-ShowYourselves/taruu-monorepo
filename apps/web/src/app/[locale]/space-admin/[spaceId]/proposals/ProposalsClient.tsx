@@ -3,7 +3,12 @@
 import React, { useCallback, useEffect, useId, useRef, useState, useTransition } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import clsx from 'clsx';
-import type { Decision, ProposalDetail, ProposalSummary } from '@sync/shared/contracts';
+import type {
+  Decision,
+  ProposalDetail,
+  ProposalStatus,
+  ProposalSummary,
+} from '@sync/shared/contracts';
 import { NewsButton } from '@/components/press/NewsButton';
 import {
   ClampedText,
@@ -23,6 +28,7 @@ import {
   PROPOSAL_STATUS_LABELS_HE,
   proposalChipTone,
 } from '@/components/space-admin/proposalStatusLabels';
+import type { Locale } from '@/lib/i18n';
 import {
   DEFAULT_PROPOSAL_FILTER,
   PROPOSAL_FILTERS,
@@ -37,7 +43,7 @@ import styles from './page.module.css';
  *
  * 1. A self-submitted row renders LOCK TEXT and no decision buttons. That is
  *    object-level authority, so Rule A governs and the controls are absent
- *    rather than present-but-inert — an inert one would wrongly imply the
+ *    rather than present-but-inert - an inert one would wrongly imply the
  *    admin could unblock it themselves.
  * 2. The proposal title cell is the ONLY expansion trigger. There is no second
  *    toggle and no second accessible name for the same disclosure.
@@ -50,7 +56,7 @@ import styles from './page.module.css';
 /**
  * The filter vocabulary lives in `./filters`, a module with no `'use client'`
  * directive, because `page.tsx` reads it on the server. Re-exported here for
- * the call sites that already import it from this file — but a Server
+ * the call sites that already import it from this file - but a Server
  * Component must import it from `./filters` directly, or React hands it a
  * client reference instead of the value. See that file's header.
  */
@@ -80,14 +86,14 @@ interface DecisionCopy {
  *
  * The approve body says the fee is CREATED at approval. The port records a
  * pending obligation and moves no money today, so the stronger verb would
- * promise something the code does not do — and the weaker one stays true after
+ * promise something the code does not do - and the weaker one stays true after
  * the card-on-file rail ships, so the sentence never needs revisiting.
  */
 const DECISION_COPY: Record<Decision, DecisionCopy> = {
   approve: {
     kind: 'irreversible',
     heading: 'לאשר ולפרסם את ההצעה?',
-    body: 'ההצעה תתפרסם לתושבי המרחב ותיפתח להצבעה. עם האישור ייווצר חיוב של ₪50 למגיש/ה — החיוב נוצר רק עכשיו, ולא בעת ההגשה.',
+    body: 'ההצעה תתפרסם לתושבי המרחב ותיפתח להצבעה. עם האישור ייווצר חיוב של ₪50 למגיש/ה - החיוב נוצר רק עכשיו, ולא בעת ההגשה.',
     consequence: 'הפרסום והחיוב אינם ניתנים לביטול מהלוח הזה.',
     confirmLabel: 'אשרו ופרסמו',
     announcement: 'ההצעה אושרה ופורסמה. הפעולה נרשמה ביומן.',
@@ -117,7 +123,7 @@ const REASON_PLACEHOLDER =
  * deck has no sentence for "the request never reached the server", and a
  * dialog that closes on a failure it cannot describe loses the typed reason.
  */
-const ACTION_FAILED_HE = 'הפעולה לא הושלמה. נסו שוב; אם זה חוזר — פנו למנהל־על.';
+const ACTION_FAILED_HE = 'הפעולה לא הושלמה. נסו שוב; אם זה חוזר - פנו למנהל-על.';
 
 const toSummary = (detail: ProposalDetail): ProposalSummary => ({
   id: detail.id,
@@ -157,7 +163,7 @@ export interface ProposalsClientProps {
   proposals: readonly ProposalSummary[];
   /** Holds `proposal.approve`. */
   canApprove: boolean;
-  /** Holds `proposal.reject` — which also governs returning for changes. */
+  /** Holds `proposal.reject` - which also governs returning for changes. */
   canReject: boolean;
   /** Holds `content.moderate`. */
   canModerate: boolean;
@@ -338,7 +344,7 @@ export function ProposalsClient({
   const renderActions = useCallback(
     (row: ProposalSummary) => {
       if (row.selfSubmitted) {
-        return <p className={styles.lock}>הצעה שהגשתם — ההכרעה שמורה למנהל אחר.</p>;
+        return <p className={styles.lock}>הצעה שהגשתם - ההכרעה שמורה למנהל אחר.</p>;
       }
       // Only a proposal actually under review is decidable. On a decided row
       // the actions are absent for the same reason they are absent on a

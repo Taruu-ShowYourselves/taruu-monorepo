@@ -1,5 +1,5 @@
 /**
- * POST /api/space-admin/{spaceId}/notifications/preview — cost an audience.
+ * POST /api/space-admin/{spaceId}/notifications/preview - cost an audience.
  *
  * Thin imperative shell: session → burst gate → zod parse → use-case → respond.
  * The space predicate never appears here; it is read off the `SpaceScope` the
@@ -21,7 +21,7 @@ import { getSessionFromRequest } from '@/services/auth/session';
  * The monthly quota is a count of campaign rows in the database
  * (`countCampaignsSentThisMonth`). It could not be this: `lib/rate-limit.ts`
  * degrades to an in-process `Map` whenever Upstash is unconfigured, which it is
- * here, and on Cloudflare Workers that map is per-isolate — N isolates would
+ * here, and on Cloudflare Workers that map is per-isolate - N isolates would
  * each hand the same space a full allowance. This limiter only stops one client
  * hammering the resolver, which is a database read, not a spend.
  */

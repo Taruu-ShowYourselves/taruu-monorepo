@@ -1,0 +1,69 @@
+/* CheerBurst - paper confetti, thrown once on mount.
+ *
+ * The host is a zero-size anchor: callers drop it inside any
+ * position-relative success panel and the particles fly from that point.
+ * Everything animates transform + opacity only, and every particle ends at
+ * opacity 0 with `forwards`, so after ~1.2s the whole thing is invisible
+ * paint-free DOM. */
+
+.burst {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  inline-size: 0;
+  block-size: 0;
+  pointer-events: none;
+  /* Above the panel it decorates, below any dialog chrome. */
+  z-index: 3;
+}
+
+.particle {
+  position: absolute;
+  inline-size: 0.5rem;
+  block-size: 0.75rem;
+  border-radius: 1px;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: cheer-throw 1.1s cubic-bezier(0.16, 0.6, 0.35, 1) forwards;
+  animation-delay: var(--cheer-delay, 0ms);
+}
+
+/* The paper's own palette: red, ink, and the paper flipped dark so the
+   third tone still reads on a light panel. */
+.particle[data-tone='0'] {
+  background: var(--np-red);
+}
+
+.particle[data-tone='1'] {
+  background: var(--np-ink);
+}
+
+.particle[data-tone='2'] {
+  background: var(--np-ink-faint);
+}
+
+/* Out fast, a slight gravity sag at the end of the flight (110% of the
+   throw's Y plus a fixed droop), spinning as paper does. */
+@keyframes cheer-throw {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  70% {
+    opacity: 1;
+    transform: translate(var(--cheer-x), var(--cheer-y))
+      rotate(var(--cheer-spin)) scale(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--cheer-x), calc(var(--cheer-y) + 1.6rem))
+      rotate(calc(var(--cheer-spin) * 1.2)) scale(0.7);
+  }
+}
+
+/* Decoration is the first thing reduced motion turns off. */
+@media (prefers-reduced-motion: reduce) {
+  .burst {
+    display: none;
+  }
+}

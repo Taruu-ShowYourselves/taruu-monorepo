@@ -1,29 +1,44 @@
 import { Metadata } from 'next';
-import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
+import { Masthead, Ticker } from '@/components/press';
+import { Colophon } from '@/components/press/sections';
 import { VotesView } from './components/VotesView';
 import type { Locale } from '@/lib/i18n';
 
-export const metadata: Metadata = {
-  title: 'הצבעות פומביות',
-  description:
-    'צפו בהצבעות פעילות, הצבעות שהסתיימו ותוצאות ברשויות המקומיות בישראל.',
+const METADATA: Record<Locale, Metadata> = {
+  he: {
+    title: 'הצבעות פומביות',
+    description:
+      'צפו בהצבעות פעילות, הצבעות שהסתיימו ותוצאות ברשויות המקומיות בישראל.',
+  },
+  en: {
+    title: 'Public Votes',
+    description:
+      'Follow active votes, concluded votes, and results across Israeli municipalities.',
+  },
 };
 
 interface VotesPageProps {
   params: Promise<{ locale: Locale }>;
 }
 
+export async function generateMetadata({
+  params,
+}: VotesPageProps): Promise<Metadata> {
+  const { locale } = await params;
+  return METADATA[locale];
+}
+
 export default async function VotesPage({ params }: VotesPageProps) {
   const { locale } = await params;
 
   return (
-    <>
-      <Header locale={locale} />
+    <div className="np-page">
+      <Masthead locale={locale} />
+      <Ticker locale={locale} />
       <main>
-        <VotesView />
+        <VotesView locale={locale} />
       </main>
-      <Footer locale={locale} />
-    </>
+      <Colophon locale={locale} />
+    </div>
   );
 }

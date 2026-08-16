@@ -1,5 +1,5 @@
 /**
- * GET /api/space-admin/{spaceId} — the dashboard shell and its figures.
+ * GET /api/space-admin/{spaceId} - the dashboard shell and its figures.
  *
  * Thin imperative shell: session → use-case → respond. All authorization lives
  * in the use-case, which resolves membership per request against the database;

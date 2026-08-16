@@ -62,6 +62,39 @@ export const supabaseAdmin: SupabaseClient<Database> = new Proxy(
   }
 );
 
+/**
+ * Whether there is a service-role key to read with.
+ *
+ * `supabaseAdmin` above builds its client on first property access, so a
+ * missing key throws at `supabaseAdmin.rpc` itself - before any query runs,
+ * and therefore outside the `error` channel that reads destructure. Every
+ * module documenting "degrades to empty without a key" is describing
+ * behaviour it does not have: the throw escapes past the check, fails the
+ * route, and takes `next build` down on any prerendered page (#39).
+ *
+ * Lives here rather than in a read module because it is a property of the
+ * proxy, not of any one caller. Probe `.rpc` specifically - `has` is trapped
+ * separately and would not build the client, so `in` proves nothing.
+ *
+ * Absorbs exactly one throw. A network fault or a broken RPC still
+ * propagates: a page quietly printing empty on a real failure is worse than
+ * a route that fails where somebody will see it.
+ */
+export function hasServiceRole(): boolean {
+  try {
+    void supabaseAdmin.rpc;
+    return true;
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.includes('SUPABASE_SERVICE_ROLE_KEY')
+    ) {
+      return false;
+    }
+    throw error;
+  }
+}
+
 // `withUserContext()` was removed in Phase 5 (RLS-03). It called
 // `set_claim('user_id', …)`, which wrote `app.user_id` while `public.user_id()`
 // read `app.current_user_id`, had zero call sites, and could not have worked

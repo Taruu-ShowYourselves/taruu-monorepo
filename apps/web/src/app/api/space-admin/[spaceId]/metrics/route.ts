@@ -1,5 +1,5 @@
 /**
- * GET /api/space-admin/{spaceId}/metrics — aggregate-only statistics.
+ * GET /api/space-admin/{spaceId}/metrics - aggregate-only statistics.
  *
  * Thin imperative shell: session → use-case → respond. There is no query
  * vocabulary here on purpose. A filter, a breakdown or a date range would each

@@ -45,16 +45,16 @@ import type { Session } from '@/services/auth/session';
 
 /**
  * The one refusal in this module that carries a reason. It discloses nothing
- * the caller does not already know — they are the submitter — and the UI needs
+ * the caller does not already know - they are the submitter - and the UI needs
  * the sentence verbatim. Every other denial here stays the constant opaque one,
  * so the rule that a space-admin refusal says nothing is intact.
  */
-const SELF_SUBMITTED_HE = 'הצעה שהגשתם — ההכרעה שמורה למנהל אחר.';
+const SELF_SUBMITTED_HE = 'הצעה שהגשתם - ההכרעה שמורה למנהל אחר.';
 
 /**
  * What the approve dialog renders, verbatim, when the fee request declines.
  *
- * The port's own reason is generic — it does not know it is being called from a
+ * The port's own reason is generic - it does not know it is being called from a
  * review dialog. This sentence is the promise that dialog makes, so the
  * use-case substitutes it on the way out and the 402 body is exactly what the
  * `role="alert"` shows. `אף סכום לא נגבה` is true because the charge precedes
@@ -74,7 +74,7 @@ export interface DecideProposalDeps {
 
 /**
  * A declining charge keeps its 402 and gains the dialog's sentence. Any other
- * failure from the port passes through untouched — a port that reports a
+ * failure from the port passes through untouched - a port that reports a
  * database fault should not be dressed up as a payment decline.
  */
 const asChargeFailure = (error: AppError): AppError =>
@@ -100,7 +100,7 @@ function toProposalDetail(
  * What `?proposal={id}` deep-links resolve against.
  *
  * An id that does not resolve inside this space is the same opaque refusal as
- * no grant at all — never a 404, which would confirm that the vote exists
+ * no grant at all - never a 404, which would confirm that the vote exists
  * somewhere else.
  */
 export function getProposalDetail(
@@ -136,7 +136,7 @@ export function decideProposal(
   return authorize(session, rawSpaceId, capabilityFor(command.decision)).andThen((scope) =>
     // 2. Read THROUGH the scope. A vote in another space and a vote that does
     //    not exist both read back nothing, and both refuse identically with no
-    //    reason attached — the two cases must stay indistinguishable.
+    //    reason attached - the two cases must stay indistinguishable.
     findProposalInScope(scope, voteId).andThen((row) => {
       if (row === null) return errAsync<ProposalDetail, AppError>(forbidden());
 
@@ -161,12 +161,12 @@ export function decideProposal(
       //     transition. Do not reorder. If the charge ran after publication, a
       //     decline would leave the proposal live and unbilled, and the approve
       //     dialog promises the opposite: אף סכום לא נגבה, nothing published.
-      //     The submitter is billed — never the reviewer, who is `scope.userId`
+      //     The submitter is billed - never the reviewer, who is `scope.userId`
       //     and merely clicked the button.
       //
       //     The visible consequence of charging first: if the transition below
       //     then loses the race, the obligation has already been recorded. That
-      //     is why the port's idempotency key is deterministic — a second
+      //     is why the port's idempotency key is deterministic - a second
       //     approval attempt reuses the same payments row instead of billing
       //     twice. A concurrent *reject* strands that row instead; see the plan
       //     summary, PAY-06 must reconcile stranded pending rows.

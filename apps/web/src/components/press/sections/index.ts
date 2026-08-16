@@ -1,12 +1,16 @@
 export { Lead } from './Lead';
 export { ConsensusDesk } from './ConsensusDesk';
 export { WhatIsTaruu } from './WhatIsTaruu';
+export { CivicMandate } from './CivicMandate';
 export { CivicReminder } from './CivicReminder';
+export { HowToJoin } from './HowToJoin';
 export { KnessetDesk } from './KnessetDesk';
+export { DeskTabs } from './DeskTabs';
 export { KnessetAgenda } from './KnessetAgenda';
 export { ActNow } from './ActNow';
 export { Participate } from './Participate';
 export { Pillars } from './Pillars';
-export { HowItWorks } from './HowItWorks';
 export { PilotDispatch } from './PilotDispatch';
 export { Colophon } from './Colophon';
+export { IsraelMapDesk } from './IsraelMapDesk';
+export { ThesisChapters } from './ThesisChapters';

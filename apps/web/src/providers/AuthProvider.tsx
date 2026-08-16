@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useRouter } from 'next/navigation';
+import { safeRedirect } from '@/lib/safeRedirect';
 import { useAuthStore } from '@/stores/authStore';
 import type { UserProfile } from '@sync/shared';
 
@@ -202,11 +203,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
               setUser(data.user);
             }
 
-            // Redirect based on user state
+            // OAuth drops arbitrary query parameters. A sensitive return target
+            // is therefore saved client-side by the initiating flow and only
+            // consumed after the callback, via the same open-redirect guard as
+            // the sign-in screen. New members still need onboarding first.
+            const pilotReturn = safeRedirect(
+              sessionStorage.getItem('taruu.post_auth_redirect'),
+              '/dashboard'
+            );
             if (data.isNewUser) {
               router.push('/onboarding');
             } else {
-              router.push('/dashboard');
+              sessionStorage.removeItem('taruu.post_auth_redirect');
+              router.push(pilotReturn);
             }
           } else {
             const errorData = await response.json();

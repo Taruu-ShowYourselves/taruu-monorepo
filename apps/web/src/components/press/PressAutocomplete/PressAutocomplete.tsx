@@ -4,6 +4,7 @@ import React, { useId } from 'react';
 import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
 import clsx from 'clsx';
+import type { Locale } from '@/lib/i18n';
 import styles from './PressAutocomplete.module.css';
 
 interface Option {
@@ -22,8 +23,18 @@ interface PressAutocompleteProps {
   onInputChange?: (text: string) => void;
   placeholder?: string;
   noOptionsText?: string;
+  locale?: Locale;
   className?: string;
 }
+
+interface PressAutocompleteCopy {
+  noOptions: string;
+}
+
+const COPY: Record<Locale, PressAutocompleteCopy> = {
+  he: { noOptions: 'לא נמצאו תוצאות' },
+  en: { noOptions: 'No results found' },
+};
 
 const inputSx = {
   '& .MuiOutlinedInput-root': {
@@ -32,7 +43,8 @@ const inputSx = {
     color: 'var(--np-ink)',
     background:
       'linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0) 45%), var(--np-paper-box)',
-    borderRadius: 'var(--np-radius-card)',
+    /* Radius is reserved for cards; a field is newsprint chrome and sits flat. */
+    borderRadius: 0,
     boxShadow: 'var(--np-shadow-soft)',
     minHeight: '3rem',
     transition: 'box-shadow 200ms cubic-bezier(0.2,0,0,1), transform 200ms cubic-bezier(0.2,0,0,1)',
@@ -95,9 +107,11 @@ export function PressAutocomplete({
   onChange,
   onInputChange,
   placeholder,
-  noOptionsText = 'לא נמצאו תוצאות',
+  noOptionsText,
+  locale = 'he',
   className,
 }: PressAutocompleteProps) {
+  const t = COPY[locale];
   const fieldId = useId();
   const invalid = Boolean(error);
   const selected = options.find((o) => o.value === value) ?? null;
@@ -119,8 +133,13 @@ export function PressAutocomplete({
         }
         getOptionLabel={(o) => o.label}
         isOptionEqualToValue={(a, b) => a.value === b.value}
-        noOptionsText={noOptionsText}
+        noOptionsText={noOptionsText ?? t.noOptions}
         fullWidth
+        popupIcon={
+          <span aria-hidden className={styles.caret}>
+            ↓
+          </span>
+        }
         slotProps={{ paper: { sx: paperSx } }}
         sx={inputSx}
         renderInput={(params) => (

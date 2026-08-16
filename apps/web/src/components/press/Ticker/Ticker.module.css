@@ -5,10 +5,9 @@
   color: var(--np-paper);
   border-block: var(--np-rule) solid var(--np-ink);
   overflow: hidden;
-  /* Respect the page gutters - same inline inset as the masthead padding,
-     so the ink band aligns with the rules above instead of bleeding
-     edge-to-edge. */
-  margin-inline: var(--np-gutter);
+  /* Full bleed: the ink band runs side to side, edge of the paper to edge
+     of the paper, the way a wire ticker does. */
+  margin-inline: 0;
 }
 
 .flag {
@@ -49,13 +48,28 @@
   display: inline-flex;
   align-items: center;
   white-space: nowrap;
-  animation: np-marquee 38s linear infinite;
+  /* Duration is tied to RUN_COUNT in Ticker.tsx: the 50% shift travels
+     4 item runs, so 152s holds the speed at ~1 run per 38s. */
+  animation: np-marquee 152s linear infinite;
 }
 
-/* RTL: scroll content toward inline-end (visually left→ start) */
+/* RTL anchors the overflowing track to the viewport's right edge, so the
+   slide must go toward +X to keep that edge covered; at +50% the identical
+   second half sits exactly where the first began - a seamless wrap. */
 @keyframes np-marquee {
-  from { transform: translateX(-50%); }
-  to { transform: translateX(0); }
+  from { transform: translateX(0); }
+  to { transform: translateX(50%); }
+}
+
+/* The en edition renders under html[dir='ltr'], where the track anchors
+   left - mirror the slide or the same hole opens on the left edge. */
+[dir='ltr'] .track {
+  animation-name: np-marquee-ltr;
+}
+
+@keyframes np-marquee-ltr {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 
 .item {

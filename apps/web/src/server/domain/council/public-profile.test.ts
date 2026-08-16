@@ -39,7 +39,7 @@ describe('public council profile aggregation', () => {
     );
     expect(profile.metrics.registeredUsers.source?.name).toContain('תַּרְאוּ');
     expect(profile.council.canonicalUrl).toBe(
-      '/he/councils/קריית-טבעון'
+      '/councils/קריית-טבעון'
     );
   });
 

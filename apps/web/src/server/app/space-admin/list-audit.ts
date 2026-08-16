@@ -1,7 +1,7 @@
 import 'server-only';
 
 /**
- * Audit history (Surface 6) — the read half of SPACE-04.
+ * Audit history (Surface 6) - the read half of SPACE-04.
  *
  * One capability, `audit.read`, and one repository call that will not run
  * without the scope it mints. The page carries `rows`, `nextCursor` and
@@ -30,7 +30,7 @@ import type { Session } from '@/services/auth/session';
  * The seven values the `object_type` CHECK admits. Declared here because the
  * contract types the field as a plain string, and a filter accepting anything
  * else would be a query that matches nothing rather than an error. The
- * annotation is what keeps this honest — drifting from the column's own union
+ * annotation is what keeps this honest - drifting from the column's own union
  * is a compile error here, not a silently empty page in production.
  */
 const AUDIT_OBJECT_TYPES = [

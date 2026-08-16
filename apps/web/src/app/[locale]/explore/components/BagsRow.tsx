@@ -5,6 +5,7 @@ import type { Locale } from '@/lib/i18n';
 import { ShareBar } from './ShareBar';
 import { formatIls } from './format';
 import styles from './MoneyDesk.module.css';
+import { localePrefix } from '@/lib/i18n';
 
 export interface TrendingBag {
   voteId: string;
@@ -36,7 +37,7 @@ interface BagsRowProps {
 export function BagsRow({ bag, rank, pctOfTop, locale }: BagsRowProps) {
   return (
     <li className={styles.bagItem}>
-      <Link href={`/${locale}/coin/${bag.voteId}`} className={styles.bagLink}>
+      <Link href={`${localePrefix(locale)}/coin/${bag.voteId}`} className={styles.bagLink}>
         <span className={styles.bagRank} aria-hidden>
           {String(rank).padStart(2, '0')}
         </span>

@@ -6,7 +6,7 @@ import 'server-only';
  * Same contract as `space.repo.ts`: every query runs as the Supabase service
  * role, which has BYPASSRLS, so the space predicate is written here and by
  * nothing else. Every exported function takes a `SpaceScope` as parameter one
- * — except `suspendGrantById` and `insertEscalation`, which are reachable
+ * - except `suspendGrantById` and `insertEscalation`, which are reachable
  * without a space capability and say so at their own definitions, and
  * `isPlatformAdmin`, which is a plain user lookup with no space in it at all.
  *
@@ -108,7 +108,7 @@ const isUniqueViolation = (cause: unknown): boolean =>
   (cause as { code?: unknown }).code === '23505';
 
 /**
- * A unique-index collision here is not a server fault — it means the state the
+ * A unique-index collision here is not a server fault - it means the state the
  * caller asked for already exists. Surfacing it as a 500 would tell an admin
  * their action broke when in fact it was already done.
  */
@@ -126,8 +126,8 @@ const uniqueAware =
  * space's resolved `municipality_code`.
  *
  * The column list below is hand-written on purpose. A star select on users in
- * an admin surface guarantees a future privacy leak — the next private column
- * added to the table would join the response with nobody deciding it should —
+ * an admin surface guarantees a future privacy leak - the next private column
+ * added to the table would join the response with nobody deciding it should -
  * and the identity-document table is never joined from this module at all. The
  * permitted seven are the ones `SpaceMemberSchema` can express; widening them
  * is a privacy decision made in the contract, not here.
@@ -228,7 +228,7 @@ export function listActiveMemberSuspensions(
 }
 
 /**
- * A plain user lookup — no space, and therefore no `SpaceScope`. The platform
+ * A plain user lookup - no space, and therefore no `SpaceScope`. The platform
  * admin marker is deliberately not a space capability and confers no data
  * access on its own; it authorizes exactly one action, in `manage-grants.ts`.
  */
@@ -355,14 +355,14 @@ export function suspendGrantById(
 // ---------------------------------------------------------------------------
 
 /**
- * Named apart from the `suspendMember` use-case on purpose — the same reason
+ * Named apart from the `suspendMember` use-case on purpose - the same reason
  * `listSpaceMembers` and `getSpaceMembers` differ. One name across the app and
  * infra layers is how a caller reaches the database without an authorization
  * call in front of it.
  *
  * Two statements, and the order is the safety property. PostgREST gives us no
  * transaction, so the grants are suspended **first**: if the second write then
- * fails, access is already gone and no suspension record exists — the failure
+ * fails, access is already gone and no suspension record exists - the failure
  * direction is closed, never open. Both writes carry the identical timestamp,
  * which is what lets a later reinstatement restore exactly the grants this
  * suspension took and leave a separately-revoked grant revoked.
@@ -416,7 +416,7 @@ export function insertMemberSuspension(
  *
  * The grant restore matches on the suspension's own timestamp rather than on
  * "every suspended grant of this member". A capability revoked individually
- * before the suspension must stay revoked — the confirmation copy promises the
+ * before the suspension must stay revoked - the confirmation copy promises the
  * permissions held *before* the suspension, and a revoked one was not among
  * them.
  */
@@ -501,7 +501,7 @@ const contentPatch = (
 /**
  * One conditional update per action, each carrying the space predicate and the
  * current-state guard alongside the write. Hiding something already hidden
- * matches zero rows and is a conflict, not a silent success — an admin told
+ * matches zero rows and is a conflict, not a silent success - an admin told
  * "done" when nothing changed cannot tell their action from a race.
  */
 export function setContentModeration(
@@ -541,7 +541,7 @@ export function setContentModeration(
 
 /**
  * Plain values rather than a `SpaceScope`, because the escalation path is
- * reachable by a suspended admin and by a user holding nothing at all — there
+ * reachable by a suspended admin and by a user holding nothing at all - there
  * is no capability from which a scope could be minted, and requiring one would
  * put the control out of reach of exactly the people who need it.
  *

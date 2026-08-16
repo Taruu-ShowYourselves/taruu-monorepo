@@ -21,7 +21,7 @@ export interface SpaceAdminHeaderProps {
 
 /**
  * Page masthead for every space-admin surface: kicker, `h1`, and a mono
- * edition-meta line. Rendered by each PAGE, never by the layout — a Next.js
+ * edition-meta line. Rendered by each PAGE, never by the layout - a Next.js
  * layout does not re-render on navigation, so it cannot carry per-surface
  * space identity.
  */
@@ -46,7 +46,7 @@ export function SpaceAdminHeader({
         ניהול מרחב · SPACE ADMIN
       </span>
 
-      <h1 className={styles.headline}>לוח הניהול — {spaceName}</h1>
+      <h1 className={styles.headline}>לוח הניהול - {spaceName}</h1>
 
       <p className={styles.meta}>
         <span>{spaceTypeLabel}</span>
@@ -81,8 +81,8 @@ export function SpaceAdminHeader({
             מושעה · SUSPENDED
           </span>
           <p className={styles.suspendedBody}>
-            הגישה שלכם למרחב הזה הושעתה על ידי מנהל־על. ההיסטוריה והתיעוד
-            נשמרים במלואם ואינם נמחקים. לבירור — פנו למנהל־על.
+            הגישה שלכם למרחב הזה הושעתה על ידי מנהל-על. ההיסטוריה והתיעוד
+            נשמרים במלואם ואינם נמחקים. לבירור - פנו למנהל-על.
           </p>
         </div>
       ) : null}

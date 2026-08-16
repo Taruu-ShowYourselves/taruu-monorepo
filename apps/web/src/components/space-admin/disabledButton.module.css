@@ -1,5 +1,5 @@
 /* ============================================================
- * THE DISABLED-STATE CONTRACT — D17 + D27, and nothing else.
+ * THE DISABLED-STATE CONTRACT - D17 + D27, and nothing else.
  *
  * `NewsButton.module.css` has no `:disabled` rule at all: a disabled button
  * renders identically to an enabled one and keeps `cursor: pointer`. Rule B
@@ -22,19 +22,19 @@
  * control that needs a disabled appearance: take a red hover fill it must not
  * have, or copy the block. `PressTable`'s `outline` pagination had already
  * copied it; the dispatch send is `red`/`lg`, whose own hover inverts to ink
- * at 16.66:1 and would be made WORSE by a red-dark fill — the same mistake the
+ * at 16.66:1 and would be made WORSE by a red-dark fill - the same mistake the
  * spec caught and reverted once for `outline`. Splitting removes the choice.
  * ============================================================ */
 
-/* (0,2,0) — beats `.btn` and every variant's rest state. */
+/* (0,2,0) - beats `.btn` and every variant's rest state. */
 .control:disabled {
   background: var(--np-paper-2);
-  color: var(--np-ink-faint); /* 4.53:1 on paper-2 — AA normal text */
+  color: var(--np-ink-faint); /* 4.53:1 on paper-2 - AA normal text */
   border-color: var(--np-ink-faint);
   cursor: not-allowed;
 }
 
-/* (0,2,1) — beats `.ink:hover` / `.outline:hover` / `.red:hover` at (0,1,1). */
+/* (0,2,1) - beats `.ink:hover` / `.outline:hover` / `.red:hover` at (0,1,1). */
 .control:disabled:hover {
   background: var(--np-paper-2);
   color: var(--np-ink-faint);

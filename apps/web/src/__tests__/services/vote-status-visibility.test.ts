@@ -7,14 +7,14 @@
  * public-ish" stops being true, and four read paths in db.ts had no status
  * predicate at all.
  *
- * The guarantee is that public visibility is decided by ONE allow-list —
- * `PUBLIC_VOTE_STATUSES` — and that the predicate lives in the SQL:
+ * The guarantee is that public visibility is decided by ONE allow-list -
+ * `PUBLIC_VOTE_STATUSES` - and that the predicate lives in the SQL:
  *
  *   .in('status', ['pending','active','ended','resolving','resolved'])
  *
  * So these assertions inspect the recorded query-builder calls, never the
  * returned rows. A post-fetch filter would satisfy a data-shape assertion while
- * still shipping every draft over the wire — the same bug class
+ * still shipping every draft over the wire - the same bug class
  * treasury-transaction-scoping.test.ts pins down for the treasury ledger.
  */
 
@@ -121,7 +121,7 @@ describe('single-vote reads', () => {
     expect(inSpy).toHaveBeenCalledWith('status', PUBLIC_VOTE_STATUSES);
   });
 
-  it('getVoteByIdUnfiltered issues NO status predicate — it is the internal escape hatch', async () => {
+  it('getVoteByIdUnfiltered issues NO status predicate - it is the internal escape hatch', async () => {
     await getVoteByIdUnfiltered('vote-1');
 
     expect(eq).toHaveBeenCalledWith('id', 'vote-1');
@@ -143,6 +143,29 @@ describe('findVoteByMunicipalityAndTitle (ingest dedup window)', () => {
     // Still finds the already-published duplicates it always found.
     expect(window).toContain('pending');
     expect(window).toContain('active');
+  });
+
+  it('throws when the query fails, so a broken lookup is never read as "no such vote"', async () => {
+    // What this pins down: the desk printed one Bat Yam topic four times
+    // because this status window named enum labels the deployed database did
+    // not have, every lookup came back 22P02, and a `null` return told the
+    // ingest route to insert a fresh copy - 184 surplus rows deep.
+    queryResult = {
+      data: null,
+      error: { code: '22P02', message: 'invalid input value for enum vote_status: "draft"' },
+    };
+
+    await expect(
+      findVoteByMunicipalityAndTitle('חיפה', 'שדרוג גן העיר')
+    ).rejects.toThrow(/שדרוג גן העיר/);
+  });
+
+  it('returns null only when the query succeeded and matched nothing', async () => {
+    queryResult = { data: null, error: null };
+
+    await expect(
+      findVoteByMunicipalityAndTitle('חיפה', 'שדרוג גן העיר')
+    ).resolves.toBeNull();
   });
 });
 
@@ -194,7 +217,7 @@ describe('GET /api/votes status handling', () => {
     );
     const response = await GET(request);
 
-    // A 400 here would confirm the label is real — an existence oracle for the
+    // A 400 here would confirm the label is real - an existence oracle for the
     // review vocabulary. The review status must degrade to "no filter".
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ votes: [] });

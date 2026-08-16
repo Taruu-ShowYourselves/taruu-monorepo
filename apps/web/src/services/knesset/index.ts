@@ -16,6 +16,7 @@ import {
   getKnessetItemByItemId,
   upsertKnessetItem,
 } from '@/lib/supabase/db';
+import { UniqueViolationError } from '@/lib/supabase/errors';
 import { cronLogger as log } from '@/lib/logger';
 import {
   fetchRecentPlenumSessions,
@@ -142,15 +143,25 @@ async function syncItem(
     return;
   }
 
-  const vote = await createVote({
-    creator_id: CREATOR_ID,
-    title,
-    description: describeItem(item, session),
-    municipality_id: KNESSET_SCOPE,
-    // Day-order items are system-published: live immediately, no editor gate.
-    status: 'active',
-    end_date: new Date(Date.now() + VOTE_DAYS * 86_400_000).toISOString(),
-  });
+  let vote;
+  try {
+    vote = await createVote({
+      creator_id: CREATOR_ID,
+      title,
+      description: describeItem(item, session),
+      municipality_id: KNESSET_SCOPE,
+      // Day-order items are system-published: live immediately, no editor gate.
+      status: 'active',
+      end_date: new Date(Date.now() + VOTE_DAYS * 86_400_000).toISOString(),
+    });
+  } catch (error) {
+    // `ux_votes_live_topic` reached the same verdict the title-dup guard above
+    // was looking for, just a moment later: an overlapping run opened the
+    // ballot in between. Same outcome, same tally.
+    if (!(error instanceof UniqueViolationError)) throw error;
+    result.skippedTitleDup += 1;
+    return;
+  }
   await createVoteOptions(
     VOTE_OPTIONS.map((text) => ({ vote_id: vote.id, text }))
   );
@@ -223,3 +234,11 @@ export async function syncKnessetAgenda(): Promise<KnessetSyncResult> {
 
   return result;
 }
+
+/* The roster and the voting record are their own syncs - same upstream
+   host, different services and different cadences. Re-exported here so a
+   caller has one door into the Knesset mirror. */
+export { syncKnessetRoster, officeOfPosition, slugifyName } from './roster';
+export type { RosterSyncResult } from './roster';
+export { syncKnessetRollCalls, prioritizeRollCalls } from './rollcalls';
+export type { RollCallSyncResult } from './rollcalls';

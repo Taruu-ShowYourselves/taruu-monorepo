@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import { LocalAuthorityKindSchema } from './authority';
 
 // === Civic metrics ===
 
@@ -59,3 +60,52 @@ export const MunicipalityProfileResponseSchema = z.object({
 export type MunicipalityProfileResponse = z.infer<
   typeof MunicipalityProfileResponseSchema
 >;
+
+// === Civic stats (the desk's municipality dial) ===
+
+/**
+ * Every civic score shares one signed scale, so a reader comparing three bars
+ * side by side never has to ask which one runs 0..100. See the
+ * `municipality_civic_stats()` migration for how each is derived.
+ */
+export const CIVIC_SCORE_MIN = -100;
+export const CIVIC_SCORE_MAX = 100;
+
+/** A signed score as a 0-100 position on its track, for meter widgets. */
+export function civicScorePercent(score: number): number {
+  const clamped = Math.min(CIVIC_SCORE_MAX, Math.max(CIVIC_SCORE_MIN, score));
+  return ((clamped - CIVIC_SCORE_MIN) / (CIVIC_SCORE_MAX - CIVIC_SCORE_MIN)) * 100;
+}
+
+const CivicScoreSchema = z
+  .number()
+  .int()
+  .min(CIVIC_SCORE_MIN)
+  .max(CIVIC_SCORE_MAX)
+  /** null = not measured yet. Never coerce to 0 - that reads as a measured floor. */
+  .nullable();
+
+export const MunicipalityCivicStatsSchema = z.object({
+  /** Canonical municipality code, which doubles as the Hebrew display name. */
+  municipality: z.string(),
+  /**
+   * What kind of authority this is. Not decoration: a reader's dial is ordered
+   * by their own geography - their authority, then the regional council that
+   * administers it, then outward by distance - and the middle tier is only
+   * findable if the rows say which of them is a `regional_council`.
+   */
+  kind: LocalAuthorityKindSchema,
+  /** Civilian residents (published figure); null when unknown. */
+  residents: z.number().int().nonnegative().nullable(),
+  /** Residents registered on the platform. */
+  platformUsers: z.number().int().nonnegative(),
+  /** Registered residents who have cast at least one ballot. */
+  activeParticipants: z.number().int().nonnegative(),
+  openTopics: z.number().int().nonnegative(),
+  engagementScore: CivicScoreSchema,
+  cooperationScore: CivicScoreSchema,
+  satisfactionScore: CivicScoreSchema,
+  overallScore: CivicScoreSchema,
+});
+
+export type MunicipalityCivicStats = z.infer<typeof MunicipalityCivicStatsSchema>;

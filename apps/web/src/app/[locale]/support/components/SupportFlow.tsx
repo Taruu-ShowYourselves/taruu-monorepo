@@ -5,6 +5,7 @@ import { NewsButton } from '@/components/press';
 import type { Locale } from '@/lib/i18n';
 import styles from './SupportFlow.module.css';
 import { WHATSAPP_FOUNDERS_LINK } from '@sync/shared';
+import { localePrefix } from '@/lib/i18n';
 
 const WHATSAPP_LINK = WHATSAPP_FOUNDERS_LINK;
 
@@ -77,37 +78,64 @@ function LockIcon() {
   );
 }
 
-interface Topic {
-  label: string;
-  blurb: string;
-  icon: () => React.ReactElement;
+const TOPIC_ICONS: (() => React.ReactElement)[] = [VoteIcon, ShieldIcon, CoinIcon, LockIcon];
+
+interface SupportFlowCopy {
+  waKicker: string;
+  waTitle: string;
+  waText: string;
+  waCta: string;
+  faqKicker: string;
+  faqTitle: string;
+  faqText: string;
+  faqMore: string;
+  topicsKicker: string;
+  topics: { label: string; blurb: string }[];
+  arrow: string;
 }
 
-const TOPICS: Topic[] = [
-  {
-    label: 'הצבעה',
-    blurb: 'איך מצביעים, מתי, וכמה זה עולה.',
-    icon: VoteIcon,
+const COPY: Record<Locale, SupportFlowCopy> = {
+  he: {
+    waKicker: 'קו חי · אנשים אמיתיים',
+    waTitle: 'דברו איתנו בוואטסאפ',
+    waText: 'אין רובוטים ואין תורים. כתבו לנו בקבוצת הפיילוט. אנשים אמיתיים עונים, בדרך כלל מהר.',
+    waCta: 'פתחו שיחה בוואטסאפ',
+    faqKicker: 'ארכיון · שאלות ותשובות',
+    faqTitle: 'שאלות נפוצות',
+    faqText: 'תשובות ברורות לשאלות שכולם שואלים: הצבעה, אימות, כסף ופרטיות, בלי ז\'רגון.',
+    faqMore: 'למאגר השאלות הנפוצות',
+    topicsKicker: 'קיצורי דרך לפי נושא',
+    topics: [
+      { label: 'הצבעה', blurb: 'איך מצביעים, מתי, וכמה זה עולה.' },
+      { label: 'אימות', blurb: 'איך מוודאים שכל קול הוא תושב אמיתי.' },
+      { label: 'כסף', blurb: 'ההצבעה חינם. מה כן עולה ולאן הכסף הולך.' },
+      { label: 'פרטיות', blurb: 'מה אנחנו יודעים עליכם ומה לא.' },
+    ],
+    arrow: '←',
   },
-  {
-    label: 'אימות',
-    blurb: 'איך מוודאים שכל קול הוא תושב אמיתי.',
-    icon: ShieldIcon,
+  en: {
+    waKicker: 'Live line · Real people',
+    waTitle: 'Talk to us on WhatsApp',
+    waText: 'No robots and no queues. Write to us in the pilot group. Real people answer, usually fast.',
+    waCta: 'Open a WhatsApp chat',
+    faqKicker: 'Archive · Questions and answers',
+    faqTitle: 'Frequently asked questions',
+    faqText: 'Clear answers to the questions everyone asks: voting, verification, money and privacy, without the jargon.',
+    faqMore: 'To the FAQ archive',
+    topicsKicker: 'Shortcuts by topic',
+    topics: [
+      { label: 'Voting', blurb: 'How to vote, when, and what it costs.' },
+      { label: 'Verification', blurb: 'How we make sure every vote is one real resident.' },
+      { label: 'Money', blurb: 'Voting is free. What does cost, and where the money goes.' },
+      { label: 'Privacy', blurb: 'What we know about you, and what we do not.' },
+    ],
+    arrow: '→',
   },
-  {
-    label: 'כסף',
-    blurb: 'ההצבעה חינם. מה כן עולה ולאן הכסף הולך.',
-    icon: CoinIcon,
-  },
-  {
-    label: 'פרטיות',
-    blurb: 'מה אנחנו יודעים עליכם ומה לא.',
-    icon: LockIcon,
-  },
-];
+};
 
 export function SupportFlow({ locale = 'he' }: SupportFlowProps) {
-  const faqHref = `/${locale}/faq`;
+  const t = COPY[locale];
+  const faqHref = `${localePrefix(locale)}/faq`;
 
   return (
     <section className={styles.section}>
@@ -123,15 +151,14 @@ export function SupportFlow({ locale = 'he' }: SupportFlowProps) {
           >
             <span className={styles.pathKicker}>
               <span aria-hidden className={styles.pathTick} />
-              קו חי · אנשים אמיתיים
+              {t.waKicker}
             </span>
             <span className={styles.pathIcon}>
               <WhatsAppIcon />
             </span>
-            <h2 className={styles.pathTitle}>דברו איתנו בוואטסאפ</h2>
+            <h2 className={styles.pathTitle}>{t.waTitle}</h2>
             <p className={styles.pathText}>
-              אין רובוטים ואין תורים. כתבו לנו בקבוצת הפיילוט. אנשים אמיתיים
-              עונים, בדרך כלל מהר.
+              {t.waText}
             </p>
             <NewsButton
               href={WHATSAPP_LINK}
@@ -140,9 +167,9 @@ export function SupportFlow({ locale = 'he' }: SupportFlowProps) {
               variant="red"
               size="lg"
               className={styles.pathCta}
-              trailing={<span aria-hidden>←</span>}
+              trailing={<span aria-hidden>{t.arrow}</span>}
             >
-              פתחו שיחה בוואטסאפ
+              {t.waCta}
             </NewsButton>
           </motion.article>
 
@@ -156,19 +183,18 @@ export function SupportFlow({ locale = 'he' }: SupportFlowProps) {
             <a href={faqHref} className={styles.pathLinkCard}>
               <span className={styles.pathKicker}>
                 <span aria-hidden className={styles.pathTick} />
-                ארכיון · שאלות ותשובות
+                {t.faqKicker}
               </span>
               <span className={styles.pathIcon}>
                 <QuestionIcon />
               </span>
-              <h2 className={styles.pathTitle}>שאלות נפוצות</h2>
+              <h2 className={styles.pathTitle}>{t.faqTitle}</h2>
               <p className={styles.pathText}>
-                תשובות ברורות לשאלות שכולם שואלים: הצבעה, אימות, כסף ופרטיות,
-                בלי ז&apos;רגון.
+                {t.faqText}
               </p>
               <span className={styles.pathMore}>
-                למאגר השאלות הנפוצות
-                <span aria-hidden> ←</span>
+                {t.faqMore}
+                <span aria-hidden> {t.arrow}</span>
               </span>
             </a>
           </motion.div>
@@ -178,13 +204,13 @@ export function SupportFlow({ locale = 'he' }: SupportFlowProps) {
         <div className={styles.topicsHead}>
           <span className={styles.topicsKicker}>
             <span aria-hidden className={styles.pathTick} />
-            קיצורי דרך לפי נושא
+            {t.topicsKicker}
           </span>
         </div>
 
         <div className={styles.topics}>
-          {TOPICS.map((topic, i) => {
-            const Icon = topic.icon;
+          {t.topics.map((topic, i) => {
+            const Icon = TOPIC_ICONS[i];
             return (
               <motion.a
                 key={topic.label}

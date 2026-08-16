@@ -30,6 +30,24 @@ export function setStoredMunicipality(name: string): void {
   window.dispatchEvent(new CustomEvent(LOCALITY_EVENT, { detail: name }));
 }
 
+/**
+ * Read every authority instead of one.
+ *
+ * Not the same as never having chosen: the desks fall back to national heat
+ * either way, but this is a decision the reader made and can undo, so it is
+ * broadcast like any other change of locality.
+ */
+export function clearStoredMunicipality(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* storage unavailable - cookie still cleared below */
+  }
+  document.cookie = `${COOKIE_KEY}=;path=/;max-age=0;samesite=lax`;
+  window.dispatchEvent(new CustomEvent(LOCALITY_EVENT, { detail: null }));
+}
+
 /** "Not now" - stay quiet for this browser session. */
 export function dismissLocalityPrompt(): void {
   try {

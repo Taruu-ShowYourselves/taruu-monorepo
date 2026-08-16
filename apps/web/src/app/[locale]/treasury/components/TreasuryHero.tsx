@@ -3,24 +3,21 @@
 import { motion } from 'framer-motion';
 import { NewsButton } from '@/components/press';
 import { useReducedMotion } from '@/hooks';
+import type { Locale } from '@/lib/i18n';
 import styles from './TreasuryHero.module.css';
 import { WHATSAPP_FOUNDERS_LINK } from '@sync/shared';
 
 const EASE = [0.2, 0, 0, 1] as const;
 const WHATSAPP_LINK = WHATSAPP_FOUNDERS_LINK;
 
-interface Rule {
+interface RuleMeta {
   no: string;
-  title: string;
-  text: string;
   icon: React.ReactNode;
 }
 
-const RULES: Rule[] = [
+const RULES: RuleMeta[] = [
   {
     no: '01',
-    title: 'שקיפות מלאה',
-    text: 'כל הכנסה וכל הוצאה מתועדות בזמן אמת ופתוחות לבדיקה של כל תושב, בלי חדרים סגורים.',
     icon: (
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden>
         <path
@@ -36,8 +33,6 @@ const RULES: Rule[] = [
   },
   {
     no: '02',
-    title: 'אישור הקהילה',
-    text: 'הוצאות מעל סף מסוים אינן יוצאות לדרך ללא הצבעת אישור של הקהילה. הרוב מחליט גם על ההוצאה.',
     icon: (
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden>
         <path
@@ -59,8 +54,6 @@ const RULES: Rule[] = [
   },
   {
     no: '03',
-    title: 'ביקורת עצמאית',
-    text: 'הקרן עוברת ביקורת חשבונאית עצמאית מדי שנה: גורם חיצוני מאמת שכל שקל במקומו.',
     icon: (
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" aria-hidden>
         <path
@@ -82,8 +75,81 @@ const RULES: Rule[] = [
   },
 ];
 
-export function TreasuryHero() {
+interface TreasuryHeroProps {
+  locale?: Locale;
+}
+
+interface TreasuryHeroCopy {
+  kicker: string;
+  headline: string;
+  headlineRed: string;
+  standfirst: string;
+  foundersCta: string;
+  arrow: string;
+  dateline: string;
+  rulesHead: string;
+  rules: { title: string; text: string }[];
+  trust: string;
+}
+
+const COPY: Record<Locale, TreasuryHeroCopy> = {
+  he: {
+    kicker: 'שקיפות הקרן · עמוד כלכלה',
+    headline: 'כל שקל בקרן',
+    headlineRed: 'גלוי לעין.',
+    standfirst:
+      'הקרן הקהילתית פתוחה לבדיקה: כל הכנסה וכל הוצאה מתועדות בזמן אמת. הוצאות מעל סף מסוים דורשות אישור הקהילה, והקרן עוברת ביקורת חשבונאית עצמאית.',
+    foundersCta: 'קבוצת המייסדים',
+    arrow: '←',
+    dateline: 'כל הארץ · גיליון כלכלה',
+    rulesHead: 'הקרן עומדת על שלושה עקרונות',
+    rules: [
+      {
+        title: 'שקיפות מלאה',
+        text: 'כל הכנסה וכל הוצאה מתועדות בזמן אמת ופתוחות לבדיקה של כל תושב, בלי חדרים סגורים.',
+      },
+      {
+        title: 'אישור הקהילה',
+        text: 'הוצאות מעל סף מסוים אינן יוצאות לדרך ללא הצבעת אישור של הקהילה. הרוב מחליט גם על ההוצאה.',
+      },
+      {
+        title: 'ביקורת עצמאית',
+        text: 'הקרן עוברת ביקורת חשבונאית עצמאית מדי שנה: גורם חיצוני מאמת שכל שקל במקומו.',
+      },
+    ],
+    trust: 'הכסף נשאר בקהילה, ואתם רואים בדיוק לאן הוא הולך.',
+  },
+  en: {
+    kicker: 'Treasury transparency · Economics page',
+    headline: 'Every shekel in the fund,',
+    headlineRed: 'in plain sight.',
+    standfirst:
+      'The community fund is open for inspection: every deposit and every expense is recorded in real time. Expenses above a set threshold require community approval, and the fund undergoes an independent accounting audit.',
+    foundersCta: 'The founders’ group',
+    arrow: '→',
+    dateline: 'Nationwide · Economics edition',
+    rulesHead: 'The fund stands on three principles',
+    rules: [
+      {
+        title: 'Full transparency',
+        text: 'Every deposit and every expense is recorded in real time and open to inspection by any resident, with no closed rooms.',
+      },
+      {
+        title: 'Community approval',
+        text: 'Expenses above a set threshold do not go ahead without an approval vote by the community. The majority decides the spending, too.',
+      },
+      {
+        title: 'Independent audit',
+        text: 'The fund undergoes an independent accounting audit every year: an outside party verifies that every shekel is where it should be.',
+      },
+    ],
+    trust: 'The money stays in the community, and you see exactly where it goes.',
+  },
+};
+
+export function TreasuryHero({ locale = 'he' }: TreasuryHeroProps) {
   const reduced = useReducedMotion();
+  const t = COPY[locale];
 
   return (
     <section className={styles.hero} aria-labelledby="treasury-hero-title">
@@ -91,16 +157,15 @@ export function TreasuryHero() {
         <header className={styles.head}>
           <span className={styles.kicker}>
             <span aria-hidden className={styles.kickerTick} />
-            שקיפות הקרן · עמוד כלכלה
+            {t.kicker}
           </span>
 
           <h2 id="treasury-hero-title" className={styles.headline}>
-            כל שקל בקרן <span className={styles.red}>גלוי לעין.</span>
+            {t.headline} <span className={styles.red}>{t.headlineRed}</span>
           </h2>
 
           <p className={styles.standfirst}>
-            הקרן הקהילתית פתוחה לבדיקה: כל הכנסה וכל הוצאה מתועדות בזמן אמת. הוצאות
-            מעל סף מסוים דורשות אישור הקהילה, והקרן עוברת ביקורת חשבונאית עצמאית.
+            {t.standfirst}
           </p>
 
           <div className={styles.actions}>
@@ -110,19 +175,19 @@ export function TreasuryHero() {
               rel="noopener noreferrer"
               variant="red"
               size="lg"
-              trailing={<span aria-hidden>←</span>}
+              trailing={<span aria-hidden>{t.arrow}</span>}
             >
-              קבוצת המייסדים
+              {t.foundersCta}
             </NewsButton>
-            <span className={styles.dateline}>כל הארץ · גיליון כלכלה</span>
+            <span className={styles.dateline}>{t.dateline}</span>
           </div>
         </header>
 
-        <span className={styles.rulesHead}>הקרן עומדת על שלושה עקרונות</span>
+        <span className={styles.rulesHead}>{t.rulesHead}</span>
         <ul className={styles.rules}>
           {RULES.map((rule, i) => (
             <motion.li
-              key={rule.title}
+              key={t.rules[i].title}
               className={styles.rule}
               initial={reduced ? false : { opacity: 0, y: 14 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -131,8 +196,8 @@ export function TreasuryHero() {
             >
               <span className={styles.ruleNo}>{rule.no}</span>
               <span className={styles.ruleIcon}>{rule.icon}</span>
-              <h3 className={styles.ruleTitle}>{rule.title}</h3>
-              <p className={styles.ruleText}>{rule.text}</p>
+              <h3 className={styles.ruleTitle}>{t.rules[i].title}</h3>
+              <p className={styles.ruleText}>{t.rules[i].text}</p>
             </motion.li>
           ))}
         </ul>
@@ -141,7 +206,7 @@ export function TreasuryHero() {
           <span className={styles.trustMark} aria-hidden>
             ₪
           </span>
-          הכסף נשאר בקהילה, ואתם רואים בדיוק לאן הוא הולך.
+          {t.trust}
         </p>
       </div>
     </section>

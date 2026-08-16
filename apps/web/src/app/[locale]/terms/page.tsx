@@ -2,79 +2,30 @@ import { Metadata } from 'next';
 import { LegalPage, type LegalSection } from '@/components/legal/LegalPage';
 import type { Locale } from '@/lib/i18n';
 
-export const metadata: Metadata = {
-  title: 'תנאי שימוש | תַּרְאוּ',
-  description: 'תנאי השימוש בפלטפורמת תַּרְאוּ, הצבעות אזרחיות לרשויות מקומיות בישראל.',
-};
-
-interface PageProps {
-  params: Promise<{ locale: Locale }>;
+interface TermsCopy {
+  title: string;
+  /** English-only convenience notice rendered as the first line of the standfirst. */
+  disclaimer?: string;
+  intro: string;
+  updated: string;
+  sections: LegalSection[];
 }
 
 const LAST_UPDATED = '2026-07-29';
 
-function content(locale: Locale): { title: string; intro: string; updated: string; sections: LegalSection[] } {
-  if (locale === 'en') {
-    return {
-      title: 'Terms of Service',
-      intro:
-        'These Terms govern your use of the Taro civic-consensus platform ("Taro", "we", "us"). By using the service you agree to these Terms.',
-      updated: `Last updated: ${LAST_UPDATED}`,
-      sections: [
-        {
-          heading: '1. The Service',
-          paragraphs: [
-            'Taro is a civic participation platform that lets verified residents of Israeli municipalities vote on local affairs. Votes are recorded with blockchain verification and GPS pinning. Each resolved vote may issue a BAG: a bags.fm memecoin minted on a public blockchain for that vote, which outsiders may invest in to fund execution of the winning decision.',
-          ],
-        },
-        {
-          heading: '2. Eligibility & Verification',
-          paragraphs: [
-            'To participate you must complete identity verification (reaching the required identity score) and, where applicable, GPS location verification confirming residency in the relevant municipality. You must be at least 18 years old.',
-          ],
-        },
-        {
-          heading: '3. Payments & Fees',
-          paragraphs: [
-            'Participating in a vote is free of charge. Creating a new vote costs ₪50, priced in Israeli New Shekels (ILS) and processed by Green Invoice, which acts as the Merchant of Record for your purchase. Applicable taxes are calculated and collected by Green Invoice at checkout.',
-            'A vote’s community fund is financed through outside investment in the vote’s BAG on bags.fm, not through resident payments. Fund movements are recorded transparently.',
-          ],
-        },
-        {
-          heading: '4. Tokens & Blockchain',
-          paragraphs: [
-            'BAGS are bags.fm memecoins minted on a public blockchain, one BAG per vote; any commemorative NFTs are likewise on-chain artifacts tied to civic participation. A BAG is a volatile, speculative crypto-asset issued via the third-party bags.fm platform, not a Taro investment product, and carries no promise of financial return; Taro does not guarantee any value, liquidity, or outcome. On-chain records are public and immutable; do not submit content you are not willing to make public.',
-          ],
-        },
-        {
-          heading: '5. Acceptable Use',
-          bullets: [
-            'Do not attempt to vote more than once per vote or to circumvent verification.',
-            'Do not submit unlawful, fraudulent, or misleading content.',
-            'Do not interfere with, probe, or disrupt the platform or its security.',
-          ],
-        },
-        {
-          heading: '6. Limitation of Liability',
-          paragraphs: [
-            'The service is provided “as is” during the pilot. To the maximum extent permitted by law, Taro is not liable for indirect or consequential damages arising from use of the service.',
-          ],
-        },
-        {
-          heading: '7. Changes & Governing Law',
-          paragraphs: [
-            'We may update these Terms; material changes will be reflected by the “last updated” date. These Terms are governed by the laws of the State of Israel.',
-          ],
-        },
-        {
-          heading: '8. Contact',
-          paragraphs: ['Questions about these Terms: support@taruu.co.il'],
-        },
-      ],
-    };
-  }
+const METADATA: Record<Locale, Metadata> = {
+  he: {
+    title: 'תנאי שימוש | תַּרְאוּ',
+    description: 'תנאי השימוש בפלטפורמת תַּרְאוּ, הצבעות אזרחיות לרשויות מקומיות בישראל.',
+  },
+  en: {
+    title: 'Terms of Use | Taruu',
+    description: 'The Terms of Use for the Taruu platform, civic voting for local authorities in Israel.',
+  },
+};
 
-  return {
+const COPY: Record<Locale, TermsCopy> = {
+  he: {
     title: 'תנאי שימוש',
     intro:
       'תנאים אלה חלים על השימוש בפלטפורמת תַּרְאוּ ("תראו", "אנחנו"). השימוש בשירות מהווה הסכמה לתנאים.',
@@ -130,11 +81,80 @@ function content(locale: Locale): { title: string; intro: string; updated: strin
         paragraphs: ['שאלות בנוגע לתנאים: support@taruu.co.il'],
       },
     ],
-  };
+  },
+  en: {
+    title: 'Terms of Use',
+    disclaimer:
+      'This English translation is provided for convenience only; the Hebrew original is the binding version.',
+    intro:
+      'These Terms apply to the use of the Taruu platform ("Taruu", "we"). Use of the service constitutes acceptance of these Terms.',
+    updated: `Last updated: ${LAST_UPDATED}`,
+    sections: [
+      {
+        heading: '1. The Service',
+        paragraphs: [
+          'Taruu is a civic participation platform that allows verified residents of local authorities in Israel to vote on local matters. Votes are recorded with blockchain verification and GPS location verification. A concluded vote may issue a BAG, a bags.fm coin (memecoin) minted on a public blockchain for that vote, in which external parties may invest in order to fund the execution of the winning decision.',
+        ],
+      },
+      {
+        heading: '2. Eligibility and Verification',
+        paragraphs: [
+          'Participation is conditional on completing identity verification (reaching the required identity score) and, in the relevant cases, GPS location verification confirming residence in the relevant authority. A minimum age of 18 is required.',
+        ],
+      },
+      {
+        heading: '3. Payments and Fees',
+        paragraphs: [
+          'Participation in votes is free of charge. Creating a new vote costs ₪50, priced in New Israeli Shekels (₪) and processed by Green Invoice, which serves as the Merchant of Record for the purchase. Applicable taxes are calculated and collected by Green Invoice at the time of payment.',
+          'The community fund of each vote is financed by external investments in the vote’s BAG on bags.fm, not by residents’ money. Fund movements are recorded transparently.',
+        ],
+      },
+      {
+        heading: '4. Coins and Blockchain',
+        paragraphs: [
+          'BAGS are bags.fm coins (memecoins) minted on a public blockchain, one BAG per vote; any commemorative NFT is likewise an on-chain item connected to civic participation. A BAG is a speculative and volatile crypto asset issued through the third-party platform bags.fm, is not an investment product of Taruu, and carries no promise of financial return; Taruu does not commit to any value, liquidity, or outcome whatsoever. Records on the blockchain are public and cannot be altered; do not submit content you do not wish to make public.',
+        ],
+      },
+      {
+        heading: '5. Permitted Use',
+        bullets: [
+          'Do not vote more than once in any vote or circumvent the verification mechanism.',
+          'Do not submit unlawful, misleading, or fraudulent content.',
+          'Do not disrupt, probe, or harm the platform or its security.',
+        ],
+      },
+      {
+        heading: '6. Limitation of Liability',
+        paragraphs: [
+          'The service is provided "as is" (AS IS) during the pilot. To the maximum extent permitted by law, Taruu is not liable for indirect or consequential damages arising from use of the service.',
+        ],
+      },
+      {
+        heading: '7. Changes and Governing Law',
+        paragraphs: [
+          'We may update these Terms; material changes will be reflected in the update date. These Terms are governed by the laws of the State of Israel.',
+        ],
+      },
+      {
+        heading: '8. Contact',
+        paragraphs: ['Questions regarding these Terms: support@taruu.co.il'],
+      },
+    ],
+  },
+};
+
+interface PageProps {
+  params: Promise<{ locale: Locale }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+  return METADATA[locale];
 }
 
 export default async function TermsPage({ params }: PageProps) {
   const { locale } = await params;
-  const c = content(locale);
-  return <LegalPage locale={locale} title={c.title} intro={c.intro} updated={c.updated} sections={c.sections} />;
+  const t = COPY[locale];
+  const intro = t.disclaimer ? `${t.disclaimer} ${t.intro}` : t.intro;
+  return <LegalPage locale={locale} title={t.title} intro={intro} updated={t.updated} sections={t.sections} />;
 }

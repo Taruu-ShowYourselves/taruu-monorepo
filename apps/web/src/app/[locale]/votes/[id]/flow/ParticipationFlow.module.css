@@ -86,6 +86,46 @@
   margin-block-start: var(--space-4);
 }
 
+/* Score gate - a standing notice, not an error: the ballot stays usable and
+   the server still decides. Red rule on the leading edge marks it as the one
+   thing standing between this reader and a recorded vote. */
+.scoreGate {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-block-start: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--np-paper-2);
+  border: var(--np-rule-hair) solid var(--np-ink);
+  border-inline-start: var(--np-rule-heavy) solid var(--np-red);
+}
+
+.scoreGateLine {
+  font-family: var(--np-font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  color: var(--np-ink);
+  font-variant-numeric: tabular-nums;
+}
+.scoreGateLine strong { color: var(--np-red); }
+
+.scoreGateMeta {
+  font-family: var(--np-font-body);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--np-ink-soft);
+}
+
+.scoreGateCta {
+  align-self: flex-start;
+  font-family: var(--np-font-mono);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  color: var(--np-red);
+  text-decoration: none;
+}
+.scoreGateCta:hover { color: var(--np-ink); }
+
 .errorNote {
   font-family: var(--np-font-mono);
   font-size: var(--text-sm);

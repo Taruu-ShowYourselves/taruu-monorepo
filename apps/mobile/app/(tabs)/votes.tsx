@@ -23,8 +23,8 @@ function VoteListItem({ vote, onPress }: { vote: Vote; onPress: () => void }) {
 
   // Partial, not exhaustive: VoteStatus covers every database label, including
   // the review states a proposal holds before approval. Those can never reach a
-  // list here — the server's PUBLIC_VOTE_STATUSES allow-list keeps them off
-  // every public read path — so the fallback covers the impossible case rather
+  // list here - the server's PUBLIC_VOTE_STATUSES allow-list keeps them off
+  // every public read path - so the fallback covers the impossible case rather
   // than asserting a colour for it. ('cancelled' is gone; it was never a
   // database label.)
   const statusColors: Partial<Record<VoteStatus, { bg: string; text: string }>> = {

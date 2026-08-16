@@ -1,10 +1,10 @@
 /**
- * POST /api/space-admin/{spaceId}/escalations — reach a platform admin.
+ * POST /api/space-admin/{spaceId}/escalations - reach a platform admin.
  *
  * The one endpoint in the dashboard with no capability check, by design: a
  * suspended admin and a member holding nothing must both be able to reach it,
  * and those are the callers who most need to. See `raise-escalation.ts` for the
- * two rules that govern it — it writes only the platform record, and every
+ * two rules that govern it - it writes only the platform record, and every
  * caller gets the same acknowledgement.
  *
  * The limiter is keyed by user and never by space. A per-space key would leak

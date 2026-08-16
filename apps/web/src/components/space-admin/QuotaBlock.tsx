@@ -4,7 +4,7 @@ import kicker from './kicker.module.css';
 import styles from './QuotaBlock.module.css';
 
 /**
- * Composer state 0 — the monthly notification quota is spent.
+ * Composer state 0 - the monthly notification quota is spent.
  *
  * The block explains an ABSENCE. State 0 is the one place in this phase where
  * Rule A's "not rendered" and Rule B's "disabled with visible unblock text"
@@ -12,11 +12,11 @@ import styles from './QuotaBlock.module.css';
  * quota is not something the admin can resolve inside this session. Nothing
  * they can type unblocks it, so a disabled button with a hint would be a lie
  * about who is in control. This block is what stops the absence from being
- * mysterious — it names the limit, the reset date, and what is still allowed.
+ * mysterious - it names the limit, the reset date, and what is still allowed.
  *
  * On the ink background, kicker TEXT is `--np-paper` and only the `■` tick is
  * red. There is no compliant red text on ink under either red token, so none
- * is used — see the contrast table in `QuotaBlock.module.css` and D16.
+ * is used - see the contrast table in `QuotaBlock.module.css` and D16.
  *
  * The numbers come from `GET /api/space-admin/{id}/notifications`, whose
  * top-level `quota` block exists for this component: state 0 renders before
@@ -26,7 +26,7 @@ import styles from './QuotaBlock.module.css';
 
 export interface QuotaBlockProps {
   /**
-   * Required by the caller's shape and deliberately NOT PRINTED — which is
+   * Required by the caller's shape and deliberately NOT PRINTED - which is
    * why it is not destructured below. The exhausted sentence writes
    * `{limit}/{limit}`, not `{used}/{limit}`: the state is reached at
    * `used >= limit`, so lowering the space's quota mid-month would render
@@ -41,9 +41,9 @@ export interface QuotaBlockProps {
   className?: string;
 }
 
-/** One literal, one line — the copy deck is graded by grep. */
+/** One literal, one line - the copy deck is graded by grep. */
 const body = (limit: number, date: string): string =>
-  `ניצלתם את מלוא מכסת ההתראות למרחב הזה החודש (${limit}/${limit}). המכסה מתאפסת ב־${date}. עד אז אפשר להכין טיוטה, אבל לא לשלוח.`;
+  `ניצלתם את מלוא מכסת ההתראות למרחב הזה החודש (${limit}/${limit}). המכסה מתאפסת ב-${date}. עד אז אפשר להכין טיוטה, אבל לא לשלוח.`;
 
 export function QuotaBlock({ limit, resetDate, className }: QuotaBlockProps) {
   const reset = new Date(resetDate).toLocaleDateString('he-IL');

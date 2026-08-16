@@ -10,7 +10,10 @@ export type VoteWithRelations = Vote & {
 };
 
 /** DB vote (+options/source) → presentational DeskTopic. */
-export function toDeskTopic(vote: VoteWithRelations): DeskTopic {
+export function toDeskTopic(
+  vote: VoteWithRelations,
+  artUrl: string | null = null
+): DeskTopic {
   const totalBallots = vote.options.reduce((sum, o) => sum + o.votes, 0);
   const reactions = (vote.source?.reactions ?? {}) as Record<string, number>;
   const reactionsTotal = reactionsTotalOf(reactions);
@@ -20,6 +23,7 @@ export function toDeskTopic(vote: VoteWithRelations): DeskTopic {
     id: vote.id,
     title: vote.title,
     description: vote.description,
+    artUrl,
     participantCount: vote.participant_count,
     endDate: vote.end_date,
     options: vote.options

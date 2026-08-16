@@ -4,7 +4,7 @@ import 'server-only';
  * Permitted-content controls: hide, unhide, flag, unflag (SPACE-06).
  *
  * These live on the server as their own use-case even though their UI is a
- * panel inside the proposals surface rather than a route of its own — the
+ * panel inside the proposals surface rather than a route of its own - the
  * locked decision was "no seventh route", which is a statement about the URL
  * space, not about where authority is checked.
  *

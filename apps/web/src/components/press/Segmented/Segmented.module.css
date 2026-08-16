@@ -7,6 +7,31 @@
   background: var(--np-paper-box);
   overflow-x: auto;
   scrollbar-width: none;
+  scroll-snap-type: inline proximity;
+  scroll-padding-inline: var(--space-4);
+  /* The scrollbar is hidden, so overflow needs another tell: a trailing fade
+     that exists only while the row actually scrolls. scroll(self inline)
+     leaves the animation inert when every cell fits; where scroll timelines
+     are unsupported the animation collapses to its opaque end frame - no
+     mask at all - so nothing regresses. */
+  --seg-fade-dir: to right; /* transparent stop sits at inline-end (left in RTL) */
+  animation: segTrailFade linear both;
+  animation-timeline: scroll(self inline);
+}
+
+.group:dir(ltr) {
+  --seg-fade-dir: to left;
+}
+
+/* Only the colour animates - stop positions stay fixed so the gradient
+   interpolates - and the fade lifts as the reader nears the far end. */
+@keyframes segTrailFade {
+  0%, 85% {
+    mask-image: linear-gradient(var(--seg-fade-dir), transparent 0, #000 2.5rem);
+  }
+  100% {
+    mask-image: linear-gradient(var(--seg-fade-dir), #000 0, #000 2.5rem);
+  }
 }
 
 .group::-webkit-scrollbar {
@@ -15,6 +40,7 @@
 
 .cell {
   flex: 1 0 auto;
+  scroll-snap-align: start;
   font-family: var(--np-font-mono);
   font-size: var(--text-sm);
   font-weight: 700;

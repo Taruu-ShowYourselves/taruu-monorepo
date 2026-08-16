@@ -6,7 +6,7 @@
  *
  * The suspension is the resource and the verb acts on it, which is why
  * reinstatement is a DELETE here rather than a second POST with a flag. Both
- * carry a reason, and both require `member.suspend` — reinstating is the
+ * carry a reason, and both require `member.suspend` - reinstating is the
  * inverse of suspending, not a separate authority.
  */
 

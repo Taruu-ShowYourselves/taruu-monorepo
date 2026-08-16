@@ -2,6 +2,7 @@
 
 import React from 'react';
 import clsx from 'clsx';
+import type { Locale } from '@/lib/i18n';
 import styles from './SealCard.module.css';
 
 interface SealCardProps {
@@ -13,15 +14,39 @@ interface SealCardProps {
   href?: string;
   /** Extra mono meta rows under the hash (e.g. block height, timestamp). */
   meta?: Array<{ label: string; value: string }>;
+  locale?: Locale;
   className?: string;
 }
+
+interface SealCardCopy {
+  sealed: string;
+  pending: string;
+  hashLabel: string;
+  viewTransaction: string;
+}
+
+const COPY: Record<Locale, SealCardCopy> = {
+  he: {
+    sealed: 'חתום בבלוקצ׳יין',
+    pending: 'ממתין לחתימה',
+    hashLabel: 'HASH',
+    viewTransaction: 'צפו בעסקה ↗',
+  },
+  en: {
+    sealed: 'Sealed on the blockchain',
+    pending: 'Awaiting seal',
+    hashLabel: 'HASH',
+    viewTransaction: 'View transaction ↗',
+  },
+};
 
 /**
  * Press blockchain-seal view: ink block with a halftone field, ✓ verified
  * glyph, and the transaction hash in breakable mono. The proof-of-record
  * furniture at the end of the participation flow. Mobile-first full-width.
  */
-export function SealCard({ hash, status = 'sealed', href, meta, className }: SealCardProps) {
+export function SealCard({ hash, status = 'sealed', href, meta, locale = 'he', className }: SealCardProps) {
+  const t = COPY[locale];
   const sealed = status === 'sealed';
   return (
     <div className={clsx(styles.seal, sealed ? styles.sealed : styles.pending, className)}>
@@ -30,10 +55,10 @@ export function SealCard({ hash, status = 'sealed', href, meta, className }: Sea
           {sealed ? '✓' : '●'}
         </span>
         <span className={styles.title}>
-          {sealed ? 'חתום בבלוקצ׳יין' : 'ממתין לחתימה'}
+          {sealed ? t.sealed : t.pending}
         </span>
       </div>
-      <p className={styles.hashLabel}>HASH</p>
+      <p className={styles.hashLabel}>{t.hashLabel}</p>
       <p className={styles.hash}>{hash}</p>
       {meta && meta.length > 0 ? (
         <dl className={styles.meta}>
@@ -47,7 +72,7 @@ export function SealCard({ hash, status = 'sealed', href, meta, className }: Sea
       ) : null}
       {href ? (
         <a className={styles.link} href={href} target="_blank" rel="noreferrer">
-          צפו בעסקה ↗
+          {t.viewTransaction}
         </a>
       ) : null}
     </div>

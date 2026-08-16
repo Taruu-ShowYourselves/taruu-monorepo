@@ -1,5 +1,5 @@
 /* ============================================================
- * StatusChip — mono, boxed, hard corners (D24).
+ * StatusChip - mono, boxed, hard corners (D24).
  * The red chip is TEXT plus a hairline BORDER. There is no red fill here:
  * paper text on `--np-red` is 4.03:1 at the chip size, below AA.
  * ============================================================ */
@@ -21,13 +21,13 @@
   border: var(--np-rule-hair) solid var(--np-ink);
 }
 
-/* `בבדיקה` — 10.32:1 text on paper-box, 3:1 non-text border. */
+/* `בבדיקה` - 10.32:1 text on paper-box, 3:1 non-text border. */
 .review {
   color: var(--np-red-ink);
   border-color: var(--np-red);
 }
 
-/* `מושעה/ית` — inverted ink, 16.66:1. Switched off, not urgent. */
+/* `מושעה/ית` - inverted ink, 16.66:1. Switched off, not urgent. */
 .suspended {
   background: var(--np-ink);
   color: var(--np-paper);

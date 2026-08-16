@@ -17,9 +17,10 @@ import type { Locale } from '@/lib/i18n';
 import { getSpaceOverview } from '@/server/app/space-admin/get-space-overview';
 import { getSessionFromCookies } from '@/services/auth/session';
 import styles from './page.module.css';
+import { localePrefix } from '@/lib/i18n';
 
 /**
- * Surface 1 — סקירה, the space overview.
+ * Surface 1 - סקירה, the space overview.
  *
  * A Server Component that calls `getSpaceOverview`, THE SAME USE-CASE THE API
  * ROUTE CALLS. It reaches no repository and opens no database client of its
@@ -29,45 +30,119 @@ import styles from './page.module.css';
  * of the two doors into the same data.
  *
  * Rule A governs what renders: a figure the admin holds no capability for
- * arrives as `null` and is ABSENT — never a zero, never a dash. The capability
+ * arrives as `null` and is ABSENT - never a zero, never a dash. The capability
  * manifest below is what keeps that from being mysterious.
  */
 
-export const metadata: Metadata = {
-  // The locale layout supplies the `| תַּרְאוּ` half through its title template;
-  // repeating it here renders the suffix twice.
-  title: 'לוח ניהול מרחב',
-  // An admin console has nothing to gain from being indexed.
-  robots: { index: false, follow: false },
+// The locale layout supplies the `| תַּרְאוּ` half through its title template;
+// repeating it here renders the suffix twice.
+const META_TITLE: Record<Locale, string> = {
+  he: 'לוח ניהול מרחב',
+  en: 'Space admin desk',
 };
 
-/** Copy-deck strings, each on one line so it stays one greppable literal. */
-const STANDFIRST =
-  'כל מה שדורש את ההכרעה שלכם במרחב הזה, במקום אחד. כל פעולה שתעשו כאן נרשמת ביומן עם שמכם ועם הנימוק.';
-const QUEUE_EMPTY = 'אין כרגע הצעות שממתינות להכרעה.';
-const ESCALATION_BODY =
-  'נתקלתם במשהו שחורג מההרשאות שלכם, או במקרה שדורש מנהל־על?';
+interface OverviewCopy {
+  /** Copy-deck strings, each on one line so it stays one greppable literal. */
+  standfirst: string;
+  queueEmpty: string;
+  escalationBody: string;
+  figureLabels: {
+    awaiting: string;
+    members: string;
+    active: string;
+    notifications: string;
+  };
+  queueKicker: string;
+  queueHeading: string;
+  reviewChip: string;
+  allProposals: string;
+  /** Direction glyph on the queue CTA; mirrored per reading direction. */
+  arrow: string;
+  capabilitiesKicker: string;
+  capabilitiesHeading: string;
+  escalationKicker: string;
+  escalationHeading: string;
+}
+
+const COPY: Record<Locale, OverviewCopy> = {
+  he: {
+    standfirst:
+      'כל מה שדורש את ההכרעה שלכם במרחב הזה, במקום אחד. כל פעולה שתעשו כאן נרשמת ביומן עם שמכם ועם הנימוק.',
+    queueEmpty: 'אין כרגע הצעות שממתינות להכרעה.',
+    escalationBody:
+      'נתקלתם במשהו שחורג מההרשאות שלכם, או במקרה שדורש מנהל-על?',
+    figureLabels: {
+      awaiting: 'הצעות ממתינות להכרעה',
+      members: 'חברים במרחב',
+      active: 'הצבעות פעילות',
+      notifications: 'התראות שנשלחו החודש',
+    },
+    queueKicker: 'תור הכרעה · REVIEW QUEUE',
+    queueHeading: 'דורש הכרעה',
+    reviewChip: 'בבדיקה',
+    allProposals: 'לכל ההצעות',
+    arrow: '←',
+    capabilitiesKicker: 'ההרשאות שלכם · CAPABILITIES',
+    capabilitiesHeading: 'מה מותר לכם לעשות במרחב הזה',
+    escalationKicker: 'הסלמה · ESCALATION',
+    escalationHeading: 'פנייה למנהל-על',
+  },
+  en: {
+    standfirst:
+      'Everything that needs your decision in this space, in one place. Every action you take here is logged with your name and your reasoning.',
+    queueEmpty: 'No proposals are awaiting a decision right now.',
+    escalationBody:
+      'Run into something beyond your capabilities, or a case that needs a super-admin?',
+    figureLabels: {
+      awaiting: 'Proposals awaiting decision',
+      members: 'Members in this space',
+      active: 'Active votes',
+      notifications: 'Notifications sent this month',
+    },
+    queueKicker: 'Review queue',
+    queueHeading: 'Awaiting your decision',
+    reviewChip: 'In review',
+    allProposals: 'All proposals',
+    arrow: '→',
+    capabilitiesKicker: 'Your capabilities',
+    capabilitiesHeading: 'What you may do in this space',
+    escalationKicker: 'Escalation',
+    escalationHeading: 'Contact a super-admin',
+  },
+};
 
 interface SpaceOverviewPageProps {
   params: Promise<{ locale: Locale; spaceId: string }>;
 }
 
+export async function generateMetadata({
+  params,
+}: SpaceOverviewPageProps): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: META_TITLE[locale],
+    // An admin console has nothing to gain from being indexed.
+    robots: { index: false, follow: false },
+  };
+}
+
 export default async function SpaceOverviewPage({ params }: SpaceOverviewPageProps) {
   const { locale, spaceId } = await params;
-  const base = `/${locale}/space-admin/${spaceId}`;
+  const t = COPY[locale];
+  const base = `${localePrefix(locale)}/space-admin/${spaceId}`;
 
   const session = await getSessionFromCookies();
-  if (!session) redirect(`/${locale}/sign-in?redirect=${encodeURIComponent(base)}`);
+  if (!session) redirect(`${localePrefix(locale)}/sign-in?redirect=${encodeURIComponent(base)}`);
 
   const result = await getSpaceOverview(session, spaceId);
 
   if (result.isErr()) {
     if (result.error.kind === 'UNAUTHORIZED') {
-      redirect(`/${locale}/sign-in?redirect=${encodeURIComponent(base)}`);
+      redirect(`${localePrefix(locale)}/sign-in?redirect=${encodeURIComponent(base)}`);
     }
 
-    // Refused: NoPermissionPanel — rendered by EscalationDialog, which owns the
-    // CTA it needs — and deliberately NO SpaceAdminHeader and no nav. An admin
+    // Refused: NoPermissionPanel - rendered by EscalationDialog, which owns the
+    // CTA it needs - and deliberately NO SpaceAdminHeader and no nav. An admin
     // who holds nothing here must not learn the space's name, its slug or its
     // type from the page that just refused them, and links to five surfaces
     // they cannot open would be a menu of denials.
@@ -84,10 +159,10 @@ export default async function SpaceOverviewPage({ params }: SpaceOverviewPagePro
   const { space, capabilities, figures, recentQueue } = result.value;
 
   const shownFigures = [
-    { key: 'awaiting', label: 'הצעות ממתינות להכרעה', value: figures.proposalsAwaitingDecision },
-    { key: 'members', label: 'חברים במרחב', value: figures.membersInSpace },
-    { key: 'active', label: 'הצבעות פעילות', value: figures.activeVotes },
-    { key: 'notifications', label: 'התראות שנשלחו החודש', value: figures.notificationsSentThisMonth },
+    { key: 'awaiting', label: t.figureLabels.awaiting, value: figures.proposalsAwaitingDecision },
+    { key: 'members', label: t.figureLabels.members, value: figures.membersInSpace },
+    { key: 'active', label: t.figureLabels.active, value: figures.activeVotes },
+    { key: 'notifications', label: t.figureLabels.notifications, value: figures.notificationsSentThisMonth },
   ].filter((figure): figure is { key: string; label: string; value: number } =>
     figure.value !== null
   );
@@ -102,9 +177,14 @@ export default async function SpaceOverviewPage({ params }: SpaceOverviewPagePro
         suspended={space.suspended}
       />
 
-      <SpaceAdminNav spaceId={spaceId} active="" visibleHrefs={visibleNavHrefs(capabilities)} />
+      <SpaceAdminNav
+        spaceId={spaceId}
+        active=""
+        visibleHrefs={visibleNavHrefs(capabilities)}
+        locale={locale}
+      />
 
-      <p className={styles.standfirst}>{STANDFIRST}</p>
+      <p className={styles.standfirst}>{t.standfirst}</p>
 
       {/* A figure the admin may not see is absent. Rendering a 0 in its place
           would be a fabricated measurement, and a dash would imply the number
@@ -129,10 +209,10 @@ export default async function SpaceOverviewPage({ params }: SpaceOverviewPagePro
               <span aria-hidden className={kicker.tick}>
                 ■
               </span>
-              תור הכרעה · REVIEW QUEUE
+              {t.queueKicker}
             </span>
             <h2 id="space-admin-queue" className={styles.panelHeading}>
-              דורש הכרעה
+              {t.queueHeading}
             </h2>
 
             {recentQueue.length > 0 ? (
@@ -147,7 +227,7 @@ export default async function SpaceOverviewPage({ params }: SpaceOverviewPagePro
                     {/* The use-case fixes this queue to proposals in review, so
                         every row carries the one chip that means "yours to
                         decide". Nothing else can arrive here. */}
-                    <StatusChip tone="review">בבדיקה</StatusChip>
+                    <StatusChip tone="review">{t.reviewChip}</StatusChip>
                     <span className={styles.queueMeta}>
                       {proposal.submitterDisplayName} ·{' '}
                       {new Date(proposal.submittedAt).toLocaleDateString('he-IL')}
@@ -156,14 +236,15 @@ export default async function SpaceOverviewPage({ params }: SpaceOverviewPagePro
                 ))}
               </ul>
             ) : (
-              <p className={styles.queueEmpty}>{QUEUE_EMPTY}</p>
+              <p className={styles.queueEmpty}>{t.queueEmpty}</p>
             )}
 
             <div className={styles.panelActions}>
-              {/* Renders `לכל ההצעות ←`. The arrow goes through `trailing`,
-                  which marks it aria-hidden — a glyph never carries meaning. */}
-              <NewsButton variant="outline" href={`${base}/proposals`} trailing="←">
-                לכל ההצעות
+              {/* Renders `לכל ההצעות ←` (or `All proposals →`). The arrow goes
+                  through `trailing`, which marks it aria-hidden - a glyph never
+                  carries meaning. */}
+              <NewsButton variant="outline" href={`${base}/proposals`} trailing={t.arrow}>
+                {t.allProposals}
               </NewsButton>
             </div>
           </section>
@@ -175,10 +256,10 @@ export default async function SpaceOverviewPage({ params }: SpaceOverviewPagePro
               <span aria-hidden className={kicker.tick}>
                 ■
               </span>
-              ההרשאות שלכם · CAPABILITIES
+              {t.capabilitiesKicker}
             </span>
             <h2 id="space-admin-manifest" className={styles.panelHeading}>
-              מה מותר לכם לעשות במרחב הזה
+              {t.capabilitiesHeading}
             </h2>
             <CapabilityManifest granted={capabilities} />
           </section>
@@ -188,12 +269,12 @@ export default async function SpaceOverviewPage({ params }: SpaceOverviewPagePro
               <span aria-hidden className={kicker.tick}>
                 ■
               </span>
-              הסלמה · ESCALATION
+              {t.escalationKicker}
             </span>
             <h2 id="space-admin-escalation" className={styles.panelHeading}>
-              פנייה למנהל־על
+              {t.escalationHeading}
             </h2>
-            <p className={styles.panelBody}>{ESCALATION_BODY}</p>
+            <p className={styles.panelBody}>{t.escalationBody}</p>
             <EscalationDialog spaceId={spaceId} />
           </section>
         </div>

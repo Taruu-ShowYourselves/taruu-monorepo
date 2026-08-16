@@ -10,6 +10,7 @@
 
 import { formatBillTitle } from '@/lib/knesset/billTitle';
 import { KNESSET_SCOPE } from '@sync/shared';
+import type { Locale } from '@/lib/i18n';
 import type { KnessetItem, KnessetRanking } from '@/lib/supabase/types';
 import {
   toDeskTopic,
@@ -35,6 +36,16 @@ export interface FeedAgenda {
   readonly isDiscussion: boolean;
 }
 
+/** The official document behind a national item - the bill on the table. */
+export interface FeedDocument {
+  /** AI summary of the attached official document (bill / proposal text). */
+  readonly summary: string | null;
+  /** fs.knesset.gov.il link to the original document. */
+  readonly docUrl: string | null;
+  /** Document class, e.g. 'הצעת חוק לקריאה הראשונה'. */
+  readonly docGroup: string | null;
+}
+
 export interface FeedTopicItem {
   readonly id: string;
   /** Municipality name, or KNESSET_SCOPE for national items. */
@@ -45,6 +56,7 @@ export interface FeedTopicItem {
   readonly topic: DeskTopic;
   readonly ranking: DeskRanking | null;
   readonly agenda: FeedAgenda | null;
+  readonly document: FeedDocument | null;
 }
 
 /**
@@ -72,14 +84,24 @@ function toDeskRanking(row: KnessetRanking): DeskRanking {
   };
 }
 
-function toFeedAgenda(item: KnessetItem): FeedAgenda {
+function toFeedAgenda(item: KnessetItem, locale: Locale): FeedAgenda {
   return {
     date: formatAgendaDate(item.session_date),
-    weekday: weekdayOf(item.session_date),
+    weekday: weekdayOf(item.session_date, locale),
     ordinal: item.ordinal,
     itemType: item.item_type,
     knessetNum: item.knesset_num,
     isDiscussion: item.is_discussion,
+  };
+}
+
+/** The item's official document, or null when it carries neither text nor link. */
+function toFeedDocument(item: KnessetItem): FeedDocument | null {
+  if (!item.summary && !item.doc_url) return null;
+  return {
+    summary: item.summary,
+    docUrl: item.doc_url,
+    docGroup: item.doc_group,
   };
 }
 
@@ -91,7 +113,10 @@ function toFeedAgenda(item: KnessetItem): FeedAgenda {
 export function buildFeedItems(
   votes: readonly VoteWithRelations[],
   knessetItems: readonly KnessetItem[],
-  rankings: ReadonlyMap<string, KnessetRanking>
+  rankings: ReadonlyMap<string, KnessetRanking>,
+  locale: Locale = 'he',
+  /** voteId → plate URL. Omitted, every card simply prints without art. */
+  art: ReadonlyMap<string, string> = new Map()
 ): FeedTopicItem[] {
   const agendaByVote = new Map(knessetItems.map((item) => [item.vote_id, item]));
 
@@ -99,7 +124,7 @@ export function buildFeedItems(
     const rankingRow = rankings.get(vote.id) ?? null;
     const agendaRow = agendaByVote.get(vote.id) ?? null;
     const isNational = vote.municipality_id === KNESSET_SCOPE;
-    const base = toDeskTopic(vote);
+    const base = toDeskTopic(vote, art.get(vote.id) ?? null);
     // National titles arrive as legal citations; split them so the feed sets
     // the same headline the Knesset desk does.
     const topic: DeskTopic = isNational
@@ -113,7 +138,8 @@ export function buildFeedItems(
       heat: rankingRow?.hotness ?? topic.source?.hotness ?? 0,
       topic,
       ranking: rankingRow ? toDeskRanking(rankingRow) : null,
-      agenda: agendaRow ? toFeedAgenda(agendaRow) : null,
+      agenda: agendaRow ? toFeedAgenda(agendaRow, locale) : null,
+      document: agendaRow ? toFeedDocument(agendaRow) : null,
     };
   });
 }

@@ -6,6 +6,7 @@ import { Segmented, Receipt, TallyBar } from '@/components/press';
 import { staggerContainer, fadeInUp } from '@/lib/animations';
 import { useReducedMotion } from '@/hooks';
 import { formatCurrency, formatDate, MUNICIPALITIES } from '@sync/shared';
+import type { Locale } from '@/lib/i18n';
 import styles from './TreasuryDashboard.module.css';
 
 const EASE = [0.2, 0, 0, 1] as const;
@@ -45,17 +46,124 @@ const emptyTreasury = (municipality: string): TreasuryData => ({
   transactions: [],
 });
 
-const TRANSACTION_TYPE_LABELS: Record<Transaction['type'], string> = {
-  deposit: 'הפקדה',
-  allocation: 'הקצאה',
-  withdrawal: 'משיכה',
-  fee_claim: 'תביעת עמלות',
-  token_purchase: 'רכישת טוקנים',
-  nft_mint: 'הנפקת NFT',
+interface TreasuryDashboardProps {
+  locale?: Locale;
+}
+
+interface TreasuryDashboardCopy {
+  txTypes: Record<Transaction['type'], string>;
+  allocationAria: (localPct: string, externalPct: string) => string;
+  allocationLocal: string;
+  allocationExternal: string;
+  emptyTitle: string;
+  emptyText: string;
+  boardKicker: string;
+  boardTitle: string;
+  boardTitleRed: string;
+  selectLabel: string;
+  statBalance: string;
+  statLocal: string;
+  statLocalMeta: string;
+  statExternal: string;
+  statExternalMeta: string;
+  statMultiplier: string;
+  multiplierMeta: (x: string) => string;
+  allocationTitle: string;
+  receiptKicker: string;
+  receiptFund: string;
+  receiptOps: string;
+  receiptTotal: string;
+  receiptFooter: string;
+  resolvedLabel: string;
+  activeLabel: string;
+  historyTitle: string;
+}
+
+const COPY: Record<Locale, TreasuryDashboardCopy> = {
+  he: {
+    txTypes: {
+      deposit: 'הפקדה',
+      allocation: 'הקצאה',
+      withdrawal: 'משיכה',
+      fee_claim: 'תביעת עמלות',
+      token_purchase: 'רכישת טוקנים',
+      nft_mint: 'הנפקת NFT',
+    },
+    allocationAria: (localPct, externalPct) =>
+      `תרומות מקומיות ${localPct} אחוז, תמיכה חיצונית ${externalPct} אחוז`,
+    allocationLocal: 'תרומות מקומיות',
+    allocationExternal: 'תמיכה חיצונית',
+    emptyTitle: 'בקרוב',
+    emptyText: 'הדשבורד החי ייפתח עם ההצבעה הראשונה.',
+    boardKicker: 'הדשבורד החי',
+    boardTitle: 'לוח שקיפות',
+    boardTitleRed: 'בזמן אמת.',
+    selectLabel: 'בחירת רשות',
+    statBalance: 'יתרה כוללת',
+    statLocal: 'תרומות מקומיות',
+    statLocalMeta: 'מתושבי הרשות',
+    statExternal: 'תמיכה חיצונית',
+    statExternalMeta: 'מתומכים חיצוניים',
+    statMultiplier: 'מכפיל SocialFi',
+    multiplierMeta: (x) => `כל ₪1 מקומי הפך ל-₪${x}`,
+    allocationTitle: 'התפלגות הכנסות',
+    receiptKicker: 'חלוקה · ALLOCATION',
+    receiptFund: '70% לקרן הרשות',
+    receiptOps: '30% תפעול הפלטפורמה',
+    receiptTotal: 'סך הקרן',
+    receiptFooter: 'כל סכום מתועד · חתום בבלוקצ׳יין · ביקורת חשבונאית עצמאית',
+    resolvedLabel: 'הצבעות שהסתיימו',
+    activeLabel: 'הצבעות פעילות',
+    historyTitle: 'היסטוריית תנועות',
+  },
+  en: {
+    txTypes: {
+      deposit: 'Deposit',
+      allocation: 'Allocation',
+      withdrawal: 'Withdrawal',
+      fee_claim: 'Fee claim',
+      token_purchase: 'Token purchase',
+      nft_mint: 'NFT mint',
+    },
+    allocationAria: (localPct, externalPct) =>
+      `Local contributions ${localPct} percent, external support ${externalPct} percent`,
+    allocationLocal: 'Local contributions',
+    allocationExternal: 'External support',
+    emptyTitle: 'Coming soon',
+    emptyText: 'The live dashboard opens with the first vote.',
+    boardKicker: 'The live dashboard',
+    boardTitle: 'A transparency board,',
+    boardTitleRed: 'in real time.',
+    selectLabel: 'Choose a municipality',
+    statBalance: 'Total balance (ILS)',
+    statLocal: 'Local contributions',
+    statLocalMeta: 'From the municipality’s residents',
+    statExternal: 'External support',
+    statExternalMeta: 'From outside backers',
+    statMultiplier: 'SocialFi multiplier',
+    multiplierMeta: (x) => `Every local ₪1 became ₪${x}`,
+    allocationTitle: 'Revenue breakdown',
+    receiptKicker: 'The split · ALLOCATION',
+    receiptFund: '70% to the municipal fund',
+    receiptOps: '30% platform operations',
+    receiptTotal: 'Fund total',
+    receiptFooter: 'Every amount recorded · Signed on the blockchain · Independent accounting audit',
+    resolvedLabel: 'Votes concluded',
+    activeLabel: 'Active votes',
+    historyTitle: 'Transaction history',
+  },
 };
 
 /** Income / expense allocation rendered as a published ledger split. */
-function AllocationLedger({ local, external }: { local: number; external: number }) {
+function AllocationLedger({
+  local,
+  external,
+  t,
+}: {
+  local: number;
+  external: number;
+  t: TreasuryDashboardCopy;
+}) {
   const total = local + external;
   const localPct = total > 0 ? (local / total) * 100 : 50;
   const externalPct = total > 0 ? (external / total) * 100 : 50;
@@ -64,13 +172,13 @@ function AllocationLedger({ local, external }: { local: number; external: number
     <div
       className={styles.allocationLedger}
       role="img"
-      aria-label={`תרומות מקומיות ${localPct.toFixed(0)} אחוז, תמיכה חיצונית ${externalPct.toFixed(0)} אחוז`}
+      aria-label={t.allocationAria(localPct.toFixed(0), externalPct.toFixed(0))}
     >
       <div className={styles.allocationRow}>
         <span className={styles.allocationMark} aria-hidden>
           ■
         </span>
-        <span className={styles.allocationName}>תרומות מקומיות</span>
+        <span className={styles.allocationName}>{t.allocationLocal}</span>
         <TallyBar pct={localPct} selected />
         <span className={styles.allocationPct}>{localPct.toFixed(0)}%</span>
       </div>
@@ -78,7 +186,7 @@ function AllocationLedger({ local, external }: { local: number; external: number
         <span className={styles.allocationMark} aria-hidden>
           □
         </span>
-        <span className={styles.allocationName}>תמיכה חיצונית</span>
+        <span className={styles.allocationName}>{t.allocationExternal}</span>
         <TallyBar pct={externalPct} />
         <span className={styles.allocationPct}>{externalPct.toFixed(0)}%</span>
       </div>
@@ -87,8 +195,14 @@ function AllocationLedger({ local, external }: { local: number; external: number
 }
 
 /** Single ledger line - type · description · date · amount, dotted leader. */
-function TransactionRow({ transaction }: { transaction: Transaction }) {
-  const label = TRANSACTION_TYPE_LABELS[transaction.type];
+function TransactionRow({
+  transaction,
+  typeLabels,
+}: {
+  transaction: Transaction;
+  typeLabels: TreasuryDashboardCopy['txTypes'];
+}) {
+  const label = typeLabels[transaction.type];
   const isPositive = transaction.amountILS >= 0;
 
   return (
@@ -142,23 +256,24 @@ function DashboardSkeleton() {
 }
 
 /** Honest "coming soon" empty state - never fake metrics. */
-function ComingSoonBoard() {
+function ComingSoonBoard({ t }: { t: TreasuryDashboardCopy }) {
   return (
     <div className={styles.emptyBoard}>
       <span className={styles.emptyMark} aria-hidden>
         ●
       </span>
-      <h3 className={styles.emptyTitle}>בקרוב</h3>
-      <p className={styles.emptyText}>הדשבורד החי ייפתח עם ההצבעה הראשונה.</p>
+      <h3 className={styles.emptyTitle}>{t.emptyTitle}</h3>
+      <p className={styles.emptyText}>{t.emptyText}</p>
     </div>
   );
 }
 
-export function TreasuryDashboard() {
+export function TreasuryDashboard({ locale = 'he' }: TreasuryDashboardProps) {
   const reduced = useReducedMotion();
   const [treasury, setTreasury] = useState<TreasuryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedMunicipality, setSelectedMunicipality] = useState<string>(MUNICIPALITIES[0]);
+  const t = COPY[locale];
 
   useEffect(() => {
     const fetchTreasury = async () => {
@@ -186,7 +301,7 @@ export function TreasuryDashboard() {
                 amountSOL: typeof t.amountSOL === 'number' ? t.amountSOL : undefined,
                 description:
                   (t.description as string) ||
-                  TRANSACTION_TYPE_LABELS[t.type as Transaction['type']] ||
+                  COPY[locale].txTypes[t.type as Transaction['type']] ||
                   '',
                 createdAt: String(t.createdAt),
                 voteTitle: t.voteTitle as string | undefined,
@@ -228,7 +343,7 @@ export function TreasuryDashboard() {
     };
 
     fetchTreasury();
-  }, [selectedMunicipality]);
+  }, [selectedMunicipality, locale]);
 
   if (loading) {
     return <DashboardSkeleton />;
@@ -247,18 +362,18 @@ export function TreasuryDashboard() {
         <header className={styles.boardHead}>
           <span className={styles.boardKicker}>
             <span className={styles.live} aria-hidden />
-            הדשבורד החי
+            {t.boardKicker}
           </span>
           <h2 id="treasury-board-title" className={styles.boardTitle}>
-            לוח שקיפות <span className={styles.red}>בזמן אמת.</span>
+            {t.boardTitle} <span className={styles.red}>{t.boardTitleRed}</span>
           </h2>
         </header>
 
         {/* Municipality selector - press segmented control */}
         <div className={styles.selectorRow}>
-          <span className={styles.selectLabel}>בחירת רשות</span>
+          <span className={styles.selectLabel}>{t.selectLabel}</span>
           <Segmented
-            aria-label="בחירת רשות"
+            aria-label={t.selectLabel}
             value={selectedMunicipality}
             onChange={(value) => {
               setSelectedMunicipality(value);
@@ -276,30 +391,30 @@ export function TreasuryDashboard() {
           animate="visible"
         >
           <motion.div className={`${styles.statCard} ${styles.statBalance}`} variants={fadeInUp}>
-            <span className={styles.statLabel}>יתרה כוללת</span>
+            <span className={styles.statLabel}>{t.statBalance}</span>
             <span className={styles.statValue}>{formatCurrency(treasury.totalILS)}</span>
             <span className={styles.statMeta}>{treasury.totalSOL.toFixed(2)} SOL</span>
           </motion.div>
 
           <motion.div className={styles.statCard} variants={fadeInUp}>
-            <span className={styles.statLabel}>תרומות מקומיות</span>
+            <span className={styles.statLabel}>{t.statLocal}</span>
             <span className={styles.statValue}>{formatCurrency(treasury.localContributions)}</span>
-            <span className={styles.statMeta}>מתושבי הרשות</span>
+            <span className={styles.statMeta}>{t.statLocalMeta}</span>
           </motion.div>
 
           <motion.div className={styles.statCard} variants={fadeInUp}>
-            <span className={styles.statLabel}>תמיכה חיצונית</span>
+            <span className={styles.statLabel}>{t.statExternal}</span>
             <span className={styles.statValue}>{formatCurrency(treasury.externalContributions)}</span>
-            <span className={styles.statMeta}>מתומכים חיצוניים</span>
+            <span className={styles.statMeta}>{t.statExternalMeta}</span>
           </motion.div>
 
           <motion.div className={`${styles.statCard} ${styles.multiplierCard}`} variants={fadeInUp}>
-            <span className={styles.statLabel}>מכפיל SocialFi</span>
+            <span className={styles.statLabel}>{t.statMultiplier}</span>
             <span className={styles.statValue}>
               {multiplier.toFixed(2)}
               <span className={styles.multiplierX}>x</span>
             </span>
-            <span className={styles.statMeta}>כל ₪1 מקומי הפך ל-₪{multiplier.toFixed(2)}</span>
+            <span className={styles.statMeta}>{t.multiplierMeta(multiplier.toFixed(2))}</span>
           </motion.div>
         </motion.div>
 
@@ -313,33 +428,34 @@ export function TreasuryDashboard() {
         >
           <h3 className={styles.sectionTitle}>
             <span className={styles.sectionTick} aria-hidden />
-            התפלגות הכנסות
+            {t.allocationTitle}
           </h3>
 
           <AllocationLedger
             local={treasury.localContributions}
             external={treasury.externalContributions}
+            t={t}
           />
 
           <Receipt
             className={styles.allocReceipt}
-            kicker="חלוקה · ALLOCATION"
+            kicker={t.receiptKicker}
             rows={[
               {
-                label: '70% לקרן הרשות',
+                label: t.receiptFund,
                 value: formatCurrency(treasury.totalILS * 0.7),
               },
               {
-                label: '30% תפעול הפלטפורמה',
+                label: t.receiptOps,
                 value: formatCurrency(treasury.totalILS * 0.3),
               },
               {
-                label: 'סך הקרן',
+                label: t.receiptTotal,
                 value: formatCurrency(treasury.totalILS),
                 strong: true,
               },
             ]}
-            footer="כל סכום מתועד · חתום בבלוקצ׳יין · ביקורת חשבונאית עצמאית"
+            footer={t.receiptFooter}
           />
         </motion.div>
 
@@ -353,11 +469,11 @@ export function TreasuryDashboard() {
         >
           <div className={styles.activityCard}>
             <span className={styles.activityValue}>{treasury.totalVotesResolved}</span>
-            <span className={styles.activityLabel}>הצבעות שהסתיימו</span>
+            <span className={styles.activityLabel}>{t.resolvedLabel}</span>
           </div>
           <div className={styles.activityCard}>
             <span className={styles.activityValue}>{treasury.activeVotes}</span>
-            <span className={styles.activityLabel}>הצבעות פעילות</span>
+            <span className={styles.activityLabel}>{t.activeLabel}</span>
           </div>
         </motion.div>
 
@@ -371,7 +487,7 @@ export function TreasuryDashboard() {
         >
           <h3 className={styles.sectionTitle}>
             <span className={styles.sectionTick} aria-hidden />
-            היסטוריית תנועות
+            {t.historyTitle}
           </h3>
 
           {treasury.transactions.length > 0 ? (
@@ -382,11 +498,11 @@ export function TreasuryDashboard() {
               animate="visible"
             >
               {treasury.transactions.map((tx) => (
-                <TransactionRow key={tx.id} transaction={tx} />
+                <TransactionRow key={tx.id} transaction={tx} typeLabels={t.txTypes} />
               ))}
             </motion.div>
           ) : (
-            <ComingSoonBoard />
+            <ComingSoonBoard t={t} />
           )}
         </motion.div>
       </div>

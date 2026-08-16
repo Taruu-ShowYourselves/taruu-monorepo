@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { animate, createScope, stagger } from 'animejs';
 import type { Locale } from '@/lib/i18n';
 import styles from './EventDashboard.module.css';
+import { localePrefix } from '@/lib/i18n';
 
 interface EventDashboardProps {
   locale?: Locale;
@@ -41,6 +42,133 @@ interface DashboardData {
   votes: LiveVote[];
 }
 
+interface EventDashboardCopy {
+  kicker: string;
+  titleLead: string;
+  titleEm: string;
+  clockCaption: string;
+  syncPrefix: string;
+  connectingSources: string;
+  metrics: {
+    registered: { label: string; note: string };
+    activeVotes: { label: string; note: string };
+    verified: { label: string; note: string };
+    municipalities: { label: string; note: string };
+  };
+  cityDesk: {
+    index: string;
+    title: string;
+    live: string;
+    topicsSuffix: string;
+    empty: string;
+  };
+  leadingDesk: {
+    index: string;
+    title: string;
+    participants: string;
+    ballots: string;
+    link: string;
+    empty: string;
+  };
+  hotAgenda: {
+    index: string;
+    title: string;
+    link: string;
+    empty: string;
+  };
+  rail: {
+    label: string;
+    participantsSuffix: string;
+    connecting: string;
+    signals: string;
+  };
+}
+
+const COPY: Record<Locale, EventDashboardCopy> = {
+  he: {
+    kicker: 'דאשבורד אירועים · LIVE CIVIC PULSE',
+    titleLead: 'מה קורה עכשיו,',
+    titleEm: 'בזמן אמת.',
+    clockCaption: 'שעון ישראל · עדכון כל 30 שניות',
+    syncPrefix: 'סנכרון',
+    connectingSources: 'מתחבר למקורות החיים…',
+    metrics: {
+      registered: { label: 'תושבים רשומים', note: 'בכל הארץ' },
+      activeVotes: { label: 'הצבעות פעילות', note: 'פתוחות עכשיו' },
+      verified: { label: 'השתתפויות מאומתות', note: 'קול אחד לאדם' },
+      municipalities: { label: 'רשויות פעילות', note: 'בדופק הארצי' },
+    },
+    cityDesk: {
+      index: '01 / CITY RANK',
+      title: 'דירוג הערים',
+      live: 'LIVE',
+      topicsSuffix: 'נושאים פעילים',
+      empty: 'הדירוג מתעדכן עם כניסת הנתונים.',
+    },
+    leadingDesk: {
+      index: '02 / LEADING VOTE',
+      title: 'ההצבעה המובילה',
+      participants: 'משתתפים',
+      ballots: 'קולות',
+      link: 'להצבעה החיה ←',
+      empty: 'ההצבעה המובילה תופיע כאן.',
+    },
+    hotAgenda: {
+      index: '03 / HOT AGENDA',
+      title: 'חם עכשיו בסדר היום',
+      link: 'לדסק הארצי ←',
+      empty: 'הנושאים החמים מתעדכנים עכשיו.',
+    },
+    rail: {
+      label: 'EVENT STREAM',
+      participantsSuffix: 'משתתפים',
+      connecting: 'מתחבר לזרם האירועים…',
+      signals: 'SIGNALS',
+    },
+  },
+  en: {
+    kicker: 'Event Dashboard · LIVE CIVIC PULSE',
+    titleLead: 'What is happening now,',
+    titleEm: 'in real time.',
+    clockCaption: 'Israel time · updates every 30 seconds',
+    syncPrefix: 'Synced',
+    connectingSources: 'Connecting to live sources…',
+    metrics: {
+      registered: { label: 'Registered residents', note: 'Nationwide' },
+      activeVotes: { label: 'Active votes', note: 'Open now' },
+      verified: { label: 'Verified participations', note: 'One vote per person' },
+      municipalities: { label: 'Active municipalities', note: 'On the national pulse' },
+    },
+    cityDesk: {
+      index: '01 / CITY RANK',
+      title: 'City ranking',
+      live: 'LIVE',
+      topicsSuffix: 'active topics',
+      empty: 'The ranking updates as data comes in.',
+    },
+    leadingDesk: {
+      index: '02 / LEADING VOTE',
+      title: 'The leading vote',
+      participants: 'participants',
+      ballots: 'ballots',
+      link: 'To the live vote →',
+      empty: 'The leading vote will appear here.',
+    },
+    hotAgenda: {
+      index: '03 / HOT AGENDA',
+      title: 'Hot on the agenda now',
+      link: 'To the national desk →',
+      empty: 'The hot topics are updating now.',
+    },
+    rail: {
+      label: 'EVENT STREAM',
+      participantsSuffix: 'participants',
+      connecting: 'Connecting to the event stream…',
+      signals: 'SIGNALS',
+    },
+  },
+};
+
 const EMPTY_DATA: DashboardData = {
   network: null,
   registrations: null,
@@ -54,17 +182,23 @@ function totalBallots(vote: LiveVote) {
   return vote.options.reduce((sum, option) => sum + option.voteCount, 0);
 }
 
+// One formatter for the life of the module: the clock re-renders the whole
+// dashboard every second, and constructing an Intl.DateTimeFormat is the
+// expensive half of formatting - the locale-data lookup, not the format call.
+const CLOCK_FORMAT = new Intl.DateTimeFormat('he-IL', {
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false,
+  timeZone: 'Asia/Jerusalem',
+});
+
 function formatClock(date: Date) {
-  return new Intl.DateTimeFormat('he-IL', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-    timeZone: 'Asia/Jerusalem',
-  }).format(date);
+  return CLOCK_FORMAT.format(date);
 }
 
 export function EventDashboard({ locale = 'he' }: EventDashboardProps) {
+  const t = COPY[locale];
   const rootRef = useRef<HTMLElement>(null);
   const [data, setData] = useState<DashboardData>(EMPTY_DATA);
   const [eventIndex, setEventIndex] = useState(0);
@@ -238,20 +372,20 @@ export function EventDashboard({ locale = 'he' }: EventDashboardProps) {
           <div className={styles.headerTitle}>
             <span className={styles.kicker}>
               <i aria-hidden />
-              דאשבורד אירועים · LIVE CIVIC PULSE
+              {t.kicker}
             </span>
             <h2 id="event-dashboard-title" className={styles.title}>
-              מה קורה עכשיו, <span>בזמן אמת.</span>
+              {t.titleLead} <span>{t.titleEm}</span>
             </h2>
           </div>
 
           <div className={styles.clockDesk}>
             <time suppressHydrationWarning>{formatClock(clock)}</time>
-            <span>שעון ישראל · עדכון כל 30 שניות</span>
+            <span>{t.clockCaption}</span>
             <b>
               {lastSync
-                ? `סנכרון ${formatClock(lastSync)}`
-                : 'מתחבר למקורות החיים…'}
+                ? `${t.syncPrefix} ${formatClock(lastSync)}`
+                : t.connectingSources}
             </b>
           </div>
         </header>
@@ -260,24 +394,24 @@ export function EventDashboard({ locale = 'he' }: EventDashboardProps) {
 
         <dl className={styles.metrics}>
           <div data-dashboard-rise>
-            <dt>תושבים רשומים</dt>
+            <dt>{t.metrics.registered.label}</dt>
             <dd>{formatNumber(data.registrations?.registeredTotal)}</dd>
-            <span>בכל הארץ</span>
+            <span>{t.metrics.registered.note}</span>
           </div>
           <div data-dashboard-rise>
-            <dt>הצבעות פעילות</dt>
+            <dt>{t.metrics.activeVotes.label}</dt>
             <dd>{formatNumber(data.network?.activeVotes)}</dd>
-            <span>פתוחות עכשיו</span>
+            <span>{t.metrics.activeVotes.note}</span>
           </div>
           <div data-dashboard-rise>
-            <dt>השתתפויות מאומתות</dt>
+            <dt>{t.metrics.verified.label}</dt>
             <dd>{formatNumber(data.network?.totalVoters)}</dd>
-            <span>קול אחד לאדם</span>
+            <span>{t.metrics.verified.note}</span>
           </div>
           <div data-dashboard-rise>
-            <dt>רשויות פעילות</dt>
+            <dt>{t.metrics.municipalities.label}</dt>
             <dd>{formatNumber(data.network?.municipalities)}</dd>
-            <span>בדופק הארצי</span>
+            <span>{t.metrics.municipalities.note}</span>
           </div>
         </dl>
 
@@ -285,10 +419,10 @@ export function EventDashboard({ locale = 'he' }: EventDashboardProps) {
           <article className={styles.cityDesk} data-dashboard-rise>
             <header className={styles.panelHeader}>
               <div>
-                <span>01 / CITY RANK</span>
-                <h3>דירוג הערים</h3>
+                <span>{t.cityDesk.index}</span>
+                <h3>{t.cityDesk.title}</h3>
               </div>
-              <span className={styles.liveFlag}><i />LIVE</span>
+              <span className={styles.liveFlag}><i />{t.cityDesk.live}</span>
             </header>
 
             {cityRanking.length > 0 ? (
@@ -305,7 +439,7 @@ export function EventDashboard({ locale = 'he' }: EventDashboardProps) {
                     </span>
                     <div className={styles.cityCopy}>
                       <b>{city}</b>
-                      <span>{rank.topics} נושאים פעילים</span>
+                      <span>{rank.topics} {t.cityDesk.topicsSuffix}</span>
                       <i
                         aria-hidden
                         style={{
@@ -321,15 +455,15 @@ export function EventDashboard({ locale = 'he' }: EventDashboardProps) {
                 ))}
               </ol>
             ) : (
-              <p className={styles.empty}>הדירוג מתעדכן עם כניסת הנתונים.</p>
+              <p className={styles.empty}>{t.cityDesk.empty}</p>
             )}
           </article>
 
           <article className={styles.leadingDesk} data-dashboard-rise>
             <header className={styles.panelHeader}>
               <div>
-                <span>02 / LEADING VOTE</span>
-                <h3>ההצבעה המובילה</h3>
+                <span>{t.leadingDesk.index}</span>
+                <h3>{t.leadingDesk.title}</h3>
               </div>
             </header>
 
@@ -343,23 +477,23 @@ export function EventDashboard({ locale = 'he' }: EventDashboardProps) {
                 <div className={styles.voteMeta}>
                   <span>
                     <b>{formatNumber(leadingVote.participantCount)}</b>
-                    משתתפים
+                    {t.leadingDesk.participants}
                   </span>
                   <span>
                     <b>{formatNumber(totalBallots(leadingVote))}</b>
-                    קולות
+                    {t.leadingDesk.ballots}
                   </span>
                 </div>
 
                 <Link
-                  href={`/${locale}/votes/${leadingVote.id}`}
+                  href={`${localePrefix(locale)}/votes/${leadingVote.id}`}
                   className={styles.voteLink}
                 >
-                  להצבעה החיה ←
+                  {t.leadingDesk.link}
                 </Link>
               </div>
             ) : (
-              <p className={styles.empty}>ההצבעה המובילה תופיע כאן.</p>
+              <p className={styles.empty}>{t.leadingDesk.empty}</p>
             )}
           </article>
         </div>
@@ -367,10 +501,10 @@ export function EventDashboard({ locale = 'he' }: EventDashboardProps) {
         <section className={styles.hotAgenda} data-dashboard-rise>
           <header>
             <div>
-              <span>03 / HOT AGENDA</span>
-              <h3>חם עכשיו בסדר היום</h3>
+              <span>{t.hotAgenda.index}</span>
+              <h3>{t.hotAgenda.title}</h3>
             </div>
-            <Link href={`/${locale}/knesset`}>לדסק הארצי ←</Link>
+            <Link href={`${localePrefix(locale)}/knesset`}>{t.hotAgenda.link}</Link>
           </header>
 
           <ol>
@@ -378,18 +512,18 @@ export function EventDashboard({ locale = 'he' }: EventDashboardProps) {
               hotAgenda.map((vote, index) => (
                 <li key={vote.id}>
                   <span>{String(index + 1).padStart(2, '0')}</span>
-                  <Link href={`/${locale}/votes/${vote.id}`}>{vote.title}</Link>
+                  <Link href={`${localePrefix(locale)}/votes/${vote.id}`}>{vote.title}</Link>
                   <b>{vote.municipality}</b>
                 </li>
               ))
             ) : (
-              <li className={styles.empty}>הנושאים החמים מתעדכנים עכשיו.</li>
+              <li className={styles.empty}>{t.hotAgenda.empty}</li>
             )}
           </ol>
         </section>
 
         <aside className={styles.liveRail} aria-live="polite">
-          <span className={styles.railLabel}><i />EVENT STREAM</span>
+          <span className={styles.railLabel}><i />{t.rail.label}</span>
           {activeEvent ? (
             <div
               className={styles.liveEvent}
@@ -398,15 +532,15 @@ export function EventDashboard({ locale = 'he' }: EventDashboardProps) {
               <time suppressHydrationWarning>{formatClock(clock)}</time>
               <b>{activeEvent.municipality}</b>
               <strong>{activeEvent.title}</strong>
-              <span>{formatNumber(activeEvent.participantCount)} משתתפים</span>
+              <span>{formatNumber(activeEvent.participantCount)} {t.rail.participantsSuffix}</span>
             </div>
           ) : (
             <div className={styles.liveEvent}>
-              <strong>מתחבר לזרם האירועים…</strong>
+              <strong>{t.rail.connecting}</strong>
             </div>
           )}
           <span className={styles.railCount}>
-            {liveEvents.length.toString().padStart(2, '0')} SIGNALS
+            {liveEvents.length.toString().padStart(2, '0')} {t.rail.signals}
           </span>
         </aside>
       </div>

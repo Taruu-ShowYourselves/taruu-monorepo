@@ -13,6 +13,7 @@ describe('parseFindings', () => {
       {
         voteId: 'aaaa',
         relevance: 87,
+        stakes: 12,
         rationale: 'נושא בוער',
         queries: ['חוק א חדשות'],
         coverage: [
@@ -24,6 +25,7 @@ describe('parseFindings', () => {
     const findings = parseFindings(raw, BATCH);
     assert.equal(findings.length, 1);
     assert.equal(findings[0]!.relevance, 87);
+    assert.equal(findings[0]!.stakes, 12);
     assert.deepEqual(findings[0]!.queries, ['חוק א חדשות']);
     assert.equal(findings[0]!.coverage.length, 2);
     assert.equal(findings[0]!.coverage[0]!.publishedAt, '2026-07-25');
@@ -52,6 +54,8 @@ describe('parseFindings', () => {
     assert.equal(findings.length, 1);
     assert.equal(findings[0]!.voteId, 'bbbb');
     assert.equal(findings[0]!.relevance, 100);
+    // Missing stakes stays null — never coerced to a score-zeroing 0.
+    assert.equal(findings[0]!.stakes, null);
     assert.deepEqual(findings[0]!.queries, ['q']);
     assert.deepEqual(findings[0]!.coverage, [
       { url: 'https://ok.co.il/a', publishedAt: null },

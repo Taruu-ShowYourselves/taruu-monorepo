@@ -4,7 +4,7 @@ import 'server-only';
  * The dashboard shell and its figures (Surface 1).
  *
  * This use-case resolves a *membership*, not a scope. Reaching the shell is
- * membership — holding at least one grant in the space — and there is
+ * membership - holding at least one grant in the space - and there is
  * deliberately no twelfth `space.read` capability. Each figure then earns its
  * own `authorize()` call, and a widget the caller has no capability for
  * resolves to `null` rather than failing the page.
@@ -37,7 +37,7 @@ const OVERVIEW_QUEUE_LIMIT = 5;
 
 /**
  * `null` on any figure means the caller holds no capability for it, so the UI
- * renders nothing there — never a zero and never a dash. The capability each
+ * renders nothing there - never a zero and never a dash. The capability each
  * figure is gated on is named beside it.
  */
 export interface SpaceOverviewFigures {
@@ -45,7 +45,7 @@ export interface SpaceOverviewFigures {
   proposalsAwaitingDecision: number | null;
   /** member.read */
   membersInSpace: number | null;
-  /** proposal.read — published and open, so it rides with the queue's scope. */
+  /** proposal.read - published and open, so it rides with the queue's scope. */
   activeVotes: number | null;
   /** notification.send */
   notificationsSentThisMonth: number | null;
@@ -71,7 +71,7 @@ interface ProposalWidgets {
 
 /**
  * A missing capability is an absent widget, not a failed page. Only FORBIDDEN
- * folds — a DB failure still fails, because a silently empty figure would be
+ * folds - a DB failure still fails, because a silently empty figure would be
  * indistinguishable from a real zero.
  */
 const optional = <T>(result: ResultAsync<T, AppError>): ResultAsync<T | null, AppError> =>
@@ -103,7 +103,7 @@ const proposalWidgets = (
     )
   );
 
-/** `חברים במרחב` — the count 05-06 exposes, behind its own capability. */
+/** `חברים במרחב` - the count 05-06 exposes, behind its own capability. */
 const memberCount = (
   session: Session,
   rawSpaceId: string
@@ -111,7 +111,7 @@ const memberCount = (
   optional(authorize(session, rawSpaceId, 'member.read').andThen(countSpaceMembers));
 
 /**
- * `התראות שנשלחו החודש` — the same count the composer reads its quota against
+ * `התראות שנשלחו החודש` - the same count the composer reads its quota against
  * (05-08), so the overview and the dispatch surface can never disagree.
  */
 const notificationCount = (
