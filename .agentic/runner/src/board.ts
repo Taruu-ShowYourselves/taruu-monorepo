@@ -18,6 +18,7 @@ const MAX_BUF = 16 * 1024 * 1024;
 
 const STAGE_FIELD = "Stage";
 const NEED_HUMAN_FIELD = "Need Human";
+const STATUS_FIELD = "Status";
 
 /** Lane phase → Stage option name (options live on the org project). */
 const STAGE_BY_PHASE: Readonly<Record<Phase, string>> = {
@@ -41,6 +42,16 @@ const NEED_HUMAN_BY_PHASE: Readonly<Partial<Record<Phase, string>>> = {
   parked: "Parked",
 };
 
+/**
+ * Lane lifecycle → board Status. An admitted lane is In Progress the moment
+ * work starts (also stops auto-admit re-grabbing it); done → Done. Parked
+ * stays In Progress: the item is still claimed and needs a human, not a
+ * fresh admit.
+ */
+function statusForPhase(phase: Phase): string {
+  return phase === "done" ? "Done" : "In Progress";
+}
+
 interface SelectField {
   readonly id: string;
   readonly options: Readonly<Record<string, string>>; // option name → option id
@@ -50,6 +61,7 @@ interface BoardFields {
   readonly projectId: string;
   readonly stage: SelectField;
   readonly needHuman: SelectField;
+  readonly status: SelectField;
 }
 
 let cachedFields: BoardFields | null | undefined; // undefined = not looked up yet
@@ -79,12 +91,13 @@ async function boardFields(): Promise<BoardFields | null> {
   };
   const stage = pick(STAGE_FIELD);
   const needHuman = pick(NEED_HUMAN_FIELD);
-  if (!stage || !needHuman) {
-    console.error(`[board] "${STAGE_FIELD}"/"${NEED_HUMAN_FIELD}" fields missing on project ${c.board.projectNumber} — board sync disabled for this run`);
+  const status = pick(STATUS_FIELD);
+  if (!stage || !needHuman || !status) {
+    console.error(`[board] "${STAGE_FIELD}"/"${NEED_HUMAN_FIELD}"/"${STATUS_FIELD}" fields missing on project ${c.board.projectNumber} — board sync disabled for this run`);
     cachedFields = null;
     return null;
   }
-  cachedFields = { projectId: proj.id, stage, needHuman };
+  cachedFields = { projectId: proj.id, stage, needHuman, status };
   return cachedFields;
 }
 
@@ -118,10 +131,14 @@ export async function syncBoard(lane: LaneState): Promise<void> {
     const stageOpt = f.stage.options[STAGE_BY_PHASE[lane.phase]];
     const humanName = NEED_HUMAN_BY_PHASE[lane.phase];
     const humanOpt = humanName ? f.needHuman.options[humanName] : undefined;
+    const statusOpt = f.status.options[statusForPhase(lane.phase)];
 
     const parts: string[] = [];
     if (stageOpt) {
       parts.push(`stage: updateProjectV2ItemFieldValue(input:{projectId:"${f.projectId}", itemId:"${item}", fieldId:"${f.stage.id}", value:{singleSelectOptionId:"${stageOpt}"}}){ projectV2Item{ id } }`);
+    }
+    if (statusOpt) {
+      parts.push(`status: updateProjectV2ItemFieldValue(input:{projectId:"${f.projectId}", itemId:"${item}", fieldId:"${f.status.id}", value:{singleSelectOptionId:"${statusOpt}"}}){ projectV2Item{ id } }`);
     }
     parts.push(humanOpt
       ? `human: updateProjectV2ItemFieldValue(input:{projectId:"${f.projectId}", itemId:"${item}", fieldId:"${f.needHuman.id}", value:{singleSelectOptionId:"${humanOpt}"}}){ projectV2Item{ id } }`

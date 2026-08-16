@@ -47,11 +47,18 @@ and installs a systemd user service that ticks every 10 minutes.
 The runner mirrors every lane onto the org project board
 (Taruu-ShowYourselves project #2) as it moves:
 
+- **Status** — flips to In Progress the moment a lane starts working an
+  item (which also stops any daemon re-admitting it), and to Done when
+  the lane closes. Parked lanes stay In Progress — still claimed, waiting
+  on a human, not on a fresh admit.
 - **Stage** — live phase: Research → Spec → Spec approval → Coding →
   Verification → Review → Human review → Done (or Parked).
 - **Need Human** — red flag, set only when a human is the blocker
   (Spec approval / PR review / Parked) and cleared the moment the loop
   resumes. Filter the board by this field to see exactly what waits on you.
+- **Humans Only** — set this (red) on any item agents must never touch:
+  the daemons skip it entirely, whatever its status or priority. Manual
+  `admit` is the one override — that's a deliberate human command.
 
 Board sync is best-effort — an API hiccup never stops a lane.
 

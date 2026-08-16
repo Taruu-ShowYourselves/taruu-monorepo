@@ -26,20 +26,23 @@ interface BoardItem {
 
 export async function boardCandidates(): Promise<BoardItem[]> {
   const c = config();
-  const query = `query{ organization(login:"${c.board.owner}"){ projectV2(number:${c.board.projectNumber}){ items(first:100){ nodes{ content{...on Issue{number title state repository{nameWithOwner}}} status:fieldValueByName(name:"Status"){...on ProjectV2ItemFieldSingleSelectValue{name}} prio:fieldValueByName(name:"Priority"){...on ProjectV2ItemFieldSingleSelectValue{name}} } } } } }`;
+  const query = `query{ organization(login:"${c.board.owner}"){ projectV2(number:${c.board.projectNumber}){ items(first:100){ nodes{ content{...on Issue{number title state repository{nameWithOwner}}} status:fieldValueByName(name:"Status"){...on ProjectV2ItemFieldSingleSelectValue{name}} prio:fieldValueByName(name:"Priority"){...on ProjectV2ItemFieldSingleSelectValue{name}} humansOnly:fieldValueByName(name:"Humans Only"){...on ProjectV2ItemFieldSingleSelectValue{name}} } } } } }`;
   const { stdout } = await exec("gh", ["api", "graphql", "-f", `query=${query}`], { maxBuffer: 16e6 });
   const parsed = JSON.parse(stdout) as {
     data: { organization: { projectV2: { items: { nodes: {
       content: { number?: number; title?: string; state?: string; repository?: { nameWithOwner: string } } | null;
       status: { name?: string } | null;
       prio: { name?: string } | null;
+      humansOnly: { name?: string } | null;
     }[] } } } };
   };
   return parsed.data.organization.projectV2.items.nodes
     .filter((n) =>
       n.content?.state === "OPEN" &&
       n.content.repository?.nameWithOwner === c.repo &&
-      n.status?.name !== "Done")
+      n.status?.name !== "Done" &&
+      // "Humans Only" set to ANY value = agents keep their hands off entirely.
+      !n.humansOnly?.name)
     .map((n) => ({
       issue: n.content!.number!,
       title: n.content!.title ?? "",
