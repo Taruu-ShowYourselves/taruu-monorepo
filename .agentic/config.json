@@ -3,7 +3,7 @@
   "board": { "owner": "Taruu-ShowYourselves", "projectNumber": 2 },
   "email": {
     "to": "sahar.h.barak@gmail.com",
-    "from": "autopilot@updates.pleiad.ai",
+    "from": "Taruu Autopilot <autopilot@pleiad.io>",
     "subjectPrefix": "[taruu-autopilot]",
     "digestHourLocal": 8
   },
