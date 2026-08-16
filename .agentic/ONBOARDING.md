@@ -42,6 +42,19 @@ and installs a systemd user service that ticks every 10 minutes.
    changes → your comment is parsed into named defects and the loop runs
    once more. A second rejection parks the lane for a human.
 
+## Watching progress on the board
+
+The runner mirrors every lane onto the org project board
+(Taruu-ShowYourselves project #2) as it moves:
+
+- **Stage** — live phase: Research → Spec → Spec approval → Coding →
+  Verification → Review → Human review → Done (or Parked).
+- **Need Human** — red flag, set only when a human is the blocker
+  (Spec approval / PR review / Parked) and cleared the moment the loop
+  resumes. Filter the board by this field to see exactly what waits on you.
+
+Board sync is best-effort — an API hiccup never stops a lane.
+
 ## Ground rules baked in
 
 - Agents never merge, never push to main, never approve.

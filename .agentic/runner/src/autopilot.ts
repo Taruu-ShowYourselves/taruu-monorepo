@@ -8,9 +8,10 @@ import { promisify } from "node:util";
 import { existsSync, appendFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { config } from "./config.ts";
-import { runGraph } from "./graph.ts";
+import { runGraph, type NodeFn } from "./graph.ts";
 import { nodes } from "./nodes.ts";
 import { routers } from "./routers.ts";
+import { syncBoard } from "./board.ts";
 import { activeLanes, loadLane, newLane, saveLane, type LaneState } from "./state.ts";
 
 const exec = promisify(execFile);
@@ -81,6 +82,21 @@ export async function admit(issue: number, slug: string): Promise<LaneState> {
   return lane;
 }
 
+/**
+ * Nodes wrapped with a board sync at entry: lane.phase equals the node name
+ * when the router lands on it, so the project board shows the live stage
+ * (Research / Coding / Verification …) while the node runs, not after.
+ */
+const boardNodes = Object.fromEntries(
+  Object.entries(nodes).map(([name, fn]) => [
+    name,
+    (async (lane, visit) => {
+      await syncBoard(lane);
+      return fn(lane, visit);
+    }) satisfies NodeFn<LaneState>,
+  ]),
+) as typeof nodes;
+
 /** One pass over all active lanes; each walks until a gate/park/end. */
 export async function tick(): Promise<void> {
   for (const lane of activeLanes()) {
@@ -92,14 +108,18 @@ export async function tick(): Promise<void> {
       lane.phase = "parked";
       lane.exitReason = "parked";
       saveLane(lane);
+      await syncBoard(lane);
       continue;
     }
     const result = await runGraph(
-      { nodes, routers },
+      { nodes: boardNodes, routers },
       lane,
       { start: lane.phase === "done" ? "merge-learn" : lane.phase, recursionLimit: 25 },
     );
     saveLane(result.state);
+    // Terminal phases (done/parked/gate-waits) are set INSIDE nodes, after the
+    // entry sync — mirror the walk's final state so the board never lags.
+    await syncBoard(result.state);
     logMetrics(result.state);
     if (!result.ok) console.error(`[lane #${lane.issue}] ${result.error}`);
   }
