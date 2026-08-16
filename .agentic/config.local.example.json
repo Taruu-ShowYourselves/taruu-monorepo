@@ -1,0 +1,9 @@
+{
+  "email": {
+    "to": "YOUR-EMAIL@example.com",
+    "from": "autopilot@updates.pleiad.ai",
+    "subjectPrefix": "[taruu-autopilot]",
+    "digestHourLocal": 8
+  },
+  "autoAdmit": { "enabled": true, "onlyAssignee": "DolevSeren", "onlyStatus": ["Todo"] }
+}

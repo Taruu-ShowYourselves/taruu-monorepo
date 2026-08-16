@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 export interface SeatSpec {
@@ -39,11 +39,24 @@ export interface Config {
 
 let cached: Config | null = null;
 
+/**
+ * Host identity lives in gitignored `.agentic/config.local.json`, shallow-merged
+ * over the committed config per top-level key. Each host MUST set at least
+ * `email.to` and (once auto-admit exists) its own assignee filter — two daemons
+ * on two machines split the board by assignee, so they never fight over work.
+ */
 export function config(): Config {
   if (!cached) {
-    cached = JSON.parse(
+    const base = JSON.parse(
       readFileSync(join(process.cwd(), ".agentic", "config.json"), "utf8"),
     ) as Config;
+    const localPath = join(process.cwd(), ".agentic", "config.local.json");
+    if (existsSync(localPath)) {
+      const local = JSON.parse(readFileSync(localPath, "utf8")) as Partial<Config>;
+      cached = { ...base, ...local } as Config;
+    } else {
+      cached = base;
+    }
   }
   return cached;
 }
