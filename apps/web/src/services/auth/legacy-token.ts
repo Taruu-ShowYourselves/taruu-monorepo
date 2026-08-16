@@ -66,7 +66,7 @@ export async function verifyLegacySessionToken(token: string): Promise<LegacySes
   const key = new TextEncoder().encode(secret);
 
   try {
-    const { payload } = await jwtVerify(token, key);
+    const { payload } = await jwtVerify(token, key, { algorithms: ['HS256'] });
 
     // Shape check - CRITICAL. JWT_SECRET signed more than pre-M1 session
     // tokens: the social-connect OAuth state ({userId, platform, nonce},

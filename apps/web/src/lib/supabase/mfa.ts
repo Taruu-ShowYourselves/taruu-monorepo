@@ -58,13 +58,22 @@ export async function getPendingFactor(userId: string): Promise<MfaFactorRow | n
   return data;
 }
 
-/** Deletes an in-window pending row too - restart-enrollment replaces it. */
-export async function deletePendingFactor(userId: string): Promise<void> {
-  await supabaseAdmin
+/**
+ * Deletes an in-window pending row too - restart-enrollment replaces it.
+ * Returns false on failure so callers refuse instead of proceeding into the
+ * one-pending partial unique index with the old row still present.
+ */
+export async function deletePendingFactor(userId: string): Promise<boolean> {
+  const { error } = await supabaseAdmin
     .from('user_mfa_factors')
     .delete()
     .eq('user_id', userId)
     .eq('status', 'pending');
+  if (error) {
+    console.error('deletePendingFactor failed:', error);
+    return false;
+  }
+  return true;
 }
 
 export async function insertPendingFactor(row: {

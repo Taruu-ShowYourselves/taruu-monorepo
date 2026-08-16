@@ -25,11 +25,12 @@ interface AuthState {
   // Session state
   accessToken: string | null;
   refreshToken: string | null;
-  expiresAt: Date | null;
+  /** ISO-8601 string straight from the API - parsed only where compared. */
+  expiresAt: string | null;
 
   // Actions
   setUser: (user: UserProfile | null) => void;
-  setTokens: (accessToken: string, refreshToken?: string, expiresAt?: Date) => void;
+  setTokens: (accessToken: string, refreshToken?: string, expiresAt?: string) => void;
   setLoading: (isLoading: boolean) => void;
   updateUser: (updates: Partial<UserProfile>) => void;
   updateIdentityScore: (score: IdentityScore) => void;

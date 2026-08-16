@@ -21,6 +21,7 @@ const GUARDED_PATHS = [
   'services/verification/eligibility.ts',
   'app/api/votes',
   'app/api/payments',
+  'app/api/user/voting-gate',
 ];
 
 const FORBIDDEN = /security_score|securityScore|displayed_trust|displayedTrust/;

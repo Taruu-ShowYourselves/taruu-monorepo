@@ -149,8 +149,10 @@ export default function SecuritySettingsPage() {
     const data = await response.json();
     if (response.ok) {
       // The response re-mints this session with the new sv - every other
-      // device is signed out from its next request.
-      if (data.accessToken) setTokens(data.accessToken, data.refreshToken);
+      // device is signed out from its next request. expiresAt travels too -
+      // omitting it wipes the stored expiry (same class of bug as the
+      // AuthProvider fix).
+      if (data.accessToken) setTokens(data.accessToken, data.refreshToken, data.expiresAt);
       setNotice('אימות דו-שלבי הושבת. כל ההתחברויות האחרות נותקו.');
       await loadStatus();
     } else {

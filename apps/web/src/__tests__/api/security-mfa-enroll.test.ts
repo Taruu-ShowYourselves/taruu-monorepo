@@ -76,6 +76,8 @@ beforeEach(() => {
   resetDerivedKeyCache();
   (getSessionFromRequest as Mock).mockResolvedValue(SESSION);
   (countSecurityEventsSince as Mock).mockResolvedValue(0);
+  // deletePendingFactor now reports success/failure; default to success.
+  (deletePendingFactor as Mock).mockResolvedValue(true);
 });
 
 describe('POST /api/security/mfa/enroll', () => {
@@ -112,6 +114,18 @@ describe('POST /api/security/mfa/enroll', () => {
 
     (countSecurityEventsSince as Mock).mockResolvedValue(null);
     expect((await POST(req())).status).toBe(429);
+  });
+
+  it('500s when the pending-row delete fails - never inserts over a live row', async () => {
+    (getActiveFactor as Mock).mockResolvedValue(null);
+    (deletePendingFactor as Mock).mockResolvedValue(false);
+    const POST = await loadRoute();
+
+    const res = await POST(req());
+
+    expect(res.status).toBe(500);
+    expect((await res.json()).code).toBe('ENROLLMENT_FAILED');
+    expect(insertPendingFactor).not.toHaveBeenCalled();
   });
 
   it('replaces any pending row and answers ONCE with the otpauth URI + secret', async () => {

@@ -22,7 +22,7 @@
  * always. Durable ceiling: 10 resets per operator per day.
  */
 
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { isOperatorResetEnabled } from '@/lib/features/operator-reset';
 import { requireSecurityAdmin } from '@/services/auth/require-security-admin';
 import { requireReauth } from '@/services/auth/reauth';
@@ -44,6 +44,17 @@ const MAX_RESETS_PER_OPERATOR_PER_DAY = 10;
 const REASON_MIN = 10;
 const REASON_MAX = 2000;
 
+// after() needs a live request scope (unavailable in unit tests) - fall back
+// to fire-and-forget so a security notice never blocks/breaks the response.
+// On Workers, after() is what guarantees the send survives the response.
+function defer(task: () => Promise<void>) {
+  try {
+    after(task);
+  } catch {
+    void task().catch(() => {});
+  }
+}
+
 export async function POST(request: Request) {
   if (!isOperatorResetEnabled()) {
     return NextResponse.json({ error: 'Not found', code: 'NOT_FOUND' }, { status: 404 });
@@ -61,15 +72,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Authorization failed', code: 'AUTHZ_FAILED' }, { status: 500 });
     }
 
-    // The operator's own MFA proof - TOTP only, single-use, purpose-bound.
-    const reauthed = await requireReauth(request, 'operator_reset');
-    if (!reauthed) {
-      return NextResponse.json(
-        { error: 'Reauthentication required', code: 'REAUTH_REQUIRED' },
-        { status: 403 }
-      );
-    }
-    const operator = reauthed;
+    // Reauth (the operator's TOTP proof) moved below - it consumes a
+    // single-use ticket, so it runs after every rejectable validation.
+    const operator = authz.session;
 
     const body = await request.json().catch(() => ({}));
     const targetUserId = typeof body?.targetUserId === 'string' ? body.targetUserId : '';
@@ -99,6 +104,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Target not found', code: 'TARGET_NOT_FOUND' }, { status: 404 });
     }
 
+    // The operator's own MFA proof - TOTP only, single-use, purpose-bound.
+    // Consumed LAST, after every rejectable check: a typo'd reason, a missing
+    // target, or a tripped daily ceiling must not burn the ticket.
+    const reauthed = await requireReauth(request, 'operator_reset');
+    if (!reauthed) {
+      return NextResponse.json(
+        { error: 'Reauthentication required', code: 'REAUTH_REQUIRED' },
+        { status: 403 }
+      );
+    }
+
     const disabled = await disableFactor(targetUserId, 'operator_reset');
     if (!disabled) {
       return NextResponse.json(
@@ -122,7 +138,9 @@ export async function POST(request: Request) {
       metadata: { trigger: 'operator_reset' },
     });
 
-    void sendMfaResetByOperatorEmail({ to: target.email, firstName: target.first_name });
+    defer(async () => {
+      await sendMfaResetByOperatorEmail({ to: target.email, firstName: target.first_name });
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

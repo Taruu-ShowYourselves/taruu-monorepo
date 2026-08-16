@@ -95,11 +95,21 @@ AS $$
 DECLARE
   affected UUID;
 BEGIN
-  affected := COALESCE(NEW.user_id, OLD.user_id);
+  -- On DELETE, PL/pgSQL leaves NEW unassigned - reading NEW.user_id raises
+  -- (SQLSTATE 55000), so branch on TG_OP like update_user_identity_score
+  -- (20240101000002_functions.sql), this trigger's mold.
+  IF TG_OP = 'DELETE' THEN
+    affected := OLD.user_id;
+  ELSE
+    affected := NEW.user_id;
+  END IF;
   UPDATE users
      SET security_score = calculate_security_score(affected)
    WHERE id = affected;
-  RETURN COALESCE(NEW, OLD);
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  END IF;
+  RETURN NEW;
 END $$;
 
 CREATE TRIGGER trigger_security_score_on_factor_change

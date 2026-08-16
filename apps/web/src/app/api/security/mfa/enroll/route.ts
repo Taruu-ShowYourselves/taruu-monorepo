@@ -68,8 +68,16 @@ export async function POST(request: Request) {
     }
 
     // One in-flight enrollment per user (the partial unique index enforces
-    // it): any prior pending row - stale or in-window - is replaced.
-    await deletePendingFactor(session.userId);
+    // it): any prior pending row - stale or in-window - is replaced. A failed
+    // delete must refuse - inserting anyway would hit the index and surface
+    // as a generic 500 with the real cause invisible.
+    const cleared = await deletePendingFactor(session.userId);
+    if (!cleared) {
+      return NextResponse.json(
+        { error: 'Enrollment failed', code: 'ENROLLMENT_FAILED' },
+        { status: 500 }
+      );
+    }
 
     const factorId = crypto.randomUUID();
     const secret = generateTotpSecret();

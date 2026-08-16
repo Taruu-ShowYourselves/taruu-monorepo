@@ -12,7 +12,7 @@
 -- migration evidence. Do not claim CI coverage for it anywhere.
 --
 -- Every case prints exactly one PASS or FAIL line. A clean run prints
--- twenty-two PASS lines and no FAIL lines. Run against a throwaway database
+-- twenty-seven PASS lines and no FAIL lines. Run against a throwaway database
 -- and only once per reset: the probe leaves its rows behind on purpose - the
 -- security_events row it appends cannot be deleted, which is the point.
 
@@ -451,4 +451,110 @@ EXCEPTION
     RAISE NOTICE 'PASS: second settings row refused (SQLSTATE %)', SQLSTATE;
   WHEN OTHERS THEN
     RAISE NOTICE 'FAIL: unexpected SQLSTATE % (%)', SQLSTATE, SQLERRM;
+END $$;
+
+-- ===========================================================================
+-- I. Score trigger fires on DELETE (PR #120 review blocker regression)
+-- ===========================================================================
+
+-- Case I1: deleting a factor row recomputes instead of raising. NEW is
+-- unassigned on DELETE in PL/pgSQL, so the trigger must branch on TG_OP -
+-- this is the enrollment-restart path (deletePendingFactor at every start).
+DO $$
+DECLARE score INT;
+BEGIN
+  INSERT INTO public.user_mfa_factors (id, user_id, factor_type, status, secret_enc)
+  VALUES ('00000000-0000-4000-8000-00000000f002',
+          '00000000-0000-4000-8000-00000000d001', 'totp', 'pending', '\x00'::bytea);
+  DELETE FROM public.user_mfa_factors
+   WHERE id = '00000000-0000-4000-8000-00000000f002';
+  SELECT security_score INTO score FROM public.users
+   WHERE id = '00000000-0000-4000-8000-00000000d001';
+  IF score = 0 THEN
+    RAISE NOTICE 'PASS: factor DELETE recomputes the score without raising';
+  ELSE
+    RAISE NOTICE 'FAIL: score=% after factor delete (want 0)', score;
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'FAIL: factor DELETE raised (% / %)', SQLSTATE, SQLERRM;
+END $$;
+
+-- Case I2: ON DELETE CASCADE from users survives the trigger - a manual or
+-- GDPR user deletion must not abort on the factor row's AFTER DELETE.
+DO $$
+BEGIN
+  INSERT INTO public.users (id, email)
+  VALUES ('00000000-0000-4000-8000-00000000d002', 'mfa-probe-cascade@example.test');
+  INSERT INTO public.user_mfa_factors (id, user_id, factor_type, status, secret_enc)
+  VALUES ('00000000-0000-4000-8000-00000000f003',
+          '00000000-0000-4000-8000-00000000d002', 'totp', 'pending', '\x00'::bytea);
+  DELETE FROM public.users WHERE id = '00000000-0000-4000-8000-00000000d002';
+  RAISE NOTICE 'PASS: user delete cascades through the factor trigger';
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'FAIL: cascade delete raised (% / %)', SQLSTATE, SQLERRM;
+END $$;
+
+-- ===========================================================================
+-- J. App/DB attempt-ceiling agreement
+-- ===========================================================================
+
+-- Case J1: consume still succeeds at exactly 4 recorded attempts - together
+-- with D3 (refused at 5) this pins the DB ceiling to the application's
+-- MAX_ROW_ATTEMPTS = 5 (apps/web/src/app/api/auth/mfa/verify/route.ts).
+DO $$
+DECLARE ok BOOLEAN; n SMALLINT;
+BEGIN
+  INSERT INTO public.mfa_pending_tokens (id, user_id, expires_at)
+  VALUES ('00000000-0000-4000-8000-00000000e004',
+          '00000000-0000-4000-8000-00000000d001', now() + interval '5 minutes');
+  FOR i IN 1..4 LOOP
+    SELECT public.mfa_record_pending_attempt(
+      '00000000-0000-4000-8000-00000000e004',
+      '00000000-0000-4000-8000-00000000d001') INTO n;
+  END LOOP;
+  SELECT public.mfa_consume_pending_token(
+    '00000000-0000-4000-8000-00000000e004',
+    '00000000-0000-4000-8000-00000000d001') INTO ok;
+  IF n = 4 AND ok THEN
+    RAISE NOTICE 'PASS: consume permitted at 4 attempts - ceiling sits exactly at 5';
+  ELSE
+    RAISE NOTICE 'FAIL: attempts=%, consume=% (want 4, true)', n, ok;
+  END IF;
+END $$;
+
+-- ===========================================================================
+-- K. Column-scoped subject read on security_events
+-- ===========================================================================
+
+-- Case K1: the operator/forensic columns are refused for authenticated.
+DO $$
+DECLARE dummy TEXT;
+BEGIN
+  SET LOCAL ROLE authenticated;
+  SELECT reason INTO dummy FROM public.security_events LIMIT 1;
+  RESET ROLE;
+  RAISE NOTICE 'FAIL: authenticated read the operator reason column';
+EXCEPTION
+  WHEN insufficient_privilege THEN
+    RESET ROLE;
+    RAISE NOTICE 'PASS: subject read of reason refused (SQLSTATE %)', SQLSTATE;
+  WHEN OTHERS THEN
+    RESET ROLE;
+    RAISE NOTICE 'FAIL: unexpected SQLSTATE % (%)', SQLSTATE, SQLERRM;
+END $$;
+
+-- Case K2: the projected columns (the /api/security/status contract) remain
+-- readable for authenticated - RLS still scopes WHICH rows.
+DO $$
+DECLARE n INT;
+BEGIN
+  SET LOCAL ROLE authenticated;
+  SELECT count(event_type) INTO n
+    FROM public.security_events;
+  RESET ROLE;
+  RAISE NOTICE 'PASS: subject read of projected columns permitted (% rows visible)', n;
+EXCEPTION
+  WHEN OTHERS THEN
+    RESET ROLE;
+    RAISE NOTICE 'FAIL: projected-column read refused (% / %)', SQLSTATE, SQLERRM;
 END $$;

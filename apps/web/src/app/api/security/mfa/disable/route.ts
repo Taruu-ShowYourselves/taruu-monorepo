@@ -16,21 +16,50 @@
  * remain disableable even after the enrollment surface is turned off.
  */
 
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { requireReauth } from '@/services/auth/reauth';
 import {
   createSessionToken,
   createRefreshToken,
   setSessionCookies,
+  getSessionFromRequest,
+  SESSION_TTL_SECONDS,
 } from '@/services/auth/session';
 import { DEFAULT_LOGIN_AMR, DEFAULT_LOGIN_ASR } from '@/services/auth/assurance';
-import { disableFactor } from '@/lib/supabase/mfa';
+import { disableFactor, getActiveFactor } from '@/lib/supabase/mfa';
 import { getUserById } from '@/lib/supabase/db';
 import { recordSecurityEvent } from '@/server/infra/supabase/security-events.repo';
 import { sendMfaDisabledEmail } from '@/services/email/security';
 
+// after() needs a live request scope (unavailable in unit tests) - fall back
+// to fire-and-forget so a security notice never blocks/breaks the response.
+// On Workers, after() is what guarantees the send survives the response.
+function defer(task: () => Promise<void>) {
+  try {
+    after(task);
+  } catch {
+    void task().catch(() => {});
+  }
+}
+
 export async function POST(request: Request) {
   try {
+    // Cheap pre-check BEFORE the single-use ticket is consumed: with no
+    // active factor there is nothing to disable, and burning the ticket on a
+    // guaranteed 404 wastes the user's TOTP proof. disableFactor below stays
+    // authoritative for the race where the factor vanishes in between.
+    const caller = await getSessionFromRequest(request);
+    if (!caller) {
+      return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
+    }
+    const factor = await getActiveFactor(caller.userId);
+    if (!factor) {
+      return NextResponse.json(
+        { error: 'No active factor', code: 'NO_ACTIVE_FACTOR' },
+        { status: 404 }
+      );
+    }
+
     const session = await requireReauth(request, 'mfa_disable');
     if (!session) {
       return NextResponse.json(
@@ -83,13 +112,16 @@ export async function POST(request: Request) {
       metadata: { trigger: 'mfa_disable' },
     });
 
-    void sendMfaDisabledEmail({ to: user.email, firstName: user.first_name });
+    defer(async () => {
+      await sendMfaDisabledEmail({ to: user.email, firstName: user.first_name });
+    });
 
     return NextResponse.json({
       success: true,
       accessToken,
       sessionToken: accessToken,
       refreshToken,
+      expiresAt: new Date(Date.now() + SESSION_TTL_SECONDS * 1000).toISOString(),
     });
   } catch (error) {
     console.error('MFA disable error:', error);

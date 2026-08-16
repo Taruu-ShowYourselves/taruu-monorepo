@@ -143,6 +143,10 @@ COMMENT ON TABLE public.mfa_pending_tokens IS
   'at the next mint (kept briefly for abuse forensics).';
 
 CREATE INDEX idx_mfa_pending_user ON public.mfa_pending_tokens (user_id, created_at);
+-- The opportunistic expiry sweep (deleteExpiredPendingTokens, run at every
+-- challenge mint) filters on expires_at alone - without this index it is a
+-- sequential scan inside the login critical path.
+CREATE INDEX idx_mfa_pending_expires ON public.mfa_pending_tokens (expires_at);
 
 ALTER TABLE public.mfa_pending_tokens ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.mfa_pending_tokens FROM anon, authenticated;
@@ -245,6 +249,13 @@ ALTER TABLE public.security_events ENABLE ROW LEVEL SECURITY;
 REVOKE INSERT ON public.security_events FROM anon, authenticated;
 
 -- Users may read their own security history (surfaces in settings/security).
+-- Column-scoped: the subject sees event type/time/metadata - matching the
+-- /api/security/status projection - but NOT the operator's identity
+-- (actor_user_id), the free-text reason, or the forensic ip_hash/user_agent.
+-- (/api/security/status itself reads via service_role, unaffected.)
+REVOKE SELECT ON public.security_events FROM anon, authenticated;
+GRANT SELECT (id, user_id, event_type, metadata, created_at)
+  ON public.security_events TO authenticated;
 CREATE POLICY "Users can read own security events"
   ON public.security_events FOR SELECT
   TO authenticated
@@ -292,6 +303,9 @@ AS $$
    WHERE id = p_id AND user_id = p_user_id
      AND consumed_at IS NULL
      AND expires_at > now()
+     -- Mirrors MAX_ROW_ATTEMPTS = 5 in the application
+     -- (apps/web/src/app/api/auth/mfa/verify/route.ts). Change BOTH together;
+     -- supabase/tests/security_mfa.sql asserts the DB ceiling sits at 5.
      AND attempt_count < 5
   RETURNING TRUE;
 $$;

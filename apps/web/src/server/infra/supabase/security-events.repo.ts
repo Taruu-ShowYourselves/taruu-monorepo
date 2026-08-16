@@ -49,9 +49,22 @@ function extractClientIp(request: Request): string | null {
   return null;
 }
 
+let warnedMissingPepper = false;
+
 export async function hashClientIp(request: Request): Promise<string | null> {
   const pepper = process.env.SECURITY_EVENT_PEPPER;
-  if (!pepper) return null;
+  if (!pepper) {
+    // Deliberate degradation (header above), but a VISIBLE one: without the
+    // pepper every event lands with ip_hash NULL and the forensic field the
+    // schema promises is silently empty. Warn once per isolate.
+    if (!warnedMissingPepper) {
+      warnedMissingPepper = true;
+      console.warn(
+        'SECURITY_EVENT_PEPPER is not set - security events are recorded without ip_hash'
+      );
+    }
+    return null;
+  }
   const ip = extractClientIp(request);
   if (!ip) return null;
   const digest = await crypto.subtle.digest(

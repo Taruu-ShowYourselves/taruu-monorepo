@@ -136,6 +136,23 @@ describe('POST /api/security/admin/mfa-reset', () => {
     expect((await POST(resetReq(VALID, await ticketJwt()))).status).toBe(429);
   });
 
+  it('never burns the single-use ticket on a rejected request - validation precedes consume', async () => {
+    const POST = await loadRoute();
+
+    // Bad reason: rejected without touching the ticket.
+    await POST(resetReq({ targetUserId: TARGET_ID, reason: 'short' }, await ticketJwt()));
+    expect(consumeReauthTicket).not.toHaveBeenCalled();
+
+    // Missing target: rejected without touching the ticket.
+    await POST(resetReq({ reason: VALID.reason }, await ticketJwt()));
+    expect(consumeReauthTicket).not.toHaveBeenCalled();
+
+    // Tripped daily ceiling: rejected without touching the ticket.
+    (countActorEventsSince as Mock).mockResolvedValue(10);
+    await POST(resetReq(VALID, await ticketJwt()));
+    expect(consumeReauthTicket).not.toHaveBeenCalled();
+  });
+
   it('404s a target with no active factor', async () => {
     (disableFactor as Mock).mockResolvedValue(false);
     const POST = await loadRoute();

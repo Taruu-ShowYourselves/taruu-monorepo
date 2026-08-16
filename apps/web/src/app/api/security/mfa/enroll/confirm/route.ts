@@ -16,7 +16,7 @@
  * Recovery codes appear ONCE, in this response.
  */
 
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { getSessionFromRequest } from '@/services/auth/session';
 import { isMfaEnrollmentEnabled } from '@/lib/features/mfa-enrollment';
 import { findMatchingStep } from '@/services/auth/totp';
@@ -34,6 +34,17 @@ import { sendMfaEnabledEmail } from '@/services/email/security';
 import { getUserById } from '@/lib/supabase/db';
 
 const MAX_CONFIRM_ATTEMPTS = 5;
+
+// after() needs a live request scope (unavailable in unit tests) - fall back
+// to fire-and-forget so a security notice never blocks/breaks the response.
+// On Workers, after() is what guarantees the send survives the response.
+function defer(task: () => Promise<void>) {
+  try {
+    after(task);
+  } catch {
+    void task().catch(() => {});
+  }
+}
 
 export async function POST(request: Request) {
   if (!isMfaEnrollmentEnabled()) {
@@ -58,7 +69,15 @@ export async function POST(request: Request) {
       Date.now() - new Date(pending.created_at).getTime() >
         PENDING_FACTOR_MAX_AGE_MINUTES * 60 * 1000;
     if (!pending || stale) {
-      if (stale) await deletePendingFactor(session.userId);
+      if (stale) {
+        const cleared = await deletePendingFactor(session.userId);
+        if (!cleared) {
+          return NextResponse.json(
+            { error: 'Enrollment failed', code: 'ENROLLMENT_FAILED' },
+            { status: 500 }
+          );
+        }
+      }
       return NextResponse.json(
         { error: 'No enrollment in progress', code: 'NO_PENDING_ENROLLMENT' },
         { status: 404 }
@@ -68,8 +87,16 @@ export async function POST(request: Request) {
     const blob = pgHexToBytes(pending.secret_enc);
     const secret = blob ? await decryptTotpSecret(blob, session.userId, pending.id) : null;
     if (!secret) {
-      // An undecryptable pending secret is unrecoverable - restart.
-      await deletePendingFactor(session.userId);
+      // An undecryptable pending secret is unrecoverable - restart. If even
+      // the delete fails, report the failure rather than promising a restart
+      // that will hit the same dead row.
+      const cleared = await deletePendingFactor(session.userId);
+      if (!cleared) {
+        return NextResponse.json(
+          { error: 'Enrollment failed', code: 'ENROLLMENT_FAILED' },
+          { status: 500 }
+        );
+      }
       return NextResponse.json(
         { error: 'Enrollment must be restarted', code: 'ENROLLMENT_RESTART_REQUIRED' },
         { status: 409 }
@@ -80,7 +107,13 @@ export async function POST(request: Request) {
     if (step === null) {
       const attempts = await incrementConfirmAttempts(pending.id, session.userId);
       if (attempts === null || attempts >= MAX_CONFIRM_ATTEMPTS) {
-        await deletePendingFactor(session.userId);
+        const cleared = await deletePendingFactor(session.userId);
+        if (!cleared) {
+          return NextResponse.json(
+            { error: 'Enrollment failed', code: 'ENROLLMENT_FAILED' },
+            { status: 500 }
+          );
+        }
         await recordSecurityEvent({
           userId: session.userId,
           eventType: 'mfa_enrollment_failed',
@@ -123,7 +156,11 @@ export async function POST(request: Request) {
 
     // Notification failure never fails the enrollment.
     const user = await getUserById(session.userId);
-    if (user) void sendMfaEnabledEmail({ to: user.email, firstName: user.first_name });
+    if (user) {
+      defer(async () => {
+        await sendMfaEnabledEmail({ to: user.email, firstName: user.first_name });
+      });
+    }
 
     return NextResponse.json({ success: true, recoveryCodes });
   } catch (error) {

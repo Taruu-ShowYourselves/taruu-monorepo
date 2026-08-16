@@ -15,7 +15,7 @@
  * failures per account-hour, 5 recovery failures per account-hour.
  */
 
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import {
   createSessionToken,
@@ -54,10 +54,24 @@ import {
 } from '@/services/auth/durable-limits';
 import { sendRecoveryCodeUsedEmail } from '@/services/email/security';
 
+// Mirrored by the DB's own ceiling in mfa_consume_pending_token
+// (supabase/migrations/20260901000002_mfa_schema.sql) - the SQL proof
+// (supabase/tests/security_mfa.sql) asserts both agree at 5.
 const MAX_ROW_ATTEMPTS = 5;
 const MAX_TOTP_FAILURES_PER_HOUR = 20;
 const MAX_RECOVERY_FAILURES_PER_HOUR = 5;
 const MAX_RECOVERY_FAILURES_PER_DAY = 20;
+
+// after() needs a live request scope (unavailable in unit tests) - fall back
+// to fire-and-forget so a security notice never blocks/breaks the response.
+// On Workers, after() is what guarantees the send survives the response.
+function defer(task: () => Promise<void>) {
+  try {
+    after(task);
+  } catch {
+    void task().catch(() => {});
+  }
+}
 
 function unauthorized(code: string, error = 'Verification failed') {
   return NextResponse.json({ error, code }, { status: 401 });
@@ -217,7 +231,9 @@ export async function POST(request: Request) {
         metadata: { context: 'login', remaining },
       });
       // §6.2a: the degradation is visible - notification never blocks login.
-      void sendRecoveryCodeUsedEmail({ to: user.email, firstName: user.first_name, remaining });
+      defer(async () => {
+        await sendRecoveryCodeUsedEmail({ to: user.email, firstName: user.first_name, remaining });
+      });
     } else {
       await recordSecurityEvent({
         userId: user.id,

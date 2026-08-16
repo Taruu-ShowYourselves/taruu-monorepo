@@ -77,7 +77,10 @@ export async function verifyPurposeToken(
 ): Promise<PurposeTokenClaims | null> {
   try {
     const key = await deriveAuthKey(purpose);
-    const { payload } = await jwtVerify(token, key);
+    // Belt-and-braces: the Uint8Array key already confines jose to the HS
+    // family, but pinning is the documented hardening for the kernel's one
+    // verification primitive.
+    const { payload } = await jwtVerify(token, key, { algorithms: ['HS256'] });
 
     if (payload.typ !== PURPOSE_TYPE_CLAIMS[purpose]) {
       return null;

@@ -72,6 +72,9 @@ export async function verifyGoogleIdToken(
     ({ payload } = await jwtVerify(idToken, googleJWKS, {
       issuer: ACCEPTED_ISSUERS,
       audience: clientId,
+      // jose's key-type check already blocks RSA->HMAC confusion; pinning is
+      // belt-and-braces per the documented hardening.
+      algorithms: ['RS256'],
     }));
   } catch (err) {
     const code = (err as { code?: string } | undefined)?.code;

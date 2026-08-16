@@ -3,8 +3,10 @@
  *
  * Server-minted CSRF/nonce carrier for the Google login flow: a purpose-typed
  * `oauth_state.v1` token (HKDF-derived key), 10-minute lifetime, carrying only
- * the nonce hash, the flow discriminator, and an optional post-login redirect.
- * No `userId` - the state is minted before any identity is known.
+ * the nonce hash and the flow discriminator. No `userId` - the state is
+ * minted before any identity is known. Deliberately NO redirect claim: a
+ * post-login redirect target inside a signed token is an open redirect the
+ * moment a caller wires it up; add it only together with its allowlist.
  *
  * Lives inside services/auth/ because it signs with the kernel's purpose-key
  * primitive; the mint-path guard test forbids that import anywhere else. The
@@ -22,13 +24,11 @@ export type LoginOAuthStateFlow = 'login';
 export interface LoginOAuthStatePayload {
   /** SHA-256 hex digest of the raw nonce - the raw nonce itself never enters this token. */
   nonceHash: string;
-  redirect?: string;
 }
 
 export interface LoginOAuthState {
   nonceHash: string;
   flow: LoginOAuthStateFlow;
-  redirect?: string;
 }
 
 /** Mints the server-side login OAuth state token. */
@@ -38,7 +38,6 @@ export async function createLoginOAuthState(payload: LoginOAuthStatePayload): Pr
     {
       nonce_hash: payload.nonceHash,
       flow: 'login' satisfies LoginOAuthStateFlow,
-      ...(payload.redirect ? { redirect: payload.redirect } : {}),
     },
     LOGIN_OAUTH_STATE_TTL_SECONDS
   );
@@ -57,6 +56,5 @@ export async function verifyLoginOAuthState(state: string): Promise<LoginOAuthSt
   return {
     nonceHash: claims.nonce_hash,
     flow: 'login',
-    redirect: typeof claims.redirect === 'string' ? claims.redirect : undefined,
   };
 }
