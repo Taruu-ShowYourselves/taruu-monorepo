@@ -152,8 +152,8 @@ function generateStructuredData(locale: Locale) {
     url: SITE_URL,
     logo: `${SITE_URL}/logo600.png`,
     description: isHebrew
-      ? 'פלטפורמת הצבעות קהילתיות עם אימות GPS ותוצאות שקופות'
-      : 'Community voting platform with GPS verification and transparent results',
+      ? 'הפלטפורמה האזרחית לתיקון הדמוקרטיה: רוב אזרחי מאומת ומנדט ציבורי שהרשויות מחויבות לכבד'
+      : 'The civic platform for fixing democracy: a verified civic majority and a public mandate the authorities must honour',
     foundingDate: '2024',
     foundingLocation: {
       '@type': 'Place',
@@ -175,8 +175,8 @@ function generateStructuredData(locale: Locale) {
     name: isHebrew ? 'תַּרְאוּ' : 'Taruu',
     url: SITE_URL,
     description: isHebrew
-      ? 'פלטפורמת הצבעות קהילתיות מקומיות בישראל'
-      : 'Local community voting platform in Israel',
+      ? 'הפלטפורמה האזרחית לתיקון הדמוקרטיה'
+      : 'The civic platform for fixing democracy',
     inLanguage: isHebrew ? 'he-IL' : 'en-US',
     potentialAction: {
       '@type': 'SearchAction',
