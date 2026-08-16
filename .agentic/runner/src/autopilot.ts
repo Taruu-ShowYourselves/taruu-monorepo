@@ -143,43 +143,46 @@ const boardNodes = Object.fromEntries(
   ]),
 ) as typeof nodes;
 
-/** One pass over all active lanes; each walks until a gate/park/end. */
+/** One lane's full walk until a gate/park/end, then persist + mirror. */
+async function walkLane(lane: LaneState): Promise<void> {
+  const result = await runGraph(
+    { nodes: boardNodes, routers },
+    lane,
+    { start: lane.phase === "done" ? "merge-learn" : lane.phase, recursionLimit: 25 },
+  );
+  saveLane(result.state);
+  // Terminal phases (done/parked/gate-waits) are set INSIDE nodes, after the
+  // entry sync — mirror the walk's final state so the board never lags.
+  await syncBoard(result.state);
+  logMetrics(result.state);
+  if (!result.ok) console.error(`[lane #${lane.issue}] ${result.error}`);
+}
+
+/**
+ * One pass over all active lanes — lanes walk CONCURRENTLY (the whole point
+ * of two lanes: two PRs in flight at once). Safe because every lane owns its
+ * worktree, branch, lane file, and metrics file; the only shared surface is
+ * the board/gh API, which is per-item. Path-claim exclusion runs first and
+ * is what makes the concurrency conservative: colliding lanes never run
+ * together — the later one parks for human re-ordering.
+ */
 export async function tick(): Promise<void> {
+  const runnable: LaneState[] = [];
   for (const lane of activeLanes()) {
-    // Path-claim exclusion is validated post-spec: a lane whose claims collide
-    // with another active lane parks for human re-ordering.
-    const others = activeLanes().filter((l) => l.issue !== lane.issue);
     if (lane.pathClaims.length > 0 &&
-        others.some((o) => claimsOverlap(lane.pathClaims, o.pathClaims))) {
+        runnable.some((o) => claimsOverlap(lane.pathClaims, o.pathClaims))) {
       lane.phase = "parked";
       lane.exitReason = "parked";
       saveLane(lane);
       await syncBoard(lane);
       continue;
     }
-    const result = await runGraph(
-      { nodes: boardNodes, routers },
-      lane,
-      { start: lane.phase === "done" ? "merge-learn" : lane.phase, recursionLimit: 25 },
-    );
-    saveLane(result.state);
-    // Terminal phases (done/parked/gate-waits) are set INSIDE nodes, after the
-    // entry sync — mirror the walk's final state so the board never lags.
-    await syncBoard(result.state);
-    logMetrics(result.state);
-    if (!result.ok) console.error(`[lane #${lane.issue}] ${result.error}`);
+    runnable.push(lane);
   }
+  await Promise.all(runnable.map(walkLane));
   // Keep the fleet fed: newly admitted lanes start their walk on this same tick.
-  for (const lane of await autoAdmit()) {
-    const result = await runGraph({ nodes: boardNodes, routers }, lane, {
-      start: lane.phase,
-      recursionLimit: 25,
-    });
-    saveLane(result.state);
-    await syncBoard(result.state);
-    logMetrics(result.state);
-    if (!result.ok) console.error(`[lane #${lane.issue}] ${result.error}`);
-  }
+  const admitted = await autoAdmit();
+  await Promise.all(admitted.map(walkLane));
 }
 
 function logMetrics(lane: LaneState): void {
