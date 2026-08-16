@@ -17,6 +17,11 @@ export interface Config {
     readonly digestHourLocal: number;
   };
   readonly lanes: { readonly max: number };
+  readonly autoAdmit?: {
+    readonly enabled: boolean;
+    readonly onlyAssignee?: string;
+    readonly onlyStatus?: readonly string[];
+  };
   readonly budgets: {
     readonly specLapsMax: number;
     readonly implLapsMax: number;

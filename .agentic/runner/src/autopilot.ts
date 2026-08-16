@@ -22,15 +22,20 @@ interface BoardItem {
   readonly title: string;
   readonly priority: string;
   readonly status: string;
+  readonly assignees: readonly string[];
 }
 
 export async function boardCandidates(): Promise<BoardItem[]> {
   const c = config();
-  const query = `query{ organization(login:"${c.board.owner}"){ projectV2(number:${c.board.projectNumber}){ items(first:100){ nodes{ content{...on Issue{number title state repository{nameWithOwner}}} status:fieldValueByName(name:"Status"){...on ProjectV2ItemFieldSingleSelectValue{name}} prio:fieldValueByName(name:"Priority"){...on ProjectV2ItemFieldSingleSelectValue{name}} humansOnly:fieldValueByName(name:"Humans Only"){...on ProjectV2ItemFieldSingleSelectValue{name}} } } } } }`;
+  const query = `query{ organization(login:"${c.board.owner}"){ projectV2(number:${c.board.projectNumber}){ items(first:100){ nodes{ content{...on Issue{number title state repository{nameWithOwner} assignees(first:5){nodes{login}}}} status:fieldValueByName(name:"Status"){...on ProjectV2ItemFieldSingleSelectValue{name}} prio:fieldValueByName(name:"Priority"){...on ProjectV2ItemFieldSingleSelectValue{name}} humansOnly:fieldValueByName(name:"Humans Only"){...on ProjectV2ItemFieldSingleSelectValue{name}} } } } } }`;
   const { stdout } = await exec("gh", ["api", "graphql", "-f", `query=${query}`], { maxBuffer: 16e6 });
   const parsed = JSON.parse(stdout) as {
     data: { organization: { projectV2: { items: { nodes: {
-      content: { number?: number; title?: string; state?: string; repository?: { nameWithOwner: string } } | null;
+      content: {
+        number?: number; title?: string; state?: string;
+        repository?: { nameWithOwner: string };
+        assignees?: { nodes: { login: string }[] };
+      } | null;
       status: { name?: string } | null;
       prio: { name?: string } | null;
       humansOnly: { name?: string } | null;
@@ -48,8 +53,46 @@ export async function boardCandidates(): Promise<BoardItem[]> {
       title: n.content!.title ?? "",
       priority: n.prio?.name ?? "P3",
       status: n.status?.name ?? "Todo",
+      assignees: (n.content!.assignees?.nodes ?? []).map((a) => a.login),
     }))
     .sort((a, b) => PRIORITY_ORDER.indexOf(a.priority) - PRIORITY_ORDER.indexOf(b.priority));
+}
+
+/** ASCII slug from an issue title; Hebrew-only titles fall back to issue-<n>. */
+export function slugify(title: string, issue: number): string {
+  const s = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40)
+    .replace(/-+$/g, "");
+  return s.length >= 3 ? s : `issue-${issue}`;
+}
+
+/**
+ * Keep the fleet fed (§4.7): whenever a lane frees, admit the highest-priority
+ * eligible board item. Eligible = configured status + assignee, no existing
+ * lane file (parked/done lanes are a human's decision to resume, never
+ * auto-reopened — the conservative contract).
+ */
+export async function autoAdmit(): Promise<LaneState[]> {
+  const aa = config().autoAdmit;
+  if (!aa?.enabled) return [];
+  const admitted: LaneState[] = [];
+  let free = config().lanes.max - activeLanes().length;
+  if (free <= 0) return admitted;
+  const candidates = await boardCandidates();
+  for (const item of candidates) {
+    if (free <= 0) break;
+    if (aa.onlyStatus && !aa.onlyStatus.includes(item.status)) continue;
+    if (aa.onlyAssignee && !item.assignees.includes(aa.onlyAssignee)) continue;
+    if (loadLane(item.issue) !== null) continue; // includes parked + done — human's call
+    const lane = await admit(item.issue, slugify(item.title, item.issue));
+    console.log(`[auto-admit] lane #${lane.issue} ${lane.slug} (${item.priority})`);
+    admitted.push(lane);
+    free -= 1;
+  }
+  return admitted;
 }
 
 function claimsOverlap(a: readonly string[], b: readonly string[]): boolean {
@@ -122,6 +165,17 @@ export async function tick(): Promise<void> {
     saveLane(result.state);
     // Terminal phases (done/parked/gate-waits) are set INSIDE nodes, after the
     // entry sync — mirror the walk's final state so the board never lags.
+    await syncBoard(result.state);
+    logMetrics(result.state);
+    if (!result.ok) console.error(`[lane #${lane.issue}] ${result.error}`);
+  }
+  // Keep the fleet fed: newly admitted lanes start their walk on this same tick.
+  for (const lane of await autoAdmit()) {
+    const result = await runGraph({ nodes: boardNodes, routers }, lane, {
+      start: lane.phase,
+      recursionLimit: 25,
+    });
+    saveLane(result.state);
     await syncBoard(result.state);
     logMetrics(result.state);
     if (!result.ok) console.error(`[lane #${lane.issue}] ${result.error}`);

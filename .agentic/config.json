@@ -8,6 +8,7 @@
     "digestHourLocal": 8
   },
   "lanes": { "max": 2 },
+  "autoAdmit": { "enabled": true, "onlyAssignee": "SaharBarak", "onlyStatus": ["Todo"] },
   "budgets": {
     "specLapsMax": 2,
     "implLapsMax": 2,
