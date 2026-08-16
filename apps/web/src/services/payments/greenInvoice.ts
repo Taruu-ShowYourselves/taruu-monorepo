@@ -6,14 +6,16 @@
  * replaces the former Paddle integration; card data never touches our servers.
  *
  * Flow:
- * - createVotePayment / createVoteCreationPayment -> POST /payments/form (a hosted
- *   payment page, `type: 320` = payment request issuing a receipt/invoice). Our
- *   internal payment id rides along in the `custom` field. Returns the page URL.
+ * - createVoteCreationPayment -> POST /payments/form (a hosted payment page,
+ *   `type: 320` = payment request issuing a receipt/invoice). Our internal payment
+ *   id rides along in the `custom` field. Returns the page URL.
  * - On success Green Invoice issues the document and calls our notifyUrl webhook
- *   (`/api/payments/webhook?token=<secret>`), which marks the payment completed,
- *   accrues ILS into the per-vote treasury ledger, mints SYNC tokens, records the
- *   vote. The accrued ILS is later batch-seeded into a Bags.fm bag at resolution.
+ *   (`/api/payments/webhook`, which carries NO secret), which marks the payment
+ *   completed, mints SYNC tokens and emails a receipt.
  * - Refunds are issued as Green Invoice credit-note documents (חשבונית זיכוי).
+ *
+ * Participation is FREE (cfa5d25) and this service has no participation rail.
+ * The ₪50 creation fee is 100% platform - it credits no civic pool (PAY-06).
  *
  * Auth (JWT) and the account/base URL are shared with the merch integration
  * (services/greenInvoice). Endpoint/field shapes follow the public morning API;
@@ -31,15 +33,6 @@ import { logger } from '@/lib/logger';
 // === Configuration ===
 
 // Payment amounts in ILS (source of truth lives in @sync/shared constants)
-/**
- * LEGACY ₪3 vote-participation charge. Participation is free since cfa5d25 and
- * no web surface creates this payment any more, but the `vote_participation`
- * rail is still wired through /api/payments/create. The amount is pinned here
- * rather than imported from @sync/shared so the free-participation constant can
- * never be mistaken for a live price. Retiring this rail belongs to the Phase 3
- * payment re-scope.
- */
-const VOTE_PARTICIPATION_AMOUNT = 3;
 const VOTE_CREATION_AMOUNT = CREATE_VOTE_COST; // ₪50
 
 /** Green Invoice document type for a hosted payment request (issues a receipt/invoice). */
@@ -135,12 +128,12 @@ async function createPaymentForm(params: {
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
-  const secret = process.env.GREENINVOICE_WEBHOOK_SECRET || '';
-  // Green Invoice's hosted-form notify supports only a URL (no custom headers), so
-  // the shared secret rides as `?token=` - matched by the webhook, which also
-  // accepts an `x-greeninvoice-token` header. (Header/HMAC transport is tracked in
-  // CONCERNS.md; the hosted-form flow can't attach a header.)
-  const notifyUrl = `${appUrl}/api/payments/webhook${secret ? `?token=${encodeURIComponent(secret)}` : ''}`;
+  // The notify URL carries NO secret. Green Invoice's hosted form cannot attach a
+  // custom header (see GI-PRIME-CHECKLIST.md - confirm with the rep), so instead of
+  // putting a shared secret in a URL, the webhook treats an unauthenticated notify
+  // as an untrusted PING: it re-fetches the document from Green Invoice over the
+  // authenticated API before mutating anything. See verifyWebhook / confirmDocumentIssued.
+  const notifyUrl = `${appUrl}/api/payments/webhook`;
 
   const payload = {
     description: params.description,
@@ -190,26 +183,7 @@ async function createPaymentForm(params: {
 
 // === Service Methods ===
 
-/** Create a hosted payment page for vote participation (₪3). */
-export async function createVotePayment(params: {
-  orderId: string;
-  voteId: string;
-  voteTitle?: string;
-  userId: string;
-  email: string;
-  name: string;
-  municipality?: string;
-}): Promise<PaymentIntent> {
-  return createPaymentForm({
-    orderId: params.orderId,
-    amount: VOTE_PARTICIPATION_AMOUNT,
-    description: `השתתפות בהצבעה: ${params.voteTitle || params.voteId}`,
-    email: params.email,
-    name: params.name,
-  });
-}
-
-/** Create a hosted payment page for vote creation (₪50). */
+/** Create a hosted payment page for vote creation (₪50). The only payment we create. */
 export async function createVoteCreationPayment(params: {
   orderId: string;
   voteTitle: string;
@@ -295,10 +269,18 @@ export async function createRefund(params: {
 }
 
 /**
- * Authenticate a Green Invoice webhook against the shared secret. The notify URL
- * is registered with `?token=<secret>`; we also accept an `x-greeninvoice-token`
- * header. Fails CLOSED in production when the secret is unset; fails open in dev so
- * local mock checkout works without creds.
+ * Authenticate a Green Invoice webhook against the shared secret (SEC-03).
+ *
+ * The `x-greeninvoice-token` HTTP header is the ONLY accepted transport for the
+ * secret, compared in constant time. The notify URL carries no secret: a shared
+ * secret in a URL leaks through referrers, proxy logs, browser history and the
+ * edge platform's own request logging, so a secret arriving as a query parameter
+ * is not read and can never match. The hosted form cannot set a header, so a genuine Green
+ * Invoice notify authenticates on the second factor instead - see
+ * `confirmDocumentIssued`, which the webhook route requires when this returns false.
+ *
+ * Fails CLOSED in production when the secret is unset; fails open outside
+ * production so local mock checkout works without creds.
  */
 export function verifyWebhook(request: Request): boolean {
   const secret = process.env.GREENINVOICE_WEBHOOK_SECRET || '';
@@ -310,13 +292,142 @@ export function verifyWebhook(request: Request): boolean {
     logger.warn('Payments webhook: GREENINVOICE_WEBHOOK_SECRET unset - UNAUTHENTICATED (dev only)');
     return true;
   }
-  const provided =
-    new URL(request.url).searchParams.get('token') ||
-    request.headers.get('x-greeninvoice-token') ||
-    '';
+  const provided = request.headers.get('x-greeninvoice-token') || '';
   const a = Buffer.from(provided);
   const b = Buffer.from(secret);
   return a.length === b.length && timingSafeEqual(a, b);
+}
+
+/**
+ * Ask Green Invoice whether this document exists, over the authenticated API.
+ *
+ * This is the authenticity proof for the hosted-form path, which cannot present
+ * a header. An attacker who guesses an order id cannot make GI vouch for a
+ * document that was never issued. Best-effort by design: on any transport or
+ * auth failure this returns false, and the caller fails closed in production.
+ */
+export async function confirmDocumentIssued(documentId: string): Promise<boolean> {
+  if (!documentId) return false;
+  try {
+    const doc = await giRequest<{ id?: string }>(
+      `/documents/${encodeURIComponent(documentId)}`,
+      { method: 'GET' }
+    );
+    return Boolean(doc);
+  } catch {
+    // Deliberately logs the document id only - never the secret, never GI's
+    // response body, which is attacker-influenced on an unauthenticated notify.
+    logger.warn('Green Invoice document confirmation failed', { documentId });
+    return false;
+  }
+}
+
+/**
+ * Prove that an issued Green Invoice document belongs to THIS payment.
+ *
+ * `confirmDocumentIssued` proves existence, and existence is not ownership: any
+ * real document id - an attacker's own ₪1 receipt, an id skimmed from a shared
+ * receipt URL - passes an existence check while the forged payload's `custom`
+ * points at somebody else's payment row. The header-less factor must therefore
+ * bind the document to the payment it claims to settle.
+ *
+ * The document is fetched over the authenticated API and accepted only when
+ * BOTH hold:
+ * - Correlation: a field Green Invoice echoes back from the form we created
+ *   (`custom`, `remarks`, `description`, an income line's description) carries
+ *   this payment's id. `createPaymentForm` writes the id into `custom` and
+ *   `remarks` at create time, so a genuine settlement always correlates.
+ * - Amount: whenever the document exposes a total, it matches the payment row
+ *   to within a hundredth of a shekel - the same tolerance the merch
+ *   confirm-document check uses.
+ *
+ * Anything else - transport failure, missing correlation, amount mismatch -
+ * resolves false, and the route answers 401 without mutating anything.
+ */
+export async function confirmDocumentForPayment(
+  documentId: string,
+  expected: { paymentId: string; amountAgorot: number }
+): Promise<boolean> {
+  if (!documentId || !expected.paymentId) return false;
+  try {
+    const doc = await giRequest<Record<string, unknown>>(
+      `/documents/${encodeURIComponent(documentId)}`,
+      { method: 'GET' }
+    );
+    if (!doc || typeof doc !== 'object') return false;
+
+    // Correlation - the fields written at create time, read defensively across
+    // the shapes GI may echo them back in.
+    const haystacks: string[] = [];
+    const collect = (value: unknown) => {
+      if (typeof value === 'string' && value.length > 0) haystacks.push(value);
+    };
+    collect(doc.custom);
+    collect(doc.remarks);
+    collect(doc.description);
+    collect(doc.externalId);
+    if (Array.isArray(doc.income)) {
+      for (const line of doc.income) {
+        if (line && typeof line === 'object') {
+          collect((line as Record<string, unknown>).description);
+        }
+      }
+    }
+    if (doc.payment && typeof doc.payment === 'object') {
+      const nested = doc.payment as Record<string, unknown>;
+      collect(nested.custom);
+      collect(nested.remarks);
+    }
+    if (!haystacks.some((h) => h.includes(expected.paymentId))) {
+      logger.warn('Green Invoice document does not correlate to the claimed payment', {
+        documentId,
+        paymentId: expected.paymentId,
+      });
+      return false;
+    }
+
+    // Amount - enforced whenever the document exposes a total. The exact field
+    // name varies by document shape, so every exposed total is considered and
+    // one of them must match the payment row.
+    const totals = [doc.amount, doc.sum, doc.total].filter(
+      (value): value is number => typeof value === 'number' && Number.isFinite(value)
+    );
+    if (totals.length > 0) {
+      const expectedILS = expected.amountAgorot / 100;
+      if (!totals.some((total) => Math.abs(total - expectedILS) < 0.01)) {
+        logger.warn('Green Invoice document total does not match the payment amount', {
+          documentId,
+          paymentId: expected.paymentId,
+        });
+        return false;
+      }
+    }
+
+    return true;
+  } catch {
+    // Same rule as confirmDocumentIssued: log the id only, never GI's response
+    // body, which is attacker-influenced on an unauthenticated notify.
+    logger.warn('Green Invoice document confirmation failed', { documentId });
+    return false;
+  }
+}
+
+/**
+ * The Green Invoice document id from a notify payload, or null.
+ *
+ * Deliberately does NOT fall back to our own order id. `parseWebhookEvent` does,
+ * because it needs SOMETHING to correlate on - but that value must never reach
+ * `payments.provider_id`, which is meant to hold a GI document reference.
+ * Phase 4's reconciliation compares that column against GI's settlement report;
+ * seeding it with our own id would make the comparison trivially "reconcile"
+ * while holding no document at all.
+ */
+export function extractDocumentId(payload: Record<string, unknown>): string | null {
+  for (const key of ['id', 'documentId', 'paymentId'] as const) {
+    const value = payload[key];
+    if (typeof value === 'string' && value.length > 0) return value;
+  }
+  return null;
 }
 
 /**
@@ -324,6 +435,12 @@ export function verifyWebhook(request: Request): boolean {
  * Invoice notifies on a successful payment (document issued); failed payments
  * redirect the buyer to the failureUrl and send no notify. `custom` is our
  * internal payment id; the document id is read defensively across GI's fields.
+ *
+ * WARNING: `paymentId` below falls back to our own order id on purpose, because
+ * the route needs some correlation key to find the payment row. That value is
+ * therefore NOT a proof of a Green Invoice document and must never be persisted
+ * as one - `payments.provider_id` is written from `extractDocumentId`, which has
+ * no fallback and returns null when GI sent no document id (PAY-07).
  */
 export function parseWebhookEvent(payload: Record<string, unknown>): PaymentWebhookEvent {
   const orderId = (payload.custom as string) || '';
@@ -344,7 +461,6 @@ export function parseWebhookEvent(payload: Record<string, unknown>): PaymentWebh
 
 export function getPaymentAmounts() {
   return {
-    voteParticipation: VOTE_PARTICIPATION_AMOUNT, // ₪3
     voteCreation: VOTE_CREATION_AMOUNT, // ₪50
     currency: 'ILS' as const,
   };
@@ -352,15 +468,17 @@ export function getPaymentAmounts() {
 
 export const paymentService = {
   isConfigured,
-  createVotePayment,
   createVoteCreationPayment,
   getPaymentStatus,
   getInvoiceUrl,
   createRefund,
   verifyWebhook,
+  confirmDocumentIssued,
+  confirmDocumentForPayment,
+  extractDocumentId,
   parseWebhookEvent,
 };
 
-export { VOTE_PARTICIPATION_AMOUNT, VOTE_CREATION_AMOUNT };
+export { VOTE_CREATION_AMOUNT };
 export type { PaymentIntent, PaymentResult };
 export default paymentService;

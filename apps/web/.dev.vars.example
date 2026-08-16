@@ -41,6 +41,14 @@ INSTAGRAM_APP_SECRET=
 # Qubik blockchain
 QUBIK_API_KEY=
 
+# Payments kill switch. NOT a secret - public by construction (NEXT_PUBLIC_).
+# ONLY the exact string `true` turns money on; absent/empty/anything else is OFF,
+# which is the shipped default until the provider approves the account.
+# While OFF: /api/payments/create, /api/payments/refund and /api/merch/checkout
+# answer 503 PAYMENTS_DISABLED, and the GREENINVOICE_* entries below are not
+# required by the runtime gate. Free voting is unaffected either way.
+NEXT_PUBLIC_PAYMENTS_ENABLED=false
+
 # Green Invoice (Merchant of Record - vote fees + merch store)
 GREENINVOICE_API_KEY_ID=
 GREENINVOICE_API_SECRET=

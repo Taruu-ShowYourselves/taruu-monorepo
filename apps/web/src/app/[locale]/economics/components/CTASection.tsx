@@ -32,7 +32,7 @@ const COPY: Record<Locale, CTACopy> = {
     foundersCta: 'קבוצת המייסדים',
     trustStats: [
       { value: 'חינם', label: 'עלות הצבעה' },
-      { value: '70%', label: 'לקרן הקהילתית' },
+      { value: '₪50', label: 'ליצירת הצבעה' },
       { value: 'תעודה', label: 'לכל משתתף' },
     ],
     arrow: '←',
@@ -46,7 +46,7 @@ const COPY: Record<Locale, CTACopy> = {
     foundersCta: 'The founders group',
     trustStats: [
       { value: 'Free', label: 'cost of a vote' },
-      { value: '70%', label: 'to the community fund' },
+      { value: '₪50', label: 'to create a vote' },
       { value: 'Certificate', label: 'for every participant' },
     ],
     arrow: '→',

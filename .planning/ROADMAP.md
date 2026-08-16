@@ -93,16 +93,16 @@ Plans:
 > **SEC-02 was already satisfied out of phase** in commit `35b0709`; plan 03-01 closes it on the record and adds a source guard rather than re-implementing it. See `03-CONTEXT.md` for the full verification and for four further contradictions found between the roadmap and the code.
 
 Plans:
-- [ ] 03-01-PLAN.md — env schema matches the runtime readers, fail-closed gate in `worker.ts`, SEC-02 closure record [SEC-05, SEC-02] (wave 1)
-- [ ] 03-02-PLAN.md — retire the ₪3 participation payment rail; a settled ₪50 creation fee credits no civic pool [PAY-08, PAY-06] (wave 1)
-- [ ] 03-03-PLAN.md — cross-package rail retirement: shared contracts, api-client, mobile checkout [PAY-08] (wave 1)
-- [ ] 03-04-PLAN.md — the per-vote ₪ claim: Ticker, MoneyTransparency, vote-created email, mobile welcome [PAY-08] (wave 1)
-- [ ] 03-05-PLAN.md — the unbacked 70/30 fee split and the 1% trading fee on `/economics` [PAY-08] (wave 1)
-- [ ] 03-06-PLAN.md — creation funnel truth: no fabricated seal, GI's failure redirect honoured [PAY-06] (wave 1)
-- [ ] 03-07-PLAN.md — webhook secret off the URL, two-factor authenticity, fail closed, honest document id [SEC-03, PAY-07] (wave 2)
-- [ ] 03-08-PLAN.md — server-derived deterministic idempotency key, no clock and no client override [SEC-04] (wave 2)
-- [ ] 03-09-PLAN.md — treasury board and pricing card, then the repo-wide money-model sweep that closes PAY-08 [PAY-08] (wave 2)
-- [ ] 03-10-PLAN.md — COIN-01 dossier: legal checklist + file:line inventory of every live token claim [COIN-01] (wave 2)
+- [x] 03-01-PLAN.md — env schema matches the runtime readers, fail-closed gate in `worker.ts`, SEC-02 closure record [SEC-05, SEC-02] (wave 1) — b709284
+- [x] 03-02-PLAN.md — retire the ₪3 participation payment rail; a settled ₪50 creation fee credits no civic pool [PAY-08, PAY-06] (wave 1) — ff515af
+- [x] 03-03-PLAN.md — cross-package rail retirement: shared contracts, api-client, mobile checkout [PAY-08] (wave 1) — 872b3f8
+- [x] 03-04-PLAN.md — the per-vote ₪ claim: Ticker, MoneyTransparency, vote-created email, mobile welcome [PAY-08] (wave 1) — ecdc6d4
+- [x] 03-05-PLAN.md — the unbacked 70/30 fee split and the 1% trading fee on `/economics` [PAY-08] (wave 1) — 67a470e
+- [x] 03-06-PLAN.md — creation funnel truth: no fabricated seal, GI's failure redirect honoured [PAY-06] (wave 1) — 3457ce3
+- [x] 03-07-PLAN.md — webhook secret off the URL, two-factor authenticity, fail closed, honest document id [SEC-03, PAY-07] (wave 2) — 73a3663
+- [x] 03-08-PLAN.md — server-derived deterministic idempotency key, no clock and no client override [SEC-04] (wave 2) — 0f66cf6
+- [x] 03-09-PLAN.md — treasury board and pricing card, then the repo-wide money-model sweep that closes PAY-08 [PAY-08] (wave 2) — 4c8b820
+- [x] 03-10-PLAN.md — COIN-01 dossier: legal checklist + file:line inventory of every live token claim [COIN-01] (wave 2) — 676d1e4
 - [ ] 03-11-PLAN.md — 🔒 BLOCKED on COIN-01 — append-only civic pool ledger + chain reconciliation [COIN-02] (wave 3)
 - [ ] 03-12-PLAN.md — 🔒 BLOCKED on COIN-01 — server-issued quote tokens; the quote shown is the quote that executes [COIN-03] (wave 3)
 - [ ] 03-13-PLAN.md — 🔒 BLOCKED on COIN-01 — rewrite every ruled token claim; the register becomes enforced [COIN-04] (wave 3)
@@ -211,7 +211,7 @@ Plans:
 | 1. Clean Foundation | 2/2 | Done (audit: partial — see AUDIT) | 2026-06-29 |
 | 2. Spike + Gate | 2/2 | Complete (audit: gate NOT passed) | 2026-06-30 |
 | 02.1 Participation Persistence | 5/5 | Complete    | 2026-08-02 |
-| 3. Payment Rails + Hardening | 0/13 | Planned 2026-08-03 — 13 plans, 3 waves; waves 1-2 unblocked, wave 3 gated on COIN-01 | - |
+| 3. Payment Rails + Hardening | 10/13 | Waves 1-2 complete 2026-08-04 (branch `feat/phase-3-payment-rails`, unmerged); wave 3 gated on COIN-01 | - |
 | 4. Go-Live | 0/6 | Planned 2026-08-03 — 6 plans / 4 waves; blocked on Phase 3 + gates G1/G2 | - |
 | 5. RBAC + Admin Review | 0/9 | Planned — RLS foundation folded in (RLS-01..05); carries issue #76 | - |
 | 6. Manager Billing + Subscription | 0/11 | Planned — blocked on SPIKE-01 (gate 06-01) and on Phase 5 executing | - |

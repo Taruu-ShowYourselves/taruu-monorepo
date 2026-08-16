@@ -108,7 +108,7 @@ const COPY: Record<Locale, FlywheelCopy> = {
       { id: 'coin', title: 'BAG נוצר ב-bags.fm', description: 'ההצבעה נרשמת בבלוקצ\'יין', icon: 'coin' },
       { id: 'external', title: 'תומך חיצוני', description: 'מזהה נושא שחשוב לו', icon: 'globe' },
       { id: 'trade', title: 'קונה את ה-BAG', description: 'תמיכה שמייצרת עמלות', icon: 'trade' },
-      { id: 'fees', title: 'עמלות מחולקות', description: '70% לקרן הרשות, 30% לפלטפורמה', icon: 'split' },
+      { id: 'fees', title: 'עמלות לקרן ההצבעה', description: 'עמלות המסחר ב-BAG מיועדות לקרן של אותה הצבעה', icon: 'split' },
       { id: 'result', title: 'תוצאה נקבעת', description: 'תעודה דיגיטלית לכל משתתף', icon: 'award' },
     ],
     resultLabel: 'התוצאה',
@@ -121,8 +121,8 @@ const COPY: Record<Locale, FlywheelCopy> = {
     colAllocation: 'הקצאה',
     revenueStreams: [
       { stream: 'יצירת הצבעה', source: '₪50 להצבעה חדשה', allocation: 'תפעול הפלטפורמה' },
-      { stream: 'עמלות מסחר', source: '1% על כל עסקה', allocation: '70% לקרן · 30% לפלטפורמה' },
-      { stream: 'רכישות חיצוניות', source: 'תמיכה → BAGS ב-bags.fm', allocation: '100% לקופת הקרן' },
+      { stream: 'עמלות מסחר', source: 'מסחר ב-BAG של ההצבעה', allocation: 'מיועד לקרן ההצבעה' },
+      { stream: 'רכישות חיצוניות', source: 'תמיכה → BAGS ב-bags.fm', allocation: 'מזין את קופת הקרן' },
     ],
     noteHead: 'ללא תלות במשקיעים חיצוניים',
     sustainabilityPoints: [
@@ -142,7 +142,7 @@ const COPY: Record<Locale, FlywheelCopy> = {
       { id: 'coin', title: 'A BAG is created on bags.fm', description: 'The vote is recorded on the blockchain', icon: 'coin' },
       { id: 'external', title: 'Outside backer', description: 'Spots a topic that matters to them', icon: 'globe' },
       { id: 'trade', title: 'Buys the BAG', description: 'Support that generates fees', icon: 'trade' },
-      { id: 'fees', title: 'Fees are split', description: "70% to the municipality's fund, 30% to the platform", icon: 'split' },
+      { id: 'fees', title: "Fees go to the vote's fund", description: "Trading fees on the vote's BAG are earmarked for that vote's fund", icon: 'split' },
       { id: 'result', title: 'A result is set', description: 'A digital certificate for every participant', icon: 'award' },
     ],
     resultLabel: 'The result',
@@ -155,8 +155,8 @@ const COPY: Record<Locale, FlywheelCopy> = {
     colAllocation: 'Allocation',
     revenueStreams: [
       { stream: 'Creating a vote', source: '₪50 per new vote', allocation: 'Platform operations' },
-      { stream: 'Trading fees', source: '1% on every transaction', allocation: '70% to the fund · 30% to the platform' },
-      { stream: 'Outside purchases', source: 'Support → BAGS on bags.fm', allocation: '100% to the fund' },
+      { stream: 'Trading fees', source: "Trading in the vote's BAG", allocation: "Earmarked for the vote's fund" },
+      { stream: 'Outside purchases', source: 'Support → BAGS on bags.fm', allocation: "Feeds the fund's pot" },
     ],
     noteHead: 'No dependence on outside investors',
     sustainabilityPoints: [

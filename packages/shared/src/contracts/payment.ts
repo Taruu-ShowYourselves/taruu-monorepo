@@ -7,18 +7,30 @@ import { z } from 'zod';
 
 // === Payment Types ===
 
+/**
+ * Mirrors the database enum `payment_type`. Participation payments can no
+ * longer be CREATED (participation is free since cfa5d25), but historical rows
+ * exist and a stored payment's type must still parse. Narrowing belongs to the
+ * request contract below, not here.
+ */
 export const PaymentTypeSchema = z.enum(['vote_participation', 'vote_creation']);
 export const PaymentStatusSchema = z.enum(['pending', 'completed', 'failed', 'refunded']);
 
 export type PaymentType = z.infer<typeof PaymentTypeSchema>;
 export type PaymentStatus = z.infer<typeof PaymentStatusSchema>;
 
+/** The only payment this product sells. Participation is free - there is nothing to charge for. */
+export const CreatablePaymentTypeSchema = z.literal('vote_creation');
+export type CreatablePaymentType = z.infer<typeof CreatablePaymentTypeSchema>;
+
 // === POST /api/payments/create ===
 
+/**
+ * A creation request carries no vote and no option - the vote does not exist
+ * until the payment settles, so there is nothing to reference yet.
+ */
 export const CreatePaymentRequestSchema = z.object({
-  type: PaymentTypeSchema,
-  voteId: z.string().uuid().optional(),
-  optionId: z.string().uuid().optional(),
+  type: CreatablePaymentTypeSchema,
   voteTitle: z.string().optional(),
   idempotencyKey: z.string().optional(),
 });
@@ -53,14 +65,12 @@ export type CreatePaymentError = z.infer<typeof CreatePaymentErrorSchema>;
 
 // === GET /api/payments/create (pricing info) ===
 
+/**
+ * Creation is the only priced product, so the published pricing describes
+ * creation only. A consumer parsing this cannot expect a participation price.
+ */
 export const GetPricingResponseSchema = z.object({
   pricing: z.object({
-    voteParticipation: z.object({
-      amount: z.number().positive(),
-      currency: z.literal('ILS'),
-      syncTokens: z.number(),
-      description: z.string(),
-    }),
     voteCreation: z.object({
       amount: z.number().positive(),
       currency: z.literal('ILS'),

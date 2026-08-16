@@ -5,8 +5,8 @@
  * from @sync/shared in favour of an explicit `VOTE_PARTICIPATION_COST = 0`,
  * the mobile vote screen's cost copy was rewritten to say so, and the legacy
  * Green Invoice `vote_participation` rail had its ₪3 amount pinned to a local
- * literal (deliberately unchanged behaviour) instead of importing the retired
- * constant. This suite fails if any of those three surfaces regress.
+ * literal pending a decision. Phase 3 (plan 03-02) made that decision and
+ * deleted the rail. This suite fails if any of those surfaces regress.
  *
  * This repo has no component-test setup (vitest runs `environment: 'node'`,
  * @testing-library is not installed), so - same pattern as
@@ -142,10 +142,11 @@ describe('green invoice legacy rail', () => {
     }
   });
 
-  it('keeps the legacy ₪3 amount pinned locally and unchanged', () => {
-    // Deliberately unchanged behaviour: this rail is unused by any web UI but
-    // is still wired through /api/payments/create, so its amount must not
-    // silently become 0. Retiring it belongs to the Phase 3 payment re-scope.
-    expect(greenInvoiceCode).toContain('const VOTE_PARTICIPATION_AMOUNT = 3;');
+  it('no longer carries a participation amount at all', () => {
+    // Retired by Phase 3 (plan 03-02), which this suite previously deferred to.
+    // The rail is gone rather than repriced: a ₪0 participation payment would
+    // still be a payment, and there is no such thing any more.
+    expect(greenInvoiceCode).not.toContain('VOTE_PARTICIPATION_AMOUNT');
+    expect(greenInvoiceCode).not.toContain('createVotePayment');
   });
 });

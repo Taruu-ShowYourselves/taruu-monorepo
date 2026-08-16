@@ -1,15 +1,21 @@
 import { useState, useCallback } from 'react';
 import * as WebBrowser from 'expo-web-browser';
 import { paymentsApi } from '@sync/api-client';
-import type { PaymentIntent, PaymentType } from '@sync/shared';
+import type { PaymentType } from '@sync/shared';
+import type { CreatablePaymentType } from '@sync/shared/contracts';
 
-// Re-export PaymentType for convenience
-export type { PaymentType };
+// Re-export the payment types for convenience: `PaymentType` describes a
+// stored payment (a legacy participation row is still one), while only a
+// `CreatablePaymentType` can be charged for.
+export type { PaymentType, CreatablePaymentType };
+
+/** The payment `POST /api/payments/create` hands back. */
+type CreatedPayment = Awaited<ReturnType<typeof paymentsApi.createPaymentIntent>>;
 
 export interface PaymentResult {
   success: boolean;
   cancelled: boolean;
-  paymentIntent?: PaymentIntent;
+  paymentIntent?: CreatedPayment;
   error?: string;
 }
 
@@ -20,8 +26,8 @@ export function usePayment() {
   const initiatePayment = useCallback(
     async (
       amount: number,
-      type: PaymentType,
-      metadata: Record<string, any> = {}
+      type: CreatablePaymentType,
+      metadata: Record<string, unknown> = {}
     ): Promise<PaymentResult> => {
       setLoading(true);
       setError(null);

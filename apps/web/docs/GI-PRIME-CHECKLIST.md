@@ -99,6 +99,38 @@ Leave blank lines filled in once confirmed.
 
 ---
 
+## Webhook transport
+
+The app **assumes the answer to every question below is "no"**, on the strength of two
+in-repo assertions written by whoever built the integration. Nobody has ever put the
+question to Green Invoice. Ask the rep and record the answers here.
+
+The code has already been changed to stop putting the shared secret in the notify URL: a
+secret in a URL leaks through referrers, proxy logs, browser history and the edge
+platform's own request logging. `GREENINVOICE_WEBHOOK_SECRET` is now accepted **only** in
+the `x-greeninvoice-token` request header, compared in constant time. Because the hosted
+form is believed unable to set that header, a header-less notify is authenticated by a
+second factor instead: the webhook re-fetches the claimed document from Green Invoice over
+the authenticated API before mutating anything, and rejects the delivery when Green Invoice
+will not vouch for it. A **"yes" to the first or second question below would let the header
+become the primary factor** and demote the document lookup to a backstop.
+
+- [ ] **Custom notify header:** Can the hosted payment form's `notifyUrl` be registered
+  with a custom HTTP header (name + value) that Green Invoice sends on every notify?
+  Record: yes / no, and if yes, where it is configured.
+- [ ] **Payload signing:** Does Green Invoice sign notify payloads (HMAC or otherwise)?
+  If so, record which header carries the signature, which algorithm and digest encoding
+  are used, and exactly which bytes are signed.
+- [ ] **Any other authentication mechanism:** Is there any documented way to authenticate a
+  notify other than a URL parameter - mutual TLS, a source IP allow-list, a per-account
+  static token in a header, anything? Record the mechanism and its documentation link.
+- [ ] **Document id in the payload:** Does the notify payload always carry the issued
+  document id, and under exactly which field name? Record the field name and whether it is
+  guaranteed present on every notify. (The app currently reads `id`, then `documentId`,
+  then `paymentId`, and stores nothing when none is present.)
+
+---
+
 ## Sign-off
 
 **GI account rep name:** ___________________________

@@ -4,7 +4,6 @@ export { Problem } from './Problem';
 export { Features } from './Features';
 export { Manifesto } from './Manifesto';
 export { HowItWorks } from './HowItWorks';
-export { MoneyTransparency } from './MoneyTransparency';
 export { Pilot } from './Pilot';
 export { Stats } from './Stats';
 export { Newsletter } from './Newsletter';

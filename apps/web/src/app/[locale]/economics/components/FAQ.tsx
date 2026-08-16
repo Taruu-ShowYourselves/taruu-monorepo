@@ -15,6 +15,7 @@ interface FAQCopy {
 }
 
 const HE_FAQS = [
+  // COIN-04 owns the investment wording below; it is gated on COIN-01's written legal sign-off and is left verbatim on purpose.
   {
     question: 'למה לא פשוט לתרום ישירות?',
     answer:
@@ -23,7 +24,7 @@ const HE_FAQS = [
   {
     question: 'מה קורה לכסף?',
     answer:
-      '70% זורם ישירות לקרן הקהילתית. 30% מממן את הפלטפורמה. הכל שקוף על הבלוקצ\'יין, ואפשר לראות כל עסקה בזמן אמת.',
+      'ההשתתפות בהצבעות חינם. יצירת הצבעה חדשה עולה ₪50, שמממנים את תפעול הפלטפורמה. הקרן הקהילתית מתמלאת מהשקעות חיצוניות ב-BAG של כל הצבעה, לא מכסף של תושבים, וכל תנועה שלה גלויה.',
   },
   {
     question: 'האם זה קריפטו?',
@@ -48,7 +49,7 @@ const HE_FAQS = [
   {
     question: 'איך הפלטפורמה מרוויחה כסף?',
     answer:
-      '30% מעמלות המסחר ומדמי יצירת הצבעות. אנחנו לא תלויים במשקיעים חיצוניים. המודל הכלכלי מתקיים מעצמו מהיום הראשון.',
+      'מדמי יצירת הצבעה: ₪50 על כל הצבעה חדשה. אנחנו לא תלויים במשקיעים חיצוניים. המודל הכלכלי מתקיים מעצמו מהיום הראשון.',
   },
   {
     question: 'מה קורה כשההצבעה מסתיימת?',
@@ -71,7 +72,7 @@ const EN_FAQS = [
   {
     question: 'What happens to the money?',
     answer:
-      '70% flows straight into the community fund. 30% funds the platform. All of it is transparent on the blockchain, and every transaction can be watched in real time.',
+      "Participation in votes is free. Creating a new vote costs ₪50, which funds platform operations. The community fund is filled by outside investment in each vote's BAG, not by residents' money, and every movement of it is visible.",
   },
   {
     question: 'Is this crypto?',
@@ -96,7 +97,7 @@ const EN_FAQS = [
   {
     question: 'How does the platform make money?',
     answer:
-      '30% of trading fees and of vote-creation fees. We do not depend on outside investors. The economic model sustains itself from day one.',
+      'From vote-creation fees: ₪50 for every new vote. We do not depend on outside investors. The economic model sustains itself from day one.',
   },
   {
     question: 'What happens when a vote ends?',
