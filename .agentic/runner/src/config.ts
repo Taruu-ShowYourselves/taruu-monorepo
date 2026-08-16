@@ -16,7 +16,12 @@ export interface Config {
     readonly subjectPrefix: string;
     readonly digestHourLocal: number;
   };
-  readonly lanes: { readonly max: number };
+  readonly lanes: {
+    /** Max lanes doing seat work at once (research/spec/coding/verify/review). */
+    readonly max: number;
+    /** Max lanes total including gate-waiting ones; default max * 3. */
+    readonly maxTotal?: number;
+  };
   readonly autoAdmit?: {
     readonly enabled: boolean;
     readonly onlyAssignee?: string;

@@ -79,7 +79,14 @@ export async function autoAdmit(): Promise<LaneState[]> {
   const aa = config().autoAdmit;
   if (!aa?.enabled) return [];
   const admitted: LaneState[] = [];
-  let free = config().lanes.max - activeLanes().length;
+  // Gate-waiting lanes hold no working slot — the fleet keeps starting new
+  // work while specs/PRs sit on a human. maxTotal bounds the pile of open
+  // gate-waiting lanes so approvals can't queue up without limit.
+  const maxTotal = config().lanes.maxTotal ?? config().lanes.max * 3;
+  let free = Math.min(
+    config().lanes.max - workingLanes().length,
+    maxTotal - activeLanes().length,
+  );
   if (free <= 0) return admitted;
   const candidates = await boardCandidates();
   for (const item of candidates) {
@@ -112,8 +119,9 @@ export async function admit(issue: number, slug: string): Promise<LaneState> {
     return existing;
   }
   const lanes = activeLanes();
-  if (lanes.length >= config().lanes.max) {
-    throw new Error(`WIP limit ${config().lanes.max} reached (${lanes.map((l) => `#${l.issue}`).join(", ")})`);
+  const maxTotal = config().lanes.maxTotal ?? config().lanes.max * 3;
+  if (lanes.length >= maxTotal) {
+    throw new Error(`total lane limit ${maxTotal} reached (${lanes.map((l) => `#${l.issue}`).join(", ")})`);
   }
   const wtBase = join(process.cwd(), ".agentic", "worktrees");
   mkdirSync(wtBase, { recursive: true });
@@ -176,6 +184,13 @@ async function walkLane(lane: LaneState): Promise<void> {
  * is what makes the concurrency conservative: colliding lanes never run
  * together — the later one parks for human re-ordering.
  */
+/** Phases where a lane sits on a human, holding no working slot. */
+const WAITING_PHASES = new Set<string>(["spec-gate", "pr-gate"]);
+
+export function workingLanes(): LaneState[] {
+  return activeLanes().filter((l) => !WAITING_PHASES.has(l.phase));
+}
+
 export async function tick(): Promise<void> {
   // Humans Only is re-checked EVERY tick, not only at admission: marking an
   // item mid-flight stops its lane at the next tick boundary — the lane
@@ -202,7 +217,16 @@ export async function tick(): Promise<void> {
     }
     runnable.push(lane);
   }
-  await Promise.all(runnable.map(walkLane));
+  // Gate-waiting lanes always walk (a walk there is a cheap comment poll and
+  // never runs a seat). Working lanes are capped at lanes.max — approvals
+  // landing together queue for a slot instead of bursting the coder seat.
+  const waiters = runnable.filter((l) => WAITING_PHASES.has(l.phase));
+  const workers = runnable.filter((l) => !WAITING_PHASES.has(l.phase));
+  const scheduled = workers.slice(0, config().lanes.max);
+  for (const lane of workers.slice(config().lanes.max)) {
+    console.log(`[lane #${lane.issue}] deferred — working-lane cap ${config().lanes.max}`);
+  }
+  await Promise.all([...waiters, ...scheduled].map(walkLane));
   // Keep the fleet fed: newly admitted lanes start their walk on this same tick.
   const admitted = await autoAdmit();
   await Promise.all(admitted.map(walkLane));

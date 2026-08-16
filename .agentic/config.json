@@ -7,7 +7,7 @@
     "subjectPrefix": "[taruu-autopilot]",
     "digestHourLocal": 8
   },
-  "lanes": { "max": 2 },
+  "lanes": { "max": 2, "maxTotal": 6 },
   "autoAdmit": { "enabled": true, "onlyAssignee": "SaharBarak", "onlyStatus": ["Todo"] },
   "budgets": {
     "specLapsMax": 2,
