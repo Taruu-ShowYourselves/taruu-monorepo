@@ -1935,6 +1935,13 @@
   color: var(--intro-ink);
 }
 
+/* The splash's door. The beat grid's row-gap spaces the copy lines against
+   each other; the button is an instrument, not a line, and stands half a step
+   further off so the standfirst finishes before the ask begins. */
+.openingCta {
+  margin-block-start: calc(var(--beat-step) * 0.5);
+}
+
 /* The opening story's purpose line, at beat scale under the wordmark. It is
    the homepage's h1: heading margins reset so the beat grid's own row-gap
    spaces it like every other line in the column. */

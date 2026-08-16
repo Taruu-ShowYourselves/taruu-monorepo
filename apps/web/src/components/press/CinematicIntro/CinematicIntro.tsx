@@ -14,6 +14,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { localePath, localePrefix } from "@/lib/i18n/config";
 import type { Locale } from "@/lib/i18n";
 import { topReactions } from "@/components/press/reactions";
+import { NewsButton } from "@/components/press/NewsButton";
 import { SocialMark } from "@/components/uikit/social-mark";
 import {
   interleaveByCity,
@@ -178,6 +179,12 @@ interface IntroCopy {
   openingHeadline: string;
   openingStandfirst: string;
   /**
+   * The splash's one door: the brand's own imperative, pointed at the live
+   * feed. "Vote" describes the mechanism; "show them" is what the reader
+   * came to do.
+   */
+  openingCta: string;
+  /**
    * Each beat is a claim and, where the claim needs one, the condition it
    * holds under. Carried as two fields because they are set as two things:
    * as one string the whole beat ran at display scale, and a sentence with a
@@ -254,6 +261,7 @@ const COPY: Record<Locale, IntroCopy> = {
     openingHeadline: "אנחנו כאן כדי להזכיר לרשויות שהן *בשירות הציבור*.",
     openingStandfirst:
       "אזרחים מצביעים על נושאים שעל הפרק, יוצרים רוב אזרחי ובונים מנדט - מנדט שהרשויות מחויבות לכבד, או לאבד את הלגיטימציה שלהן.",
+    openingCta: "תראו להם",
     thesisBeats: THESIS_BEATS.he,
   },
   en: {
@@ -323,6 +331,7 @@ const COPY: Record<Locale, IntroCopy> = {
       "We are here to remind the authorities that they are *in the service of the public*.",
     openingStandfirst:
       "Civilians vote on the topics that concern them, form civilian majorities, and build a mandate - one the authorities must honour, or lose their legitimacy.",
+    openingCta: "Show them",
     thesisBeats: THESIS_BEATS.en,
   },
 };
@@ -2349,6 +2358,20 @@ export function CinematicIntro({
                     <p className={styles.thesisLede}>
                       {withEmphasis(t.openingStandfirst)}
                     </p>
+                    {/* The one door out of the splash. The label is the brand's
+                        own imperative rather than "vote": the standfirst has
+                        just said what showing them does. */}
+                    <NewsButton
+                      href={`${localePrefix(locale)}/feed`}
+                      variant="red"
+                      size="lg"
+                      className={styles.openingCta}
+                      trailing={
+                        <span aria-hidden>{locale === "he" ? "←" : "→"}</span>
+                      }
+                    >
+                      {t.openingCta}
+                    </NewsButton>
                   </>
                 ) : (
                   <>
