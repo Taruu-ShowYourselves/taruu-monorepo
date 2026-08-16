@@ -143,19 +143,29 @@ const boardNodes = Object.fromEntries(
   ]),
 ) as typeof nodes;
 
-/** One lane's full walk until a gate/park/end, then persist + mirror. */
+/**
+ * One lane's full walk until a gate/park/end, then persist + mirror.
+ * Never throws: a seat failure in one lane must not reject the tick's
+ * Promise.all and leave the sibling lane running detached (which the next
+ * tick would then double-start). The lane just retries next tick.
+ */
 async function walkLane(lane: LaneState): Promise<void> {
-  const result = await runGraph(
-    { nodes: boardNodes, routers },
-    lane,
-    { start: lane.phase === "done" ? "merge-learn" : lane.phase, recursionLimit: 25 },
-  );
-  saveLane(result.state);
-  // Terminal phases (done/parked/gate-waits) are set INSIDE nodes, after the
-  // entry sync — mirror the walk's final state so the board never lags.
-  await syncBoard(result.state);
-  logMetrics(result.state);
-  if (!result.ok) console.error(`[lane #${lane.issue}] ${result.error}`);
+  try {
+    const result = await runGraph(
+      { nodes: boardNodes, routers },
+      lane,
+      { start: lane.phase === "done" ? "merge-learn" : lane.phase, recursionLimit: 25 },
+    );
+    saveLane(result.state);
+    // Terminal phases (done/parked/gate-waits) are set INSIDE nodes, after the
+    // entry sync — mirror the walk's final state so the board never lags.
+    await syncBoard(result.state);
+    logMetrics(result.state);
+    if (!result.ok) console.error(`[lane #${lane.issue}] ${result.error}`);
+  } catch (e) {
+    saveLane(lane);
+    console.error(`[lane #${lane.issue}] walk failed: ${(e as Error).message}`);
+  }
 }
 
 /**
