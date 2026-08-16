@@ -6,7 +6,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { NewsButton } from '@/components/press/NewsButton';
 import { useAuth } from '@/providers/AuthProvider';
-import { getIdentityLevelLabel } from '@sync/shared';
+import { getIdentityLevelLabel, IDENTITY_SCORE_MAX } from '@sync/shared';
 import { PressLoader } from '@/components/press/PressMachine';
 import type { Locale } from '@/lib/i18n';
 import { localePrefix } from '@/lib/i18n';
@@ -252,12 +252,14 @@ export default function ConnectSocialPage() {
           <section className={styles.scoreCard}>
             <div className={styles.scoreHeader}>
               <span className={styles.scoreLabel}>{t.scoreLabel}</span>
-              <span className={styles.scoreBadge}>{currentScore}/100</span>
+              <span className={styles.scoreBadge}>
+                {currentScore}/{IDENTITY_SCORE_MAX}
+              </span>
             </div>
             <div className={styles.progressBar}>
               <div
                 className={styles.progressFill}
-                style={{ inlineSize: `${currentScore}%` }}
+                style={{ inlineSize: `${(currentScore / IDENTITY_SCORE_MAX) * 100}%` }}
                 aria-hidden
               />
             </div>

@@ -1,24 +1,25 @@
 /**
  * Server-side voter eligibility - the enforcement point.
  *
- * `apps/web/src/lib/verification.ts` (`isEligibleToVote`) is what the CLIENT
- * shows: residency is met by a completed program OR at least one successful
- * check-in. A client-side gate is not a gate, so the server applies the same
- * rule from database state, and scores it: residency is worth 40 points, and a
- * ballot needs 80.
+ * `apps/web/src/lib/verification.ts` (`voterGate`) is what the CLIENT shows:
+ * residency is met by a completed program OR at least one successful check-in.
+ * A client-side gate is not a gate, so the server applies the same rule from
+ * database state: identity_score >= 40 (the Google baseline) AND explicitly
+ * verified residency (issue #71 ruling).
  *
- * Which makes residency load-bearing rather than advisory. Sign-in scores 40
- * and both social proofs together add 20, so no arrangement of accounts reaches
- * 80 without the GPS programme - one ballot per real resident of the
- * municipality, with the residency check evidencing the second half of that.
+ * Residency is load-bearing rather than advisory - it is a hard boolean
+ * requirement, never a point substitute. The GPS +20 stays in the stored
+ * score for identity/trust display, but it is not what opens the ballot: one
+ * ballot per real resident of the municipality, with the residency check
+ * evidencing the "of the municipality" part directly.
  */
 
-import { MINIMUM_VOTING_SCORE, votingGate } from '@sync/shared';
+import { MINIMUM_IDENTITY_SCORE_FOR_VOTING, votingGate } from '@sync/shared';
 import type { User, VerificationRun } from '@/lib/supabase/types';
 import { getActiveVerificationRun } from '@/lib/supabase/db';
 
-/** Minimum score to cast a ballot, residency points included. */
-export const MIN_IDENTITY_SCORE = MINIMUM_VOTING_SCORE;
+/** Score floor for a ballot; verified residency is required separately. */
+export const MIN_IDENTITY_SCORE = MINIMUM_IDENTITY_SCORE_FOR_VOTING;
 
 export type VoterIneligibilityCode = 'IDENTITY_NOT_VERIFIED' | 'RESIDENCY_NOT_VERIFIED';
 
@@ -46,11 +47,11 @@ export function hasVerifiedResidency(
 /**
  * Pure decision, given everything already loaded.
  *
- * Residency is judged before identity now, because it is the larger and the
- * likelier gap: a resident who has only signed in holds 40 of the 80 points,
- * and the residency programme is the whole of what they are missing. Telling
- * them to "verify identity" instead would send them to the social-connections
- * page, which cannot get them past 60.
+ * Issue #71 ruling: eligibility = identity_score >= 40 AND explicitly
+ * verified residency. The stored score already contains the GPS points and
+ * the gate adds nothing on top; residency is reported first because it is the
+ * hard, non-substitutable requirement - phone, socials or an approved
+ * identity document can lift the score, but never stand in for living here.
  */
 export function decideVoterEligibility(
   user: Pick<User, 'verification_status' | 'identity_score'>,
@@ -82,8 +83,9 @@ export function decideVoterEligibility(
 export async function checkVoterEligibility(
   user: Pick<User, 'id' | 'verification_status' | 'identity_score'>
 ): Promise<VoterEligibility> {
-  // No short-circuit on the score alone: residency is worth 40 points, so a
-  // user under the threshold on paper can still clear it once the run is read.
+  // The active run is loaded even for low scores: residency is evidenced by a
+  // completed programme OR a first successful check-in, and only the run
+  // carries the check-in count.
   const activeRun = await getActiveVerificationRun(user.id);
   return decideVoterEligibility(user, activeRun);
 }

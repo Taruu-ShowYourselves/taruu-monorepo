@@ -119,15 +119,20 @@ describe('Social Proofs API Routes', () => {
       expect(data.socialProofs[1].platform).toBe('facebook');
       expect(data.identityScore).toBeDefined();
       expect(data.identityScore.total).toBe(70);
+      // Full six-field breakdown: verified residency contributes gps 20.
       expect(data.identityScore.breakdown).toEqual({
+        gps: 20,
         google: 40,
-        facebook: 30,
+        facebook: 10,
         instagram: 0,
+        phone: 0,
+        idDocument: 0,
       });
-      expect(data.identityScore.level).toBe('verified');
+      // 70 < VERIFIED_THRESHOLD (80) under the issue #71 bands
+      expect(data.identityScore.level).toBe('basic');
     });
 
-    it('should return basic level for score under 70', async () => {
+    it('should return basic level for score under 80', async () => {
       (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
       (getUserById as Mock).mockResolvedValue({ ...mockUser, identity_score: 40 });
       (getSocialProofsByUserId as Mock).mockResolvedValue([mockSocialProofs[0]]);
@@ -142,7 +147,7 @@ describe('Social Proofs API Routes', () => {
       expect(data.identityScore.level).toBe('basic');
     });
 
-    it('should return trusted level for score 100', async () => {
+    it('should return verified at 100 and trusted at 120 (issue #71 bands)', async () => {
       const trustedProofs = [
         ...mockSocialProofs,
         {
@@ -166,12 +171,22 @@ describe('Social Proofs API Routes', () => {
 
       expect(response.status).toBe(200);
       expect(data.identityScore.total).toBe(100);
-      expect(data.identityScore.level).toBe('trusted');
+      expect(data.identityScore.level).toBe('verified');
       expect(data.identityScore.breakdown).toEqual({
+        gps: 20,
         google: 40,
-        facebook: 30,
-        instagram: 30,
+        facebook: 10,
+        instagram: 10,
+        phone: 0,
+        idDocument: 0,
       });
+
+      // 120 crosses the trusted threshold
+      (getUserById as Mock).mockResolvedValue({ ...mockUser, identity_score: 120 });
+      const trustedRes = await GET(
+        new NextRequest('http://localhost:3000/api/social/proofs', { method: 'GET' })
+      );
+      expect((await trustedRes.json()).identityScore.level).toBe('trusted');
     });
 
     it('should handle database errors gracefully', async () => {

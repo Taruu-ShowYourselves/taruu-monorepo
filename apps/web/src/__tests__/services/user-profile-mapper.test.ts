@@ -48,6 +48,8 @@ const baseUser: User = {
   qubik_wallet_address: 'wallet-123',
   municipality_rating: null,
   municipality_rated_at: null,
+  phone_verified: false,
+  phone_verified_at: null,
   identity_verified_at: null,
   is_platform_admin: false,
   created_at: '2025-01-01T00:00:00Z',
@@ -139,10 +141,23 @@ describe('transformToProfile', () => {
       google: 40,
       facebook: 0,
       instagram: 0,
+      phone: 0,
+      idDocument: 0,
     });
   });
 
-  it('reaches the verified level once enough social proofs are connected', () => {
+  it('reaches the verified level with an operator-approved document (google 40 + doc 40)', () => {
+    const profile = transformToProfile(
+      { ...baseUser, identity_verified_at: '2026-08-01T00:00:00Z' },
+      [googleProof]
+    );
+
+    expect(profile.identityScore.total).toBe(80);
+    expect(profile.identityScore.level).toBe('verified');
+    expect(profile.identityScore.breakdown.idDocument).toBe(40);
+  });
+
+  it('all social proofs alone stay basic under the 140-point model (60 < 80)', () => {
     const profile = transformToProfile(baseUser, [
       googleProof,
       facebookProof,
@@ -150,7 +165,7 @@ describe('transformToProfile', () => {
     ]);
 
     expect(profile.identityScore.total).toBe(60);
-    expect(profile.identityScore.level).toBe('verified');
+    expect(profile.identityScore.level).toBe('basic');
   });
 
   it('returns verificationStatus as an object for a verified user', () => {
@@ -279,6 +294,10 @@ describe('buildUserProfile', () => {
 
     expect(profile.syncTokenBalance).toBe(5);
     expect(profile.verificationStatus.phase).toBe('completed');
+    // google 40 + GPS 20 — GPS-verified users earn their 20 points.
+    expect(profile.identityScore.total).toBe(60);
+    expect(profile.identityScore.breakdown.gps).toBe(20);
+    // 60 stays in the basic band (40–79) under the issue #71 levels.
     expect(profile.identityScore.level).toBe('basic');
   });
 });

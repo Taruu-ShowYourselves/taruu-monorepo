@@ -364,7 +364,7 @@ describe('Social Callback API Routes', () => {
       expect(location).toContain('error=');
     });
 
-    it('should update identity score after successful connection', async () => {
+    it('does not write identity_score — the score is database-owned (PR-A)', async () => {
       const mockIgUser = {
         id: 'ig-123',
         username: 'testuser',
@@ -393,19 +393,19 @@ describe('Social Callback API Routes', () => {
           connected_at: '2025-01-10T00:00:00Z',
         },
       ]);
-      (calculateIdentityScore as Mock).mockReturnValue({
-        total: 60,
-        breakdown: { google: 40, instagram: 20 },
-      });
       (updateUser as Mock).mockResolvedValue(undefined);
 
       const request = new NextRequest(
         'http://localhost:3000/api/social/callback/instagram?code=auth-code&state=valid-state',
         { method: 'GET' }
       );
-      await GET(request);
+      const response = await GET(request);
 
-      expect(updateUser).toHaveBeenCalledWith('user-123', { identity_score: 60 });
+      // The social_proofs trigger recomputes the score in the database; the
+      // route must not recalculate or write it.
+      expect(response.headers.get('Location')).toContain('success=instagram');
+      expect(calculateIdentityScore).not.toHaveBeenCalled();
+      expect(updateUser).not.toHaveBeenCalled();
     });
   });
 });
