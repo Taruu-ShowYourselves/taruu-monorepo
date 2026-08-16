@@ -215,16 +215,28 @@
   block-size: 1.05rem;
 }
 
-/* Under 800px the chapter is a single narrow column; one clipping is
-   texture, three are a second page fighting the claim. */
+/* Under 800px the margins are gone, so the slots restack down the column
+   instead: staggered, alternating sides, each bleeding a little off its own
+   edge - the feed continuing past the page rather than three cards crammed
+   inside it. The chapter's paper wash keeps the claim the loudest thing. */
 @media (max-width: 800px) {
   .post {
-    inline-size: min(72vw, 19rem);
+    inline-size: min(64vw, 17rem);
   }
 
-  .post[data-slot='1'],
+  .post[data-slot='0'] {
+    inset-block-start: 3%;
+    inset-inline-start: -7%;
+  }
+
+  .post[data-slot='1'] {
+    inset-block-start: 22%;
+    inset-inline-end: -18%;
+  }
+
   .post[data-slot='2'] {
-    display: none;
+    inset-block-end: 3%;
+    inset-inline-start: 12%;
   }
 }
 
