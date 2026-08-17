@@ -194,7 +194,7 @@ describe('legacy-token.ts', () => {
       const { getSessionFromRequest } = await import('./session');
 
       const token = await signLegacyToken({ userId: 'user-1', googleId: 'g', did: 'd', email: 'e' });
-      (getUserSessionVersion as Mock).mockResolvedValue(1);
+      (getUserSessionVersion as Mock).mockResolvedValue({ kind: 'version', version: 1 });
 
       const session = await getSessionFromRequest(bearerRequest(token));
       expect(session?.userId).toBe('user-1');
@@ -208,7 +208,7 @@ describe('legacy-token.ts', () => {
       const { getSessionFromRequest } = await import('./session');
 
       const token = await signLegacyToken({ userId: 'user-1', googleId: 'g', did: 'd', email: 'e' });
-      (getUserSessionVersion as Mock).mockResolvedValue(2);
+      (getUserSessionVersion as Mock).mockResolvedValue({ kind: 'version', version: 2 });
 
       expect(await getSessionFromRequest(bearerRequest(token))).toBeNull();
     });
@@ -224,7 +224,7 @@ describe('legacy-token.ts', () => {
     it('a token carrying a recognized type claim is never retried as legacy, even if it would verify against JWT_SECRET', async () => {
       vi.stubEnv('AUTH_LEGACY_UNTIL', futureIso(24));
       const { getSessionFromRequest } = await import('./session');
-      (getUserSessionVersion as Mock).mockResolvedValue(1);
+      (getUserSessionVersion as Mock).mockResolvedValue({ kind: 'version', version: 1 });
 
       // Adversarial: signed with the legacy secret (which alone WOULD verify)
       // but carries a recognized `typ` claim, simulating a stripped/tampered

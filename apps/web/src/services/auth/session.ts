@@ -14,7 +14,7 @@ import { cookies } from 'next/headers';
 import { getUserSessionVersion } from '@/lib/supabase/db';
 import type { Assurance } from './assurance';
 import { signPurposeToken, verifyPurposeToken, decodeTokenTypeUnverified } from './tokens';
-import { verifyLegacySessionToken } from './legacy-token';
+import { isLegacyWindowOpen, verifyLegacySessionToken } from './legacy-token';
 
 // === Configuration ===
 
@@ -173,18 +173,36 @@ async function resolveSessionPathClaims(token: string): Promise<Session | null> 
  * is mutable inside route handlers but throws in a React Server Component
  * render, so the auth result must not depend on which context called it) and
  * returns null either way.
+ *
+ * Schema-transition tolerance (PR #120 review, finding 1). CONSTRAINT: when
+ * the read reports `unavailable` - the deployed database predates migration
+ * 20260901000001, so `users.session_version` does not exist (Postgres 42703)
+ * or the row lacks the field - the revocation check CANNOT run at all. While
+ * the bounded AUTH_LEGACY_UNTIL window is open this passes (pre-M1 legacy
+ * behavior: no version check existed), so a deploy that races the migration
+ * degrades to yesterday's semantics instead of killing every authenticated
+ * request. The moment the window closes, `unavailable` fails closed exactly
+ * like any other failure - a permanently missing column is an operator
+ * error, never a silent bypass of Model B revocation.
  */
 async function assertLiveSessionVersion(session: Session): Promise<Session | null> {
-  const storedVersion = await getUserSessionVersion(session.userId);
-  if (storedVersion === null || storedVersion !== session.sv) {
-    try {
-      await clearSessionCookies();
-    } catch {
-      // RSC render context, or no request scope - nothing to clear from here.
-    }
-    return null;
+  const read = await getUserSessionVersion(session.userId);
+
+  if (read.kind === 'unavailable' && isLegacyWindowOpen()) {
+    // Version check unavailable inside the transition window - pass, and do
+    // NOT clear cookies: the session is not revoked, merely unverifiable.
+    return session;
   }
-  return session;
+  if (read.kind === 'version' && read.version === session.sv) {
+    return session;
+  }
+
+  try {
+    await clearSessionCookies();
+  } catch {
+    // RSC render context, or no request scope - nothing to clear from here.
+  }
+  return null;
 }
 
 // === Cookie management ===

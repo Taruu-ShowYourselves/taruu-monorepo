@@ -12,6 +12,8 @@
  * NOT - this value participates in required_asr, so caching it relaxes
  * enforcement from "immediate" to "up to cache TTL" (the §4.4 cache rule).
  * Throws on a failed read: enforcement state must never be silently guessed.
+ * An ABSENT schema (table not migrated / singleton unseeded) is not a failed
+ * read - getSecuritySettings resolves it to enforcement OFF permanently.
  */
 
 import { getSecuritySettings } from '@/lib/supabase/mfa';

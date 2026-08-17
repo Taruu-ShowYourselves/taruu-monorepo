@@ -252,8 +252,12 @@ export async function POST(request: Request) {
 
     // sv comes from the row we just read/created - never a literal at the
     // call site, so a caller can't mint a token stamped with a version it
-    // did not verify.
-    const sv = user.session_version;
+    // did not verify. The `?? 1` is schema-transition tolerance (PR #120
+    // review, finding 1): pre-migration-20260901000001 rows lack the column
+    // at runtime (the type lies), and minting `sv: undefined` would produce
+    // a token the shape-validated verifier rejects. 1 is the migration's
+    // backfill DEFAULT, so these tokens stay valid once the column lands.
+    const sv = user.session_version ?? 1;
 
     const sessionToken = await createSessionToken({
       userId: user.id,

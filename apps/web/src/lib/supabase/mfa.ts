@@ -309,20 +309,55 @@ export async function countUnusedRecoveryCodes(userId: string): Promise<number |
   return count;
 }
 
-export async function getSecuritySettings(): Promise<SecuritySettingsRow | null> {
+/** Postgres SQLSTATE for undefined_table - PostgREST passes it through. */
+const PG_UNDEFINED_TABLE = '42P01';
+/** PostgREST "zero rows for .single()" - the singleton row is not seeded. */
+const PGRST_NO_ROWS = 'PGRST116';
+
+/**
+ * What callers actually consume from the singleton. Narrower than the full
+ * row on purpose: the tolerant-absent case below can then be an honest
+ * value instead of a synthetic database row.
+ */
+export type SecuritySettingsView = Pick<SecuritySettingsRow, 'mfa_enforcement_enabled'>;
+
+/** The absent-schema reading: enforcement has simply never been switched on. */
+const SECURITY_SETTINGS_ABSENT: SecuritySettingsView = Object.freeze({
+  mfa_enforcement_enabled: false,
+});
+
+/**
+ * Tolerant read of the enforcement singleton (PR #120 review, finding 2 -
+ * PERMANENT semantics, deliberately NOT bounded by AUTH_LEGACY_UNTIL): a
+ * missing table (42P01 - migration 20260901000002 not applied) or an
+ * unseeded singleton row means MFA enforcement has never been switched on,
+ * so it reads as enforcement OFF - never a thrown 500 on the login path.
+ * Every OTHER failure still returns null: a transient read error leaves the
+ * enforcement state unknown, and guessing it would be an assurance
+ * downgrade an attacker could induce by hurting the database.
+ */
+export async function getSecuritySettings(): Promise<SecuritySettingsView | null> {
   const { data, error } = await supabaseAdmin
     .from('security_settings')
     .select('*')
     .eq('id', true)
     .single();
-  if (error || !data) return null;
+  if (error) {
+    if (error.code === PG_UNDEFINED_TABLE || error.code === PGRST_NO_ROWS) {
+      return SECURITY_SETTINGS_ABSENT;
+    }
+    return null;
+  }
+  if (!data) return SECURITY_SETTINGS_ABSENT;
   return data;
 }
 
 /**
  * required_asr's DB derivation (canonical §4.5): 'mf' iff an active factor
  * exists AND global enforcement is on. Null means a read failed - callers
- * must treat that as an error, never as 'sf' (a silent downgrade).
+ * must treat that as an error, never as 'sf' (a silent downgrade). An ABSENT
+ * security_settings schema is not a failure: getSecuritySettings reads it as
+ * enforcement OFF, so a pre-migration login resolves to false, not to a 500.
  *
  * Per-request only. NO cross-request caching of either read - the same rule
  * as getUserSessionVersion: a cache would relax revocation and enforcement

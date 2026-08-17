@@ -108,7 +108,7 @@ describe('session.ts', () => {
       amr: ['google'],
       asr: 'sf',
     });
-    (getUserSessionVersion as Mock).mockResolvedValue(1);
+    (getUserSessionVersion as Mock).mockResolvedValue({ kind: 'version', version: 1 });
 
     const session = await getSessionFromRequest(bearerRequest(token));
     expect(session?.userId).toBe('user-1');
@@ -125,7 +125,7 @@ describe('session.ts', () => {
       amr: ['google'],
       asr: 'sf',
     });
-    (getUserSessionVersion as Mock).mockResolvedValue(2);
+    (getUserSessionVersion as Mock).mockResolvedValue({ kind: 'version', version: 2 });
 
     const session = await getSessionFromRequest(bearerRequest(token));
     expect(session).toBeNull();
@@ -143,10 +143,10 @@ describe('session.ts', () => {
       asr: 'sf',
     });
 
-    (getUserSessionVersion as Mock).mockResolvedValue(1);
+    (getUserSessionVersion as Mock).mockResolvedValue({ kind: 'version', version: 1 });
     expect(await getSessionFromRequest(bearerRequest(token))).not.toBeNull();
 
-    (getUserSessionVersion as Mock).mockResolvedValue(2);
+    (getUserSessionVersion as Mock).mockResolvedValue({ kind: 'version', version: 2 });
     expect(await getSessionFromRequest(bearerRequest(token))).toBeNull();
   });
 
@@ -161,9 +161,58 @@ describe('session.ts', () => {
       amr: ['google'],
       asr: 'sf',
     });
-    (getUserSessionVersion as Mock).mockResolvedValue(null);
+    (getUserSessionVersion as Mock).mockResolvedValue({ kind: 'missing' });
 
     expect(await getSessionFromRequest(bearerRequest(token))).toBeNull();
+  });
+
+  // Schema-transition tolerance (PR #120 review, finding 1): a pre-migration
+  // schema (users.session_version absent, Postgres 42703) reports
+  // `unavailable`, which passes ONLY while AUTH_LEGACY_UNTIL is open.
+  describe('version-check-unavailable (pre-migration schema)', () => {
+    async function mintSessionToken() {
+      const { createSessionToken } = await import('./session');
+      return createSessionToken({
+        userId: 'user-1',
+        googleId: 'g',
+        did: 'd',
+        email: 'e',
+        sv: 1,
+        amr: ['google'],
+        asr: 'sf',
+      });
+    }
+
+    it('passes inside the AUTH_LEGACY_UNTIL window without clearing cookies', async () => {
+      vi.stubEnv('AUTH_LEGACY_UNTIL', new Date(Date.now() + 60 * 60 * 1000).toISOString());
+      const { getSessionFromCookies } = await import('./session');
+      const token = await mintSessionToken();
+      cookieStore.set('sync-session', token);
+      (getUserSessionVersion as Mock).mockResolvedValue({ kind: 'unavailable' });
+
+      const session = await getSessionFromCookies();
+      expect(session?.userId).toBe('user-1');
+      // Not revoked, merely unverifiable - the cookie must survive.
+      expect(cookieStore.has('sync-session')).toBe(true);
+    });
+
+    it('fails closed once the window is over', async () => {
+      vi.stubEnv('AUTH_LEGACY_UNTIL', new Date(Date.now() - 60_000).toISOString());
+      const { getSessionFromRequest } = await import('./session');
+      const token = await mintSessionToken();
+      (getUserSessionVersion as Mock).mockResolvedValue({ kind: 'unavailable' });
+
+      expect(await getSessionFromRequest(bearerRequest(token))).toBeNull();
+    });
+
+    it('fails closed when AUTH_LEGACY_UNTIL is unset', async () => {
+      vi.stubEnv('AUTH_LEGACY_UNTIL', '');
+      const { getSessionFromRequest } = await import('./session');
+      const token = await mintSessionToken();
+      (getUserSessionVersion as Mock).mockResolvedValue({ kind: 'unavailable' });
+
+      expect(await getSessionFromRequest(bearerRequest(token))).toBeNull();
+    });
   });
 
   it('a refresh token presented to getSessionFromRequest returns null', async () => {
@@ -194,13 +243,13 @@ describe('session.ts', () => {
     // Stale sv: rejected, and the mismatch clears the cookie (verified
     // separately below), so each case sets the cookie fresh.
     cookieStore.set('sync-session', token);
-    (getUserSessionVersion as Mock).mockResolvedValue(2);
+    (getUserSessionVersion as Mock).mockResolvedValue({ kind: 'version', version: 2 });
     expect(await getSessionFromCookies()).toBeNull();
     expect(cookieStore.has('sync-session')).toBe(false);
 
     // Matching sv: accepted.
     cookieStore.set('sync-session', token);
-    (getUserSessionVersion as Mock).mockResolvedValue(1);
+    (getUserSessionVersion as Mock).mockResolvedValue({ kind: 'version', version: 1 });
     expect(await getSessionFromCookies()).not.toBeNull();
   });
 });
