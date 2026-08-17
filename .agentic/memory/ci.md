@@ -2,3 +2,4 @@
 - Deploy job silently skips without CLOUDFLARE_API_TOKEN secret; canonical deploy is manual pnpm run deploy (audit 2026-08-16)
 - Only the 0 */6 cron is registered; the rest are commented out in wrangler.jsonc pending dashboard registration (audit 2026-08-16)
 - CI_RUNS_ON repo variable selects runner via fromJSON, default ubuntu-latest (PR #116)
+- LESSON: new runtime secrets must land in .dev.vars.example AND be synced via sync-secrets.sh BEFORE the code that hard-requires them merges — .env.example alone provisions nothing (PR #120 review)
