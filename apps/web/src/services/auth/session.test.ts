@@ -215,6 +215,72 @@ describe('session.ts', () => {
     });
   });
 
+  // Claim shape validation (PR #120 review, finding 8): a token that verifies
+  // cryptographically but carries malformed claims is rejected, never cast.
+  describe('claim shape validation', () => {
+    it('verifySessionToken rejects a signed token whose sv is not a finite number', async () => {
+      const { verifySessionToken } = await import('./session');
+      const { signPurposeToken } = await import('./tokens');
+
+      const base = { userId: 'u', googleId: 'g', did: 'd', email: 'e', amr: ['google'], asr: 'sf' };
+      for (const sv of [undefined, 'one', Number.NaN, Number.POSITIVE_INFINITY, null]) {
+        const token = await signPurposeToken('session', { ...base, sv }, 60);
+        expect(await verifySessionToken(token), `sv=${String(sv)}`).toBeNull();
+      }
+    });
+
+    it('verifySessionToken rejects asr values outside the Assurance union', async () => {
+      const { verifySessionToken } = await import('./session');
+      const { signPurposeToken } = await import('./tokens');
+
+      const base = { userId: 'u', googleId: 'g', did: 'd', email: 'e', sv: 1, amr: ['google'] };
+      for (const asr of [undefined, 'aal2', 'SF', 1, null]) {
+        const token = await signPurposeToken('session', { ...base, asr }, 60);
+        expect(await verifySessionToken(token), `asr=${String(asr)}`).toBeNull();
+      }
+    });
+
+    it('verifySessionToken rejects a malformed amr and missing identity claims', async () => {
+      const { verifySessionToken } = await import('./session');
+      const { signPurposeToken } = await import('./tokens');
+
+      const good = { userId: 'u', googleId: 'g', did: 'd', email: 'e', sv: 1, amr: ['google'], asr: 'sf' };
+      const bad: Array<Record<string, unknown>> = [
+        { ...good, amr: 'google' },
+        { ...good, amr: [1, 2] },
+        { ...good, amr: undefined },
+        { ...good, userId: undefined },
+        { ...good, email: 42 },
+      ];
+      for (const claims of bad) {
+        const token = await signPurposeToken('session', claims, 60);
+        expect(await verifySessionToken(token)).toBeNull();
+      }
+    });
+
+    it('verifyRefreshToken applies the same shape checks', async () => {
+      const { verifyRefreshToken } = await import('./session');
+      const { signPurposeToken } = await import('./tokens');
+
+      const good = { userId: 'u', sv: 1, amr: ['google'], asr: 'sf' };
+      expect(
+        await verifyRefreshToken(await signPurposeToken('refresh', good, 60))
+      ).not.toBeNull();
+
+      const bad: Array<Record<string, unknown>> = [
+        { ...good, sv: 'one' },
+        { ...good, sv: undefined },
+        { ...good, asr: 'aal2' },
+        { ...good, amr: 'google' },
+        { ...good, userId: undefined },
+      ];
+      for (const claims of bad) {
+        const token = await signPurposeToken('refresh', claims, 60);
+        expect(await verifyRefreshToken(token)).toBeNull();
+      }
+    });
+  });
+
   it('a refresh token presented to getSessionFromRequest returns null', async () => {
     const { createRefreshToken, getSessionFromRequest } = await import('./session');
     const token = await createRefreshToken({

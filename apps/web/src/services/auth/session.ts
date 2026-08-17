@@ -106,42 +106,85 @@ export async function createRefreshToken(payload: RefreshPayload): Promise<strin
 
 // === Verify (pure - no DB read, no revocation check) ===
 
+/** The only `asr` values a token may carry - mirrors the Assurance union. */
+function isAssurance(value: unknown): value is Assurance {
+  return value === 'sf' || value === 'mf';
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string');
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
 /**
  * Verifies a session token against the session purpose only. Does NOT check
  * `session_version` - that happens in `assertLiveSessionVersion`, called only
  * from the two session entry points below.
+ *
+ * Claims are runtime shape-validated, never cast (PR #120 review, finding 8):
+ * a token that verifies cryptographically but carries a malformed claim set
+ * (`sv` not a finite number, `asr` outside the Assurance union, ...) is
+ * rejected through the existing null path so downstream code can never
+ * compare against `undefined` or trust a fabricated assurance value.
  */
 export async function verifySessionToken(token: string): Promise<Session | null> {
   const claims = await verifyPurposeToken('session', token);
   if (!claims) return null;
 
+  if (
+    typeof claims.userId !== 'string' ||
+    typeof claims.googleId !== 'string' ||
+    typeof claims.did !== 'string' ||
+    typeof claims.email !== 'string' ||
+    !isFiniteNumber(claims.sv) ||
+    !isStringArray(claims.amr) ||
+    !isAssurance(claims.asr) ||
+    !isFiniteNumber(claims.exp)
+  ) {
+    return null;
+  }
+
   return {
-    userId: claims.userId as string,
-    googleId: claims.googleId as string,
-    did: claims.did as string,
-    email: claims.email as string,
-    sv: claims.sv as number,
-    amr: (claims.amr as string[]) ?? [],
-    asr: claims.asr as Assurance,
-    expiresAt: new Date((claims.exp ?? 0) * 1000),
+    userId: claims.userId,
+    googleId: claims.googleId,
+    did: claims.did,
+    email: claims.email,
+    sv: claims.sv,
+    amr: claims.amr,
+    asr: claims.asr,
+    expiresAt: new Date(claims.exp * 1000),
   };
 }
 
 /**
  * Verifies a refresh token against the refresh purpose only, returning the
  * full claim set (not just a userId string) - the refresh route needs `sv`,
- * `amr` and `asr`.
+ * `amr` and `asr`. Same runtime shape validation as `verifySessionToken`
+ * (PR #120 review, finding 8) - reject, never cast.
  */
 export async function verifyRefreshToken(token: string): Promise<RefreshClaims | null> {
   const claims = await verifyPurposeToken('refresh', token);
   if (!claims) return null;
 
+  if (
+    typeof claims.userId !== 'string' ||
+    !isFiniteNumber(claims.sv) ||
+    !isStringArray(claims.amr) ||
+    !isAssurance(claims.asr) ||
+    !isFiniteNumber(claims.exp)
+  ) {
+    return null;
+  }
+
   return {
-    userId: claims.userId as string,
-    sv: claims.sv as number,
-    amr: (claims.amr as string[]) ?? [],
-    asr: claims.asr as Assurance,
-    expiresAt: new Date((claims.exp ?? 0) * 1000),
+    userId: claims.userId,
+    sv: claims.sv,
+    amr: claims.amr,
+    asr: claims.asr,
+    expiresAt: new Date(claims.exp * 1000),
   };
 }
 
