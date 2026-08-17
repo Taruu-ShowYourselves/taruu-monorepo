@@ -123,6 +123,15 @@ Nothing else. No prior-lap conversation.
 
 This is the run-over-run learning loop: this PR's verified facts are the next spec's context (§4.7).
 
+## The compound step (every.to/guides/compound-engineering)
+
+Our loop maps onto Plan → Work → Review → **Compound**: research+spec = Plan, implement = Work, verify+review+gates = Review, and **merge-learn is the Compound step** — the point of the system is that each merged PR makes the next one better, not just done. Mechanics, all automatic on merge detection:
+
+- **Capture the solution**: the parser seat writes `docs/solutions/<issue>-<slug>.md` — what was built, what worked, what failed, the reusable insight — with YAML frontmatter (issue, pr, areas, defects_caught, date) so it's findable.
+- **Review findings become lessons**: the lane's full defect registry (reviewer, gates, human comments — including how each defect ended) feeds the extraction; generalized `LESSON:` rules land in the area memory files beside facts. A defect caught twice is a system failure; the lesson exists so it's caught zero times next lane.
+- **Update the system**: facts + lessons flow into `.agentic/memory/<area>.md` (bounded, deduped), which is injected into every future researcher/coder prompt for that area — our CLAUDE.md-equivalent for the fleet.
+- **Verify the learning**: everything rides the rolling `agent/memory-updates` PR — a human merge is what makes a lesson canonical, and the researcher's context lists matching prior solutions (`solutionsFor`) at the start of every new lane, closing the loop.
+
 ## Verification harness (rung 3 — deterministic, screenshot-first)
 
 `verify` runs in the lane worktree, no model involved:

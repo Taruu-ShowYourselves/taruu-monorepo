@@ -13,7 +13,7 @@ import * as gh from "./github.ts";
 import { notify, prLink } from "./mailer.ts";
 import {
   readPrompt, readTemplate, specPath, researchPath, readIfExists,
-  memoryFor, openDefectsBlock, UNTRUSTED_CLAUSE, protectedPathsTouched,
+  memoryFor, solutionsFor, openDefectsBlock, UNTRUSTED_CLAUSE, protectedPathsTouched,
 } from "./context.ts";
 import { learnFromMergedPr } from "./memory.ts";
 import type { LaneState, Defect, GateResult } from "./state.ts";
@@ -34,6 +34,7 @@ export const research: NodeFn<LaneState> = async (lane) => {
     UNTRUSTED_CLAUSE,
     `## Issue #${lane.issue}: ${issue.title}\n\n${issue.body}`,
     `## Area memory (verified facts from merged PRs)\n${memoryFor(lane.pathClaims)}`,
+    `## Prior solutions in these areas (compound archive — Read the relevant ones)\n${solutionsFor(lane.pathClaims)}`,
     `## Template\n${readTemplate("RESEARCH")}`,
   ].join("\n\n---\n\n");
 

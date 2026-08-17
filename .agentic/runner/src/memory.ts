@@ -10,7 +10,7 @@
  */
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { config } from "./config.ts";
 import { runSeat } from "./seats.ts";
@@ -91,11 +91,25 @@ export async function learnFromMergedPr(lane: LaneState): Promise<number> {
   const existingFacts = areas
     .map((a) => `## ${a}\n${readIfExists(join(process.cwd(), ".agentic", "memory", `${a}.md`))}`)
     .join("\n");
+  // The compound input (Plan→Work→Review→COMPOUND): the lane's full defect
+  // registry — every defect a reviewer, gate, or human caught and how it
+  // ended. Review findings must become durable lessons, not die with the lane.
+  const defectLog = lane.defects.length
+    ? lane.defects.map((d) => `- [${d.source}] ${d.id} (${d.status}) ${d.file ?? ""}: ${d.summary}`).join("\n")
+    : "(none recorded)";
   const prompt = [
     readPrompt("parser"),
-    `Task: extract DURABLE, VERIFIED facts from this merged PR that future agents working in this repo must know: invariants, gotchas, security constraints, "never do X" rules. NOT a changelog — only facts that change how future work must be done.`,
+    `Task: COMPOUND this merged PR — extract what makes future work in this repo better. Three outputs:
+1. FACT lines — durable, verified invariants/gotchas/"never do X" rules from the merged diff. NOT a changelog.
+2. LESSON lines — generalized rules derived from the defects below (what class of mistake was caught, phrased so the next agent avoids it up front).
+3. One SOLUTION block — 3-6 sentences: what was built, the approach that worked, what failed on the way, reusable insight.`,
     `Areas (use EXACTLY one of): ${areas.join(", ")}`,
-    `Contract: one fact per line, \`<area> | <one-sentence fact>\`. At most 3 lines. Reply \`NONE\` if nothing durable was learned. Do not repeat existing facts.`,
+    `Contract:
+- \`FACT | <area> | <one-sentence fact>\` — at most 3
+- \`LESSON | <area> | <one-sentence rule>\` — at most 3, only from real defects below
+- \`SOLUTION | <text on one line>\` — exactly 1 (use "; " between sentences)
+Reply \`NONE\` if nothing durable was learned. Do not repeat existing facts.`,
+    `## Defects caught during this lane (review/verify/human)\n${defectLog.slice(0, 6_000)}`,
     `## Existing facts (do not repeat)\n${existingFacts.slice(0, 8_000)}`,
     `## Merged diff (PR #${lane.prNumber}, issue #${lane.issue})\n\`\`\`diff\n${diff}\n\`\`\``,
   ].join("\n\n---\n\n");
@@ -105,23 +119,53 @@ export async function learnFromMergedPr(lane: LaneState): Promise<number> {
   });
   lane.usage.push(r.usage);
 
+  // FACTs and LESSONs both land in the bounded area files (a lesson IS a
+  // fact about how to work here); SOLUTION becomes a findable doc.
   const byArea = new Map<string, string[]>();
-  for (const m of r.text.matchAll(/^([a-z-]+)\s*\|\s*(.+)$/gm)) {
-    const area = (m[1] ?? "").trim();
-    const fact = (m[2] ?? "").trim();
-    if (!areas.includes(area) || !fact) continue;
-    const tagged = fact.includes(`PR #${lane.prNumber}`) ? fact : `${fact} (PR #${lane.prNumber})`;
+  for (const m of r.text.matchAll(/^(FACT|LESSON)\s*\|\s*([a-z-]+)\s*\|\s*(.+)$/gm)) {
+    const kind = m[1] ?? "FACT";
+    const area = (m[2] ?? "").trim();
+    const text = (m[3] ?? "").trim();
+    if (!areas.includes(area) || !text) continue;
+    const prefix = kind === "LESSON" ? "LESSON: " : "";
+    const tagged = text.includes(`PR #${lane.prNumber}`)
+      ? `${prefix}${text}`
+      : `${prefix}${text} (PR #${lane.prNumber})`;
     byArea.set(area, [...(byArea.get(area) ?? []), tagged]);
   }
-  if (byArea.size === 0) return 0;
+  const solution = (r.text.match(/^SOLUTION\s*\|\s*(.+)$/m)?.[1] ?? "").trim();
+  if (byArea.size === 0 && !solution) return 0;
 
   const wt = await ensureMemoryWorktree();
   let staged = 0;
   for (const [area, facts] of byArea) staged += appendFacts(wt, area, facts);
+
+  // Compound artifact: docs/solutions/<issue>-<slug>.md with YAML frontmatter
+  // so future planners/researchers can find how this class of problem was
+  // solved (grep by tags/areas — memoryFor stays bounded, this is the archive).
+  if (solution) {
+    const solDir = join(wt, "docs", "solutions");
+    mkdirSync(solDir, { recursive: true });
+    writeFileSync(join(solDir, `${lane.issue}-${lane.slug}.md`), [
+      "---",
+      `issue: ${lane.issue}`,
+      `pr: ${lane.prNumber}`,
+      `areas: [${[...byArea.keys()].join(", ")}]`,
+      `defects_caught: ${lane.defects.length}`,
+      `date: ${new Date().toISOString().slice(0, 10)}`,
+      "---",
+      "",
+      `# #${lane.issue} ${lane.slug}`,
+      "",
+      solution.replaceAll("; ", ";\n"),
+      "",
+    ].join("\n"));
+    staged += 1;
+  }
   if (staged === 0) return 0;
 
-  await git(wt, ["add", ".agentic/memory"]);
-  await git(wt, ["commit", "-m", `memory(#${lane.issue}): ${staged} fact(s) from merged PR #${lane.prNumber}`]);
+  await git(wt, ["add", ".agentic/memory", "docs/solutions"]);
+  await git(wt, ["commit", "-m", `memory(#${lane.issue}): compound merged PR #${lane.prNumber} — facts, lessons, solution doc`]);
   await git(wt, ["push", "-u", "origin", MEMORY_BRANCH]);
   try {
     await gh.createDraftPr(
