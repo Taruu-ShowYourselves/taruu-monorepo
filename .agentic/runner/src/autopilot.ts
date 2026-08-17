@@ -12,7 +12,7 @@ import { runGraph, type NodeFn } from "./graph.ts";
 import { nodes } from "./nodes.ts";
 import { routers } from "./routers.ts";
 import { syncBoard, humansOnlyIssues, resetItem } from "./board.ts";
-import { activeLanes, loadLane, newLane, saveLane, type LaneState } from "./state.ts";
+import { activeLanes, listLanes, loadLane, newLane, saveLane, type LaneState } from "./state.ts";
 
 const exec = promisify(execFile);
 const PRIORITY_ORDER = ["M0", "P0", "P1", "P2", "P3", "M4"];
@@ -78,6 +78,16 @@ export function slugify(title: string, issue: number): string {
 export async function autoAdmit(): Promise<LaneState[]> {
   const aa = config().autoAdmit;
   if (!aa?.enabled) return [];
+  // Unattended-human brake (compound lesson, 2026-08-17 incident): when
+  // specs pile up unanswered (gate_timeout parks + lanes already waiting at
+  // a gate), the human is away — generating more specs only burns tokens
+  // nobody reads. Stop admitting until the pile shrinks.
+  const timedOut = listLanes().filter((l) => l.exitReason === "gate_timeout").length;
+  const gateWaiting = activeLanes().filter((l) => l.phase === "spec-gate" || l.phase === "pr-gate").length;
+  if (timedOut >= 3 || gateWaiting >= 4) {
+    console.log(`[auto-admit] paused — ${timedOut} timed-out + ${gateWaiting} gate-waiting lanes; human attention needed, not more specs`);
+    return [];
+  }
   const admitted: LaneState[] = [];
   // Gate-waiting lanes hold no working slot — the fleet keeps starting new
   // work while specs/PRs sit on a human. maxTotal bounds the pile of open
