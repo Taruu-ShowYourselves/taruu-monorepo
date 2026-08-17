@@ -9,9 +9,12 @@
  * session, refresh and oauth_state sign M1's tokens; mfa_pending and reauth
  * sign the challenge/step-up locator tokens; mfa_secret_enc is
  * encryption-only - it derives the AES-256-GCM key for TOTP secrets at rest
- * (services/auth/mfa-secret.ts) and is deliberately excluded from the signing
- * purposes in tokens.ts, so key separation between signing and encryption is
- * a type error rather than a convention.
+ * (services/auth/mfa-secret.ts); recovery_pepper is MAC-only - it derives
+ * the HMAC-SHA-256 pepper for recovery-code hashes at rest
+ * (services/auth/recovery-codes.ts). Both non-signing purposes are
+ * deliberately excluded from the signing purposes in tokens.ts, so key
+ * separation between signing and encryption/MAC is a type error rather than
+ * a convention.
  *
  * Runtime is Cloudflare Workers via OpenNext (nodejs_compat) - derivation uses
  * Web Crypto (`crypto.subtle`), never `node:crypto`'s `hkdfSync`.
@@ -23,7 +26,8 @@ export type TokenPurpose =
   | 'oauth_state'
   | 'mfa_pending'
   | 'reauth'
-  | 'mfa_secret_enc';
+  | 'mfa_secret_enc'
+  | 'recovery_pepper';
 
 /** HKDF salt for every M1 purpose key. Versioned alongside KEY_VERSION below. */
 export const HKDF_SALT = 'taruu-auth-v1';

@@ -15,11 +15,13 @@ import { SignJWT, jwtVerify, decodeJwt, type JWTPayload } from 'jose';
 import { deriveAuthKey, getAuthMasterKey, JWT_KEY_ID, type TokenPurpose } from './keys';
 
 /**
- * Purposes that sign tokens. `mfa_secret_enc` is excluded on purpose: it is
- * an encryption-key derivation label (services/auth/mfa-secret.ts), and using
- * it to sign must be a compile error, not a runtime surprise.
+ * Purposes that sign tokens. `mfa_secret_enc` (AES-256-GCM key for TOTP
+ * secrets, services/auth/mfa-secret.ts) and `recovery_pepper` (HMAC pepper
+ * for recovery-code hashes, services/auth/recovery-codes.ts) are excluded on
+ * purpose: they are key-derivation labels, and using either to sign must be
+ * a compile error, not a runtime surprise.
  */
-export type SigningPurpose = Exclude<TokenPurpose, 'mfa_secret_enc'>;
+export type SigningPurpose = Exclude<TokenPurpose, 'mfa_secret_enc' | 'recovery_pepper'>;
 
 /**
  * The `typ` **claim in the payload** for each purpose - not the JWT protected

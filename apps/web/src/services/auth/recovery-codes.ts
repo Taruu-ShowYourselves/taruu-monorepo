@@ -3,10 +3,15 @@
  *
  * 10 codes per batch, 16 Crockford-base32 characters grouped
  * XXXX-XXXX-XXXX-XXXX (80 bits each), from crypto.getRandomValues. The
- * database stores SHA-256 hex hashes only; plaintext is shown exactly once in
- * the enroll-confirm (or regenerate) response. Spending is the atomic
- * conditional UPDATE in `mfa_consume_recovery_code` - never checked here.
+ * database stores HMAC-SHA-256 hex digests only, keyed by a pepper derived
+ * from AUTH_MASTER_KEY (HKDF `recovery_pepper` label, PR #120 review,
+ * finding 7) - a leaked `user_recovery_codes` dump is worthless without the
+ * server-side key. Plaintext is shown exactly once in the enroll-confirm
+ * (or regenerate) response. Spending is the atomic conditional UPDATE in
+ * `mfa_consume_recovery_code` - never checked here.
  */
+
+import { deriveAuthKey } from './keys';
 
 export const RECOVERY_CODE_COUNT = 10;
 export const RECOVERY_CODE_CHARS = 16;
@@ -42,10 +47,25 @@ export function normalizeRecoveryCode(input: string): string {
     .replace(/O/g, '0');
 }
 
-/** SHA-256 hex of the normalized code (mold: services/sms/otp.ts). */
+/**
+ * HMAC-SHA-256 hex of the normalized code, keyed by the HKDF-derived
+ * `recovery_pepper` (never bare SHA-256: an offline attacker holding a
+ * `user_recovery_codes` dump could grind 80-bit codes; with the pepper the
+ * dump alone verifies nothing). No back-compat path on purpose - this PR is
+ * unreleased, so no bare-SHA-256 rows exist anywhere.
+ */
 export async function hashRecoveryCode(code: string): Promise<string> {
-  const digest = await crypto.subtle.digest(
-    'SHA-256',
+  const pepper = await deriveAuthKey('recovery_pepper');
+  const key = await crypto.subtle.importKey(
+    'raw',
+    pepper as BufferSource,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const digest = await crypto.subtle.sign(
+    'HMAC',
+    key,
     new TextEncoder().encode(normalizeRecoveryCode(code)) as BufferSource
   );
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');

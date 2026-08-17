@@ -1,16 +1,24 @@
 /**
  * Recovery-code generation, normalization, and hashing (canonical §6.2).
  * Single-use enforcement is the DB's conditional UPDATE, proven in
- * supabase/tests/security_mfa.sql.
+ * supabase/tests/security_mfa.sql. Hashing is HMAC-SHA-256 keyed by the
+ * HKDF-derived `recovery_pepper` off AUTH_MASTER_KEY (PR #120 review,
+ * finding 7), so the suite stubs the master key like the other kernel tests.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   generateRecoveryCodes,
   normalizeRecoveryCode,
   hashRecoveryCode,
   RECOVERY_CODE_COUNT,
 } from './recovery-codes';
+import { resetDerivedKeyCache } from './keys';
+
+beforeEach(() => {
+  vi.stubEnv('AUTH_MASTER_KEY', 'a'.repeat(32));
+  resetDerivedKeyCache();
+});
 
 describe('generateRecoveryCodes', () => {
   it('produces 10 distinct codes in XXXX-XXXX-XXXX-XXXX Crockford format', () => {
@@ -47,5 +55,33 @@ describe('hashRecoveryCode', () => {
     const b = await hashRecoveryCode('BBBB-BBBB-BBBB-BBBB');
     expect(a).toMatch(/^[0-9a-f]{64}$/);
     expect(a).not.toBe(b);
+  });
+
+  it('is peppered: the digest depends on AUTH_MASTER_KEY, not the code alone', async () => {
+    const underKeyA = await hashRecoveryCode('AB12-CD34-EF56-GH78');
+
+    vi.stubEnv('AUTH_MASTER_KEY', 'b'.repeat(32));
+    resetDerivedKeyCache();
+    const underKeyB = await hashRecoveryCode('AB12-CD34-EF56-GH78');
+
+    expect(underKeyA).not.toBe(underKeyB);
+  });
+
+  it('is not bare SHA-256 of the normalized code', async () => {
+    const bareSha = await crypto.subtle.digest(
+      'SHA-256',
+      new TextEncoder().encode('AB12CD34EF56GH78') as BufferSource
+    );
+    const bareHex = Array.from(new Uint8Array(bareSha), (byte) =>
+      byte.toString(16).padStart(2, '0')
+    ).join('');
+
+    expect(await hashRecoveryCode('AB12-CD34-EF56-GH78')).not.toBe(bareHex);
+  });
+
+  it('refuses to hash without AUTH_MASTER_KEY (no unpeppered fallback)', async () => {
+    vi.stubEnv('AUTH_MASTER_KEY', '');
+    resetDerivedKeyCache();
+    await expect(hashRecoveryCode('AB12-CD34-EF56-GH78')).rejects.toThrow(/AUTH_MASTER_KEY/);
   });
 });
