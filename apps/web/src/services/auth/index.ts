@@ -8,17 +8,13 @@
 // Import session functions directly from '@/services/auth/session' in server components
 export type { SessionPayload, Session } from './session';
 
-// Google OAuth (primary auth)
+// Google OAuth (primary auth). Identity authority is the locally verified
+// id_token subject (./google-oidc.ts), not this module - see google.ts's
+// header. State/nonce minting lives server-side in /api/auth/google/start.
 export {
-  buildGoogleAuthUrl,
-  redirectToGoogleAuth,
   exchangeCodeForTokens as exchangeGoogleCodeForTokens,
   getGoogleUserInfo,
-  verifyIdToken,
   refreshAccessToken,
-  generateOAuthState,
-  storeOAuthState,
-  verifyOAuthState,
 } from './google';
 
 // Facebook OAuth (social proof)

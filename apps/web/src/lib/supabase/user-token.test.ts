@@ -100,6 +100,25 @@ describe('mintSupabaseAccessToken', () => {
     expect(Object.keys(payload).sort()).toEqual(['aud', 'exp', 'iat', 'iss', 'role', 'sub']);
   });
 
+  it('carries no assurance or method claims - the database never sees them', async () => {
+    // Canonical §4.7: assurance (asr) and method (amr) are application
+    // concerns enforced in route handlers; RLS never needs them. This is a
+    // standing invariant for every MFA milestone.
+    const { mintSupabaseAccessToken } = await loadMinter();
+    const payload = decodeJwt(await mintSupabaseAccessToken(USER_ID));
+
+    expect(payload).not.toHaveProperty('amr');
+    expect(payload).not.toHaveProperty('asr');
+    expect(payload).not.toHaveProperty('aal');
+    expect(Object.keys(payload).sort()).toEqual(['aud', 'exp', 'iat', 'iss', 'role', 'sub']);
+
+    // Source-level guard: the assurance claim names must not appear in the
+    // minter at all, so they cannot be added without tripping this test.
+    const { readFileSync } = await import('node:fs');
+    const source = readFileSync(new URL('./user-token.ts', import.meta.url), 'utf8');
+    expect(source).not.toMatch(/['"](amr|asr|aal)['"]/);
+  });
+
   it('rejects a userId that is not a uuid', async () => {
     const { mintSupabaseAccessToken } = await loadMinter();
 

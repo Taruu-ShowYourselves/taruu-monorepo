@@ -34,6 +34,9 @@ export const SESSION: Session = {
   googleId: 'google-abc',
   did: `did:sync:${'a'.repeat(43)}`,
   email: 'admin@example.com',
+  sv: 1,
+  amr: ['google'],
+  asr: 'sf',
   expiresAt: new Date(Date.now() + 86_400_000),
 };
 

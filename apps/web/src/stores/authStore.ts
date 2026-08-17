@@ -25,11 +25,12 @@ interface AuthState {
   // Session state
   accessToken: string | null;
   refreshToken: string | null;
-  expiresAt: Date | null;
+  /** ISO-8601 string straight from the API - parsed only where compared. */
+  expiresAt: string | null;
 
   // Actions
   setUser: (user: UserProfile | null) => void;
-  setTokens: (accessToken: string, refreshToken?: string, expiresAt?: Date) => void;
+  setTokens: (accessToken: string, refreshToken?: string, expiresAt?: string) => void;
   setLoading: (isLoading: boolean) => void;
   updateUser: (updates: Partial<UserProfile>) => void;
   updateIdentityScore: (score: IdentityScore) => void;
@@ -136,7 +137,10 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
+        // refreshToken deliberately NOT persisted: on web the 30-day refresh
+        // credential lives in the httpOnly sync-refresh cookie and nothing
+        // client-side ever reads it back from this store - persisting it to
+        // localStorage would only hand it to any XSS.
         expiresAt: state.expiresAt,
         isAuthenticated: state.isAuthenticated,
       }),

@@ -9,10 +9,17 @@
  * - Without cryptographic signing, an attacker can forge state values
  * - This allows account linking attacks and session fixation
  *
- * Implementation:
- * - Uses JWT (via jose library) for state signing
- * - Includes userId, timestamp, nonce, and platform for verification
- * - 10-minute expiration to limit replay window
+ * Two state families live here:
+ *
+ * 1. The Facebook/Instagram social-connect flows below (`createOAuthState` /
+ *    `verifyOAuthState` / `verifyOAuthStatePlatform`) - unchanged, still
+ *    signed with `JWT_SECRET`. Four live routes and two test suites depend
+ *    on this exact behavior. Moving them onto the purpose-typed `oauth_state`
+ *    key (canonical §4.1) is deliberate follow-up work, not an oversight -
+ *    it just isn't this milestone's scope.
+ * 2. The login flow moved to `services/auth/login-state.ts` - it signs with
+ *    the kernel's purpose-key primitive, and the mint-path guard test forbids
+ *    that import outside services/auth/.
  */
 
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose';

@@ -19,7 +19,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   user: UserProfile | null;
-  signInWithGoogle: () => void;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
 }
@@ -91,25 +91,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
     initAuth();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sign in - direct Google OIDC (the Auth0 hop is gone). Google redirects
-  // back to the sign-in page, where the callback effect below exchanges the
-  // code. The redirect target must be an app page: the API route only
-  // accepts POST, so pointing the provider redirect at it 405s forever.
-  const signInWithGoogle = useCallback(() => {
-    // Generate state for CSRF protection (verified in the callback handler)
-    const state = crypto.randomUUID();
-    sessionStorage.setItem('oauth_state', state);
+  // Sign in - direct Google OIDC (the Auth0 hop is gone). The state and nonce
+  // are minted server-side (requirement #71-M1-08): the browser only asks
+  // /api/auth/google/start for the authorize URL and follows it. Google
+  // redirects back to the sign-in page, where the callback effect below
+  // exchanges the code. The redirect target must be an app page: the API
+  // route only accepts POST, so pointing the provider redirect at it 405s
+  // forever.
+  const signInWithGoogle = useCallback(async () => {
+    try {
+      const response = await fetch('/api/auth/google/start', {
+        method: 'POST',
+        credentials: 'include',
+      });
 
-    const params = new URLSearchParams({
-      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
-      redirect_uri: `${window.location.origin}/he/sign-in`,
-      response_type: 'code',
-      scope: 'openid profile email',
-      state,
-      prompt: 'select_account',
-    });
+      if (!response.ok) {
+        console.error('Failed to start Google sign-in');
+        return;
+      }
 
-    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+      const data = await response.json();
+      window.location.href = data.url;
+    } catch (error) {
+      console.error('Failed to start Google sign-in:', error);
+    }
   }, []);
 
   // Sign out
@@ -142,7 +147,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (response.ok) {
         const data = await response.json();
         if (data.accessToken) {
-          setTokens(data.accessToken);
+          // Pass the rotated refresh token and real expiry through - a
+          // one-arg call here used to wipe both from the store on every
+          // silent refresh.
+          setTokens(data.accessToken, data.refreshToken, data.expiresAt);
         }
         if (data.user) {
           setUser(data.user);
@@ -172,28 +180,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       if (code && state) {
-        // Verify state
-        const storedState = sessionStorage.getItem('oauth_state');
-        sessionStorage.removeItem('oauth_state');
-
-        if (state !== storedState) {
-          console.error('State mismatch');
-          router.push('/sign-in?error=state_mismatch');
-          return;
-        }
-
+        // State is no longer verified client-side (requirement #71-M1-08):
+        // the server validates it against the signed oauth_state token and
+        // the sync-oauth-state cookie (double submit) inside the callback.
         setLoading(true);
 
         try {
           // Exchange code for session
           const response = await fetch('/api/auth/callback', {
             method: 'POST',
+            credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code }),
+            body: JSON.stringify({ code, state }),
           });
 
           if (response.ok) {
             const data = await response.json();
+
+            // MFA challenge (engineering model §5.2 case 3): the account has
+            // an active factor under enforcement - no session exists yet, the
+            // pending cookie carries the challenge locator, and the user
+            // completes it on the challenge screen.
+            if (data.mfaRequired) {
+              window.history.replaceState({}, '', window.location.pathname);
+              router.push('/sign-in/challenge');
+              return;
+            }
 
             if (data.accessToken) {
               setTokens(data.accessToken, data.refreshToken, data.expiresAt);

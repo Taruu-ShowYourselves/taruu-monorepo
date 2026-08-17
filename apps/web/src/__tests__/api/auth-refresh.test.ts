@@ -1,19 +1,32 @@
 /**
  * Auth Session Refresh API Route Tests
  *
- * Tests for the /api/auth/session/refresh endpoint:
- * - POST /api/auth/session/refresh - Refresh session token
+ * Tests for POST /api/auth/session/refresh after the Task 8 rewrite
+ * (specs/mfa-engineering-model.md §5.1e): refresh-purpose-only acceptance,
+ * intake from cookie OR JSON body OR bearer header (mobile has no cookie
+ * jar), the stored-session_version check, the per-call assurance
+ * re-derivation, rotation that preserves amr/asr without upgrading them,
+ * and a response carrying both accessToken and the sessionToken alias with
+ * an expiresAt derived from the real 1-hour session TTL.
  */
 
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
+import { NextRequest } from 'next/server';
 
-// Mock session service
-vi.mock('@/services/auth/session', () => ({
+// Mock session service - keep the real TTL constants, mock the functions.
+vi.mock('@/services/auth/session', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/services/auth/session')>()),
   getRefreshTokenFromCookies: vi.fn(),
   verifyRefreshToken: vi.fn(),
   createSessionToken: vi.fn(),
   createRefreshToken: vi.fn(),
   setSessionCookies: vi.fn(),
+  clearSessionCookies: vi.fn(),
+}));
+
+vi.mock('@/services/auth/assurance', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/services/auth/assurance')>()),
+  getRequiredAssurance: vi.fn(),
 }));
 
 // Mock database functions
@@ -37,12 +50,34 @@ import {
   createSessionToken,
   createRefreshToken,
   setSessionCookies,
+  clearSessionCookies,
+  SESSION_TTL_SECONDS,
 } from '@/services/auth/session';
+import { getRequiredAssurance } from '@/services/auth/assurance';
 import { getUserById, getSocialProofsByUserId } from '@/lib/supabase/db';
 import { qubikService } from '@/services/qubik';
 
+function refreshRequest(init?: { body?: unknown; bearer?: string }) {
+  const headers: Record<string, string> = {};
+  if (init?.bearer) headers['Authorization'] = `Bearer ${init.bearer}`;
+  if (init?.body !== undefined) headers['Content-Type'] = 'application/json';
+  return new NextRequest('http://localhost:3000/api/auth/session/refresh', {
+    method: 'POST',
+    headers,
+    ...(init?.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
+  });
+}
+
 describe('Auth Session Refresh API Routes', () => {
   let POST: typeof import('@/app/api/auth/session/refresh/route').POST;
+
+  const mockClaims = {
+    userId: 'user-123',
+    sv: 3,
+    amr: ['google'],
+    asr: 'sf' as const,
+    expiresAt: new Date('2026-09-01T00:00:00Z'),
+  };
 
   const mockUser = {
     id: 'user-123',
@@ -58,6 +93,7 @@ describe('Auth Session Refresh API Routes', () => {
     municipality_id: 'tel-aviv',
     city: null,
     notification_settings: null,
+    session_version: 3,
     // No wallet: `getTokenBalanceSafe` short-circuits, so the balance is a
     // deterministic 0 and this suite never depends on the Qubik mock surviving
     // the `vi.resetModules()` in beforeEach.
@@ -85,6 +121,18 @@ describe('Auth Session Refresh API Routes', () => {
     },
   ];
 
+  function primeHappyPath() {
+    (getRefreshTokenFromCookies as Mock).mockResolvedValue('valid-token');
+    (verifyRefreshToken as Mock).mockResolvedValue({ ...mockClaims });
+    (getRequiredAssurance as Mock).mockResolvedValue('sf');
+    (getUserById as Mock).mockResolvedValue(mockUser);
+    (getSocialProofsByUserId as Mock).mockResolvedValue(mockSocialProofs);
+    (createSessionToken as Mock).mockResolvedValue('new-session-token');
+    (createRefreshToken as Mock).mockResolvedValue('new-refresh-token');
+    (setSessionCookies as Mock).mockResolvedValue(undefined);
+    (clearSessionCookies as Mock).mockResolvedValue(undefined);
+  }
+
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
@@ -94,10 +142,10 @@ describe('Auth Session Refresh API Routes', () => {
   });
 
   describe('POST /api/auth/session/refresh', () => {
-    it('should return 401 when refresh token is missing', async () => {
+    it('should return 401 when refresh token is missing everywhere', async () => {
       (getRefreshTokenFromCookies as Mock).mockResolvedValue(null);
 
-      const response = await POST();
+      const response = await POST(refreshRequest());
       const data = await response.json();
 
       expect(response.status).toBe(401);
@@ -109,7 +157,7 @@ describe('Auth Session Refresh API Routes', () => {
       (getRefreshTokenFromCookies as Mock).mockResolvedValue('invalid-token');
       (verifyRefreshToken as Mock).mockResolvedValue(null);
 
-      const response = await POST();
+      const response = await POST(refreshRequest());
       const data = await response.json();
 
       expect(response.status).toBe(401);
@@ -117,12 +165,97 @@ describe('Auth Session Refresh API Routes', () => {
       expect(data.code).toBe('INVALID_REFRESH_TOKEN');
     });
 
+    it('refuses a session token presented as a refresh token', async () => {
+      // Purpose typing makes verifyRefreshToken return null for a session
+      // token; the route must go through that verifier and refuse.
+      (getRefreshTokenFromCookies as Mock).mockResolvedValue('a-session-token');
+      (verifyRefreshToken as Mock).mockResolvedValue(null);
+
+      const response = await POST(refreshRequest());
+
+      expect(response.status).toBe(401);
+      expect(verifyRefreshToken).toHaveBeenCalledWith('a-session-token');
+      expect(createSessionToken).not.toHaveBeenCalled();
+    });
+
+    it('accepts the refresh token from a JSON body when no cookie exists (mobile)', async () => {
+      primeHappyPath();
+      (getRefreshTokenFromCookies as Mock).mockResolvedValue(null);
+
+      const response = await POST(refreshRequest({ body: { refreshToken: 'body-token' } }));
+
+      expect(response.status).toBe(200);
+      expect(verifyRefreshToken).toHaveBeenCalledWith('body-token');
+    });
+
+    it('accepts the refresh token from a bearer header when no cookie exists (mobile)', async () => {
+      primeHappyPath();
+      (getRefreshTokenFromCookies as Mock).mockResolvedValue(null);
+
+      const response = await POST(refreshRequest({ bearer: 'bearer-token' }));
+
+      expect(response.status).toBe(200);
+      expect(verifyRefreshToken).toHaveBeenCalledWith('bearer-token');
+    });
+
+    it('returns 401 and clears cookies when the token sv is stale', async () => {
+      primeHappyPath();
+      (getUserById as Mock).mockResolvedValue({ ...mockUser, session_version: 4 });
+
+      const response = await POST(refreshRequest());
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.code).toBe('SESSION_REVOKED');
+      expect(clearSessionCookies).toHaveBeenCalled();
+      expect(createSessionToken).not.toHaveBeenCalled();
+    });
+
+    it('returns 401 MFA_REQUIRED when the token asr ranks below the account requirement', async () => {
+      primeHappyPath();
+      // The account now requires mf; the presented token is sf. In M1 this
+      // branch can never fire (every account requires sf) - it exists so M2
+      // changes only getRequiredAssurance's body, never this route.
+      (getRequiredAssurance as Mock).mockResolvedValue('mf');
+
+      const response = await POST(refreshRequest());
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.code).toBe('MFA_REQUIRED');
+      expect(clearSessionCookies).toHaveBeenCalled();
+      expect(createSessionToken).not.toHaveBeenCalled();
+    });
+
+    it('rotates the refresh token, preserving amr/asr and stamping the stored sv', async () => {
+      primeHappyPath();
+      const mfClaims = { ...mockClaims, amr: ['google', 'totp'], asr: 'mf' as const };
+      (verifyRefreshToken as Mock).mockResolvedValue(mfClaims);
+      (getRequiredAssurance as Mock).mockResolvedValue('mf');
+
+      const response = await POST(refreshRequest());
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      // Rotation: a fresh refresh token is minted and set alongside the session.
+      expect(createRefreshToken).toHaveBeenCalledWith({
+        userId: 'user-123',
+        sv: 3,
+        amr: ['google', 'totp'],
+        asr: 'mf',
+      });
+      expect(createSessionToken).toHaveBeenCalledWith(
+        expect.objectContaining({ sv: 3, amr: ['google', 'totp'], asr: 'mf' })
+      );
+      expect(data.refreshToken).toBe('new-refresh-token');
+      expect(setSessionCookies).toHaveBeenCalledWith('new-session-token', 'new-refresh-token');
+    });
+
     it('should return 404 when user not found', async () => {
-      (getRefreshTokenFromCookies as Mock).mockResolvedValue('valid-token');
-      (verifyRefreshToken as Mock).mockResolvedValue('user-123');
+      primeHappyPath();
       (getUserById as Mock).mockResolvedValue(null);
 
-      const response = await POST();
+      const response = await POST(refreshRequest());
       const data = await response.json();
 
       expect(response.status).toBe(404);
@@ -130,36 +263,31 @@ describe('Auth Session Refresh API Routes', () => {
     });
 
     it('should successfully refresh session', async () => {
-      (getRefreshTokenFromCookies as Mock).mockResolvedValue('valid-token');
-      (verifyRefreshToken as Mock).mockResolvedValue('user-123');
-      (getUserById as Mock).mockResolvedValue(mockUser);
-      (getSocialProofsByUserId as Mock).mockResolvedValue(mockSocialProofs);
-      (createSessionToken as Mock).mockResolvedValue('new-session-token');
-      (createRefreshToken as Mock).mockResolvedValue('new-refresh-token');
-      (setSessionCookies as Mock).mockResolvedValue(undefined);
+      primeHappyPath();
 
-      const response = await POST();
+      const response = await POST(refreshRequest());
       const data = await response.json();
 
       expect(response.status).toBe(200);
       expect(data.accessToken).toBe('new-session-token');
+      // Mobile compatibility alias - same value under the name the mobile
+      // store reads (apps/mobile/src/lib/auth.ts).
+      expect(data.sessionToken).toBe('new-session-token');
       expect(data.refreshToken).toBe('new-refresh-token');
       expect(data.user).toBeDefined();
       expect(data.user.id).toBe('user-123');
-      expect(data.expiresAt).toBeDefined();
       expect(setSessionCookies).toHaveBeenCalledWith('new-session-token', 'new-refresh-token');
+
+      // expiresAt reflects the real 1h session TTL, not a hardcoded 7d.
+      const deltaMs = new Date(data.expiresAt).getTime() - Date.now();
+      expect(deltaMs).toBeGreaterThan((SESSION_TTL_SECONDS - 60) * 1000);
+      expect(deltaMs).toBeLessThanOrEqual(SESSION_TTL_SECONDS * 1000);
     });
 
     it('should return the same canonical profile shape as the other auth routes', async () => {
-      (getRefreshTokenFromCookies as Mock).mockResolvedValue('valid-token');
-      (verifyRefreshToken as Mock).mockResolvedValue('user-123');
-      (getUserById as Mock).mockResolvedValue(mockUser);
-      (getSocialProofsByUserId as Mock).mockResolvedValue(mockSocialProofs);
-      (createSessionToken as Mock).mockResolvedValue('new-session-token');
-      (createRefreshToken as Mock).mockResolvedValue('new-refresh-token');
-      (setSessionCookies as Mock).mockResolvedValue(undefined);
+      primeHappyPath();
 
-      const data = await (await POST()).json();
+      const data = await (await POST(refreshRequest())).json();
 
       // Objects, not raw DB scalars.
       expect(typeof data.user.verificationStatus).toBe('object');
@@ -181,11 +309,10 @@ describe('Auth Session Refresh API Routes', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      (getRefreshTokenFromCookies as Mock).mockResolvedValue('valid-token');
-      (verifyRefreshToken as Mock).mockResolvedValue('user-123');
+      primeHappyPath();
       (getUserById as Mock).mockRejectedValue(new Error('Database error'));
 
-      const response = await POST();
+      const response = await POST(refreshRequest());
       const data = await response.json();
 
       expect(response.status).toBe(500);

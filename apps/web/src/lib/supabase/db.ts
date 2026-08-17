@@ -71,6 +71,59 @@ export async function getUserById(userId: string): Promise<User | null> {
   return data;
 }
 
+/** Postgres SQLSTATE for undefined_column - PostgREST passes it through. */
+const PG_UNDEFINED_COLUMN = '42703';
+
+/**
+ * Outcome of the per-request `session_version` read. Three states on purpose
+ * (PR #120 review, finding 1):
+ *
+ * - `version`: the column exists and the row carries a number - compare it.
+ * - `unavailable`: the SCHEMA cannot answer - migration 20260901000001 has
+ *   not been applied (undefined column, 42703) or the row predates the field.
+ *   The caller decides whether that passes (only inside the bounded
+ *   AUTH_LEGACY_UNTIL window) or fails closed.
+ * - `missing`: the schema can answer but the row is absent, or the read
+ *   failed - "cannot authenticate", exactly the old `null`.
+ */
+export type SessionVersionRead =
+  | { kind: 'version'; version: number }
+  | { kind: 'unavailable' }
+  | { kind: 'missing' };
+
+/**
+ * Primary-key read of just `session_version` - deliberately narrower than
+ * `getUserById` because this runs on every authenticated request (Issue #71
+ * Model B, canonical §4.4). Distinguishes "the schema does not have the
+ * column yet" (`unavailable` - a deploy-before-migration transition state,
+ * see SessionVersionRead) from "this user cannot be authenticated"
+ * (`missing`); the caller must never treat either as "matches".
+ * No caching of any kind - a cache would silently relax the revocation
+ * guarantee from "immediate" to "up to cache TTL".
+ */
+export async function getUserSessionVersion(userId: string): Promise<SessionVersionRead> {
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .select('session_version')
+    .eq('id', userId)
+    .single();
+
+  if (error) {
+    if (error.code === PG_UNDEFINED_COLUMN) return { kind: 'unavailable' };
+    return { kind: 'missing' };
+  }
+  if (!data) return { kind: 'missing' };
+
+  // Runtime-checked rather than trusting the generated type: in the
+  // transition window the deployed schema may lack the column even though
+  // the TypeScript row type declares it.
+  const version = (data as { session_version?: unknown }).session_version;
+  if (typeof version !== 'number' || !Number.isFinite(version)) {
+    return { kind: 'unavailable' };
+  }
+  return { kind: 'version', version };
+}
+
 export async function getUserByEmail(email: string): Promise<User | null> {
   const { data, error } = await supabaseAdmin
     .from('users')

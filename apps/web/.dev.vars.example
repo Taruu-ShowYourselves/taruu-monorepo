@@ -14,6 +14,13 @@ SUPABASE_SERVICE_ROLE_KEY=
 JWT_SECRET=
 JWT_EXPIRY=7d
 
+# Auth kernel (issue #71) - HKDF master key for all session/refresh/OAuth-state/MFA keys; >=32 chars, hard-required (no fallback).
+AUTH_MASTER_KEY=
+# ISO-8601 instant closing the legacy JWT_SECRET session-token window (recommend deploy+30d); unset/invalid = closed, fail closed.
+AUTH_LEGACY_UNTIL=
+# HMAC pepper for security_events.ip_hash forensics; unset = ip_hash stored NULL (degradation is logged once per isolate).
+SECURITY_EVENT_PEPPER=
+
 # Taruu's own EC P-256 signing key, as a private JWK (RLS-01).
 # Supabase verifies our short-lived ES256 access tokens against the JWKS we
 # publish at /.well-known/jwks.json. We sign our own because this project
