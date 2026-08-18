@@ -11,6 +11,11 @@ import { municipalityHref } from '@/components/uikit/municipality-link';
 import { getStoredMunicipality, LOCALITY_EVENT } from '@/lib/locality';
 import { chime } from '@/lib/feedback/chime';
 import type { Locale } from '@/lib/i18n';
+import {
+  MAP_TAP_RADIUS_PX,
+  mapPointFromClient,
+  nearestPinWithin,
+} from './mapPinHit';
 import styles from './IsraelMapDesk.module.css';
 
 /** One municipality on the map: place, weight, and its open topics. */
@@ -225,6 +230,28 @@ export function IsraelMapDeskClient({
     setActive(name);
   };
 
+  /* The map answers a tap with the town nearest to it, not with the town
+     drawn last. Israel is small and the pins are placed by geography: Bat
+     Yam and Holon land under three pixels apart on a phone, so per-pin hit
+     discs overlap and SVG breaks the tie by paint order - which put the
+     busiest town, drawn first, underneath every other pin in Gush Dan. The
+     whole decision is made here from the pointer's own position, in map
+     units, against a fingertip-sized radius measured off the live drawing
+     (so the target stays ~44px on a phone and on a desk without the pins
+     growing). Taps that land nowhere near a town choose nothing. */
+  const pickNearest = (event: React.MouseEvent<SVGSVGElement>) => {
+    const matrix = event.currentTarget.getScreenCTM();
+    if (!matrix) return;
+    const mapped = mapPointFromClient(matrix, event.clientX, event.clientY);
+    if (!mapped) return;
+    const hit = nearestPinWithin(
+      pins,
+      mapped.point,
+      MAP_TAP_RADIUS_PX / mapped.pxPerUnit
+    );
+    if (hit) pick(hit.name);
+  };
+
   return (
     <section
       ref={sectionRef}
@@ -372,6 +399,7 @@ export function IsraelMapDeskClient({
             preserveAspectRatio="xMidYMid meet"
             role="img"
             aria-label={t.mapAria}
+            onClick={pickNearest}
           >
             <path className={styles.outline} d={ISRAEL_MAP_PATH} />
             {pins.map((pin) => (
@@ -382,13 +410,12 @@ export function IsraelMapDeskClient({
                 transform={`translate(${pin.x} ${pin.y})`}
               >
                 <title>{`${pin.name} · ${t.topicsUnit(pin.count)}`}</title>
-                {/* The hit area is a generous invisible disc: the visible
-                    pin can be 5px on a phone, a fingertip is not. */}
-                <circle
-                  className={styles.pinHit}
-                  r={16}
-                  onClick={() => pick(pin.name)}
-                />
+                {/* An invisible disc over the pin, kept for the hover
+                    tooltip the <title> above draws. It no longer decides
+                    anything: overlapping discs are exactly what handed a tap
+                    to the wrong town, and the selection is resolved from the
+                    pointer's position on the map instead. */}
+                <circle className={styles.pinHit} r={16} />
                 <circle
                   className={styles.pinHalo}
                   r={pinRadius(pin.count) + 4}
