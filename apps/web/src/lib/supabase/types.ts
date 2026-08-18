@@ -2405,7 +2405,16 @@ export interface Database {
           p_ingest_creator_id: string;
           p_min_created_at: string;
         };
-        Returns: boolean;
+        Returns: string | null;
+      };
+      ensure_ingest_vote_options: {
+        Args: {
+          p_vote_id: string;
+          p_ingest_creator_id: string;
+          p_min_created_at: string;
+          p_texts: string[];
+        };
+        Returns: number;
       };
       set_claim: {
         Args: {

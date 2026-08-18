@@ -3,7 +3,7 @@ import { KNESSET_SCOPE, MUNICIPALITIES } from '@sync/shared';
 import {
   activateIngestVote,
   createVote,
-  createVoteOptions,
+  ensureIngestVoteOptions,
   findVoteByMunicipalityAndTitle,
   upsertVoteSource,
 } from '@/lib/supabase/db';
@@ -147,18 +147,20 @@ export async function POST(request: NextRequest) {
       { status: 503 }
     );
   }
-  // Refuse BEFORE any write. Running without a cutover would create votes this
-  // route then has no rule for activating, which is precisely the orphaned
-  // `pending` row this change exists to make impossible.
+  if (!authHeader || !secureEqual(authHeader, `Bearer ${INGEST_SECRET}`)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  // Below the credential check on purpose: answered above it, the difference
+  // between this 503 and the 401 tells an unauthenticated caller whether
+  // INGEST_AUTOACTIVATE_SINCE is set. Still before any write - running without
+  // a cutover would create votes this route has no rule for activating, which
+  // is the orphaned `pending` row this change exists to make impossible.
   const cutover = activationCutover();
   if (!cutover) {
     return NextResponse.json(
       { error: 'Ingest activation cutover not configured' },
       { status: 503 }
     );
-  }
-  if (!authHeader || !secureEqual(authHeader, `Bearer ${INGEST_SECRET}`)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   let body: { topics?: unknown[] };
@@ -214,17 +216,6 @@ export async function POST(request: NextRequest) {
             status: 'pending',
             end_date: new Date(Date.now() + days * 86_400_000).toISOString(),
           });
-          // Insert the same distinct set validation counted. Writing a
-          // duplicate row here would put two identical choices on a real
-          // ballot while still satisfying every count-based check.
-          const optionTexts = [
-            ...new Set(
-              (raw.options ?? DEFAULT_OPTIONS).map((text) => text.trim()).filter(Boolean)
-            ),
-          ];
-          await createVoteOptions(
-            optionTexts.map((text) => ({ vote_id: vote!.id, text }))
-          );
           created = true;
         } catch (error) {
           // The lookup above and this insert are not one atomic step: a second
@@ -240,6 +231,25 @@ export async function POST(request: NextRequest) {
           if (!vote) throw error;
         }
       }
+
+      // Assembly, in order, on EVERY path - created or adopted. Option writing
+      // used to live inside the create-only branch above, so a first attempt
+      // that landed the vote row and then failed here left a `pending` vote
+      // with no ballot; every retry deduped onto it, skipped this step, and was
+      // refused by activation forever, wedging the batch behind it. The repair
+      // is idempotent and adds only what is missing, so calling it on a vote
+      // that already has its options is a no-op.
+      const optionTexts = [
+        ...new Set(
+          (raw.options ?? DEFAULT_OPTIONS).map((text) => text.trim()).filter(Boolean)
+        ),
+      ];
+      await ensureIngestVoteOptions(
+        vote.id,
+        INGEST_CREATOR_ID,
+        cutover.iso,
+        optionTexts
+      );
 
       const source = await upsertVoteSource({
         vote_id: vote.id,
@@ -262,9 +272,18 @@ export async function POST(request: NextRequest) {
       // said `success: true`.
       //
       // The RPC re-checks the whole eligibility contract in one statement, so
-      // application call order alone can never expose a partial ballot.
-      let status = vote.status ?? 'pending';
+      // application call order alone can never ACTIVATE a partial ballot.
+      // ("Never expose" would overstate it: `pending` is still served by the
+      // municipality-scoped read - see docs/INGEST.md.)
+      // Widened deliberately: the RPC reports whichever lifecycle status the
+      // row ended up in, and the response carries it through verbatim rather
+      // than re-narrowing it to the statuses this route happens to know.
+      let status: string = vote.status ?? 'pending';
       if (withinActivationScope(vote, created, cutover.ms)) {
+        // The RPC answers with the status the row ACTUALLY holds afterwards.
+        // It returns success for a vote that had already advanced to `ended`,
+        // which is a completed lifecycle rather than an ingest failure - but
+        // reporting that row as `active` would be a plain lie about its state.
         const activated = await activateIngestVote(
           vote.id,
           INGEST_CREATOR_ID,
@@ -273,7 +292,7 @@ export async function POST(request: NextRequest) {
         if (!activated) {
           throw new Error(`ingest vote ${vote.id} was not eligible for activation`);
         }
-        status = 'active';
+        status = activated;
       }
 
       results.push({ title: vote.title, vote_id: vote.id, created, status });

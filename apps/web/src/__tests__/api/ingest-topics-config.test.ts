@@ -12,7 +12,7 @@ import { NextRequest } from 'next/server';
 vi.mock('@/lib/supabase/db', () => ({
   activateIngestVote: vi.fn(),
   createVote: vi.fn(),
-  createVoteOptions: vi.fn(),
+  ensureIngestVoteOptions: vi.fn(),
   findVoteByMunicipalityAndTitle: vi.fn(),
   upsertVoteSource: vi.fn(),
 }));
@@ -50,5 +50,25 @@ describe('POST /api/ingest/topics without an activation cutover', () => {
     expect(response.status).toBe(503);
     expect(findVoteByMunicipalityAndTitle).not.toHaveBeenCalled();
     expect(createVote).not.toHaveBeenCalled();
+  });
+
+  // The 503 sits below the credential check, so an unauthenticated caller sees
+  // the same 401 whether or not the cutover is configured and learns nothing
+  // about the deployment from the difference.
+  it('answers 401, not 503, when the caller is unauthenticated', async () => {
+    const { POST } = await import('@/app/api/ingest/topics/route');
+
+    const response = await POST(
+      new NextRequest('http://localhost/api/ingest/topics', {
+        method: 'POST',
+        headers: {
+          authorization: 'Bearer wrong-secret',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ topics: [] }),
+      })
+    );
+
+    expect(response.status).toBe(401);
   });
 });

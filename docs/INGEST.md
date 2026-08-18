@@ -63,9 +63,11 @@ Rules:
     title/description/options are never overwritten.
 - `vote_sources` is unique per vote — repeat calls upsert, `fetched_at`
   bumps every time. Send absolute totals, not deltas.
-- A newly created vote stays private as `pending` while its options and source
-  are assembled. The same successful ingest request automatically changes it
-  to `active`; there is no editor or human review step.
+- A newly created vote is `pending` while its options and source are assembled.
+  The same successful ingest request automatically changes it to `active`; there
+  is no editor or human review step. `pending` is **not** a fully private state
+  — see *Visibility of `pending`* below; what the assembly window guarantees is
+  that a vote with no ballot never becomes `active`, not that nobody can see it.
 - Activation is attempted for every vote the request creates **or adopts**, not
   only for newly created ones. A first attempt that dies after the vote row but
   before the source row leaves a real half-assembled vote behind; the retry
@@ -96,13 +98,24 @@ manual and strict:
 Reversing 1 and 3 makes every ingest of a new topic answer `500` while leaving
 the vote it just wrote stranded in `pending`.
 
-### Known, not addressed here
+### Visibility of `pending` — known, not addressed here
 
-`pending` is publicly readable on the municipality-scoped surface:
-`GET /api/votes?municipality=<name>` serves it, because `PUBLIC_VOTE_STATUSES`
-includes `pending`, while the unscoped `GET /api/votes` is active-only via
-`getActiveVotes()`. That asymmetry predates this change and is deliberately not
-touched by it - it is a read-path question, not a lifecycle one.
+`pending` is not uniformly private. The two public read paths disagree:
+
+| surface | serves `pending`? | why |
+|---|---|---|
+| `GET /api/votes` (no municipality) | no — `active` only | `vote.repo.listVotes` routes to `getActiveVotes()` and ignores the status filter |
+| `GET /api/votes?municipality=<name>` | **yes** | routes to `getVotesByMunicipality`, whose default filter is `PUBLIC_VOTE_STATUSES`, which includes `pending` |
+
+So a vote mid-assembly is invisible on the nationwide/default surfaces and
+visible on its own town's. The asymmetry predates this change: it is why the
+existing `pending` backlog is already publicly listable per municipality.
+
+This is a read-path question, not a lifecycle one, and is deliberately not
+touched here. Note the direction of the effect — automatic activation makes the
+assembly window shorter, not longer: without it a discovery vote stays `pending`
+(and municipality-visible) indefinitely, and with it for as long as one ingest
+request takes.
 
 ## Response
 
