@@ -54,16 +54,44 @@ Rules:
 
 ## Semantics
 
-- Dedup key: (`municipality`, exact `title`) against non-ended votes.
-  - Miss → creates a **pending** vote owned by the editorial system user
+- Dedup key: (`municipality`, exact `title`) against non-ended votes. The
+  window covers the review states, so a topic still waiting for a reviewer is
+  refreshed rather than filed a second time.
+  - Miss → creates an **`in_review`** vote owned by the editorial system user
     (`INGEST_CREATOR_ID`, default = the desk seed user) + its options,
     then attaches the source row.
   - Hit → refreshes the vote's `vote_sources` row only (metrics update);
     title/description/options are never overwritten.
 - `vote_sources` is unique per vote — repeat calls upsert, `fetched_at`
   bumps every time. Send absolute totals, not deltas.
-- Pending votes are **not** shown on the public consensus desk until an
-  editor activates them (`status = 'active'`).
+
+## Lifecycle — what an ingested topic can become
+
+A topic posted here is a machine summary of Facebook posts. It is **never
+public on arrival**, and no code path here can make it public.
+
+| Status | Means | Who writes it |
+|---|---|---|
+| `in_review` | **Awaiting editorial review.** Where every ingested topic lands. Invisible to every public read path (`PUBLIC_VOTE_STATUSES` excludes it). | this endpoint |
+| `changes_requested` / `rejected` | A reviewer declined to publish it. | a reviewer holding `proposal.reject` |
+| `pending` | **Approved and scheduled** — a reviewer said yes, but `start_date` has not arrived. Publicly readable. Never means "awaiting approval". | approval, via `initialStatus()` |
+| `active` | **Approved and open now.** On the desk, votable. | approval, via `initialStatus()` |
+
+Release is a human decision:
+`POST /api/space-admin/{spaceId}/proposals/{voteId}/decide`, by an account
+holding `proposal.approve` in that municipality's space. The decision writes an
+immutable `space_audit_log` row.
+
+**No creation fee is charged for ingested topics.** The ₪50 approval fee is
+billed to the submitter, and the submitter here is a synthetic desk account —
+see `apps/web/src/lib/ingest-creator.ts`. A resident's proposal still pays.
+
+> History, so this is not "fixed" back: until 2026-08-18 this endpoint wrote
+> `pending`, and this document claimed such rows waited for "an editor" to
+> activate them. No such editor tool ever existed, and `pending` is not a state
+> the review workflow can act on — `isDecidableFrom` accepts only `in_review`.
+> 380 topics accumulated with no way forward and no way onto the site. They are
+> still there; migrating them is a separate, deliberate step.
 
 ## Response
 

@@ -99,6 +99,14 @@ export function initialStatus(startDate: Date, now: Date): 'active' | 'pending' 
  * "approved and scheduled, not yet open". `initialStatus` still decides
  * between active and pending, but only at approval time.
  *
+ * BOTH writers use this: a resident's `POST /api/votes` and the discovery
+ * fleet's `POST /api/ingest/topics`. The ingest route used to write `'pending'`
+ * directly, which put machine-written topics in a state `isDecidableFrom`
+ * refuses and no public surface prints - visible to nobody, decidable by
+ * nobody, 380 of them. One helper, one queue: if a caller needs a different
+ * entry state, it belongs here as a branch, never as a literal at the call
+ * site.
+ *
  * A function rather than a constant, so the eventual "trusted submitter skips
  * review" rule has a place to live.
  */
@@ -120,6 +128,13 @@ export const submissionStatus = (): 'in_review' => 'in_review';
  * states (draft, in_review, changes_requested, rejected), which this list still
  * does; dropping `'pending'` alongside them would be an unrelated behaviour
  * change to a live public surface. Do not "tighten" it later.
+ *
+ * That paragraph is now true of every writer, which it was not when it was
+ * written: the ingest route wrote `'pending'` meaning "awaiting an editor",
+ * a second meaning for one label, on the wrong side of this line. It writes
+ * `submissionStatus()` now, so `initialStatus()` - reached only from an
+ * approval - is the sole source of `'pending'`. Check that before a third
+ * writer reuses the label.
  *
  * `'failed'` is OUT, deliberately. It marks a vote whose NFT resolution failed.
  * `getVotesByMunicipality` carried no status predicate before this allow-list

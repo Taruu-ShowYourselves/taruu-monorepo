@@ -18,6 +18,7 @@ import type {
   ProposalDetail,
   ProposalStatus,
 } from '@sync/shared/contracts';
+import { isEditorialSubmission } from '@/lib/ingest-creator';
 import { authorize } from '@/server/app/space-admin/authorize';
 import { toProposalSummary } from '@/server/app/space-admin/list-proposals';
 import {
@@ -170,15 +171,25 @@ export function decideProposal(
       //     approval attempt reuses the same payments row instead of billing
       //     twice. A concurrent *reject* strands that row instead; see the plan
       //     summary, PAY-06 must reconcile stranded pending rows.
+      //
+      //     A discovery-fleet topic is exempt. The fee is charged to the
+      //     submitter, and that submitter is the editorial desk user - a
+      //     synthetic account with no card, no consent and nothing to bill.
+      //     Today's port only records an obligation, so billing it would be a
+      //     silent bookkeeping lie; when PAY-06 makes the port capture, it
+      //     would stop being silent. The exemption is identity equality against
+      //     the id the ingest route itself writes, so there is no second fact
+      //     to keep in sync. A resident's proposal is untouched by this.
       const chargeCmd = {
         submitterUserId: row.creator_id,
         voteId,
         amountAgorot: CREATION_FEE_AGOROT,
       };
-      const charge: ResultAsync<CreationFeeCharge | null, AppError> =
-        command.decision === 'approve'
-          ? deps.creationFee.charge(chargeCmd).mapErr(asChargeFailure)
-          : okAsync<CreationFeeCharge | null, AppError>(null);
+      const billable =
+        command.decision === 'approve' && !isEditorialSubmission(row.creator_id);
+      const charge: ResultAsync<CreationFeeCharge | null, AppError> = billable
+        ? deps.creationFee.charge(chargeCmd).mapErr(asChargeFailure)
+        : okAsync<CreationFeeCharge | null, AppError>(null);
 
       return charge
         .andThen((fee) =>

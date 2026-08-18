@@ -30,6 +30,11 @@ import {
   findVoteByMunicipalityAndTitle,
   upsertVoteSource,
 } from '@/lib/supabase/db';
+import { isDecidableFrom } from '@/server/domain/space/review';
+import {
+  PUBLIC_VOTE_STATUSES,
+  submissionStatus,
+} from '@/server/domain/votes/vote';
 
 const SECRET = 'test-ingest-secret';
 
@@ -98,11 +103,68 @@ describe('POST /api/ingest/topics', () => {
 
     expect(response.status).toBe(200);
     expect(createVote).toHaveBeenCalledWith(
-      expect.objectContaining({ municipality_id: 'בת ים', status: 'pending' })
+      expect.objectContaining({ municipality_id: 'בת ים', status: submissionStatus() })
     );
     await expect(response.json()).resolves.toMatchObject({
       ingested: [{ vote_id: 'vote-new', created: true }],
     });
+  });
+
+  it('lands a machine-written topic in the editorial review queue, never in public view', async () => {
+    (findVoteByMunicipalityAndTitle as Mock).mockResolvedValue(null);
+    (createVote as Mock).mockResolvedValue({ id: 'vote-new', title: TOPIC.title });
+
+    await post({ topics: [TOPIC] });
+
+    const written = (createVote as Mock).mock.calls[0][0].status;
+
+    // One claim from three directions, because the defect this replaces
+    // satisfied none of them: a status a reviewer can actually act on, a status
+    // no public reader can see, and the SAME status a human submission enters
+    // at - one queue, not two.
+    expect(isDecidableFrom(written)).toBe(true);
+    expect(PUBLIC_VOTE_STATUSES).not.toContain(written);
+    expect(written).toBe(submissionStatus());
+  });
+
+  it('attaches the counted engagement to the row it just created', async () => {
+    (findVoteByMunicipalityAndTitle as Mock).mockResolvedValue(null);
+    (createVote as Mock).mockResolvedValue({ id: 'vote-new', title: TOPIC.title });
+
+    await post({ topics: [TOPIC] });
+
+    // Source attachment must survive the lifecycle change: a topic waiting in
+    // review still has to carry the evidence a reviewer decides on.
+    expect(createVoteOptions).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ vote_id: 'vote-new' })])
+    );
+    expect(upsertVoteSource).toHaveBeenCalledWith(
+      expect.objectContaining({
+        vote_id: 'vote-new',
+        post_count: 5,
+        comments_count: 30,
+        reactions: { like: 376 },
+      })
+    );
+  });
+
+  it('refreshes a topic already waiting in review rather than filing it twice', async () => {
+    // ux_votes_live_topic covers the review states, so a re-post of a topic no
+    // reviewer has reached yet must update its engagement in place. Without
+    // this, every fleet run files a second copy of everything in the queue.
+    (findVoteByMunicipalityAndTitle as Mock).mockResolvedValue({
+      id: 'vote-queued',
+      title: TOPIC.title,
+      status: 'in_review',
+    });
+
+    const response = await post({ topics: [TOPIC] });
+
+    expect(response.status).toBe(200);
+    expect(createVote).not.toHaveBeenCalled();
+    expect(upsertVoteSource).toHaveBeenCalledWith(
+      expect.objectContaining({ vote_id: 'vote-queued', comments_count: 30 })
+    );
   });
 
   it('creates nothing when the dedup lookup fails', async () => {

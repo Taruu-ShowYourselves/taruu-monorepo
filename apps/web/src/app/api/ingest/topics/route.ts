@@ -8,12 +8,10 @@ import {
 } from '@/lib/supabase/db';
 import { UniqueViolationError } from '@/lib/supabase/errors';
 import { secureEqual } from '@/lib/secureCompare';
+import { ingestCreatorId } from '@/lib/ingest-creator';
+import { submissionStatus } from '@/server/domain/votes/vote';
 
 const INGEST_SECRET = process.env.INGEST_SECRET;
-// System editorial user that owns discovery-created votes (seeded desk user
-// by default; override with INGEST_CREATOR_ID).
-const INGEST_CREATOR_ID =
-  process.env.INGEST_CREATOR_ID ?? '99999999-9999-4999-8999-999999999999';
 
 const DEFAULT_OPTIONS = ['בעד', 'נגד', 'נמנע'];
 const DEFAULT_VOTE_DAYS = 14;
@@ -73,10 +71,16 @@ function invalid(topic: unknown): string | null {
  * POST /api/ingest/topics - discovery-fleet ingestion.
  *
  * The taruu-agents discovery pipeline pulls civic topics + engagement from
- * Facebook and posts them here. Existing (municipality, title) votes get
- * their source metrics refreshed; new topics become pending votes with the
+ * Facebook and posts them here. Existing (municipality, title) votes get their
+ * source metrics refreshed; a new topic is FILED FOR EDITORIAL REVIEW with the
  * consolidated engagement attached. Auth: Bearer INGEST_SECRET.
  * Contract: docs/INGEST.md.
+ *
+ * Nothing this endpoint writes is publicly readable. A topic here is a machine
+ * summary of Facebook posts - it can name a living official, describe a minor,
+ * or garble its own Hebrew, and the only gates upstream are "the municipality
+ * exists", "at least one post", "the title is four characters". A human decides
+ * whether it is printable; this route's job ends at the queue.
  */
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
@@ -132,11 +136,18 @@ export async function POST(request: NextRequest) {
         const days = raw.vote_days ?? DEFAULT_VOTE_DAYS;
         try {
           vote = await createVote({
-            creator_id: INGEST_CREATOR_ID,
+            creator_id: ingestCreatorId(),
             title: raw.title.trim(),
             description: raw.description.trim(),
             municipality_id: raw.municipality,
-            status: 'pending',
+            // The same door a resident's proposal comes through, and for the
+            // same reason. This was `'pending'` for three weeks: a state that
+            // reads as "approved, scheduled" to the public allow-list, that no
+            // reviewer could act on because `isDecidableFrom` accepts only
+            // `in_review`, and that no code path could leave. 380 topics
+            // stranded there. `submissionStatus()` is the one helper both
+            // writers now share, so the queue cannot fork again.
+            status: submissionStatus(),
             end_date: new Date(Date.now() + days * 86_400_000).toISOString(),
           });
           await createVoteOptions(
