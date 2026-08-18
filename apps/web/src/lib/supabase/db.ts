@@ -1199,6 +1199,25 @@ export async function createVoteOptions(
   return data || [];
 }
 
+/**
+ * Publish one fully assembled discovery vote. The database owns every
+ * eligibility predicate so a partial route failure can never expose a ballot.
+ */
+export async function activateIngestVote(
+  voteId: string,
+  ingestCreatorId: string
+): Promise<boolean> {
+  const { data, error } = await supabaseAdmin.rpc('activate_ingest_vote', {
+    p_vote_id: voteId,
+    p_ingest_creator_id: ingestCreatorId,
+  });
+
+  if (error) {
+    throw new Error(`Failed to activate ingest vote: ${error.message}`);
+  }
+  return data;
+}
+
 export async function incrementVoteOption(optionId: string): Promise<void> {
   // Use RPC function for atomic increment
   const { error } = await supabaseAdmin.rpc('increment_vote_option', {

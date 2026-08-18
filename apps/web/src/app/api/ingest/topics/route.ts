@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { KNESSET_SCOPE, MUNICIPALITIES } from '@sync/shared';
 import {
+  activateIngestVote,
   createVote,
   createVoteOptions,
   findVoteByMunicipalityAndTitle,
@@ -161,7 +162,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      await upsertVoteSource({
+      const source = await upsertVoteSource({
         vote_id: vote.id,
         post_count: raw.source.post_count,
         comments_count: raw.source.comments_count,
@@ -169,6 +170,19 @@ export async function POST(request: NextRequest) {
         source_url: raw.source.source_url ?? null,
         fetched_at: new Date().toISOString(),
       });
+      if (!source) {
+        throw new Error(`source assembly failed for ingest vote ${vote.id}`);
+      }
+
+      // Publication is deliberately last. The RPC changes only this freshly
+      // created machine vote and re-checks the complete options + source
+      // assembly atomically in PostgreSQL before pending -> active.
+      if (created) {
+        const activated = await activateIngestVote(vote.id, INGEST_CREATOR_ID);
+        if (!activated) {
+          throw new Error(`new ingest vote ${vote.id} was not eligible for activation`);
+        }
+      }
 
       results.push({ title: vote.title, vote_id: vote.id, created });
     }

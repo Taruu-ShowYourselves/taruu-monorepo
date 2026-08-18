@@ -57,13 +57,17 @@ Rules:
 - Dedup key: (`municipality`, exact `title`) against non-ended votes.
   - Miss → creates a **pending** vote owned by the editorial system user
     (`INGEST_CREATOR_ID`, default = the desk seed user) + its options,
-    then attaches the source row.
+    attaches the source row, then atomically activates it once the database
+    confirms the full publication eligibility contract.
   - Hit → refreshes the vote's `vote_sources` row only (metrics update);
     title/description/options are never overwritten.
 - `vote_sources` is unique per vote — repeat calls upsert, `fetched_at`
   bumps every time. Send absolute totals, not deltas.
-- Pending votes are **not** shown on the public consensus desk until an
-  editor activates them (`status = 'active'`).
+- A newly created vote stays private as `pending` while its options and source
+  are assembled. The same successful ingest request automatically changes it
+  to `active`; there is no editor or human review step.
+- Existing pending rows are never activated by this path. A dedup hit refreshes
+  source metrics only, so deploying this change does not modify the backlog.
 
 ## Response
 

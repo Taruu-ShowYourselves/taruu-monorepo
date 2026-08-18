@@ -18,6 +18,7 @@ import { NextRequest } from 'next/server';
 import { UniqueViolationError } from '@/lib/supabase/errors';
 
 vi.mock('@/lib/supabase/db', () => ({
+  activateIngestVote: vi.fn(),
   createVote: vi.fn(),
   createVoteOptions: vi.fn(),
   findVoteByMunicipalityAndTitle: vi.fn(),
@@ -25,6 +26,7 @@ vi.mock('@/lib/supabase/db', () => ({
 }));
 
 import {
+  activateIngestVote,
   createVote,
   createVoteOptions,
   findVoteByMunicipalityAndTitle,
@@ -69,6 +71,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   (upsertVoteSource as Mock).mockResolvedValue({ vote_id: 'vote-1' });
   (createVoteOptions as Mock).mockResolvedValue([]);
+  (activateIngestVote as Mock).mockResolvedValue(true);
 });
 
 describe('POST /api/ingest/topics', () => {
@@ -100,8 +103,43 @@ describe('POST /api/ingest/topics', () => {
     expect(createVote).toHaveBeenCalledWith(
       expect.objectContaining({ municipality_id: 'בת ים', status: 'pending' })
     );
+    expect((createVoteOptions as Mock).mock.invocationCallOrder[0]).toBeLessThan(
+      (activateIngestVote as Mock).mock.invocationCallOrder[0]
+    );
+    expect((upsertVoteSource as Mock).mock.invocationCallOrder[0]).toBeLessThan(
+      (activateIngestVote as Mock).mock.invocationCallOrder[0]
+    );
+    expect(activateIngestVote).toHaveBeenCalledWith(
+      'vote-new',
+      '99999999-9999-4999-8999-999999999999'
+    );
     await expect(response.json()).resolves.toMatchObject({
       ingested: [{ vote_id: 'vote-new', created: true }],
+    });
+  });
+
+  it('does not expose a new vote when source assembly fails', async () => {
+    (findVoteByMunicipalityAndTitle as Mock).mockResolvedValue(null);
+    (createVote as Mock).mockResolvedValue({ id: 'vote-new', title: TOPIC.title });
+    (upsertVoteSource as Mock).mockResolvedValue(null);
+
+    const response = await post({ topics: [TOPIC] });
+
+    expect(response.status).toBe(500);
+    expect(activateIngestVote).not.toHaveBeenCalled();
+  });
+
+  it('fails the ingest when the assembled vote cannot be activated', async () => {
+    (findVoteByMunicipalityAndTitle as Mock).mockResolvedValue(null);
+    (createVote as Mock).mockResolvedValue({ id: 'vote-new', title: TOPIC.title });
+    (activateIngestVote as Mock).mockResolvedValue(false);
+
+    const response = await post({ topics: [TOPIC] });
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toMatchObject({
+      error: 'Ingest failed',
+      ingested: [],
     });
   });
 
@@ -114,6 +152,7 @@ describe('POST /api/ingest/topics', () => {
 
     expect(response.status).toBe(500);
     expect(createVote).not.toHaveBeenCalled();
+    expect(activateIngestVote).not.toHaveBeenCalled();
   });
 
   it('adopts the row a concurrent run inserted rather than failing the batch', async () => {
@@ -131,6 +170,7 @@ describe('POST /api/ingest/topics', () => {
     expect(upsertVoteSource).toHaveBeenCalledWith(
       expect.objectContaining({ vote_id: 'vote-race' })
     );
+    expect(activateIngestVote).not.toHaveBeenCalled();
   });
 
   it('rejects an unauthenticated call before touching the database', async () => {
