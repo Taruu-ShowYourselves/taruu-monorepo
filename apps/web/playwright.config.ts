@@ -42,10 +42,12 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      /* The space-admin evidence spec declares its own two widths below and
-         must not also run at the default one — three runs would write the
-         same sixteen frames from a viewport nobody asked for. */
-      testIgnore: /space-admin\.spec\.ts/,
+      /* Specs that declare their own widths below must not also run at the
+         default one — the space-admin evidence would write the same sixteen
+         frames from a viewport nobody asked for, and the map's pin selection
+         is a claim about named phone and desk widths, not about whatever the
+         default happens to be. */
+      testIgnore: /space-admin\.spec\.ts|israel-map-pins\.spec\.ts/,
     },
 
     /*
@@ -62,6 +64,48 @@ export default defineConfig({
       name: 'mobile-390x844',
       use: { ...devices['Desktop Chrome'], viewport: { width: 390, height: 844 } },
       testMatch: /space-admin\.spec\.ts/,
+    },
+
+    /*
+     * The live map's pins are placed by geography, so how crowded they are
+     * depends on how wide the country is drawn. These are the phone widths the
+     * overlap was measured at plus the desk width, each with touch on: a tap
+     * has to land on the town under the finger at every one of them.
+     */
+    {
+      name: 'map-mobile-390x844',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 390, height: 844 },
+        hasTouch: true,
+        isMobile: true,
+      },
+      testMatch: /israel-map-pins\.spec\.ts/,
+    },
+    {
+      name: 'map-mobile-393x852',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 393, height: 852 },
+        hasTouch: true,
+        isMobile: true,
+      },
+      testMatch: /israel-map-pins\.spec\.ts/,
+    },
+    {
+      name: 'map-mobile-430x932',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 430, height: 932 },
+        hasTouch: true,
+        isMobile: true,
+      },
+      testMatch: /israel-map-pins\.spec\.ts/,
+    },
+    {
+      name: 'map-desktop-1440x900',
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
+      testMatch: /israel-map-pins\.spec\.ts/,
     },
   ],
 
