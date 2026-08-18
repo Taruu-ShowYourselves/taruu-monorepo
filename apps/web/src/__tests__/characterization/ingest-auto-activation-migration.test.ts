@@ -1,3 +1,16 @@
+/**
+ * Textual guarantees about the activation migration.
+ *
+ * Scope is deliberately narrow. Every behavioural predicate - creator, cutover,
+ * status, dates, moderation, assembly, idempotency - is proven against a real
+ * PostgreSQL server by `supabase/tests/ingest_auto_activation.sql`, which
+ * `scripts/db-test.sh` runs in CI. Asserting those here as substrings would
+ * only restate the file to itself.
+ *
+ * What is left is what SQL execution cannot show: that the shipped file touches
+ * no existing row and grants no one else the right to call it.
+ */
+
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -5,37 +18,31 @@ import { describe, expect, it } from 'vitest';
 const migration = readFileSync(
   resolve(
     process.cwd(),
-    '../../supabase/migrations/20260818000002_ingest_auto_activation.sql'
+    '../../supabase/migrations/20260902000001_ingest_auto_activation.sql'
   ),
   'utf8'
 );
 const sql = migration.replace(/\s+/g, ' ').toLowerCase();
 
-describe('ingest auto-activation migration contract', () => {
+describe('ingest auto-activation migration', () => {
   it('is callable only by the service role', () => {
     expect(sql).toContain(
-      'revoke all on function public.activate_ingest_vote(uuid, uuid) from public, anon, authenticated'
+      'revoke all on function public.activate_ingest_vote(uuid, uuid, timestamptz) from public, anon, authenticated'
     );
     expect(sql).toContain(
-      'grant execute on function public.activate_ingest_vote(uuid, uuid) to service_role'
+      'grant execute on function public.activate_ingest_vote(uuid, uuid, timestamptz) to service_role'
     );
   });
 
-  it('targets one pending machine vote and every publication predicate', () => {
-    expect(sql).toContain('where v.id = p_vote_id');
-    expect(sql).toContain('v.creator_id = p_ingest_creator_id');
-    expect(sql).toContain("v.status = 'pending'");
-    expect(sql).toContain('v.start_date <= now()');
-    expect(sql).toContain('v.hidden_at is null');
-    expect(sql).toContain('v.flagged_at is null');
-    expect(sql).toContain('source.post_count >= 1');
-    expect(sql).toContain('from public.vote_options as option');
-    expect(sql).toMatch(/count\(\*\).*option\.vote_id = v\.id.*>= 2/);
+  it('retires the cutover-less two-argument shape', () => {
+    expect(sql).toContain('drop function if exists public.activate_ingest_vote(uuid, uuid)');
   });
 
-  it('is retry-safe without scanning or backfilling pending rows', () => {
-    expect(sql).toContain("v.status = 'active'");
-    expect(sql).not.toMatch(/update public\.votes as v set[\s\S]*where v\.status = 'pending'/);
+  it('migrates no existing row', () => {
+    // The pending backlog is out of scope for this change. A migration is the
+    // one place a single statement could publish all of it at once.
+    expect(sql).not.toMatch(/\bupdate public\.votes\b(?![^;]*\bp_vote_id\b)/);
+    expect(sql).not.toMatch(/\b(insert into|delete from) public\.votes\b/);
     expect(sql).not.toContain('alter table public.votes');
   });
 });

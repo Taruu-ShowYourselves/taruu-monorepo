@@ -2400,7 +2400,11 @@ export interface Database {
     Views: Record<string, never>;
     Functions: {
       activate_ingest_vote: {
-        Args: { p_vote_id: string; p_ingest_creator_id: string };
+        Args: {
+          p_vote_id: string;
+          p_ingest_creator_id: string;
+          p_min_created_at: string;
+        };
         Returns: boolean;
       };
       set_claim: {

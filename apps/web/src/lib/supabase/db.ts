@@ -1205,11 +1205,13 @@ export async function createVoteOptions(
  */
 export async function activateIngestVote(
   voteId: string,
-  ingestCreatorId: string
+  ingestCreatorId: string,
+  minCreatedAt: string
 ): Promise<boolean> {
   const { data, error } = await supabaseAdmin.rpc('activate_ingest_vote', {
     p_vote_id: voteId,
     p_ingest_creator_id: ingestCreatorId,
+    p_min_created_at: minCreatedAt,
   });
 
   if (error) {

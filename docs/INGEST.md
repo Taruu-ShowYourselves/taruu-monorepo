@@ -66,8 +66,43 @@ Rules:
 - A newly created vote stays private as `pending` while its options and source
   are assembled. The same successful ingest request automatically changes it
   to `active`; there is no editor or human review step.
-- Existing pending rows are never activated by this path. A dedup hit refreshes
-  source metrics only, so deploying this change does not modify the backlog.
+- Activation is attempted for every vote the request creates **or adopts**, not
+  only for newly created ones. A first attempt that dies after the vote row but
+  before the source row leaves a real half-assembled vote behind; the retry
+  dedups onto it, finishes the assembly, and finishes the lifecycle. There is no
+  path that answers `success: true` while a current, fully assembled ingest vote
+  is still `pending`.
+- `INGEST_AUTOACTIVATE_SINCE` (RFC 3339 instant, **required**) bounds that.
+  Only votes created at or after it are activated; the `pending` rows that
+  accumulated before it are out of scope and are never touched. The bound is
+  enforced inside `activate_ingest_vote`, not by the route. With the variable
+  unset or unparseable the endpoint answers `503` before writing anything,
+  rather than creating votes it has no rule for activating.
+- `vote_days` must be an integer between 1 and 365; `options` must contain at
+  least two distinct non-empty values, and each distinct value is written once.
+
+### Deployment order
+
+`activate_ingest_vote` must exist before any code that calls it runs. Merging to
+`main` deploys the Worker immediately and applies no migrations, so the order is
+manual and strict:
+
+1. apply `supabase/migrations/20260902000001_ingest_auto_activation.sql` to
+   production and confirm the function and its grants exist;
+2. set `INGEST_AUTOACTIVATE_SINCE` on the Worker to an instant at or after the
+   moment the migration was applied;
+3. only then merge, which deploys the application.
+
+Reversing 1 and 3 makes every ingest of a new topic answer `500` while leaving
+the vote it just wrote stranded in `pending`.
+
+### Known, not addressed here
+
+`pending` is publicly readable on the municipality-scoped surface:
+`GET /api/votes?municipality=<name>` serves it, because `PUBLIC_VOTE_STATUSES`
+includes `pending`, while the unscoped `GET /api/votes` is active-only via
+`getActiveVotes()`. That asymmetry predates this change and is deliberately not
+touched by it - it is a read-path question, not a lifecycle one.
 
 ## Response
 

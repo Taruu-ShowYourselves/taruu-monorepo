@@ -16,8 +16,21 @@ const INGEST_SECRET = process.env.INGEST_SECRET;
 const INGEST_CREATOR_ID =
   process.env.INGEST_CREATOR_ID ?? '99999999-9999-4999-8999-999999999999';
 
+// The instant this deployment's automatic activation starts applying. Rows
+// created BEFORE it - the pending backlog that accumulated while no activation
+// step existed - are deliberately out of scope for this change and are left
+// exactly as they are. Required: without it the route cannot tell a fresh vote
+// from a backlog row, and guessing in either direction is wrong.
+const INGEST_AUTOACTIVATE_SINCE = process.env.INGEST_AUTOACTIVATE_SINCE;
+
 const DEFAULT_OPTIONS = ['בעד', 'נגד', 'נמנע'];
 const DEFAULT_VOTE_DAYS = 14;
+const MIN_VOTE_DAYS = 1;
+// A ballot open for over a year is a malformed request, not a long campaign.
+const MAX_VOTE_DAYS = 365;
+// Fewer than two distinct choices is not a ballot. Mirrored in
+// `activate_ingest_vote` so the database refuses it too.
+const MIN_VOTE_OPTIONS = 2;
 const MAX_TOPICS_PER_CALL = 50;
 
 const REACTION_KINDS = new Set(['like', 'love', 'haha', 'wow', 'sad', 'angry']);
@@ -52,8 +65,29 @@ function invalid(topic: unknown): string | null {
     return 'title required (min 4 chars)';
   if (typeof t.description !== 'string' || !t.description.trim())
     return 'description required';
-  if (t.options && (!Array.isArray(t.options) || t.options.length < 2))
-    return 'options must be an array of at least 2';
+  if (t.options !== undefined) {
+    if (!Array.isArray(t.options))
+      return `options must be an array of at least ${MIN_VOTE_OPTIONS}`;
+    if (t.options.some((option) => typeof option !== 'string'))
+      return 'every option must be a string';
+    // Distinct AFTER trimming: "  בעד " and "בעד" are one choice, and a blank
+    // string is none. The ballot the resident sees is what has to be countable,
+    // not the array length the caller happened to send.
+    const usable = new Set(
+      (t.options as string[]).map((option) => option.trim()).filter(Boolean)
+    );
+    if (usable.size < MIN_VOTE_OPTIONS)
+      return `options must contain at least ${MIN_VOTE_OPTIONS} distinct non-empty values`;
+  }
+  if (t.vote_days !== undefined) {
+    // Drives end_date. A non-positive value produces a ballot that closed
+    // before it opened, which `activate_ingest_vote` would then refuse - fail
+    // here, on the request that is actually wrong, instead of after the write.
+    if (!Number.isInteger(t.vote_days))
+      return 'vote_days must be an integer';
+    if (t.vote_days < MIN_VOTE_DAYS || t.vote_days > MAX_VOTE_DAYS)
+      return `vote_days must be between ${MIN_VOTE_DAYS} and ${MAX_VOTE_DAYS}`;
+  }
   const s = t.source;
   if (!s || typeof s !== 'object') return 'source required';
   if (!Number.isInteger(s.post_count) || s.post_count < 1)
@@ -68,6 +102,31 @@ function invalid(topic: unknown): string | null {
       return `reaction ${kind} must be int >= 0`;
   }
   return null;
+}
+
+/** The configured cutover as epoch ms, or null when unset/unparseable. */
+function activationCutover(): { iso: string; ms: number } | null {
+  if (!INGEST_AUTOACTIVATE_SINCE) return null;
+  const ms = Date.parse(INGEST_AUTOACTIVATE_SINCE);
+  if (!Number.isFinite(ms)) return null;
+  return { iso: new Date(ms).toISOString(), ms };
+}
+
+/**
+ * Is this row one this deployment is allowed to publish automatically?
+ *
+ * `created` short-circuits: a row this request just inserted is current by
+ * definition, so a missing or unreadable `created_at` can never demote it to
+ * the backlog and strand it.
+ */
+function withinActivationScope(
+  vote: { created_at?: string | null },
+  created: boolean,
+  cutoverMs: number
+): boolean {
+  if (created) return true;
+  const createdAt = vote.created_at ? Date.parse(vote.created_at) : Number.NaN;
+  return Number.isFinite(createdAt) && createdAt >= cutoverMs;
 }
 
 /**
@@ -85,6 +144,16 @@ export async function POST(request: NextRequest) {
   if (!INGEST_SECRET) {
     return NextResponse.json(
       { error: 'Ingest endpoint not configured' },
+      { status: 503 }
+    );
+  }
+  // Refuse BEFORE any write. Running without a cutover would create votes this
+  // route then has no rule for activating, which is precisely the orphaned
+  // `pending` row this change exists to make impossible.
+  const cutover = activationCutover();
+  if (!cutover) {
+    return NextResponse.json(
+      { error: 'Ingest activation cutover not configured' },
       { status: 503 }
     );
   }
@@ -119,7 +188,12 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const results: { title: string; vote_id: string; created: boolean }[] = [];
+  const results: {
+    title: string;
+    vote_id: string;
+    created: boolean;
+    status: string;
+  }[] = [];
 
   try {
     for (const raw of body.topics as IngestTopic[]) {
@@ -140,11 +214,16 @@ export async function POST(request: NextRequest) {
             status: 'pending',
             end_date: new Date(Date.now() + days * 86_400_000).toISOString(),
           });
+          // Insert the same distinct set validation counted. Writing a
+          // duplicate row here would put two identical choices on a real
+          // ballot while still satisfying every count-based check.
+          const optionTexts = [
+            ...new Set(
+              (raw.options ?? DEFAULT_OPTIONS).map((text) => text.trim()).filter(Boolean)
+            ),
+          ];
           await createVoteOptions(
-            (raw.options ?? DEFAULT_OPTIONS).map((text) => ({
-              vote_id: vote!.id,
-              text: text.trim(),
-            }))
+            optionTexts.map((text) => ({ vote_id: vote!.id, text }))
           );
           created = true;
         } catch (error) {
@@ -174,17 +253,30 @@ export async function POST(request: NextRequest) {
         throw new Error(`source assembly failed for ingest vote ${vote.id}`);
       }
 
-      // Publication is deliberately last. The RPC changes only this freshly
-      // created machine vote and re-checks the complete options + source
-      // assembly atomically in PostgreSQL before pending -> active.
-      if (created) {
-        const activated = await activateIngestVote(vote.id, INGEST_CREATOR_ID);
+      // Publication is deliberately last, and deliberately NOT conditional on
+      // `created`. A first attempt that died after the vote row but before the
+      // source row leaves a real, current, half-assembled vote behind; the
+      // retry arrives here as a dedup hit, finishes the assembly above, and
+      // must be able to finish the lifecycle too. Gating this on `created` is
+      // what left such a row stranded in `pending` while the response still
+      // said `success: true`.
+      //
+      // The RPC re-checks the whole eligibility contract in one statement, so
+      // application call order alone can never expose a partial ballot.
+      let status = vote.status ?? 'pending';
+      if (withinActivationScope(vote, created, cutover.ms)) {
+        const activated = await activateIngestVote(
+          vote.id,
+          INGEST_CREATOR_ID,
+          cutover.iso
+        );
         if (!activated) {
-          throw new Error(`new ingest vote ${vote.id} was not eligible for activation`);
+          throw new Error(`ingest vote ${vote.id} was not eligible for activation`);
         }
+        status = 'active';
       }
 
-      results.push({ title: vote.title, vote_id: vote.id, created });
+      results.push({ title: vote.title, vote_id: vote.id, created, status });
     }
   } catch (error) {
     console.error('Ingest failed midway:', error);
