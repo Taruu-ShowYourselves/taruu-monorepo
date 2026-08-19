@@ -6,9 +6,11 @@
  *   node .agentic/runner/src/main.ts tick             — one pass over lanes
  *   node .agentic/runner/src/main.ts daemon [minutes] — tick loop (default 10)
  *   node .agentic/runner/src/main.ts status
+ *   node .agentic/runner/src/main.ts learn <issue>   — extract facts from the lane's MERGED PR
  */
 import { admit, boardCandidates, tick } from "./autopilot.ts";
-import { listLanes } from "./state.ts";
+import { learnFromMergedPr } from "./memory.ts";
+import { listLanes, loadLane, saveLane } from "./state.ts";
 
 const [cmd, ...rest] = process.argv.slice(2);
 
@@ -40,6 +42,16 @@ switch (cmd) {
       }
       await new Promise((r) => setTimeout(r, minutes * 60_000));
     }
+  }
+  case "learn": {
+    const issue = Number(rest[0]);
+    if (!issue) throw new Error("usage: learn <issue>");
+    const lane = loadLane(issue);
+    if (!lane) throw new Error(`no lane for #${issue}`);
+    const n = await learnFromMergedPr(lane);
+    saveLane(lane);
+    console.log(`#${issue}: ${n} fact(s) staged on agent/memory-updates`);
+    break;
   }
   case "status": {
     for (const l of listLanes()) {

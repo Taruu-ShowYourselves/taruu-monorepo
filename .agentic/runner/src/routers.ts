@@ -13,9 +13,14 @@ export const afterResearch: RouterFn<LaneState> = (s) =>
 
 export const afterSpec: RouterFn<LaneState> = () => "spec-gate";
 
-/** Gate nodes are non-blocking: undecided → walk ends, autopilot re-ticks later. */
+/**
+ * Gate nodes are non-blocking: undecided → walk ends, autopilot re-ticks later.
+ * Approval also ENDS the walk (phase is already "implement"): waiting lanes
+ * don't hold working slots, so several may be approved at once — the next
+ * tick schedules them under the working-lane cap instead of bursting here.
+ */
 export const afterSpecGate: RouterFn<LaneState> = (s) => {
-  if (s.specApproved) return "implement";
+  if (s.specApproved && s.phase === "implement") return null;
   if (s.phase === "parked") return null;
   const wrongState = s.defects.some((d) => d.source === "spec-gate" && d.status === "open" && /wrong-state/.test(d.summary));
   if (s.defects.some((d) => d.source === "spec-gate" && d.status === "open")) {
@@ -40,10 +45,10 @@ export const afterPr: RouterFn<LaneState> = () => "pr-gate";
 
 export const afterPrGate: RouterFn<LaneState> = (s) => {
   if (s.phase === "merge-learn") return "merge-learn";
-  if (s.defects.some((d) => d.source === "human" && d.status === "open")) {
-    return s.changeRequestResets > b().changeRequestResetsMax ? null : "implement";
-  }
-  return null; // waiting on the human, or parked
+  // Change-request → implement happens NEXT tick under the working-lane cap
+  // (the node already set phase = "implement"); ending here prevents a burst
+  // of simultaneous coding lanes when several reviews land together.
+  return null;
 };
 
 export const routers = {

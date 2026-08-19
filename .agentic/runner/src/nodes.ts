@@ -13,8 +13,9 @@ import * as gh from "./github.ts";
 import { notify, prLink } from "./mailer.ts";
 import {
   readPrompt, readTemplate, specPath, researchPath, readIfExists,
-  memoryFor, openDefectsBlock, UNTRUSTED_CLAUSE, protectedPathsTouched,
+  memoryFor, solutionsFor, openDefectsBlock, UNTRUSTED_CLAUSE, protectedPathsTouched,
 } from "./context.ts";
+import { learnFromMergedPr } from "./memory.ts";
 import type { LaneState, Defect, GateResult } from "./state.ts";
 import type { NodeFn } from "./graph.ts";
 
@@ -33,6 +34,7 @@ export const research: NodeFn<LaneState> = async (lane) => {
     UNTRUSTED_CLAUSE,
     `## Issue #${lane.issue}: ${issue.title}\n\n${issue.body}`,
     `## Area memory (verified facts from merged PRs)\n${memoryFor(lane.pathClaims)}`,
+    `## Prior solutions in these areas (compound archive — Read the relevant ones)\n${solutionsFor(lane.pathClaims)}`,
     `## Template\n${readTemplate("RESEARCH")}`,
   ].join("\n\n---\n\n");
 
@@ -342,13 +344,28 @@ export const prGate: NodeFn<LaneState> = async (lane) => {
 /* ------------------------------------------------------------- merge-learn */
 
 export const mergeLearn: NodeFn<LaneState> = async (lane) => {
-  // Merge is Sahar's click; the runner only learns. Facts enter memory ONLY
-  // here — merge/approval is the verification event (§2.2).
+  // Merge is the human's click; the runner only learns. Facts enter memory
+  // ONLY from the merged diff — merge is the verification event (§2.2).
+  if (lane.prNumber === null) throw new Error("merge-learn without PR");
+  if (!(await gh.isMerged(lane.prNumber))) {
+    // Approved but not merged yet: wait here (a waiting phase — cheap poll,
+    // holds no working slot) until the merge lands.
+    await notify(lane, "approved-await-merge", "progress",
+      "approved — waiting for merge",
+      `<p>PR approved. Once merged, verified facts are extracted into the memory PR automatically and the lane frees.</p><p><a href="${prLink(lane)}">PR</a></p>`);
+    return lane;
+  }
+  let learned = 0;
+  try {
+    learned = await learnFromMergedPr(lane);
+  } catch (e) {
+    console.error(`[lane #${lane.issue}] learn failed: ${(e as Error).message}`);
+  }
   lane.phase = "done";
   lane.exitReason = lane.exitReason ?? "clean";
-  await notify(lane, "approved-close", "progress",
-    "approved — lane closing",
-    `<p>PR approved. Write memory facts with \`autopilot learn ${lane.issue}\` after merge. Lane frees.</p><p><a href="${prLink(lane)}">PR</a></p>`);
+  await notify(lane, "merged-learned", "progress",
+    `merged — ${learned} fact(s) staged for memory`,
+    `<p>PR #${lane.prNumber} merged. ${learned > 0 ? `${learned} fact(s) staged on the <code>agent/memory-updates</code> PR — merge it to make them readable to all lanes.` : "Nothing durable to learn from this diff."} Lane freed.</p><p><a href="${prLink(lane)}">PR</a></p>`);
   return lane;
 };
 

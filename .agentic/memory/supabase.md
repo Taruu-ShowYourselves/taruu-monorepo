@@ -5,3 +5,5 @@
 - Space migrations 20260802000010–0014 were unapplied/unproven per .planning/STATE.md:263 — verify before building on them (audit 2026-08-16)
 - Migration 20260807000001 (identity scoring) sorts before merged 2026081x files — apply as targeted single migration, never bulk up (PR #110 review)
 - is_platform_admin()/can_admin_space() are SECURITY DEFINER with pinned search_path — the 42P17 anti-recursion break, do not remove (issue #101)
+- LESSON: a migration that flips rows to default-deny must leave dependent queued work retryable (back-pressure), never terminal — else first tick after deploy drains the queue (agents PR #87)
+- LESSON: authorization RPCs must run authz checks BEFORE any locking SELECT and collapse unknown/unauthorized into one error — else UUID existence oracle + lock DoS (agents PR #87)
