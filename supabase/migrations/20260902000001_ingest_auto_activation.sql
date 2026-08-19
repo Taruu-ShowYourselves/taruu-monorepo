@@ -40,7 +40,10 @@ DROP FUNCTION IF EXISTS public.activate_ingest_vote(uuid, uuid, timestamptz);
 -- `FOR UPDATE` on the vote row serialises two ingest runs that both find the
 -- set missing, which is what stops a concurrent duplicate ingest from writing
 -- the ballot twice. Restricted to `pending` so an open ballot can never have
--- choices added underneath the residents already voting on it.
+-- choices added underneath the residents already voting on it, and to ballots
+-- that are still UNUSABLE - fewer than two distinct non-blank choices - so a
+-- later request carrying different texts repairs nothing it should not: a
+-- ballot that already offers a real choice is finished, not broken.
 CREATE OR REPLACE FUNCTION public.ensure_ingest_vote_options(
   p_vote_id UUID,
   p_ingest_creator_id UUID,
@@ -54,6 +57,7 @@ SET search_path = public, pg_temp
 AS $function$
 DECLARE
   locked_id UUID;
+  usable_options INTEGER := 0;
   inserted INTEGER := 0;
 BEGIN
   IF p_vote_id IS NULL OR p_ingest_creator_id IS NULL
@@ -71,6 +75,20 @@ BEGIN
 
   -- Not ours, not current, or no longer being assembled: nothing to repair.
   IF locked_id IS NULL THEN
+    RETURN 0;
+  END IF;
+
+  -- The same count `activate_ingest_vote` uses to decide a ballot is votable.
+  -- Once it is reached the option set is the one the first attempt wrote, and
+  -- a dedup hit whose payload happens to differ must not append to it - the
+  -- documented rule is that a repeat ingest refreshes engagement only. Below
+  -- it the ballot is unusable, which is the state this repair exists for.
+  SELECT count(DISTINCT btrim(option.text)) INTO usable_options
+    FROM public.vote_options AS option
+   WHERE option.vote_id = locked_id
+     AND btrim(option.text) <> '';
+
+  IF usable_options >= 2 THEN
     RETURN 0;
   END IF;
 
@@ -106,7 +124,7 @@ GRANT EXECUTE ON FUNCTION public.ensure_ingest_vote_options(UUID, UUID, TIMESTAM
   TO service_role;
 
 COMMENT ON FUNCTION public.ensure_ingest_vote_options(UUID, UUID, TIMESTAMPTZ, TEXT[]) IS
-  'Idempotently adds the missing distinct options of one pending discovery vote created at or after the caller''s cutover. Service-role only; never touches an open ballot.';
+  'Idempotently completes the ballot of one pending discovery vote created at or after the caller''s cutover, and only while that ballot still holds fewer than two distinct choices. Service-role only; never touches an open or already-votable ballot.';
 
 CREATE OR REPLACE FUNCTION public.activate_ingest_vote(
   p_vote_id UUID,

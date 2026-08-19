@@ -205,6 +205,31 @@ BEGIN
     RAISE EXCEPTION 'options were added to an active ballot';
   END IF;
 
+  -- ── a ballot that already offers a choice is never grown ─────────────────
+  -- `no_source` is still pending and already carries two distinct options. A
+  -- dedup hit whose request happens to carry different texts must leave that
+  -- ballot exactly as the first attempt wrote it: repair exists to finish an
+  -- unusable ballot, not to re-open a settled one.
+  IF public.ensure_ingest_vote_options(
+       no_source, ingest_creator, cutover, ARRAY['כן', 'לא', 'אולי']
+     ) <> 0 THEN
+    RAISE EXCEPTION 'repair grew a ballot that already had two distinct options';
+  END IF;
+  SELECT count(*) INTO option_rows FROM public.vote_options WHERE vote_id = no_source;
+  IF option_rows <> 2 THEN
+    RAISE EXCEPTION 'the assembled ballot now has % options', option_rows;
+  END IF;
+
+  -- The one-option ballot is unusable, so repair still completes it - the
+  -- predicate is "fewer than two distinct choices", not "no rows at all".
+  IF public.ensure_ingest_vote_options(
+       one_option, ingest_creator, cutover, ARRAY['כן', 'לא']
+     ) <> 1 THEN
+    RAISE EXCEPTION 'repair did not complete a single-option ballot';
+  END IF;
+  DELETE FROM public.vote_options
+   WHERE vote_id = one_option AND btrim(text) = 'לא';
+
   -- ── repair honours the same scoping as activation ────────────────────────
   IF public.ensure_ingest_vote_options(
        human_vote, ingest_creator, cutover, ARRAY['א', 'ב']

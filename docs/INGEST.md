@@ -60,7 +60,11 @@ Rules:
     attaches the source row, then atomically activates it once the database
     confirms the full publication eligibility contract.
   - Hit → refreshes the vote's `vote_sources` row only (metrics update);
-    title/description/options are never overwritten.
+    title/description/options are never overwritten. The one exception is a
+    ballot a previous attempt left **unusable** (fewer than two distinct
+    non-blank options): that one is completed, because otherwise nothing could
+    ever activate it. A ballot that already offers two distinct choices is
+    never added to, whatever `options` the repeat call carries.
 - `vote_sources` is unique per vote — repeat calls upsert, `fetched_at`
   bumps every time. Send absolute totals, not deltas.
 - A newly created vote is `pending` while its options and source are assembled.
