@@ -95,19 +95,30 @@ Rules:
 ### Deployment order
 
 `activate_ingest_vote` must exist before any code that calls it runs. Merging to
-`main` deploys the Worker immediately and applies no migrations, so the order is
-manual and strict:
+`main` deploys the Worker immediately and applies no migrations, so one step is
+manual:
 
 1. apply `supabase/migrations/20260902000001_ingest_auto_activation.sql` to
    production and confirm the function and its grants exist;
-2. set `INGEST_AUTOACTIVATE_SINCE` on the Worker to an instant at or after the
-   moment the migration was applied, and **not** ahead of the Worker's clock —
-   a future instant is refused with `503`, so a timezone or clock-skew slip
-   stops ingest outright instead of stranding rows;
-3. only then merge, which deploys the application.
+2. only then merge, which deploys the application.
 
-Reversing 1 and 3 makes every ingest of a new topic answer `500` while leaving
-the vote it just wrote stranded in `pending`.
+Reversing these makes every ingest of a new topic answer `500` while leaving the
+vote it just wrote stranded in `pending`.
+
+`INGEST_AUTOACTIVATE_SINCE` is **not** a third step. It is a committed entry in
+`apps/web/wrangler.jsonc` `vars`, so it ships atomically with the Worker on
+merge. Setting it as a `wrangler secret` instead would reintroduce a window
+between the deploy and the `secret put` in which every ingest answers `503` —
+which is precisely the failure this ordering exists to avoid. It is a timestamp,
+not a credential, and `wrangler.jsonc` reserves `vars` for exactly that.
+
+Changing the value later carries two constraints, both documented at the entry
+itself: it must be at or after the moment the migration was applied, and it must
+be in the **past** relative to the Worker clock — `activationCutover()` refuses a
+future instant with `503` rather than creating votes it could never activate.
+Note that the migration's version number (`20260902000001`) is deliberately
+future-sorted and is not an apply time; copying it into the cutover would stop
+ingest outright.
 
 ### Visibility of `pending` — known, not addressed here
 

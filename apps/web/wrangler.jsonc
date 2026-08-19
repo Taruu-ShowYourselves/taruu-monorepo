@@ -90,6 +90,24 @@
   // (or .dev.vars locally). Only NON-secret public vars belong in `vars`.
   "vars": {
     "GREENINVOICE_ENV": "production",
-    "QUBIK_NETWORK": "mainnet"
+    "QUBIK_NETWORK": "mainnet",
+    // Cutover for automatic activation of fully assembled discovery votes
+    // (see docs/INGEST.md). Only ingest votes created at or after this instant
+    // are eligible; the `pending` backlog that accumulated before it is out of
+    // reach by construction, enforced inside `activate_ingest_vote` itself.
+    //
+    // A timestamp is not a credential, so it lives here rather than as a
+    // `wrangler secret`. That is also what makes the deploy safe: a `vars`
+    // entry ships atomically with the Worker, so there is no window between
+    // the deploy and a manual `secret put` in which every ingest answers 503.
+    //
+    // Two constraints on any future edit:
+    //   - must be at or after the moment 20260902000001_ingest_auto_activation
+    //     was applied to production, or activation hits a missing function;
+    //   - must be in the PAST relative to the Worker clock. `activationCutover()`
+    //     refuses a future instant with 503 rather than creating votes it could
+    //     never activate - so do NOT copy the migration's version number here,
+    //     which is deliberately future-sorted and is not an apply time.
+    "INGEST_AUTOACTIVATE_SINCE": "2026-08-19T09:19:52Z"
   }
 }
