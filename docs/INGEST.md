@@ -78,8 +78,13 @@ Rules:
   Only votes created at or after it are activated; the `pending` rows that
   accumulated before it are out of scope and are never touched. The bound is
   enforced inside `activate_ingest_vote`, not by the route. With the variable
-  unset or unparseable the endpoint answers `503` before writing anything,
-  rather than creating votes it has no rule for activating.
+  unset, unparseable, **or set to an instant still in the future**, the endpoint
+  answers `503` before writing anything, rather than creating votes it has no
+  rule for activating. A future cutover is refused for the same reason an unset
+  one is: every vote the request would create is stamped `now`, which is before
+  it, so the row could never satisfy the `created_at >= cutover` bound - the
+  first attempt would answer `500` over a vote it had already written, and the
+  retry would report `success: true` while that vote stayed `pending`.
 - `vote_days` must be an integer between 1 and 365; `options` must contain at
   least two distinct non-empty values, and each distinct value is written once.
 
@@ -92,7 +97,9 @@ manual and strict:
 1. apply `supabase/migrations/20260902000001_ingest_auto_activation.sql` to
    production and confirm the function and its grants exist;
 2. set `INGEST_AUTOACTIVATE_SINCE` on the Worker to an instant at or after the
-   moment the migration was applied;
+   moment the migration was applied, and **not** ahead of the Worker's clock —
+   a future instant is refused with `503`, so a timezone or clock-skew slip
+   stops ingest outright instead of stranding rows;
 3. only then merge, which deploys the application.
 
 Reversing 1 and 3 makes every ingest of a new topic answer `500` while leaving

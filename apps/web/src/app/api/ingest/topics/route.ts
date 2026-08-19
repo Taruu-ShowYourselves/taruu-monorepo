@@ -104,11 +104,30 @@ function invalid(topic: unknown): string | null {
   return null;
 }
 
-/** The configured cutover as epoch ms, or null when unset/unparseable. */
+/**
+ * The configured cutover as epoch ms, or null when unset, unparseable, or
+ * still ahead of the clock.
+ *
+ * A future cutover is unusable, not merely odd: every vote a request creates
+ * is stamped `now`, which is BEFORE it, so both RPCs refuse the row on their
+ * `created_at >= cutover` bound. The first attempt then answers 500 having
+ * already written the vote, and the retry dedups onto that row, reads it as
+ * out of activation scope, skips publication, and answers `success: true`
+ * over a vote stranded in `pending` - the exact outcome this change exists to
+ * make impossible. Treated as unconfigured so the route refuses before the
+ * first write, which is the same protection the unset case already gets.
+ */
 function activationCutover(): { iso: string; ms: number } | null {
   if (!INGEST_AUTOACTIVATE_SINCE) return null;
   const ms = Date.parse(INGEST_AUTOACTIVATE_SINCE);
   if (!Number.isFinite(ms)) return null;
+  if (ms > Date.now()) {
+    console.error(
+      `INGEST_AUTOACTIVATE_SINCE is in the future (${new Date(ms).toISOString()}); ` +
+        'ingest refused: votes created now could never be activated under it'
+    );
+    return null;
+  }
   return { iso: new Date(ms).toISOString(), ms };
 }
 
