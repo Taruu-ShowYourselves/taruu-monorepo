@@ -103,16 +103,38 @@ GRANT EXECUTE ON FUNCTION public.sync_vote_lifecycle() TO service_role;
 -- fail the whole deploy. The transition is a pure database concern with no
 -- application step in it, so it belongs here regardless.
 
-CREATE EXTENSION IF NOT EXISTS pg_cron;
+-- Conditional on the extension being installable, because pg_cron needs a
+-- `shared_preload_libraries` entry - a stock `postgres:16` service container,
+-- which is what .github/workflows/agent-verification.yml runs the migrations
+-- against, cannot provide one at any price. Demanding it unconditionally would
+-- fail CI over a property of the test harness rather than of this schema.
+--
+-- The skip is loud, never silent: everything above this block is the schema
+-- contribution and runs everywhere, so an environment without pg_cron still
+-- gets both functions and the backfill - it just has nothing calling them on a
+-- timer, and says so.
+DO $do$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_cron') THEN
+    RAISE NOTICE
+      'pg_cron unavailable - sync_vote_lifecycle() installed but NOT scheduled. Schedule it wherever this database really runs.';
+    RETURN;
+  END IF;
 
-SELECT cron.unschedule('vote-lifecycle')
- WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'vote-lifecycle');
-
-SELECT cron.schedule(
-  'vote-lifecycle',
-  '*/5 * * * *',
-  $cron$SELECT public.sync_vote_lifecycle()$cron$
-);
+  EXECUTE 'CREATE EXTENSION IF NOT EXISTS pg_cron';
+  EXECUTE $sql$
+    SELECT cron.unschedule('vote-lifecycle')
+     WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'vote-lifecycle')
+  $sql$;
+  EXECUTE $sql$
+    SELECT cron.schedule(
+      'vote-lifecycle',
+      '*/5 * * * *',
+      'SELECT public.sync_vote_lifecycle()'
+    )
+  $sql$;
+END
+$do$;
 
 -- ---------------------------------------------------------------------------
 -- Backfill
