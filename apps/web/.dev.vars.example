@@ -87,6 +87,14 @@ UPSTASH_REDIS_REST_TOKEN=
 # Cron auth (guards /api/cron/* - see DNS-SETUP.md "Cron")
 CRON_SECRET=
 
+# Discovery ingest auth - Bearer token for POST /api/ingest/topics (see docs/INGEST.md).
+# Already set on the Worker; recorded here so the key is discoverable. Cloudflare
+# secrets are write-only, so the live value cannot be read back out - if you need
+# it locally, mint a new one and `wrangler secret put INGEST_SECRET`.
+# NOTE: the ingest route's other variable, INGEST_AUTOACTIVATE_SINCE, is NOT a
+# secret and does not belong here - it is a committed entry in wrangler.jsonc `vars`.
+INGEST_SECRET=
+
 # Optional — set to false to remove the space-admin dashboard routes and pages (issue #75). Defaults to on.
 SPACE_ADMIN_ENABLED=true
 
