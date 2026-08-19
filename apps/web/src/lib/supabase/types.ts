@@ -2399,6 +2399,23 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      activate_ingest_vote: {
+        Args: {
+          p_vote_id: string;
+          p_ingest_creator_id: string;
+          p_min_created_at: string;
+        };
+        Returns: string | null;
+      };
+      ensure_ingest_vote_options: {
+        Args: {
+          p_vote_id: string;
+          p_ingest_creator_id: string;
+          p_min_created_at: string;
+          p_texts: string[];
+        };
+        Returns: number;
+      };
       set_claim: {
         Args: {
           claim: string;

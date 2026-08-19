@@ -1199,6 +1199,61 @@ export async function createVoteOptions(
   return data || [];
 }
 
+/**
+ * Add whichever of `texts` this pending discovery vote is still missing.
+ *
+ * Idempotent, and safe to call on every ingest path: the database holds the
+ * vote row while it compares, so two runs repairing the same vote cannot both
+ * write the ballot. Returns how many options it inserted - 0 both when nothing
+ * was missing and when the vote is not one this caller may assemble.
+ */
+export async function ensureIngestVoteOptions(
+  voteId: string,
+  ingestCreatorId: string,
+  minCreatedAt: string,
+  texts: string[]
+): Promise<number> {
+  const { data, error } = await supabaseAdmin.rpc('ensure_ingest_vote_options', {
+    p_vote_id: voteId,
+    p_ingest_creator_id: ingestCreatorId,
+    p_min_created_at: minCreatedAt,
+    p_texts: texts,
+  });
+
+  if (error) {
+    throw new Error(`Failed to ensure ingest vote options: ${error.message}`);
+  }
+  return data ?? 0;
+}
+
+/**
+ * Publish one fully assembled discovery vote. The database owns every
+ * eligibility predicate, so a partial route failure can never ACTIVATE a
+ * half-assembled ballot. It does not make `pending` private - the
+ * municipality-scoped read already serves that status.
+ *
+ * Returns the row's status AFTER the call, or `null` when the vote is not one
+ * this caller may publish. A boolean could not distinguish a fresh activation
+ * from a vote that had already advanced to `ended`, so the route reported
+ * `active` for rows the database knew were finished.
+ */
+export async function activateIngestVote(
+  voteId: string,
+  ingestCreatorId: string,
+  minCreatedAt: string
+): Promise<string | null> {
+  const { data, error } = await supabaseAdmin.rpc('activate_ingest_vote', {
+    p_vote_id: voteId,
+    p_ingest_creator_id: ingestCreatorId,
+    p_min_created_at: minCreatedAt,
+  });
+
+  if (error) {
+    throw new Error(`Failed to activate ingest vote: ${error.message}`);
+  }
+  return data ?? null;
+}
+
 export async function incrementVoteOption(optionId: string): Promise<void> {
   // Use RPC function for atomic increment
   const { error } = await supabaseAdmin.rpc('increment_vote_option', {
