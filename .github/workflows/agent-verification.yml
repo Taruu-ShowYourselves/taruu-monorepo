@@ -44,7 +44,19 @@ jobs:
 
   verify:
     name: Agent verification
-    runs-on: ubuntu-latest
+    # A required check that cannot get a machine blocks every merge, which is
+    # exactly what happened on 2026-08-06: hosted runners stopped being
+    # allocated to this repo and #108 sat unmergeable behind a check that never
+    # ran. Set CI_RUNS_ON to a JSON array of self-hosted labels to move this
+    # onto our own machine; unset, it stays on ubuntu-latest.
+    #
+    # Read before setting it: this job checks out and executes pull-request
+    # code. On a hosted runner that code gets a fresh VM that is destroyed
+    # afterwards; on a self-hosted runner it runs on a box that persists
+    # between jobs and belongs to us. That is an acceptable trade for a private
+    # repo whose pull requests come from collaborators, and a bad one the day
+    # this repo takes a pull request from a fork.
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON || '"ubuntu-latest"') }}
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
