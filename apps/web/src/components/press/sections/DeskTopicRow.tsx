@@ -760,6 +760,16 @@ export interface VoteAuthRequest {
   optionId?: string;
   /** The headline as the tile printed it - the gate quotes it back. */
   headline: string;
+  /**
+   * The option's own text, for ballots whose options are not literally
+   * בעד/נגד.
+   *
+   * The gate otherwise prints a fixed side label off `intent`, which is a lie
+   * on an option called "בעד חניון ציבורי" - it would tell the reader they
+   * had said נגד. Set it and the gate quotes the option instead. Absent for
+   * the swipe, whose three answers ARE the three sides.
+   */
+  optionLabel?: string;
 }
 
 interface DeskTopicRowProps {

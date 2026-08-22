@@ -1,0 +1,45 @@
+/* PROTOTYPE — three cards standing still.
+   No 100svh anywhere: the carousel's viewport maths existed because a river
+   must be exactly one screen. Three cards in flow must not be. */
+
+.lane {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(var(--space-4), 1.6vw, var(--space-6));
+  /* Caps a card at ~424px, matching the widest bento tile. At the full
+     1600px container they would be ~500px and the type would look under-set. */
+  max-width: 84rem;
+  margin-inline: auto;
+  margin-block-start: clamp(var(--space-5), 2.5vw, var(--space-8));
+  list-style: none;
+  padding: 0;
+}
+
+/* One breakpoint, and an existing one. With exactly three cards a 2-up middle
+   band orphans the third, so the lane goes 1-up straight to 3-up.
+   `minmax(0, 1fr)` and not a bare `1fr`: clamped headlines need `min-width: 0`
+   or a long word blows the track out. */
+@media (min-width: 52rem) {
+  .lane {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Above the breakpoint the grid equalises heights, and the card stretches into
+   its slot so the three slips share a baseline across the row - which is what
+   makes three ballots comparable at a glance. Below it, no equalising: a
+   two-option card should not print a field of white to match a four-option
+   one. */
+.slot {
+  display: grid;
+}
+
+.slot > * {
+  block-size: 100%;
+}
+
+@media (max-width: 51.99rem) {
+  .slot > * {
+    block-size: auto;
+  }
+}

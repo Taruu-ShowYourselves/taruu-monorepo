@@ -168,7 +168,9 @@ export function VoteAuthDialog({ request, onClose, locale }: VoteAuthDialogProps
                   and the gate has to show it is still being held. */}
               <p className={styles.ballot} data-intent={intent}>
                 <span className={styles.ballotLabel}>{t.positionLabel}</span>
-                <span className={styles.ballotValue}>{t.intents[intent]}</span>
+                <span className={styles.ballotValue}>
+                  {request.optionLabel ?? t.intents[intent]}
+                </span>
                 <span className={styles.ballotTopic}>{request.headline}</span>
               </p>
 
