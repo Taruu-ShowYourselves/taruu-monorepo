@@ -15,14 +15,17 @@ export type SocialPlatform = z.infer<typeof SocialPlatformSchema>;
 
 export const IdentityScoreBreakdownSchema = z.object({
   google: z.number().min(0).max(40),
-  facebook: z.number().min(0).max(30),
-  instagram: z.number().min(0).max(30),
+  facebook: z.number().min(0).max(10),
+  instagram: z.number().min(0).max(10),
+  gps: z.number().min(0).max(20).optional(),
+  phone: z.number().min(0).max(10).optional(),
+  idDocument: z.number().min(0).max(40).optional(),
 });
 
 export const IdentityScoreLevelSchema = z.enum(['basic', 'verified', 'trusted']);
 
 export const IdentityScoreSchema = z.object({
-  total: z.number().min(0).max(100),
+  total: z.number().min(0).max(140),
   breakdown: IdentityScoreBreakdownSchema,
   level: IdentityScoreLevelSchema,
   lastCalculated: z.string().datetime().optional(),
@@ -42,7 +45,7 @@ export const SocialProofItemSchema = z.object({
   profileImage: z.string().url().nullable().optional(),
   email: z.string().email().nullable().optional(),
   connectedAt: z.string().datetime(),
-  stampWeight: z.number().min(0).max(100), // Points contribution (Google: 40, Facebook: 30, Instagram: 30)
+  stampWeight: z.number().min(0).max(100), // Points contribution (Google: 40, Facebook: 10, Instagram: 10)
 });
 
 export type SocialProofItem = z.infer<typeof SocialProofItemSchema>;

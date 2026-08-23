@@ -10,7 +10,7 @@ import {
   paymentService,
   getPaymentAmounts,
 } from '@/services/payments/greenInvoice';
-import { GPS_SCORE_WEIGHT, MINIMUM_VOTING_SCORE } from '@sync/shared';
+import { MINIMUM_IDENTITY_SCORE_FOR_VOTING, votingGate } from '@sync/shared';
 
 interface CreatePaymentRequest {
   type: 'vote_participation' | 'vote_creation';
@@ -58,22 +58,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Check identity score for voting. The residency check below is what
-    // carries the remaining 40 points, so this reads the stored score alone.
-    if (
-      type === 'vote_participation' &&
-      user.identity_score + GPS_SCORE_WEIGHT < MINIMUM_VOTING_SCORE
-    ) {
+    // Ballot gate (issue #71): the stored score already CONTAINS the GPS
+    // residency points, so nothing is added on top here. Residency is a hard
+    // requirement of its own - no other evidence substitutes for it.
+    const gate = votingGate({
+      identityPoints: user.identity_score ?? 0,
+      residencyVerified: user.verification_status === 'verified',
+    });
+
+    if (type === 'vote_participation' && gate.total < gate.required) {
       return NextResponse.json(
         {
-          error: `Insufficient identity score to vote. Minimum ${MINIMUM_VOTING_SCORE} required.`,
+          error: `Insufficient identity score to vote. Minimum ${MINIMUM_IDENTITY_SCORE_FOR_VOTING} required.`,
         },
         { status: 403 }
       );
     }
 
     // Check verification status for voting
-    if (type === 'vote_participation' && user.verification_status !== 'verified') {
+    if (type === 'vote_participation' && !gate.residencyVerified) {
       return NextResponse.json(
         { error: 'GPS verification required before voting' },
         { status: 403 }

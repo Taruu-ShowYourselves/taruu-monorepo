@@ -161,13 +161,16 @@ describe('Auth Session API Routes', () => {
       // identity_score must surface as the computed IdentityScore object,
       // never the raw integer column.
       expect(typeof data.user.identityScore).toBe('object');
-      expect(data.user.identityScore.total).toBe(50); // google 40 + facebook 10
+      // google 40 + facebook 10 + GPS 20 (verification_status='verified')
+      expect(data.user.identityScore.total).toBe(70);
       expect(data.user.identityScore.level).toBe('basic');
       expect(data.user.identityScore.breakdown).toEqual({
-        gps: 0,
+        gps: 20,
         google: 40,
         facebook: 10,
         instagram: 0,
+        phone: 0,
+        idDocument: 0,
       });
 
       // Social proofs are full objects, not a bare provider-name array.
@@ -226,7 +229,9 @@ describe('Auth Session API Routes', () => {
       expect(data.user.municipality).toBeNull();
       expect(data.user.notificationSettings).toBeUndefined();
       expect(data.user.socialProofs).toEqual([]);
-      expect(data.user.identityScore.total).toBe(0);
+      // No proofs, but the fixture is GPS-verified — those 20 points are
+      // earned, not invented from a nullable column.
+      expect(data.user.identityScore.total).toBe(20);
       // No wallet means no blockchain call at all.
       expect(data.user.syncTokenBalance).toBe(0);
       expect(qubikService.getTokenBalance).not.toHaveBeenCalled();

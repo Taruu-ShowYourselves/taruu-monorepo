@@ -57,13 +57,87 @@ Rules:
 - Dedup key: (`municipality`, exact `title`) against non-ended votes.
   - Miss → creates a **pending** vote owned by the editorial system user
     (`INGEST_CREATOR_ID`, default = the desk seed user) + its options,
-    then attaches the source row.
+    attaches the source row, then atomically activates it once the database
+    confirms the full publication eligibility contract.
   - Hit → refreshes the vote's `vote_sources` row only (metrics update);
-    title/description/options are never overwritten.
+    title/description/options are never overwritten. The one exception is a
+    ballot a previous attempt left **unusable** (fewer than two distinct
+    non-blank options): that one is completed, because otherwise nothing could
+    ever activate it. A ballot that already offers two distinct choices is
+    never added to, whatever `options` the repeat call carries.
 - `vote_sources` is unique per vote — repeat calls upsert, `fetched_at`
   bumps every time. Send absolute totals, not deltas.
-- Pending votes are **not** shown on the public consensus desk until an
-  editor activates them (`status = 'active'`).
+- A newly created vote is `pending` while its options and source are assembled.
+  The same successful ingest request automatically changes it to `active`; there
+  is no editor or human review step. `pending` is **not** a fully private state
+  — see *Visibility of `pending`* below; what the assembly window guarantees is
+  that a vote with no ballot never becomes `active`, not that nobody can see it.
+- Activation is attempted for every vote the request creates **or adopts**, not
+  only for newly created ones. A first attempt that dies after the vote row but
+  before the source row leaves a real half-assembled vote behind; the retry
+  dedups onto it, finishes the assembly, and finishes the lifecycle. There is no
+  path that answers `success: true` while a current, fully assembled ingest vote
+  is still `pending`.
+- `INGEST_AUTOACTIVATE_SINCE` (RFC 3339 instant, **required**) bounds that.
+  Only votes created at or after it are activated; the `pending` rows that
+  accumulated before it are out of scope and are never touched. The bound is
+  enforced inside `activate_ingest_vote`, not by the route. With the variable
+  unset, unparseable, **or set to an instant still in the future**, the endpoint
+  answers `503` before writing anything, rather than creating votes it has no
+  rule for activating. A future cutover is refused for the same reason an unset
+  one is: every vote the request would create is stamped `now`, which is before
+  it, so the row could never satisfy the `created_at >= cutover` bound - the
+  first attempt would answer `500` over a vote it had already written, and the
+  retry would report `success: true` while that vote stayed `pending`.
+- `vote_days` must be an integer between 1 and 365; `options` must contain at
+  least two distinct non-empty values, and each distinct value is written once.
+
+### Deployment order
+
+`activate_ingest_vote` must exist before any code that calls it runs. Merging to
+`main` deploys the Worker immediately and applies no migrations, so one step is
+manual:
+
+1. apply `supabase/migrations/20260902000001_ingest_auto_activation.sql` to
+   production and confirm the function and its grants exist;
+2. only then merge, which deploys the application.
+
+Reversing these makes every ingest of a new topic answer `500` while leaving the
+vote it just wrote stranded in `pending`.
+
+`INGEST_AUTOACTIVATE_SINCE` is **not** a third step. It is a committed entry in
+`apps/web/wrangler.jsonc` `vars`, so it ships atomically with the Worker on
+merge. Setting it as a `wrangler secret` instead would reintroduce a window
+between the deploy and the `secret put` in which every ingest answers `503` —
+which is precisely the failure this ordering exists to avoid. It is a timestamp,
+not a credential, and `wrangler.jsonc` reserves `vars` for exactly that.
+
+Changing the value later carries two constraints, both documented at the entry
+itself: it must be at or after the moment the migration was applied, and it must
+be in the **past** relative to the Worker clock — `activationCutover()` refuses a
+future instant with `503` rather than creating votes it could never activate.
+Note that the migration's version number (`20260902000001`) is deliberately
+future-sorted and is not an apply time; copying it into the cutover would stop
+ingest outright.
+
+### Visibility of `pending` — known, not addressed here
+
+`pending` is not uniformly private. The two public read paths disagree:
+
+| surface | serves `pending`? | why |
+|---|---|---|
+| `GET /api/votes` (no municipality) | no — `active` only | `vote.repo.listVotes` routes to `getActiveVotes()` and ignores the status filter |
+| `GET /api/votes?municipality=<name>` | **yes** | routes to `getVotesByMunicipality`, whose default filter is `PUBLIC_VOTE_STATUSES`, which includes `pending` |
+
+So a vote mid-assembly is invisible on the nationwide/default surfaces and
+visible on its own town's. The asymmetry predates this change: it is why the
+existing `pending` backlog is already publicly listable per municipality.
+
+This is a read-path question, not a lifecycle one, and is deliberately not
+touched here. Note the direction of the effect — automatic activation makes the
+assembly window shorter, not longer: without it a discovery vote stays `pending`
+(and municipality-visible) indefinitely, and with it for as long as one ingest
+request takes.
 
 ## Response
 
