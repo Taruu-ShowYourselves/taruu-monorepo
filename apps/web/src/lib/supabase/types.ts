@@ -2469,6 +2469,22 @@ export interface Database {
         Args: { p_id: string; p_user_id: string; p_purpose: string; p_allowed_methods?: string[] | null };
         Returns: boolean | null;
       };
+      cast_vote: {
+        Args: {
+          p_user_id: string;
+          p_vote_id: string;
+          p_option_id: string;
+          p_payment_id?: string | null;
+        };
+        Returns: {
+          out_outcome: string;
+          out_ballot_id: string;
+          out_option_id: string;
+          out_option_votes: number;
+          out_participant_count: number;
+          out_created_at: string;
+        }[];
+      };
       increment_vote_option: {
         Args: {
           option_id: string;

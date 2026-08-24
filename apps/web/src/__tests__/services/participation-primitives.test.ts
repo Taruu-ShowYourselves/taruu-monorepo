@@ -1,9 +1,11 @@
 /**
  * Unit proof for the two participation primitives added in phase 02.1-02:
  *
- * - `recordUserVoteOnce` (apps/web/src/lib/supabase/db.ts) - an insert that
- *   survives a duplicate submit by keying off SQLSTATE 23505 and reading the
- *   existing ballot back instead of throwing.
+ * - `castVote` (apps/web/src/lib/supabase/db.ts) - the wrapper over the
+ *   `cast_vote` RPC. The transactional behaviour it wraps is proven against a
+ *   real database in supabase/tests/cast_vote.sql; what is left to prove here
+ *   is the part that lives in TypeScript: turning the function's SQLSTATEs
+ *   into typed rejections the routes can map to a 4xx.
  * - the voter-eligibility truth table (apps/web/src/services/verification/eligibility.ts)
  *   - the issue #71 ballot rule: identity_score >= 40 AND explicitly verified
  *   residency, with no evidence substituting for residency.
@@ -11,26 +13,28 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock only the Supabase client. `recordUserVoteOnce` and `getUserVote` run
-// for real against this mock, following the bags-trending.test.ts chained-mock
-// shape - this is what proves the duplicate path reads the existing ballot
-// back through the real code path rather than through a stubbed function.
+// Mock only the Supabase client. `castVote` and `getUserVote` run for real
+// against this mock, following the bags-trending.test.ts chained-mock shape -
+// so the error mapping below is exercised through the real code path rather
+// than through a stubbed function.
 const mockFrom = vi.fn();
+const mockRpc = vi.fn();
 vi.mock('@/lib/supabase/server', () => ({
   supabaseAdmin: {
     from: (table: string) => mockFrom(table),
+    rpc: (fn: string, args: unknown) => mockRpc(fn, args),
   },
 }));
 
 // `checkVoterEligibility` needs `getActiveVerificationRun` controllable
-// without disturbing `recordUserVoteOnce`/`getUserVote`, which must stay real
+// without disturbing `castVote`/`getUserVote`, which must stay real
 // implementations running against the mocked `supabaseAdmin` above.
 vi.mock('@/lib/supabase/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/supabase/db')>();
   return { ...actual, getActiveVerificationRun: vi.fn() };
 });
 
-import { recordUserVoteOnce } from '@/lib/supabase/db';
+import { castVote, CastVoteRejected } from '@/lib/supabase/db';
 import { getActiveVerificationRun } from '@/lib/supabase/db';
 import {
   hasVerifiedResidency,
@@ -38,111 +42,162 @@ import {
   checkVoterEligibility,
 } from '@/services/verification/eligibility';
 
-function insertChain(result: { data: unknown; error: unknown }) {
+function rpcChain(result: { data: unknown; error: unknown }) {
   return {
-    insert: vi.fn().mockReturnValue({
-      select: vi.fn().mockReturnValue({
-        single: vi.fn().mockResolvedValue(result),
-      }),
-    }),
+    single: vi.fn().mockResolvedValue(result),
   };
 }
 
-function selectChain(result: { data: unknown; error: unknown }) {
-  return {
-    select: vi.fn().mockReturnValue({
-      eq: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue(result),
-        }),
-      }),
-    }),
-  };
-}
-
-describe('recordUserVoteOnce', () => {
+describe('castVote', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('resolves { created: true, vote } on a clean insert', async () => {
-    const insertedRow = {
-      id: 'vote-row-1',
-      user_id: 'user-1',
-      vote_id: 'vote-1',
-      option_id: 'option-1',
-      payment_id: null,
-      created_at: '2026-08-02T10:00:00Z',
-    };
-    mockFrom.mockReturnValueOnce(insertChain({ data: insertedRow, error: null }));
+  it('maps a fresh ballot to outcome "cast"', async () => {
+    mockRpc.mockReturnValueOnce(
+      rpcChain({
+        data: {
+          out_outcome: 'cast',
+          out_ballot_id: 'vote-row-1',
+          out_option_id: 'option-1',
+          out_option_votes: 3,
+          out_participant_count: 7,
+          out_created_at: '2026-08-02T10:00:00Z',
+        },
+        error: null,
+      })
+    );
 
-    const result = await recordUserVoteOnce({
-      user_id: 'user-1',
-      vote_id: 'vote-1',
-      option_id: 'option-1',
+    const result = await castVote({
+      userId: 'user-1',
+      voteId: 'vote-1',
+      optionId: 'option-1',
     });
 
-    expect(result).toEqual({ created: true, vote: insertedRow });
-    expect(result.vote.id).toBe('vote-row-1');
+    expect(result).toEqual({
+      outcome: 'cast',
+      ballotId: 'vote-row-1',
+      optionId: 'option-1',
+      optionVotes: 3,
+      participantCount: 7,
+      createdAt: '2026-08-02T10:00:00Z',
+    });
+    expect(mockRpc).toHaveBeenCalledWith('cast_vote', {
+      p_user_id: 'user-1',
+      p_vote_id: 'vote-1',
+      p_option_id: 'option-1',
+      p_payment_id: null,
+    });
   });
 
-  it('resolves { created: false, vote } and does not throw on a 23505 conflict with a readable existing row', async () => {
-    const existingRow = {
-      id: 'vote-row-existing',
-      user_id: 'user-1',
-      vote_id: 'vote-1',
-      option_id: 'option-2',
-      payment_id: null,
-      created_at: '2026-08-01T09:00:00Z',
-    };
-    mockFrom
-      .mockReturnValueOnce(
-        insertChain({
-          data: null,
-          error: {
-            code: '23505',
-            message:
-              'duplicate key value violates unique constraint "user_votes_user_id_vote_id_key"',
-          },
-        })
-      )
-      .mockReturnValueOnce(selectChain({ data: existingRow, error: null }));
+  it('reports a replay as "already_voted" with the ballot already cast', async () => {
+    mockRpc.mockReturnValueOnce(
+      rpcChain({
+        data: {
+          out_outcome: 'already_voted',
+          out_ballot_id: 'vote-row-existing',
+          out_option_id: 'option-2',
+          out_option_votes: 1,
+          out_participant_count: 1,
+          out_created_at: '2026-08-01T09:00:00Z',
+        },
+        error: null,
+      })
+    );
 
-    const result = await recordUserVoteOnce({
-      user_id: 'user-1',
-      vote_id: 'vote-1',
-      option_id: 'option-1',
+    const result = await castVote({
+      userId: 'user-1',
+      voteId: 'vote-1',
+      optionId: 'option-1',
     });
 
-    expect(result).toEqual({ created: false, vote: existingRow });
+    // The option that came back is the one already on the ballot, not the one
+    // just submitted: a second submission does not switch a vote.
+    expect(result.outcome).toBe('already_voted');
+    expect(result.optionId).toBe('option-2');
   });
 
-  it('rejects when a 23505 conflict has no readable row on read-back', async () => {
-    mockFrom
-      .mockReturnValueOnce(
-        insertChain({
-          data: null,
-          error: { code: '23505', message: 'duplicate key value violates unique constraint' },
-        })
-      )
-      .mockReturnValueOnce(selectChain({ data: null, error: { code: 'PGRST116', message: 'no rows' } }));
+  // The three rejections cast_vote raises must arrive as CastVoteRejected, or
+  // the routes turn a closed vote into a 500 instead of the 400 it is.
+  it.each([
+    ['TV001', 'VOTE_NOT_FOUND'],
+    ['TV002', 'VOTE_ENDED'],
+    ['TV003', 'OPTION_NOT_IN_VOTE'],
+    ['TV004', 'VOTE_NOT_OPEN'],
+  ])('maps SQLSTATE %s to a %s rejection', async (code, reason) => {
+    mockRpc.mockReturnValueOnce(
+      rpcChain({ data: null, error: { code, message: 'refused by cast_vote' } })
+    );
 
     await expect(
-      recordUserVoteOnce({ user_id: 'user-1', vote_id: 'vote-1', option_id: 'option-1' })
-    ).rejects.toThrow();
+      castVote({ userId: 'user-1', voteId: 'vote-1', optionId: 'option-1' })
+    ).rejects.toMatchObject({ name: 'CastVoteRejected', reason });
   });
 
-  it('rejects with the message preserved for any other error code', async () => {
-    mockFrom.mockReturnValueOnce(
-      insertChain({
-        data: null,
-        error: { code: '23503', message: 'foreign key violation' },
+  it('rethrows an unrecognised error rather than dressing it as a rejection', async () => {
+    mockRpc.mockReturnValueOnce(
+      rpcChain({ data: null, error: { code: '23503', message: 'foreign key violation' } })
+    );
+
+    const failure = castVote({ userId: 'user-1', voteId: 'vote-1', optionId: 'option-1' });
+    await expect(failure).rejects.toThrow(/foreign key violation/);
+    await expect(failure).rejects.not.toBeInstanceOf(CastVoteRejected);
+  });
+
+  it('rejects an outcome it does not recognise instead of calling it a duplicate', async () => {
+    mockRpc.mockReturnValueOnce(
+      rpcChain({
+        data: {
+          out_outcome: 'superseded',
+          out_ballot_id: 'vote-row-1',
+          out_option_id: 'option-1',
+          out_option_votes: 1,
+          out_participant_count: 1,
+          out_created_at: '2026-08-02T10:00:00Z',
+        },
+        error: null,
       })
     );
 
     await expect(
-      recordUserVoteOnce({ user_id: 'user-1', vote_id: 'vote-1', option_id: 'option-1' })
-    ).rejects.toThrow(/foreign key violation/);
+      castVote({ userId: 'user-1', voteId: 'vote-1', optionId: 'option-1' })
+    ).rejects.toThrow(/unrecognised outcome/);
+  });
+
+  it('rejects when the function returns no row at all', async () => {
+    mockRpc.mockReturnValueOnce(rpcChain({ data: null, error: null }));
+
+    await expect(
+      castVote({ userId: 'user-1', voteId: 'vote-1', optionId: 'option-1' })
+    ).rejects.toThrow(/returned no row/);
+  });
+
+  it('passes the payment id through for a paid ballot', async () => {
+    mockRpc.mockReturnValueOnce(
+      rpcChain({
+        data: {
+          out_outcome: 'cast',
+          out_ballot_id: 'vote-row-1',
+          out_option_id: 'option-1',
+          out_option_votes: 1,
+          out_participant_count: 1,
+          out_created_at: '2026-08-02T10:00:00Z',
+        },
+        error: null,
+      })
+    );
+
+    await castVote({
+      userId: 'user-1',
+      voteId: 'vote-1',
+      optionId: 'option-1',
+      paymentId: 'payment-9',
+    });
+
+    expect(mockRpc).toHaveBeenCalledWith(
+      'cast_vote',
+      expect.objectContaining({ p_payment_id: 'payment-9' })
+    );
   });
 });
 
