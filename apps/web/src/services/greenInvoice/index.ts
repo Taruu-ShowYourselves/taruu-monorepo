@@ -116,6 +116,22 @@ interface PaymentFormResponse {
   errorMessage?: string;
 }
 
+async function giRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const token = await getToken();
+  const headers = new Headers(init.headers);
+  headers.set('Authorization', `Bearer ${token}`);
+  const res = await fetch(`${config.baseUrl}${path}`, {
+    ...init,
+    headers,
+  });
+
+  if (!res.ok) {
+    throw new Error(`Green Invoice request failed (${res.status})`);
+  }
+
+  return (await res.json()) as T;
+}
+
 /**
  * Create a hosted Green Invoice payment page for an order and return its URL.
  * Income lines mirror the cart so the issued document itemises the purchase.
@@ -191,6 +207,81 @@ export async function createPaymentForm(
 
   logger.info('Green Invoice payment form created', { orderId: order.id });
   return data.url;
+}
+
+export function extractDocumentId(payload: Record<string, unknown>): string | null {
+  for (const key of ['id', 'documentId', 'paymentId'] as const) {
+    const value = payload[key];
+    if (typeof value === 'string' && value.length > 0) return value;
+  }
+  return null;
+}
+
+type UnknownRecord = Record<string, unknown>;
+
+const CORRELATION_KEYS = new Set([
+  'custom',
+  'description',
+  'remarks',
+  'notes',
+  'orderId',
+  'order_id',
+  'paymentRemarks',
+]);
+
+function hasOrderCorrelation(value: unknown, orderId: string): boolean {
+  if (typeof value === 'string') return value.includes(orderId);
+  if (Array.isArray(value)) return value.some((item) => hasOrderCorrelation(item, orderId));
+  if (!value || typeof value !== 'object') return false;
+
+  const record = value as UnknownRecord;
+  return Object.entries(record).some(([key, nested]) => {
+    if (CORRELATION_KEYS.has(key) && hasOrderCorrelation(nested, orderId)) return true;
+    return typeof nested === 'object' && nested !== null && hasOrderCorrelation(nested, orderId);
+  });
+}
+
+function numericValue(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function documentTotalMatches(doc: UnknownRecord, totalILS: number): boolean {
+  for (const key of ['sum', 'total', 'amount', 'totalAmount'] as const) {
+    const value = numericValue(doc[key]);
+    if (value !== null) return Math.abs(value - totalILS) < 0.01;
+  }
+  return true;
+}
+
+/**
+ * Ask Green Invoice whether the issued document really belongs to this merch
+ * order. A forged notify must not be able to pair someone else's valid document
+ * with a guessed order id, so existence alone is not enough: the authenticated
+ * document must carry the order correlation we wrote at checkout (`custom`,
+ * `remarks`, or `description`) and, when GI exposes a total field, the amount
+ * must match the pending order.
+ */
+export async function confirmMerchDocumentForOrder(
+  documentId: string,
+  expected: { orderId: string; totalILS: number }
+): Promise<boolean> {
+  if (!documentId || !expected.orderId) return false;
+
+  try {
+    const doc = await giRequest<UnknownRecord>(
+      `/documents/${encodeURIComponent(documentId)}`,
+      { method: 'GET' }
+    );
+    return hasOrderCorrelation(doc, expected.orderId) && documentTotalMatches(doc, expected.totalILS);
+  } catch {
+    logger.warn('Green Invoice merch document confirmation failed', { documentId });
+    return false;
+  }
 }
 
 // === Token charge (off-session MIT) ===
