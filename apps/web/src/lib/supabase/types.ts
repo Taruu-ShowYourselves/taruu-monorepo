@@ -2485,6 +2485,13 @@ export interface Database {
           out_created_at: string;
         }[];
       };
+      claim_vote_nft_records: {
+        Args: {
+          p_vote_id: string;
+          p_records: Json;
+        };
+        Returns: number;
+      };
       increment_vote_option: {
         Args: {
           option_id: string;

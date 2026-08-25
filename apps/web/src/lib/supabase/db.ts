@@ -2187,35 +2187,12 @@ export async function updateVoteResolutionStatus(
   return data;
 }
 
-/**
- * Create a vote NFT record
- */
-export async function createVoteNft(data: {
-  voteId: string;
-  userId?: string;
-  walletAddress?: string;
-  type: 'verified_voter' | 'civic_patron';
-  metadata?: Record<string, unknown>;
-}) {
-  const { data: nft, error } = await supabaseAdmin
-    .from('vote_nfts')
-    .insert({
-      vote_id: data.voteId,
-      user_id: data.userId || null,
-      wallet_address: data.walletAddress || null,
-      type: data.type,
-      metadata: data.metadata as Json | null,
-      status: 'pending',
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Failed to create vote NFT:', error);
-    throw error;
-  }
-  return nft;
-}
+// `createVoteNft` was removed here. It took optional userId AND walletAddress
+// and inserted them both, which `chk_nft_holder_identity` now refuses, and it
+// inserted plainly, so a retry would raise on the holder indexes rather than be
+// absorbed. It had no callers. Leaving it exported would have left a second,
+// contract-breaking way to create these rows next to the one that honours them;
+// use `bulkCreateVoteNfts` (a single-element list is fine).
 
 /**
  * Update vote NFT status
@@ -2227,7 +2204,8 @@ export async function updateVoteNft(
     mintAddress?: string;
     metadataUri?: string;
     mintTxHash?: string;
-    errorMessage?: string;
+    /** null clears a message left by an earlier, since-retried failure. */
+    errorMessage?: string | null;
     retryCount?: number;
   }
 ) {
@@ -2479,7 +2457,24 @@ export async function hasVoteNft(voteId: string, userId: string): Promise<boolea
 }
 
 /**
- * Bulk create vote NFT records
+ * Claim the NFT rows for a set of vote participants, idempotently.
+ *
+ * The same participant list reaches this function more than once: vote
+ * selection has no atomic claim (`getVotesNeedingResolution` reads
+ * `resolution_status IS NULL` and `resolveVote` writes 'resolving' only after),
+ * so overlapping cron ticks both enumerate it -- and a failed resolution is
+ * never re-selected, making a hand re-run the only recovery. A plain batch
+ * INSERT made that either a duplicate NFT (and, downstream, a second
+ * irreversible on-chain mint for one person) or -- once
+ * `uq_vote_nft_user_holder` and `uq_vote_nft_wallet_holder` existed -- a
+ * unique_violation aborting the whole batch.
+ *
+ * `claim_vote_nft_records` inserts ON CONFLICT DO NOTHING against those two
+ * partial indexes. It lives in the database because inferring a PARTIAL unique
+ * index as an ON CONFLICT arbiter requires restating its WHERE clause, which
+ * PostgREST cannot express.
+ *
+ * Returns how many rows this call actually created, so a no-op re-run returns 0.
  */
 export async function bulkCreateVoteNfts(
   records: Array<{
@@ -2489,26 +2484,73 @@ export async function bulkCreateVoteNfts(
     type: 'verified_voter' | 'civic_patron';
     metadata?: Record<string, unknown>;
   }>
-) {
-  const insertData = records.map((record) => ({
-    vote_id: record.voteId,
-    user_id: record.userId || null,
-    wallet_address: record.walletAddress || null,
-    type: record.type,
-    metadata: (record.metadata || null) as Json | null,
-    status: 'pending' as const,
-  }));
+): Promise<number> {
+  if (records.length === 0) {
+    return 0;
+  }
 
-  const { data, error } = await supabaseAdmin
-    .from('vote_nfts')
-    .insert(insertData)
-    .select();
+  // One vote per call, and refused rather than split. The old batch INSERT
+  // committed every record together; looping the RPC over several votes would
+  // instead leave earlier votes written when a later one throws, so a caller
+  // could not tell what had happened. The only caller enumerates one vote.
+  const voteId = records[0].voteId;
+  if (records.some((record) => record.voteId !== voteId)) {
+    throw new Error('bulkCreateVoteNfts: every record must belong to one vote');
+  }
+
+  const { data, error } = await supabaseAdmin.rpc('claim_vote_nft_records', {
+    p_vote_id: voteId,
+    p_records: records.map((record) => ({
+      user_id: record.userId ?? null,
+      wallet_address: record.walletAddress ?? null,
+      type: record.type,
+      metadata: record.metadata ?? null,
+    })) as unknown as Json,
+  });
 
   if (error) {
-    console.error('Failed to bulk create vote NFTs:', error);
+    console.error('Failed to claim vote NFT records:', error);
     throw error;
   }
-  return data || [];
+  return data ?? 0;
+}
+
+/**
+ * Atomically claim a single NFT row for minting.
+ *
+ * The status transition is the claim: `.eq('status', ...)` makes the UPDATE
+ * conditional, so of two workers holding the same row exactly one sees a row
+ * back and the other sees null and skips. Without it both would proceed to
+ * `mintCompressedNft` and produce two irreversible on-chain NFTs from one
+ * database row -- a duplicate no uniqueness constraint on this table can catch,
+ * because there is only ever one row.
+ *
+ * Only `pending` is claimable. A `failed` row is NOT retryable from here: a
+ * mint is marked failed whenever `mintCompressedNft` throws, which includes a
+ * timeout on a transaction the chain may well have accepted. Re-minting such a
+ * row would produce a second asset that no constraint on this table can see,
+ * because there is only ever one row. Retrying failed mints needs the same
+ * treatment the publication path got -- reconcile against the provider first,
+ * and only re-submit on positive evidence that nothing was broadcast. Nothing
+ * currently selects failed rows for minting, so narrowing this closes a door
+ * rather than removing a feature.
+ *
+ * Returns false when another worker got there first.
+ */
+export async function claimNftForMinting(nftId: string): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from('vote_nfts')
+    .update({ status: 'minting' })
+    .eq('id', nftId)
+    .eq('status', 'pending')
+    .select('id')
+    .maybeSingle();
+
+  if (error) {
+    console.error('Failed to claim NFT for minting:', error);
+    throw error;
+  }
+  return data !== null;
 }
 
 // ============================================
