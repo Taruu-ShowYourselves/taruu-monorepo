@@ -322,6 +322,19 @@ BEGIN
     RAISE EXCEPTION 'the RPC accepted an all-whitespace wallet as a holder';
   END IF;
 
+  -- Interior whitespace is refused, not repaired: 'A B' and 'AB' are different
+  -- wallets, and this row decides who receives an irreversible NFT.
+  seen := NULL;
+  BEGIN
+    PERFORM public.claim_vote_nft_records(v_vote, jsonb_build_array(
+      jsonb_build_object('wallet_address', 'Interior Space Wa11etHHHHHHHHHHHH',
+                         'type', 'civic_patron')));
+  EXCEPTION WHEN SQLSTATE '22023' THEN seen := 'refused';
+  END;
+  IF seen IS DISTINCT FROM 'refused' THEN
+    RAISE EXCEPTION 'the RPC accepted a wallet with an interior space';
+  END IF;
+
   -- A padded wallet is stored canonically rather than refused: the caller named
   -- a real recipient, and storing it verbatim would put it in the index beside
   -- its own trimmed form.

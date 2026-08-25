@@ -383,11 +383,18 @@ export async function createNftRecordsForVote(voteId: string): Promise<number> {
   // two never collide in the database even when both mint to the same address.
   // Recognising the person here is what keeps that from becoming two NFTs.
   // Compared in the form the database will store: `claim_vote_nft_records`
-  // strips whitespace, and chk_nft_holder_identity refuses anything that still
-  // contains any, so comparing raw strings here would miss ' W ' against 'W'
-  // and emit both rows.
-  const canonicalWallet = (w: string | null | undefined) =>
-    w?.replace(/\s/g, '') || null;
+  // trims surrounding whitespace, so comparing raw strings here would miss
+  // ' W ' against 'W' and emit two rows that mint to one address.
+  //
+  // Only the ENDS are trimmed. Removing an interior space would turn a
+  // malformed 'A B' into 'AB' -- a different and possibly real wallet -- so
+  // such a value is treated as unusable rather than repaired into someone
+  // else's address.
+  const canonicalWallet = (w: string | null | undefined) => {
+    const trimmed = w?.trim();
+    if (!trimmed || /\s/.test(trimmed)) return null;
+    return trimmed;
+  };
   const voterWallets = new Set(
     voters
       .map((v) => canonicalWallet(
@@ -410,6 +417,17 @@ export async function createNftRecordsForVote(voteId: string): Promise<number> {
       }
       const holderWallet = canonicalWallet(holder.wallet_address);
       if (holderWallet && voterWallets.has(holderWallet)) {
+        continue;
+      }
+      // An unusable wallet cannot receive an NFT, and emitting the record
+      // anyway would make the claim RPC refuse the whole batch and fail the
+      // resolution for every other participant. The address itself is not
+      // logged.
+      if (holder.wallet_address && !holderWallet) {
+        console.warn('createNftRecordsForVote: skipping holder with an unusable wallet', {
+          voteId,
+          issueCoinId: issueCoin.id,
+        });
         continue;
       }
 

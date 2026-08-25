@@ -122,6 +122,25 @@ describe('createNftRecordsForVote', () => {
     expect(records[0]).toMatchObject({ userId: 'user-1', type: 'verified_voter' });
   });
 
+  it('skips a holder whose wallet could not be stored, rather than failing the batch', async () => {
+    // An interior space makes the address unusable, and the claim RPC refuses
+    // it. Emitting the record anyway would take down the whole resolution for
+    // every other participant.
+    seed([{ user_id: 'user-1', option_id: 'opt-1', users: { qubik_wallet_address: null } }]);
+    (getIssueCoinHolders as Mock).mockResolvedValue([
+      { user_id: null, wallet_address: 'Interior Space Wa11et', is_local_resident: false, token_amount: 4 },
+      { user_id: null, wallet_address: OUTSIDE_WALLET, is_local_resident: false, token_amount: 9 },
+    ]);
+
+    await createNftRecordsForVote(VOTE_ID);
+
+    const records = (bulkCreateVoteNfts as Mock).mock.calls[0][0];
+    expect(records.map((r: { walletAddress?: string }) => r.walletAddress)).toEqual([
+      undefined,
+      OUTSIDE_WALLET,
+    ]);
+  });
+
   it('still skips a holder recognised by account', async () => {
     seed([{ user_id: 'user-1', option_id: 'opt-1', users: { qubik_wallet_address: null } }]);
     (getIssueCoinHolders as Mock).mockResolvedValue([

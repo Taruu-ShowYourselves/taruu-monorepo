@@ -1,13 +1,18 @@
 /**
- * The two vote_nfts writers, at the client boundary.
+ * The holder writers, at the client boundary.
  *
- * Both exist to keep one holder from getting two irreversible on-chain NFTs,
- * and both delegate the actual guarantee to the database — `bulkCreateVoteNfts`
- * to `claim_vote_nft_records`, `claimNftForMinting` to a conditional UPDATE.
+ * `vote_nfts` and `issue_coin_holdings` carried the same defect — a UNIQUE
+ * constraint spanning both holder columns, which enforces nothing because the
+ * unused column is always NULL — and both had writers that raced into the gap.
+ * Each now delegates the guarantee to the database: `bulkCreateVoteNfts` to
+ * `claim_vote_nft_records`, `upsertIssueCoinHolding` to
+ * `claim_issue_coin_holding`, and `claimNftForMinting` to a conditional UPDATE.
+ *
  * What is worth asserting here is the part the database cannot: that the right
- * call is made with the right shape, and that the client refuses the inputs it
- * cannot honour. The database-side behaviour is proven against a real Postgres
- * in supabase/tests/vote_nft_holder_uniqueness.sql.
+ * call is made with the right shape, and that a refusal is surfaced rather than
+ * swallowed. The database-side behaviour is proven against a real Postgres in
+ * supabase/tests/vote_nft_holder_uniqueness.sql and
+ * supabase/tests/issue_coin_holding_uniqueness.sql.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -23,7 +28,11 @@ vi.mock('@/lib/supabase/server', () => ({
   },
 }));
 
-import { bulkCreateVoteNfts, claimNftForMinting } from '@/lib/supabase/db';
+import {
+  bulkCreateVoteNfts,
+  claimNftForMinting,
+  upsertIssueCoinHolding,
+} from '@/lib/supabase/db';
 
 /** The `.update().eq().eq().select().maybeSingle()` chain, capturing filters. */
 function updateChain(result: { data: unknown; error: unknown }) {
@@ -111,5 +120,73 @@ describe('claimNftForMinting', () => {
   it('reports a lost claim rather than throwing', async () => {
     updateChain({ data: null, error: null });
     expect(await claimNftForMinting('nft-1')).toBe(false);
+  });
+});
+
+describe('upsertIssueCoinHolding', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('records the purchase in one call rather than reading then writing', async () => {
+    // The read-then-write version let two overlapping purchases by one holder
+    // each insert a row, splitting their balance. The accumulate-or-create
+    // decision now happens inside the statement that enforces uniqueness.
+    const row = { id: 'holding-1', token_amount: '350' };
+    rpc.mockResolvedValue({ data: row, error: null });
+
+    const result = await upsertIssueCoinHolding({
+      issueCoinId: 'coin-1',
+      userId: 'user-1',
+      tokenAmount: '250',
+      investedIls: 300,
+    });
+
+    expect(result).toBe(row);
+    expect(from).not.toHaveBeenCalled();
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith('claim_issue_coin_holding', {
+      p_issue_coin_id: 'coin-1',
+      p_user_id: 'user-1',
+      p_wallet_address: null,
+      p_token_amount: '250',
+      p_invested_ils: 300,
+      p_is_local_resident: false,
+    });
+  });
+
+  it('passes an external wallet through as the holder', async () => {
+    rpc.mockResolvedValue({ data: { id: 'holding-2' }, error: null });
+
+    await upsertIssueCoinHolding({
+      issueCoinId: 'coin-1',
+      walletAddress: 'W1',
+      tokenAmount: '10',
+      investedIls: 0,
+      isLocalResident: true,
+    });
+
+    expect(rpc).toHaveBeenCalledWith('claim_issue_coin_holding', {
+      p_issue_coin_id: 'coin-1',
+      p_user_id: null,
+      p_wallet_address: 'W1',
+      p_token_amount: '10',
+      p_invested_ils: 0,
+      p_is_local_resident: true,
+    });
+  });
+
+  it('surfaces a refusal rather than swallowing it', async () => {
+    // The RPC refuses amounts that would corrupt a balance. A purchase path
+    // must not treat that as a no-op.
+    rpc.mockResolvedValue({ data: null, error: { message: 'p_token_amount must be...' } });
+    await expect(
+      upsertIssueCoinHolding({
+        issueCoinId: 'coin-1',
+        userId: 'user-1',
+        tokenAmount: '-5',
+        investedIls: 0,
+      })
+    ).rejects.toBeTruthy();
   });
 });

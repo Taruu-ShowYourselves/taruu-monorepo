@@ -2033,7 +2033,22 @@ export async function getIssueCoinHolders(
 }
 
 /**
- * Get or create Issue Coin holding
+ * Record a purchase against a holder's single holding for one Issue Coin.
+ *
+ * This used to SELECT the holding and then UPDATE or INSERT it. Two overlapping
+ * purchases by the same holder both read "no holding" and both inserted, which
+ * split their tokens and invested ILS across two rows -- and the next purchase's
+ * `.single()` lookup then errors on the two matches, so one race permanently
+ * broke buying for that holder.
+ *
+ * `claim_issue_coin_holding` does the whole thing in one INSERT ... ON CONFLICT
+ * DO UPDATE against `uq_issue_coin_holding_user` / `uq_issue_coin_holding_wallet`,
+ * so the accumulate-or-create decision is made under the lock that enforces the
+ * constraint. It lives in the database because inferring a PARTIAL unique index
+ * as an ON CONFLICT arbiter requires restating its WHERE clause, which PostgREST
+ * cannot express.
+ *
+ * Exactly one of userId / walletAddress must be given.
  */
 export async function upsertIssueCoinHolding(data: {
   issueCoinId: string;
@@ -2043,59 +2058,20 @@ export async function upsertIssueCoinHolding(data: {
   investedIls: number;
   isLocalResident?: boolean;
 }) {
-  const now = new Date().toISOString();
-  const existingQuery = supabaseAdmin
-    .from('issue_coin_holdings')
-    .select('*')
-    .eq('issue_coin_id', data.issueCoinId);
-
-  if (data.userId) {
-    existingQuery.eq('user_id', data.userId);
-  } else if (data.walletAddress) {
-    existingQuery.eq('wallet_address', data.walletAddress);
-  }
-
-  const { data: existing } = await existingQuery.single();
-
-  if (existing) {
-    // Update existing holding
-    const newAmount = (BigInt(existing.token_amount) + BigInt(data.tokenAmount)).toString();
-    const { data: updated, error } = await supabaseAdmin
-      .from('issue_coin_holdings')
-      .update({
-        token_amount: newAmount,
-        invested_ils: existing.invested_ils + data.investedIls,
-        last_purchase_at: now,
-      })
-      .eq('id', existing.id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return updated;
-  }
-
-  // Create new holding
-  const { data: created, error } = await supabaseAdmin
-    .from('issue_coin_holdings')
-    .insert({
-      issue_coin_id: data.issueCoinId,
-      user_id: data.userId,
-      wallet_address: data.walletAddress,
-      token_amount: data.tokenAmount,
-      invested_ils: data.investedIls,
-      is_local_resident: data.isLocalResident || false,
-      first_purchase_at: now,
-      last_purchase_at: now,
-    })
-    .select()
-    .single();
+  const { data: holding, error } = await supabaseAdmin.rpc('claim_issue_coin_holding', {
+    p_issue_coin_id: data.issueCoinId,
+    p_user_id: data.userId ?? null,
+    p_wallet_address: data.walletAddress ?? null,
+    p_token_amount: data.tokenAmount,
+    p_invested_ils: data.investedIls,
+    p_is_local_resident: data.isLocalResident ?? false,
+  });
 
   if (error) {
     console.error('Failed to upsert issue coin holding:', error);
     throw error;
   }
-  return created;
+  return holding;
 }
 
 /**
@@ -2393,12 +2369,22 @@ export async function getPendingNfts(limit = 50): Promise<PendingNftWithRecipien
       wallet_address: string | null;
       users: { qubik_wallet_address: string | null } | null;
     };
+    // Canonicalised the same way the holder columns are: surrounding whitespace
+    // trimmed, anything still containing whitespace treated as unusable. A
+    // padded address would otherwise be handed to the chain verbatim, and a
+    // malformed one would be marked terminally failed rather than left pending
+    // for the wallet to be corrected. Interior whitespace is never removed --
+    // that would name a different wallet.
+    const usable = (w: string | null | undefined) => {
+      const trimmed = w?.trim();
+      return trimmed && !/\s/.test(trimmed) ? trimmed : null;
+    };
     return {
       id: r.id,
       vote_id: r.vote_id,
       type: r.type,
       metadata: r.metadata,
-      recipient: r.wallet_address || r.users?.qubik_wallet_address || null,
+      recipient: usable(r.wallet_address) || usable(r.users?.qubik_wallet_address),
     };
   });
 }

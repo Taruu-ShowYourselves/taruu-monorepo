@@ -2485,6 +2485,17 @@ export interface Database {
           out_created_at: string;
         }[];
       };
+      claim_issue_coin_holding: {
+        Args: {
+          p_issue_coin_id: string;
+          p_user_id: string | null;
+          p_wallet_address: string | null;
+          p_token_amount: string;
+          p_invested_ils: number;
+          p_is_local_resident?: boolean;
+        };
+        Returns: Database['public']['Tables']['issue_coin_holdings']['Row'];
+      };
       claim_vote_nft_records: {
         Args: {
           p_vote_id: string;

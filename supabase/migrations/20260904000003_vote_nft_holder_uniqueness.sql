@@ -294,6 +294,25 @@ BEGIN
       USING ERRCODE = '22023';
   END IF;
 
+  -- Only the ENDS are trimmed above. A wallet with whitespace still in it is
+  -- refused rather than repaired: removing an interior space would turn a
+  -- malformed 'A B' into 'AB', a different and possibly real address, and this
+  -- row decides who receives an irreversible NFT. Without this the row would
+  -- still be rejected -- by chk_nft_holder_identity -- but as a bare
+  -- check_violation naming no record.
+  IF EXISTS (
+    SELECT 1
+      FROM jsonb_array_elements(p_records) AS r
+     WHERE r ->> 'wallet_address' IS NOT NULL
+       AND btrim(r ->> 'wallet_address', E' \t\r\n\f\v') !~ '^[^[:space:]]*$'
+  ) THEN
+    RAISE EXCEPTION
+      'a wallet_address contains whitespace after trimming; refusing rather '
+      'than rewriting it, because removing an interior space would name a '
+      'different wallet'
+      USING ERRCODE = '22023';
+  END IF;
+
   -- User-held rows. ON CONFLICT DO NOTHING also absorbs duplicates WITHIN one
   -- call, so a caller that enumerates the same voter twice is harmless.
   WITH claimed AS (
