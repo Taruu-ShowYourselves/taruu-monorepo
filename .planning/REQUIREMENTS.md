@@ -15,7 +15,7 @@ This milestone (re-scoped 2026-08-03): **participation is free**, vote creation 
 
 - [x] **SEC-01**: Corrective migration replaces `auth.uid()` with `public.user_id()` on `treasury_transactions`, `issue_coin_holdings`, and `phone_verifications` policies, so per-user reads work and tables aren't anon-readable — before any card-on-file write to `treasury_transactions`. *(Done: 20260628000002_fix_rls_user_id_helper.sql — commit 31d6860)*
   > **Necessary but not sufficient — superseded by RLS-01..05 (Phase 5) and MIG-01..04 (Phase 7).** Discovered 2026-08-02 while researching Phase 5: SEC-01 corrected the *policies*, which were genuinely wrong, but the *transport* that would make any policy match was never wired up. `public.user_id()` (`20240101000001_rls_policies.sql:10-21`) reads `request.jwt.claims->>'sub'` first and falls back to `app.current_user_id`; nothing ever sets either. `withUserContext()` (`apps/web/src/lib/supabase/server.ts:67`) calls `set_claim('user_id', …)`, which writes `app.user_id` — a different key — and has zero call sites; even with the name fixed, `set_config(…, true)` is transaction-local and PostgREST is stateless HTTP, so the value would not survive to the next query. All real traffic uses the service-role client, which bypasses RLS entirely. SEC-01's policies are correct and remain correct; they simply never evaluate. Do not re-open SEC-01 — the corrective work is tracked below.
-- [ ] **SEC-02**: Treasury transactions endpoint (`api/treasury/[municipality]/transactions`) scopes results to the caller's `user_id` for non-admin requests (or strips `userId` and exposes only anonymized aggregates) — no full-ledger enumeration.
+- [x] **SEC-02**: Treasury transactions endpoint (`api/treasury/[municipality]/transactions`) scopes results to the caller's `user_id` for non-admin requests (or strips `userId` and exposes only anonymized aggregates) — no full-ledger enumeration. *(Satisfied out of phase in commit 35b0709 — the endpoint strips `userId`/`paymentId` and whitelists `metadata`; verified 2026-08-03 and locked by a source guard in `__tests__/api/treasury-transactions.test.ts`.)*
 - [ ] **SEC-03**: The vote-payment webhook verifies its secret via an HTTP header or payload HMAC (never a `?token=` URL param) and fails closed in production with constant-time comparison.
 - [ ] **SEC-04**: The payment idempotency key is generated server-side and deterministically (`{userId}:{type}:{voteId|optionId}`), never using `Date.now()`, so retries dedupe.
 - [ ] **SEC-05**: `env.ts` validates the variables actually read at runtime (rename `SUPABASE_SERVICE_KEY` → `SUPABASE_SERVICE_ROLE_KEY`, add the `GREENINVOICE_*` vote-payment vars) and `validateEnv()` runs at app startup (fail-fast).
@@ -167,7 +167,7 @@ Built entirely on Phase 5's primitives — the role-grant schema, the authorizat
 | VOTE-03 | Phase 02.1 | Complete (plans 02, 04) |
 | VOTE-04 | Phase 02.1 | Complete (client-side, plan 05) |
 | VOTE-05 | Phase 02.1 | Complete (plans 01, 03, 04) |
-| SEC-02 | Phase 3 | Pending |
+| SEC-02 | Phase 3 | Complete (35b0709, verified 2026-08-03) |
 | SEC-03 | Phase 3 | Pending |
 | SEC-04 | Phase 3 | Pending |
 | SEC-05 | Phase 3 | Pending |

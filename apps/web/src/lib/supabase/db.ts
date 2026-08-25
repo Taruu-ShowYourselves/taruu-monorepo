@@ -607,6 +607,43 @@ export async function createPayment(
 }
 
 /**
+ * Persist the provider's hosted-form URL (and its expiry) on a pending
+ * payment's metadata. Written once, right after the Green Invoice form is
+ * minted, so an idempotent retry of /api/payments/create can hand the caller
+ * the SAME checkout instead of a payment with no way to pay it. Best-effort by
+ * design: on failure the payment stays fully usable - only the reuse path
+ * degrades back to "no URL stored".
+ */
+export async function attachPaymentFormUrl(
+  paymentId: string,
+  formUrl: string,
+  expiresAt: string
+): Promise<void> {
+  const { data: row, error: selErr } = await supabaseAdmin
+    .from('payments')
+    .select('metadata')
+    .eq('id', paymentId)
+    .maybeSingle();
+
+  if (selErr || !row) {
+    console.error('Failed to read payment metadata for form url:', selErr);
+    return;
+  }
+
+  const metadata = (row.metadata as Record<string, unknown>) || {};
+  const { error: updErr } = await supabaseAdmin
+    .from('payments')
+    .update({
+      metadata: { ...metadata, providerFormUrl: formUrl, providerFormExpiresAt: expiresAt },
+    })
+    .eq('id', paymentId);
+
+  if (updErr) {
+    console.error('Failed to attach payment form url:', updErr);
+  }
+}
+
+/**
  * Atomically claim a payment as completed: `pending → completed` guarded in the
  * same statement. Returns the row to the single caller that won the race, or
  * null if it was already completed / lost (idempotent). All downstream
@@ -1509,6 +1546,13 @@ export async function getWebhookEventByEventId(
 /**
  * Record a new webhook event before processing.
  * This creates a pending record that blocks duplicate processing.
+ *
+ * The thrown error carries Postgres's SQLSTATE on `.code`. The payments webhook
+ * discriminates `23505` - a concurrent delivery won the `UNIQUE(event_id)` insert,
+ * which is a genuine replay - from every other failure, which must produce a 5xx so
+ * Green Invoice retries instead of treating a database outage as a duplicate. Same
+ * discrimination as `recordUserVoteOnce`; without propagating the code, the caller
+ * cannot tell the two apart.
  */
 export async function createWebhookEvent(
   eventData: InsertTables<'webhook_events'>
@@ -1519,7 +1563,13 @@ export async function createWebhookEvent(
     .select()
     .single();
 
-  if (error) throw new Error(`Failed to create webhook event: ${error.message}`);
+  if (error) {
+    const failure: Error & { code?: string } = new Error(
+      `Failed to create webhook event: ${error.message}`
+    );
+    failure.code = error.code;
+    throw failure;
+  }
   return data;
 }
 

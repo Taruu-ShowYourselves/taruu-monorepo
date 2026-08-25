@@ -52,7 +52,7 @@ const COPY: Record<Locale, PricingCopy> = {
       'התמונה המלאה פתוחה לכולם',
     ],
     participationNote:
-      'בלי תשלום ובלי חסמים. נדרש רק אימות זהות ומיקום, כדי שכל קול ישויך לתושב אמיתי אחד.',
+      'בלי תשלום ובלי חסמים. נדרש רק אימות זהות ומיקום, כדי שכל קול ישויך לתושב אמיתי אחד. הקרן הקהילתית של כל הצבעה ממומנת מהשקעות חיצוניות ב-BAG של ההצבעה, לא מכספי תושבים.',
     createTag: 'יצירת הצבעה חדשה',
     createSpec: [
       'פרסום הצבעה חדשה ברשות שלכם',
@@ -84,7 +84,7 @@ const COPY: Record<Locale, PricingCopy> = {
       'The full picture is open to everyone',
     ],
     participationNote:
-      'No charge and no barriers. Only identity and location verification are required, so that every vote is tied to one real resident.',
+      "No charge and no barriers. Only identity and location verification are required, so that every vote is tied to one real resident. Each vote's community fund is financed by outside investment in the vote's BAG, not by residents' money.",
     createTag: 'Creating a new vote',
     createSpec: [
       'Publish a new vote in your municipality',

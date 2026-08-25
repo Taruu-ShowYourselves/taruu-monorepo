@@ -7,6 +7,11 @@ import {
 } from '@/lib/supabase/db';
 import { emailService } from '@/services/email';
 import { logger } from '@/lib/logger';
+import {
+  paymentsEnabled,
+  PAYMENTS_DISABLED_CODE,
+  PAYMENTS_DISABLED_MESSAGE,
+} from '@/lib/payments-flag';
 
 const MAX_REASON_LENGTH = 500;
 
@@ -22,6 +27,17 @@ const MAX_REASON_LENGTH = 500;
  * Body: { paymentId: string, reason: string }
  */
 export async function POST(request: NextRequest) {
+  // Payments kill switch, checked FIRST. Nothing was ever charged while the
+  // switch is off, so there is nothing to refund - and the support notification
+  // this route sends would be noise. Settled historical payments are refunded in
+  // Green Invoice directly, exactly as the policy already describes.
+  if (!paymentsEnabled()) {
+    return NextResponse.json(
+      { error: PAYMENTS_DISABLED_MESSAGE, code: PAYMENTS_DISABLED_CODE },
+      { status: 503 }
+    );
+  }
+
   try {
     const session = await getSessionFromRequest(request);
     if (!session) {

@@ -89,6 +89,12 @@
   // Secrets are NOT stored here. Set them with `wrangler secret put <NAME>`
   // (or .dev.vars locally). Only NON-secret public vars belong in `vars`.
   "vars": {
+    // Payments are OFF until the provider approves the account. Only the exact
+    // string "true" turns money on, and the client reads it at BUILD time
+    // (NEXT_PUBLIC_ inlining), so flipping it means a rebuild + deploy, not just
+    // a var edit. GREENINVOICE_ENV below no longer gates the site: it selects
+    // the provider's API host and nothing else.
+    "NEXT_PUBLIC_PAYMENTS_ENABLED": "false",
     "GREENINVOICE_ENV": "production",
     "QUBIK_NETWORK": "mainnet",
     // Cutover for automatic activation of fully assembled discovery votes

@@ -27,15 +27,15 @@ describe('usePayment Hook Logic', () => {
       (paymentsApi.createPaymentIntent as jest.Mock).mockResolvedValue(mockPaymentIntent);
 
       const result = await paymentsApi.createPaymentIntent({
-        amount: 300,
-        type: 'vote_participation',
-        metadata: { voteId: 'vote-123' },
+        amount: 5000,
+        type: 'vote_creation',
+        metadata: { voteTitle: 'New Vote' },
       });
 
       expect(paymentsApi.createPaymentIntent).toHaveBeenCalledWith({
-        amount: 300,
-        type: 'vote_participation',
-        metadata: { voteId: 'vote-123' },
+        amount: 5000,
+        type: 'vote_creation',
+        metadata: { voteTitle: 'New Vote' },
       });
       expect(result.id).toBe('pi_123');
       expect(result.paymentUrl).toBe('https://sandbox.d.greeninvoice.co.il/form/123');
@@ -48,8 +48,8 @@ describe('usePayment Hook Logic', () => {
 
       await expect(
         paymentsApi.createPaymentIntent({
-          amount: 300,
-          type: 'vote_participation',
+          amount: 5000,
+          type: 'vote_creation',
         })
       ).rejects.toThrow('Payment service unavailable');
     });

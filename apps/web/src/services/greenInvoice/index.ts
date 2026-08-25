@@ -215,7 +215,10 @@ export interface TokenChargeResult {
  * issues an ILS charge against a previously-stored card and, on success, auto-issues
  * a tax document (receipt/חשבונית קבלה) in one response.
  *
- * Use for the monthly membership fee (₪6) and vote-creation fee (₪50).
+ * This has no live consumer. The monthly membership it was written for is retired
+ * (participation is free since cfa5d25), and the ₪50 vote-creation fee runs on the
+ * hosted form, not on a stored token. Phase 6's manager subscription is its only
+ * planned use; until then it stays orphaned to the spike harness.
  */
 export async function chargeToken(input: TokenChargeInput): Promise<TokenChargeResult> {
   if (!isGreenInvoiceConfigured()) {

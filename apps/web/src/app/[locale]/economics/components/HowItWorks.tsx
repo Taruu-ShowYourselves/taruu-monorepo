@@ -151,8 +151,8 @@ const COPY: Record<Locale, HowItWorksCopy> = {
       { number: '4', title: 'מסחר לפי הסנטימנט', description: 'הערך משקף את מידת התמיכה בנושא', icon: 'trend' },
       { number: '5', title: 'תעודת תומך קהילתי', description: 'תג שמתקבל בסיום ההצבעה', icon: 'badge' },
     ],
-    feeTitle: 'מכל עמלות המסחר זורמים לקרן הקהילתית של הרשות',
-    feeSub: '30% מממנים את התחזוקה והפיתוח של הפלטפורמה',
+    feeTitle: 'עלות יצירת הצבעה חדשה, שמממנת את תפעול הפלטפורמה',
+    feeSub: 'הקרן הקהילתית מתמלאת מהשקעות חיצוניות ב-BAG של ההצבעה, לא מכסף של תושבים',
   },
   en: {
     kicker: 'TWO TRACKS',
@@ -178,8 +178,8 @@ const COPY: Record<Locale, HowItWorksCopy> = {
       { number: '4', title: 'Trade on sentiment', description: 'The value reflects how much support a topic carries', icon: 'trend' },
       { number: '5', title: 'Community-supporter certificate', description: 'A badge issued when the vote ends', icon: 'badge' },
     ],
-    feeTitle: "of every trading fee flows to the municipality's community fund",
-    feeSub: '30% funds the upkeep and development of the platform',
+    feeTitle: 'is the cost of creating a new vote, and it funds platform operations',
+    feeSub: "The community fund is filled by outside investment in the vote's BAG, not by residents' money",
   },
 };
 
@@ -273,9 +273,9 @@ export function HowItWorks({ locale }: { locale: Locale }) {
           />
         </div>
 
-        {/* Fee split - ink block callout */}
+        {/* Creation fee - ink block callout */}
         <div className={styles.feeNote}>
-          <span className={styles.feeNum}>70%</span>
+          <span className={styles.feeNum}>₪50</span>
           <div className={styles.feeBody}>
             <p className={styles.feeTitle}>{t.feeTitle}</p>
             <span className={styles.feeSub}>{t.feeSub}</span>

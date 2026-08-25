@@ -1,3 +1,12 @@
+/**
+ * Checkout — vote creation only.
+ *
+ * The one thing Taruu charges for is creating a vote. Participation is free,
+ * so no ballot ever reaches a checkout: `app/vote/[id].tsx` records it
+ * directly against the server. This screen therefore states the creation fee
+ * and nothing else, and it posts `vote_creation` as a literal so a stale deep
+ * link cannot ask the server for the retired participation rail.
+ */
 import { useEffect, useState } from 'react';
 import {
   View,
@@ -15,6 +24,9 @@ import { useUser } from '@/stores/authStore';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://taruu.co.il';
 
+/** The only payment type this screen may request. Never read from params. */
+const PAYMENT_TYPE = 'vote_creation' as const;
+
 interface PaymentDetails {
   id: string;
   orderId: string;
@@ -26,8 +38,11 @@ interface PaymentDetails {
 
 export default function CheckoutScreen() {
   const router = useRouter();
+  // `voteId` survives only because `payment/failed.tsx` forwards it back here
+  // on retry; it is never sent to the create endpoint, because a vote being
+  // paid for does not exist yet.
   const params = useLocalSearchParams<{
-    type: 'vote_participation' | 'vote_creation';
+    type: typeof PAYMENT_TYPE;
     voteId?: string;
     voteTitle?: string;
   }>();
@@ -58,8 +73,7 @@ export default function CheckoutScreen() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          type: params.type,
-          voteId: params.voteId,
+          type: PAYMENT_TYPE,
           voteTitle: params.voteTitle,
         }),
       });
@@ -106,7 +120,7 @@ export default function CheckoutScreen() {
           params: {
             paymentId: paymentDetails.id,
             amount: String(paymentDetails.amount),
-            type: params.type,
+            type: PAYMENT_TYPE,
             voteId: params.voteId || '',
           },
         });
@@ -145,7 +159,7 @@ export default function CheckoutScreen() {
           params: {
             paymentId: paymentDetails.id,
             amount: String(paymentDetails.amount),
-            type: params.type,
+            type: PAYMENT_TYPE,
             voteId: params.voteId || '',
           },
         });
@@ -165,20 +179,12 @@ export default function CheckoutScreen() {
     }
   };
 
-  const getPaymentTitle = () => {
-    return params.type === 'vote_participation'
-      ? 'השתתפות בהצבעה'
-      : 'יצירת הצבעה';
-  };
+  const getPaymentTitle = () => 'יצירת הצבעה';
 
-  const getPaymentDescription = () => {
-    if (params.type === 'vote_participation') {
-      return params.voteTitle
-        ? `תשלום להשתתפות בהצבעה: ${params.voteTitle}`
-        : 'תשלום להשתתפות בהצבעה';
-    }
-    return 'תשלום ליצירת הצבעה חדשה בפלטפורמה';
-  };
+  const getPaymentDescription = () =>
+    params.voteTitle
+      ? `דמי יצירה להצבעה: ${params.voteTitle}`
+      : 'דמי יצירה להצבעה חדשה בפלטפורמה';
 
   if (loading) {
     return (

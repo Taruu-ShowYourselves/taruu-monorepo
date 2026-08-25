@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Segmented, Receipt, TallyBar } from '@/components/press';
+import { Segmented, TallyBar } from '@/components/press';
 import { staggerContainer, fadeInUp } from '@/lib/animations';
 import { useReducedMotion } from '@/hooks';
 import { formatCurrency, formatDate, MUNICIPALITIES } from '@sync/shared';
@@ -69,11 +69,6 @@ interface TreasuryDashboardCopy {
   statMultiplier: string;
   multiplierMeta: (x: string) => string;
   allocationTitle: string;
-  receiptKicker: string;
-  receiptFund: string;
-  receiptOps: string;
-  receiptTotal: string;
-  receiptFooter: string;
   resolvedLabel: string;
   activeLabel: string;
   historyTitle: string;
@@ -107,11 +102,6 @@ const COPY: Record<Locale, TreasuryDashboardCopy> = {
     statMultiplier: 'מכפיל SocialFi',
     multiplierMeta: (x) => `כל ₪1 מקומי הפך ל-₪${x}`,
     allocationTitle: 'התפלגות הכנסות',
-    receiptKicker: 'חלוקה · ALLOCATION',
-    receiptFund: '70% לקרן הרשות',
-    receiptOps: '30% תפעול הפלטפורמה',
-    receiptTotal: 'סך הקרן',
-    receiptFooter: 'כל סכום מתועד · חתום בבלוקצ׳יין · ביקורת חשבונאית עצמאית',
     resolvedLabel: 'הצבעות שהסתיימו',
     activeLabel: 'הצבעות פעילות',
     historyTitle: 'היסטוריית תנועות',
@@ -143,11 +133,6 @@ const COPY: Record<Locale, TreasuryDashboardCopy> = {
     statMultiplier: 'SocialFi multiplier',
     multiplierMeta: (x) => `Every local ₪1 became ₪${x}`,
     allocationTitle: 'Revenue breakdown',
-    receiptKicker: 'The split · ALLOCATION',
-    receiptFund: '70% to the municipal fund',
-    receiptOps: '30% platform operations',
-    receiptTotal: 'Fund total',
-    receiptFooter: 'Every amount recorded · Signed on the blockchain · Independent accounting audit',
     resolvedLabel: 'Votes concluded',
     activeLabel: 'Active votes',
     historyTitle: 'Transaction history',
@@ -418,7 +403,7 @@ export function TreasuryDashboard({ locale = 'he' }: TreasuryDashboardProps) {
           </motion.div>
         </motion.div>
 
-        {/* Allocation breakdown - ledger split + receipt */}
+        {/* Allocation breakdown - ledger split, real figures only */}
         <motion.div
           className={styles.board}
           initial={reduced ? false : { opacity: 0, y: 16 }}
@@ -437,26 +422,20 @@ export function TreasuryDashboard({ locale = 'he' }: TreasuryDashboardProps) {
             t={t}
           />
 
-          <Receipt
-            className={styles.allocReceipt}
-            kicker={t.receiptKicker}
-            rows={[
-              {
-                label: t.receiptFund,
-                value: formatCurrency(treasury.totalILS * 0.7),
-              },
-              {
-                label: t.receiptOps,
-                value: formatCurrency(treasury.totalILS * 0.3),
-              },
-              {
-                label: t.receiptTotal,
-                value: formatCurrency(treasury.totalILS),
-                strong: true,
-              },
-            ]}
-            footer={t.receiptFooter}
-          />
+          {/*
+            An allocation Receipt stood here, multiplying the fund balance by
+            two fixed percentages and printing the products as if the ledger
+            had produced them. Nothing implements that split - the payments
+            webhook credits the treasury the full amount. A real allocation
+            ledger is COIN-02's to establish, and it is gated on COIN-01's
+            written legal sign-off, so until that ledger exists nothing on this
+            board may assert a split. The ledger split above is the one
+            breakdown the data supports, and the stat cards already carry the
+            fund total. The receipt's footer went with it rather than being
+            reworded: it claimed an independent accounting audit that has never
+            been commissioned, and a chain signature over ILS figures that live
+            in Postgres.
+          */}
         </motion.div>
 
         {/* Activity counters */}

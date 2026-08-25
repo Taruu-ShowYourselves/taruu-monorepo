@@ -17,9 +17,17 @@ import {
 } from '@sync/shared';
 import type { CheckoutRequest, CheckoutResponse, ShippingAddress } from '@sync/shared';
 import type { Locale } from '@/lib/i18n';
+import { paymentsEnabled } from '@/lib/payments-flag';
 import { QtyStepper } from '../../components/QtyStepper';
 import styles from './CartView.module.css';
 import { localePrefix } from '@/lib/i18n';
+
+/**
+ * The store cannot charge while payments are off, so the checkout affordance is
+ * a coming-soon stamp rather than a button that would 503. Read once at module
+ * scope: NEXT_PUBLIC_PAYMENTS_ENABLED is inlined at build time.
+ */
+const PAYMENTS_OPEN = paymentsEnabled();
 
 interface CartViewCopy {
   genericError: string;
@@ -51,6 +59,9 @@ interface CartViewCopy {
   countryNote: string;
   submitting: string;
   checkoutCta: (total: number) => string;
+  /** Coming-soon copy. A condition, never a date - and nothing is collected. */
+  checkoutSoonLabel: string;
+  checkoutSoonNote: string;
   keepShopping: string;
   arrow: string;
 }
@@ -86,6 +97,9 @@ const COPY: Record<Locale, CartViewCopy> = {
     countryNote: 'משלוח לישראל בלבד · תשלום מאובטח בשקלים.',
     submitting: 'רגע…',
     checkoutCta: (total) => `למעבר לתשלום · ₪${total}`,
+    checkoutSoonLabel: 'התשלום ייפתח בקרוב',
+    checkoutSoonNote:
+      'המעבר לתשלום עדיין לא נפתח. אפשר להשאיר את הפריטים בעגלה - הם נשמרים כאן עד שהחנות תיפתח לתשלום.',
     keepShopping: 'המשך קנייה ↑',
     arrow: '←',
   },
@@ -119,6 +133,9 @@ const COPY: Record<Locale, CartViewCopy> = {
     countryNote: 'Shipping within Israel only · Secure payment in shekels.',
     submitting: 'One moment…',
     checkoutCta: (total) => `Proceed to payment · ₪${total}`,
+    checkoutSoonLabel: 'Checkout opens soon',
+    checkoutSoonNote:
+      'Checkout has not opened yet. You can leave the items in the cart - they are kept here until the store opens for payment.',
     keepShopping: 'Continue shopping ↑',
     arrow: '→',
   },
@@ -179,6 +196,9 @@ export function CartView({ locale }: CartViewProps) {
 
   const handleCheckout = async () => {
     setSubmitError(null);
+    // Belt and braces: the button is disabled while payments are off, and
+    // /api/merch/checkout answers 503 regardless.
+    if (!PAYMENTS_OPEN) return;
     if (items.length === 0) return;
 
     // Checkout requires sign-in - send guests to sign-in and back to the cart.
@@ -387,7 +407,7 @@ export function CartView({ locale }: CartViewProps) {
               <span aria-hidden className={styles.trustMark}>
                 ■
               </span>
-              {t.countryNote}
+              {PAYMENTS_OPEN ? t.countryNote : t.checkoutSoonNote}
             </p>
 
             {submitError ? (
@@ -399,13 +419,18 @@ export function CartView({ locale }: CartViewProps) {
 
             <div className={styles.actionBar}>
               <NewsButton
-                variant="red"
+                variant={PAYMENTS_OPEN ? 'red' : 'outline'}
                 size="lg"
                 onClick={handleCheckout}
-                disabled={submitting}
-                trailing={<span aria-hidden>{t.arrow}</span>}
+                disabled={submitting || !PAYMENTS_OPEN}
+                aria-disabled={!PAYMENTS_OPEN}
+                trailing={PAYMENTS_OPEN ? <span aria-hidden>{t.arrow}</span> : undefined}
               >
-                {submitting ? t.submitting : t.checkoutCta(total)}
+                {!PAYMENTS_OPEN
+                  ? t.checkoutSoonLabel
+                  : submitting
+                    ? t.submitting
+                    : t.checkoutCta(total)}
               </NewsButton>
               <Link href={`${localePrefix(locale)}/store`} className={styles.keepShopping}>
                 {t.keepShopping}

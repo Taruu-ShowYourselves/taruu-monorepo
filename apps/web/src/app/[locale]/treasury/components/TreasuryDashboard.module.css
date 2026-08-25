@@ -212,10 +212,6 @@
   text-align: end;
 }
 
-.allocReceipt {
-  margin-block-start: var(--space-6);
-}
-
 /* ---------- Activity counters ---------- */
 .activityGrid {
   display: grid;

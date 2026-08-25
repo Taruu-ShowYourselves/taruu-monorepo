@@ -1,31 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { randomUUID } from 'crypto';
 import { getSessionFromRequest } from '@/services/auth/session';
 import {
   getUserById,
   createPayment,
   getPaymentByIdempotencyKey,
+  attachPaymentFormUrl,
 } from '@/lib/supabase/db';
 import {
   paymentService,
   getPaymentAmounts,
 } from '@/services/payments/greenInvoice';
-import { MINIMUM_IDENTITY_SCORE_FOR_VOTING, votingGate } from '@sync/shared';
+import { resolveIdempotencyKey } from '@/services/payments/idempotency';
+import {
+  paymentsEnabled,
+  PAYMENTS_DISABLED_CODE,
+  PAYMENTS_DISABLED_MESSAGE,
+} from '@/lib/payments-flag';
+
+/** The only payment this product can create. Participation is free (cfa5d25). */
+const CREATABLE_PAYMENT_TYPE = 'vote_creation' as const;
+
+/**
+ * Retired rail. `payments.type` keeps this value in its database enum because
+ * historical rows exist, but no new participation payment can be created.
+ */
+const RETIRED_PAYMENT_TYPE = 'vote_participation';
 
 interface CreatePaymentRequest {
-  type: 'vote_participation' | 'vote_creation';
+  type: 'vote_creation';
   voteId?: string;
   optionId?: string;
   voteTitle?: string;
-  idempotencyKey?: string;
+  // No `idempotencyKey`. A client-supplied key is deliberately NOT accepted
+  // (SEC-04): the server derives it from the request's own identity, so a caller
+  // cannot pin a key belonging to somebody else's flow.
 }
 
 /**
  * POST /api/payments/create
- * Create a Green Invoice hosted payment page for vote participation or creation
- * Supports idempotency via idempotency_key
+ * Create a Green Invoice hosted payment page for a ₪50 vote creation.
+ * Participation is free, so `vote_participation` is rejected rather than priced.
+ * Idempotency is server-derived and deterministic - see services/payments/idempotency.ts.
  */
 export async function POST(request: NextRequest) {
+  // Payments kill switch, checked FIRST - before auth, before the body is read,
+  // before any Green Invoice call. The client guard is cosmetic; this is the
+  // enforcement point, so it must not be reachable around.
+  if (!paymentsEnabled()) {
+    return NextResponse.json(
+      { error: PAYMENTS_DISABLED_MESSAGE, code: PAYMENTS_DISABLED_CODE },
+      { status: 503 }
+    );
+  }
+
   try {
     const session = await getSessionFromRequest(request);
 
@@ -34,23 +61,27 @@ export async function POST(request: NextRequest) {
     }
 
     const body: CreatePaymentRequest = await request.json();
-    const { type, voteId, optionId, voteTitle, idempotencyKey } = body;
+    const { voteId, optionId, voteTitle } = body;
+    const requestedType: string = body.type;
+
+    // The participation rail is retired, not merely unpriced: say so instead of
+    // quoting ₪0, so a stale client learns the contract changed.
+    if (requestedType === RETIRED_PAYMENT_TYPE) {
+      return NextResponse.json(
+        { error: 'ההשתתפות בהצבעה חינם - אין תשלום ליצור.' },
+        { status: 400 }
+      );
+    }
 
     // Validate payment type
-    if (!type || !['vote_participation', 'vote_creation'].includes(type)) {
+    if (requestedType !== CREATABLE_PAYMENT_TYPE) {
       return NextResponse.json(
         { error: 'Invalid payment type' },
         { status: 400 }
       );
     }
 
-    // For vote participation, voteId is required
-    if (type === 'vote_participation' && !voteId) {
-      return NextResponse.json(
-        { error: 'Vote ID is required for participation payment' },
-        { status: 400 }
-      );
-    }
+    const type = CREATABLE_PAYMENT_TYPE;
 
     const user = await getUserById(session.userId);
 
@@ -58,59 +89,68 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Ballot gate (issue #71): the stored score already CONTAINS the GPS
-    // residency points, so nothing is added on top here. Residency is a hard
-    // requirement of its own - no other evidence substitutes for it.
-    const gate = votingGate({
-      identityPoints: user.identity_score ?? 0,
-      residencyVerified: user.verification_status === 'verified',
+    // No identity/verification gate here. Those were participation gates and they
+    // now live on the free path (services/verification/eligibility.ts). Vote
+    // creation has its own, stricter server-side gate at publish time
+    // (server/app/votes/create-vote.ts) requiring a verified user with a municipality.
+
+    // Derive the idempotency key from the request's own identity (SEC-04). Whatever
+    // the client sent is ignored, and no clock is read, so a retry lands on the same
+    // key and the UNIQUE constraint on payments.idempotency_key can do its job.
+    const resolution = await resolveIdempotencyKey(getPaymentByIdempotencyKey, {
+      userId: user.id,
+      type,
+      voteTitle,
     });
 
-    if (type === 'vote_participation' && gate.total < gate.required) {
+    if (resolution.kind === 'exhausted') {
       return NextResponse.json(
-        {
-          error: `Insufficient identity score to vote. Minimum ${MINIMUM_IDENTITY_SCORE_FOR_VOTING} required.`,
-        },
-        { status: 403 }
+        { error: 'לא הצלחנו לפתוח תשלום חדש. נסו שוב עם כותרת אחרת או פנו לתמיכה.' },
+        { status: 409 }
       );
     }
 
-    // Check verification status for voting
-    if (type === 'vote_participation' && !gate.residencyVerified) {
-      return NextResponse.json(
-        { error: 'GPS verification required before voting' },
-        { status: 403 }
-      );
-    }
+    if (resolution.kind === 'reuse') {
+      // Idempotent retry: same draft, same user, payment still pending. Hand
+      // back the hosted-form URL stored at first create, so the retry can pay
+      // the SAME payment instead of dead-ending on a payment with no way to
+      // pay it (the client maps a URL-less payment to CHECKOUT_UNAVAILABLE).
+      // Rows created before the URL was persisted degrade to the old shape.
+      const metadata = (resolution.existing.metadata ?? {}) as Record<string, unknown>;
+      const storedFormUrl =
+        typeof metadata.providerFormUrl === 'string' && metadata.providerFormUrl.length > 0
+          ? metadata.providerFormUrl
+          : undefined;
+      const storedFormExpiresAt =
+        typeof metadata.providerFormExpiresAt === 'string' &&
+        metadata.providerFormExpiresAt.length > 0
+          ? metadata.providerFormExpiresAt
+          : undefined;
 
-    // Generate or use provided idempotency key
-    const paymentIdempotencyKey = idempotencyKey || `${user.id}-${type}-${voteId || 'create'}-${Date.now()}`;
-
-    // Check for existing payment with same idempotency key
-    const existingPayment = await getPaymentByIdempotencyKey(paymentIdempotencyKey);
-    if (existingPayment) {
-      // Return existing payment (idempotent response)
       return NextResponse.json({
         success: true,
         idempotent: true,
         payment: {
-          id: existingPayment.id,
-          status: existingPayment.status,
-          amount: existingPayment.amount,
-          currency: existingPayment.currency,
+          id: resolution.existing.id,
+          orderId: resolution.existing.id,
+          status: resolution.existing.status,
+          amount: resolution.existing.amount,
+          currency: resolution.existing.currency,
+          ...(storedFormUrl ? { paymentUrl: storedFormUrl } : {}),
+          ...(storedFormUrl && storedFormExpiresAt ? { expiresAt: storedFormExpiresAt } : {}),
         },
       });
     }
 
+    const paymentIdempotencyKey = resolution.key;
+
     const amounts = getPaymentAmounts();
-    const amount = type === 'vote_participation'
-      ? amounts.voteParticipation
-      : amounts.voteCreation;
+    const amount = amounts.voteCreation;
 
     // Create payment record in Supabase first (with pending status)
     const payment = await createPayment({
       user_id: user.id,
-      type: type as 'vote_participation' | 'vote_creation',
+      type,
       amount: amount * 100, // Store in agorot (cents)
       currency: 'ILS',
       status: 'pending',
@@ -127,27 +167,24 @@ export async function POST(request: NextRequest) {
     // Create Green Invoice hosted payment page
     const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email;
 
-    let paymentIntent;
-    if (type === 'vote_participation') {
-      paymentIntent = await paymentService.createVotePayment({
-        orderId: payment.id, // Use our payment ID as the order ID
-        voteId: voteId!,
-        voteTitle,
-        userId: user.id,
-        email: user.email,
-        name: userName,
-        municipality: user.municipality_id || undefined,
-      });
-    } else {
-      paymentIntent = await paymentService.createVoteCreationPayment({
-        orderId: payment.id,
-        voteTitle: voteTitle || 'הצבעה חדשה',
-        userId: user.id,
-        email: user.email,
-        name: userName,
-        municipality: user.municipality_id || undefined,
-      });
-    }
+    const paymentIntent = await paymentService.createVoteCreationPayment({
+      orderId: payment.id, // Use our payment ID as the order ID
+      voteTitle: voteTitle || 'הצבעה חדשה',
+      userId: user.id,
+      email: user.email,
+      name: userName,
+      municipality: user.municipality_id || undefined,
+    });
+
+    // Persist the hosted-form URL on the payment row, so an idempotent retry of
+    // this request (same user, same draft) is handed the same checkout instead
+    // of a payment it cannot pay. Best-effort: the fresh response below already
+    // carries the URL either way.
+    await attachPaymentFormUrl(
+      payment.id,
+      paymentIntent.paymentUrl,
+      paymentIntent.expiresAt.toISOString()
+    );
 
     return NextResponse.json({
       success: true,
@@ -163,10 +200,7 @@ export async function POST(request: NextRequest) {
         amount,
         currency: amounts.currency,
         syncTokens: amount,
-        description:
-          type === 'vote_participation'
-            ? 'השתתפות בהצבעה'
-            : 'יצירת הצבעה חדשה',
+        description: 'יצירת הצבעה חדשה',
       },
     });
   } catch (error) {
@@ -180,19 +214,14 @@ export async function POST(request: NextRequest) {
 
 /**
  * GET /api/payments/create
- * Get payment pricing information
+ * Get payment pricing information. Creation is the only priced action - there is
+ * no participation price to publish, because participation is free.
  */
 export async function GET() {
   const amounts = getPaymentAmounts();
 
   return NextResponse.json({
     pricing: {
-      voteParticipation: {
-        amount: amounts.voteParticipation,
-        currency: amounts.currency,
-        syncTokens: amounts.voteParticipation,
-        description: 'השתתפות בהצבעה',
-      },
       voteCreation: {
         amount: amounts.voteCreation,
         currency: amounts.currency,
