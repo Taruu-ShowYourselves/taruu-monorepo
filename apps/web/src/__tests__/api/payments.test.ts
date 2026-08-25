@@ -28,6 +28,7 @@ vi.mock('@/lib/supabase/db', () => ({
   getPaymentById: vi.fn(),
   getPaymentByProviderId: vi.fn(),
   getPaymentByIdempotencyKey: vi.fn(),
+  getVoteWithOptions: vi.fn(),
   markPaymentCompleted: vi.fn(),
   updatePaymentStatus: vi.fn(),
   createEntitlement: vi.fn(),
@@ -85,6 +86,7 @@ import {
   getPaymentById,
   getPaymentByProviderId,
   getPaymentByIdempotencyKey,
+  getVoteWithOptions,
   markPaymentCompleted,
   updatePaymentStatus,
   createEntitlement,
@@ -99,6 +101,15 @@ import { qubikService } from '@/services/qubik';
 import { emailService } from '@/services/email';
 
 describe('Payments API Routes (Green Invoice)', () => {
+  // `payments.vote_id` and `payments.option_id` are UUID columns - option_id
+  // since migration 20260904000006. These fixtures used to be VOTE_ID and
+  // OPTION_ID, which no database this code talks to would have accepted; the
+  // route now refuses them at the boundary, so the fixtures say what a real row
+  // says.
+  const VOTE_ID = '00000000-0000-4000-8000-00000000fee2';
+  const OPTION_ID = '00000000-0000-4000-8000-00000000fee3';
+  const OTHER_OPTION_ID = '00000000-0000-4000-8000-00000000fee4';
+
   const mockSession = {
     userId: 'user-123',
     googleId: 'google-123',
@@ -125,8 +136,8 @@ describe('Payments API Routes (Green Invoice)', () => {
     amount: 100, // 1 ILS in agorot
     currency: 'ILS',
     status: 'pending',
-    vote_id: 'vote-123',
-    option_id: 'option-123',
+    vote_id: VOTE_ID,
+    option_id: OPTION_ID,
     provider_id: null,
     created_at: '2025-01-16T00:00:00Z',
     updated_at: '2025-01-16T00:00:00Z',
@@ -159,7 +170,7 @@ describe('Payments API Routes (Green Invoice)', () => {
 
       const request = new NextRequest('http://localhost:3000/api/payments/create', {
         method: 'POST',
-        body: JSON.stringify({ type: 'vote_participation', voteId: 'vote-123' }),
+        body: JSON.stringify({ type: 'vote_participation', voteId: VOTE_ID }),
       });
       const response = await createPayment(request);
       const data = await response.json();
@@ -196,6 +207,183 @@ describe('Payments API Routes (Green Invoice)', () => {
       expect(data.error).toBe('Vote ID is required for participation payment');
     });
 
+    // `payments.option_id` was TEXT until migration 20260904000006 and this
+    // route stored whatever string arrived. The value is not read back until
+    // the Green Invoice webhook hands it to `cast_vote`, whose parameter is
+    // UUID - so a malformed option id was accepted, charged, and only rejected
+    // after `markPaymentCompleted` had claimed the payment, past the point
+    // where the provider's retry could still reach fulfilment.
+    it.each([
+      ['optionId', 'not-a-uuid'],
+      ['optionId', ' '],
+      ['optionId', '00000000-0000-4000-8000-00000000fee'],
+      ['voteId', 'vote-123'],
+    ])('should return 400 before charging when %s is not a UUID (%s)', async (field, value) => {
+      (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
+      (getUserById as Mock).mockResolvedValue(mockUser);
+      (getPaymentByIdempotencyKey as Mock).mockResolvedValue(null);
+
+      const request = new NextRequest('http://localhost:3000/api/payments/create', {
+        method: 'POST',
+        body: JSON.stringify({
+          type: 'vote_participation',
+          voteId: field === 'voteId' ? value : VOTE_ID,
+          optionId: field === 'optionId' ? value : OPTION_ID,
+        }),
+      });
+      const response = await createPayment(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toBe(`Invalid field: ${field}`);
+      expect(data.code).toBe('INVALID_BODY');
+      // Nothing was written and no payment page was opened. A 400 that still
+      // created the row would leave a payment nobody can complete.
+      expect(dbCreatePayment).not.toHaveBeenCalled();
+      expect(paymentService.createVotePayment).not.toHaveBeenCalled();
+    });
+
+    // Absence is not invalidity. A vote-creation fee has no ballot choice at
+    // all, and the empty string is what an untouched form field sends; both
+    // must reach the insert as NULL rather than as a 400 or as ''.
+    //
+    // These use `vote_creation` deliberately. Whether a *participation* payment
+    // may be created without an option id is a separate question the webhook
+    // currently answers by charging the caller and skipping castVote entirely -
+    // a gap this change documents rather than closes, because requiring the
+    // option here is a product decision about the payment flow, not a shape
+    // one. Asserting the current behaviour would read as blessing it.
+    it.each([
+      ['absent', undefined],
+      ['empty string', ''],
+      ['null', null],
+    ])('should store NULL for an option id that is %s', async (_label, value) => {
+      (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
+      (getUserById as Mock).mockResolvedValue(mockUser);
+      (getPaymentByIdempotencyKey as Mock).mockResolvedValue(null);
+      (dbCreatePayment as Mock).mockResolvedValue(mockPayment);
+      (paymentService.createVoteCreationPayment as Mock).mockResolvedValue({
+        paymentUrl: 'https://sandbox.d.greeninvoice.co.il/form/456',
+        expiresAt: new Date(Date.now() + 3600000),
+      });
+
+      const request = new NextRequest('http://localhost:3000/api/payments/create', {
+        method: 'POST',
+        body: JSON.stringify({
+          type: 'vote_creation',
+          voteTitle: 'New Vote',
+          optionId: value,
+        }),
+      });
+      const response = await createPayment(request);
+
+      expect(response.status).toBe(200);
+      expect(dbCreatePayment).toHaveBeenCalledWith(
+        expect.objectContaining({ vote_id: null, option_id: null })
+      );
+      // Nothing to look up: no option id means no vote/option relationship to
+      // check, so the payment path does not read the vote at all.
+      expect(getVoteWithOptions).not.toHaveBeenCalled();
+    });
+
+    it('should pass an option id that belongs to the vote through unchanged', async () => {
+      (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
+      (getUserById as Mock).mockResolvedValue(mockUser);
+      (getPaymentByIdempotencyKey as Mock).mockResolvedValue(null);
+      (getVoteWithOptions as Mock).mockResolvedValue({
+        id: VOTE_ID,
+        options: [{ id: OPTION_ID }, { id: OTHER_OPTION_ID }],
+      });
+      (dbCreatePayment as Mock).mockResolvedValue(mockPayment);
+      (paymentService.createVotePayment as Mock).mockResolvedValue({
+        paymentUrl: 'https://sandbox.d.greeninvoice.co.il/form/123',
+        expiresAt: new Date(Date.now() + 3600000),
+      });
+
+      const request = new NextRequest('http://localhost:3000/api/payments/create', {
+        method: 'POST',
+        body: JSON.stringify({
+          type: 'vote_participation',
+          voteId: VOTE_ID,
+          optionId: OPTION_ID,
+        }),
+      });
+      const response = await createPayment(request);
+
+      expect(response.status).toBe(200);
+      expect(dbCreatePayment).toHaveBeenCalledWith(
+        expect.objectContaining({ vote_id: VOTE_ID, option_id: OPTION_ID })
+      );
+    });
+
+    // A UUID's hex digits are case-insensitive and zod accepts either case, but
+    // PostgreSQL hands every uuid back lowercase. An id sent uppercase must
+    // therefore be canonicalised before it is compared against an option read
+    // out of the database, or a perfectly valid ballot choice is rejected as
+    // belonging to some other vote - and stored uppercase alongside lowercase
+    // ids for the same option.
+    it('should accept a well-formed option id sent in uppercase', async () => {
+      (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
+      (getUserById as Mock).mockResolvedValue(mockUser);
+      (getPaymentByIdempotencyKey as Mock).mockResolvedValue(null);
+      (getVoteWithOptions as Mock).mockResolvedValue({
+        id: VOTE_ID,
+        options: [{ id: OPTION_ID }],
+      });
+      (dbCreatePayment as Mock).mockResolvedValue(mockPayment);
+      (paymentService.createVotePayment as Mock).mockResolvedValue({
+        paymentUrl: 'https://sandbox.d.greeninvoice.co.il/form/123',
+        expiresAt: new Date(Date.now() + 3600000),
+      });
+
+      const request = new NextRequest('http://localhost:3000/api/payments/create', {
+        method: 'POST',
+        body: JSON.stringify({
+          type: 'vote_participation',
+          voteId: VOTE_ID.toUpperCase(),
+          optionId: OPTION_ID.toUpperCase(),
+        }),
+      });
+      const response = await createPayment(request);
+
+      expect(response.status).toBe(200);
+      expect(getVoteWithOptions).toHaveBeenCalledWith(VOTE_ID);
+      expect(dbCreatePayment).toHaveBeenCalledWith(
+        expect.objectContaining({ vote_id: VOTE_ID, option_id: OPTION_ID })
+      );
+    });
+
+    // A UUID that is well-formed but names nothing, or names an option in a
+    // different vote, is exactly as unpayable as 'not-a-uuid': the column has
+    // no foreign key, so the value is stored and charged and `cast_vote` only
+    // rejects it in the webhook, after the payment has been claimed completed.
+    it.each([
+      ['names no option in this vote', { id: VOTE_ID, options: [{ id: OTHER_OPTION_ID }] }],
+      ['names a vote that does not exist', null],
+    ])('should return 400 before charging when the option id %s', async (_label, vote) => {
+      (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
+      (getUserById as Mock).mockResolvedValue(mockUser);
+      (getPaymentByIdempotencyKey as Mock).mockResolvedValue(null);
+      (getVoteWithOptions as Mock).mockResolvedValue(vote);
+
+      const request = new NextRequest('http://localhost:3000/api/payments/create', {
+        method: 'POST',
+        body: JSON.stringify({
+          type: 'vote_participation',
+          voteId: VOTE_ID,
+          optionId: OPTION_ID,
+        }),
+      });
+      const response = await createPayment(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toBe('Invalid field: optionId');
+      expect(data.code).toBe('INVALID_BODY');
+      expect(dbCreatePayment).not.toHaveBeenCalled();
+      expect(paymentService.createVotePayment).not.toHaveBeenCalled();
+    });
+
     it('should return 404 when user not found', async () => {
       (getSessionFromRequest as Mock).mockResolvedValue(mockSession);
       (getUserById as Mock).mockResolvedValue(null);
@@ -217,7 +405,7 @@ describe('Payments API Routes (Green Invoice)', () => {
 
       const request = new NextRequest('http://localhost:3000/api/payments/create', {
         method: 'POST',
-        body: JSON.stringify({ type: 'vote_participation', voteId: 'vote-123' }),
+        body: JSON.stringify({ type: 'vote_participation', voteId: VOTE_ID }),
       });
       const response = await createPayment(request);
       const data = await response.json();
@@ -232,7 +420,7 @@ describe('Payments API Routes (Green Invoice)', () => {
 
       const request = new NextRequest('http://localhost:3000/api/payments/create', {
         method: 'POST',
-        body: JSON.stringify({ type: 'vote_participation', voteId: 'vote-123' }),
+        body: JSON.stringify({ type: 'vote_participation', voteId: VOTE_ID }),
       });
       const response = await createPayment(request);
       const data = await response.json();
@@ -255,7 +443,7 @@ describe('Payments API Routes (Green Invoice)', () => {
         method: 'POST',
         body: JSON.stringify({
           type: 'vote_participation',
-          voteId: 'vote-123',
+          voteId: VOTE_ID,
           idempotencyKey: 'key-123',
         }),
       });
@@ -282,7 +470,7 @@ describe('Payments API Routes (Green Invoice)', () => {
         method: 'POST',
         body: JSON.stringify({
           type: 'vote_participation',
-          voteId: 'vote-123',
+          voteId: VOTE_ID,
           voteTitle: 'Test Vote',
         }),
       });
@@ -589,7 +777,7 @@ describe('Payments API Routes (Green Invoice)', () => {
       (castVote as Mock).mockResolvedValue({
         outcome: 'cast',
         ballotId: 'ballot-1',
-        optionId: 'option-123',
+        optionId: OPTION_ID,
         optionVotes: 1,
         participantCount: 1,
         createdAt: '2026-08-02T10:00:00.000Z',
@@ -613,7 +801,7 @@ describe('Payments API Routes (Green Invoice)', () => {
           amountAgorot: 100,
           paymentId: 'payment-123',
           userId: 'user-123',
-          voteId: 'vote-123',
+          voteId: VOTE_ID,
         })
       );
       expect(createEntitlement).toHaveBeenCalled();
@@ -624,8 +812,8 @@ describe('Payments API Routes (Green Invoice)', () => {
       });
       expect(castVote).toHaveBeenCalledWith({
         userId: 'user-123',
-        voteId: 'vote-123',
-        optionId: 'option-123',
+        voteId: VOTE_ID,
+        optionId: OPTION_ID,
         paymentId: 'payment-123',
       });
     });
