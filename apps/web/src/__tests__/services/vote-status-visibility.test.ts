@@ -30,6 +30,7 @@ const limit = vi.fn();
 const single = vi.fn();
 const maybeSingle = vi.fn();
 const from = vi.fn();
+const rpc = vi.fn();
 
 // Chainable PostgREST query-builder stub that records the calls made on it and
 // finally resolves to `{ data, error }`.
@@ -64,6 +65,13 @@ vi.mock('@/lib/supabase/server', () => ({
       from(table);
       return makeQueryBuilder(queryResult);
     },
+    // `getMunicipalityProfile` aggregates its metrics through an RPC and only
+    // its vote lists through `from`; the stub keeps the metrics half inert so
+    // the assertions stay about the status predicate.
+    rpc: (...args: unknown[]) => {
+      rpc(...args);
+      return Promise.resolve({ data: [{}], error: null });
+    },
   },
 }));
 
@@ -74,6 +82,7 @@ import {
   getVoteByIdUnfiltered,
   findVoteByMunicipalityAndTitle,
   countVotesCreatedByUser,
+  getMunicipalityProfile,
 } from '@/lib/supabase/db';
 import {
   PUBLIC_VOTE_STATUSES,
@@ -103,6 +112,55 @@ describe('getVotesByMunicipality', () => {
 
     expect(eq).toHaveBeenCalledWith('status', 'pending');
     expect(inColumns()).not.toContain('status');
+  });
+});
+
+describe('getMunicipalityProfile', () => {
+  /**
+   * The municipality desk once carried its own `['active','ended']` literal.
+   * That is the drift the allow-list exists to prevent, and it was not
+   * theoretical: 31 desks printed "0 open topics" over municipalities that had
+   * topics, because the desk disagreed with /he/votes about what a resident
+   * may see.
+   */
+  it('filters to the shared allow-list, not a private status literal', async () => {
+    await getMunicipalityProfile('רמת גן');
+
+    expect(from).toHaveBeenCalledWith('votes');
+    expect(inSpy).toHaveBeenCalledWith('status', PUBLIC_VOTE_STATUSES);
+  });
+
+  it('splits the allow-list into standing questions and answered ones', async () => {
+    const vote = (id: string, status: string) => ({
+      id,
+      status,
+      title: id,
+      description: id,
+      start_date: null,
+      end_date: null,
+      participant_count: 0,
+      created_at: '2026-08-19T00:00:00Z',
+      vote_options: [],
+    });
+    queryResult = {
+      data: [
+        vote('live', 'active'),
+        vote('scheduled', 'pending'),
+        vote('decided', 'ended'),
+        vote('recording', 'resolving'),
+        vote('recorded', 'resolved'),
+      ],
+      error: null,
+    };
+
+    const profile = await getMunicipalityProfile('רמת גן');
+
+    expect(profile.openVotes.map((v) => v.id)).toEqual(['live', 'scheduled']);
+    expect(profile.closedVotes.map((v) => v.id)).toEqual([
+      'decided',
+      'recording',
+      'recorded',
+    ]);
   });
 });
 
