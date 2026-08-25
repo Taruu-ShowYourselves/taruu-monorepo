@@ -544,6 +544,13 @@ export interface Database {
         Row: {
           id: string;
           run_id: string;
+          /**
+           * The run's resident (migration 20260904000008). Required, and
+           * required on Insert too: a window with no user cannot satisfy
+           * `verification_schedule_belongs_to_its_run`, so an optional field
+           * here would move a compile error to runtime.
+           */
+          user_id: string;
           window_start: string;
           window_end: string;
           completed: boolean;
@@ -553,6 +560,7 @@ export interface Database {
         Insert: {
           id?: string;
           run_id: string;
+          user_id: string;
           window_start: string;
           window_end: string;
           completed?: boolean;
@@ -562,6 +570,7 @@ export interface Database {
         Update: {
           id?: string;
           run_id?: string;
+          user_id?: string;
           window_start?: string;
           window_end?: string;
           completed?: boolean;

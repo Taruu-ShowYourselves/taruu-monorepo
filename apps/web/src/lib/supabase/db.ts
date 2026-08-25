@@ -580,16 +580,56 @@ export async function getPaymentByProviderId(
   return data;
 }
 
+/**
+ * Look up a payment by its idempotency key, WITHIN one user's payments.
+ *
+ * The owner is a required argument, not an optional narrowing, because
+ * `payments.idempotency_key` is UNIQUE across the whole table while the keys
+ * themselves are guessable: `POST /api/payments/create` accepts a caller-supplied
+ * `idempotencyKey` verbatim, and the key this codebase generates elsewhere is
+ * `{userId}:{type}:{voteId}` - every component of which is knowable. An
+ * unscoped lookup therefore answered "what is payment <key>?" for any
+ * authenticated caller, and the route returns the row's id, status, amount and
+ * currency straight back. That is another resident's payment record.
+ *
+ * Scoping lives here rather than in the callers on purpose. A caller that
+ * forgets the check reintroduces the whole hole, and there is no way to tell
+ * from the call site that the check is missing; a required parameter cannot be
+ * forgotten silently. `.eq('user_id', ownerUserId)` also means the database
+ * never returns the other row in the first place - the answer is "no such
+ * payment", not "found, then discarded", so nothing can leak through a log line
+ * or an error path in between.
+ *
+ * Returning null for a key that exists under a different owner is deliberate:
+ * to a caller who does not own it, the key is indistinguishable from one that
+ * was never used, which is what stops this from being an existence oracle.
+ * Migration 20260904000009 makes that safe rather than merely quiet - the
+ * UNIQUE constraint is now `(user_id, idempotency_key)`, so a key another
+ * resident holds does not collide on insert either. Before that swap, a
+ * guessable key held by somebody else read as "not found" here and then failed
+ * the global UNIQUE, which is how one request could permanently break another
+ * resident's charge.
+ *
+ * A query FAILURE is not absence and is not swallowed. `maybeSingle` already
+ * reports "no such row" as `data: null, error: null`, so a non-null error means
+ * the query itself did not run - and returning null for that would tell the
+ * caller "this key is free" during an outage, sending it on to an insert whose
+ * failure arrives later and less legibly.
+ */
 export async function getPaymentByIdempotencyKey(
-  key: string
+  key: string,
+  ownerUserId: string
 ): Promise<Payment | null> {
   const { data, error } = await supabaseAdmin
     .from('payments')
     .select('*')
     .eq('idempotency_key', key)
-    .single();
+    .eq('user_id', ownerUserId)
+    .maybeSingle();
 
-  if (error || !data) return null;
+  if (error) {
+    throw new Error(`Failed to look up payment by idempotency key: ${error.message}`);
+  }
   return data;
 }
 

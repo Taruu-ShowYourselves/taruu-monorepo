@@ -6,12 +6,16 @@
 -- Stage 4 set out to remove duplicate indexes. Run against production
 -- read-only on 2026-08-25, the detector below returned thirteen -- and they are
 -- the same thirteen that `20260903000001_drop_duplicate_indexes.sql` (PR #142,
--- open and unmerged) already drops, name for name. There is nothing left to
+-- open and unmerged) already drops, name for name.
+--
+-- Twelve of those thirteen are listed below. The thirteenth,
+-- `idx_payments_idempotency`, stopped being a duplicate in 20260904000009 --
+-- see the note on the allowlist itself. There is nothing left to
 -- drop, so writing a second migration would either collide with that one or
 -- duplicate it.
 --
 -- What is missing is the thing that stops the class coming back. Every one of
--- the thirteen was created the same way: someone wrote
+-- them was created the same way: someone wrote
 -- `CREATE INDEX idx_<table>_<column>` next to a column that already carried a
 -- UNIQUE constraint, and PostgreSQL builds an index for a UNIQUE constraint
 -- automatically. The duplicate is invisible in the migration that creates it,
@@ -22,15 +26,15 @@
 -- is-empty check, so that it is correct in all three states this repository
 -- passes through:
 --
---   * today, on this branch:   the thirteen are present  -> passes
+--   * today, on this branch:   the allowlist is present  -> passes
 --   * after PR #142 merges:    the set is empty          -> passes
 --   * a fourteenth appears:    not on the allowlist      -> FAILS
---   * one of the thirteen is put back after that migration dropped it -> FAILS,
+--   * one of them is put back after that migration dropped it -> FAILS,
 --     on its oid: an index recreated later necessarily sorts after one built by
 --     a migration that runs after the cleanup. `scripts/db-test.sh` applies
 --     migration files directly and keeps no ledger, so ordinality in the
 --     catalog is the only signal available for "has the cleanup already run".
---   * the whole allowlist is present but only some of it -> FAILS. The thirteen
+--   * the whole allowlist is present but only some of it -> FAILS. They
 --     are dropped by one migration, so they are all there or none are.
 --
 -- An allowlist that is never checked is a comment. Section 1 therefore builds a
@@ -674,7 +678,7 @@ DROP TABLE public.dupe_probe;
 -- ── 2. Every duplicate that exists is one PR #142 already removes ───────────
 --
 -- The allowlist is spelled out rather than counted. A count would pass if one
--- of the thirteen were replaced by a different duplicate, which is exactly the
+-- of them were replaced by a different duplicate, which is exactly the
 -- regression this is meant to catch.
 --
 -- Each entry is a plain `CREATE INDEX` sitting on a column that already carries
@@ -686,6 +690,16 @@ DECLARE
   -- Known duplicates, all dropped by 20260903000001_drop_duplicate_indexes.sql.
   -- Removing an entry makes the test stricter, never looser.
   --
+  -- `payments|idx_payments_idempotency|payments_idempotency_key_key` was the
+  -- fourteenth. It is gone from this list because the duplicate itself is gone:
+  -- 20260904000009 replaced the global `UNIQUE (idempotency_key)` with
+  -- `UNIQUE (user_id, idempotency_key)`, so the plain index on
+  -- `idempotency_key` is now the only index on that column and is not covered
+  -- by anything. #142 still drops it, correctly - nothing reads by bare key -
+  -- but it is no longer this test's business, and leaving it here would break
+  -- the all-or-none rule below for a reason that has nothing to do with the
+  -- cleanup.
+  --
   -- Each is the whole fact -- table, the redundant index, and the index that
   -- already does its job -- not just a name. An index name is reusable: allow
   -- 'idx_users_email' by name and a later `CREATE INDEX idx_users_email` on
@@ -695,7 +709,6 @@ DECLARE
     'issue_coins|idx_issue_coins_vote|issue_coins_vote_id_key',
     'knesset_items|idx_knesset_items_vote|knesset_items_vote_id_key',
     'knesset_rankings|idx_knesset_rankings_vote|knesset_rankings_vote_id_key',
-    'payments|idx_payments_idempotency|payments_idempotency_key_key',
     'phone_verifications|idx_phone_verifications_user|uq_phone_verifications_user',
     'treasury|idx_treasury_municipality|treasury_municipality_id_key',
     'users|idx_users_did|users_did_key',
@@ -731,7 +744,7 @@ BEGIN
       'is genuinely wanted -- add it here with the reason.', v_unexpected;
   END IF;
 
-  -- All thirteen, or none. Without this the allowlist would be a standing
+  -- All of them, or none. Without this the allowlist would be a standing
   -- permit: once PR #142 drops them, nothing would stop one being re-created,
   -- and the guard would wave through the exact indexes it exists to have
   -- removed. Requiring the set to be whole or empty means the allowlist has
@@ -753,7 +766,7 @@ BEGIN
       v_surviving, array_length(v_allowed, 1);
   END IF;
 
-  -- All-or-none is still not enough on its own: recreating all thirteen after
+  -- All-or-none is still not enough on its own: recreating them all after
   -- the cleanup migration lands would read as the untouched state and pass.
   -- What separates "never dropped" from "dropped and put back" is WHEN each
   -- index was created, and the catalog does record that ordinally. Every
@@ -769,7 +782,7 @@ BEGIN
   -- It is a heuristic, and the limits are worth stating rather than implying.
   -- Oids record allocation order, not migration provenance: a dump and restore
   -- reassigns them, and a migration numbered between the cleanup and the anchor
-  -- could in principle recreate all thirteen below the anchor. Neither matters
+  -- could in principle recreate them all below the anchor. Neither matters
   -- where this actually runs -- a database built by applying every migration in
   -- filename order to an empty cluster, which is what `scripts/db-test.sh` and
   -- the CI job do -- because there allocation order IS migration order. The
