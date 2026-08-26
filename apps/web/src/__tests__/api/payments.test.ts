@@ -31,8 +31,7 @@ vi.mock('@/lib/supabase/db', () => ({
   markPaymentCompleted: vi.fn(),
   updatePaymentStatus: vi.fn(),
   createEntitlement: vi.fn(),
-  recordUserVote: vi.fn(),
-  incrementVoteOption: vi.fn(),
+  castVote: vi.fn(),
   recordTreasuryDeposit: vi.fn(),
   getWebhookEventByEventId: vi.fn(),
   createWebhookEvent: vi.fn(),
@@ -89,8 +88,7 @@ import {
   markPaymentCompleted,
   updatePaymentStatus,
   createEntitlement,
-  recordUserVote,
-  incrementVoteOption,
+  castVote,
   recordTreasuryDeposit,
   getWebhookEventByEventId,
   createWebhookEvent,
@@ -588,8 +586,14 @@ describe('Payments API Routes (Green Invoice)', () => {
       (qubikService.mintTokens as Mock).mockResolvedValue(undefined);
       (paymentService.getPaymentStatus as Mock).mockResolvedValue({ receiptUrl: 'https://greeninvoice.co.il/doc/123' });
       (emailService.sendPaymentReceiptEmail as Mock).mockResolvedValue(undefined);
-      (recordUserVote as Mock).mockResolvedValue(undefined);
-      (incrementVoteOption as Mock).mockResolvedValue(undefined);
+      (castVote as Mock).mockResolvedValue({
+        outcome: 'cast',
+        ballotId: 'ballot-1',
+        optionId: 'option-123',
+        optionVotes: 1,
+        participantCount: 1,
+        createdAt: '2026-08-02T10:00:00.000Z',
+      });
       (updateWebhookEventStatus as Mock).mockResolvedValue(undefined);
 
       const request = createWebhookRequest({
@@ -618,7 +622,84 @@ describe('Payments API Routes (Green Invoice)', () => {
         amount: 1,
         reason: 'vote_participation',
       });
-      expect(recordUserVote).toHaveBeenCalled();
+      expect(castVote).toHaveBeenCalledWith({
+        userId: 'user-123',
+        voteId: 'vote-123',
+        optionId: 'option-123',
+        paymentId: 'payment-123',
+      });
+    });
+
+    // The vote cast used to be wrapped in a try/catch that logged and moved on,
+    // so a paid ballot that could not be recorded still finished as a
+    // `processed` webhook event. These two cover the replacement behaviour: the
+    // failure is loud, it is written down, and nothing downstream of it runs.
+    it('marks the webhook event failed when the ballot cannot be cast', async () => {
+      (paymentService.verifyWebhook as Mock).mockReturnValue(true);
+      (paymentService.parseWebhookEvent as Mock).mockReturnValue({
+        type: 'payment.succeeded',
+        paymentId: 'txn_123',
+        amount: 300,
+        metadata: { orderId: 'payment-123' },
+      });
+      (getWebhookEventByEventId as Mock).mockResolvedValue(null);
+      (createWebhookEvent as Mock).mockResolvedValue(undefined);
+      (getPaymentById as Mock).mockResolvedValue(mockPayment);
+      (markPaymentCompleted as Mock).mockResolvedValue(true);
+      (getUserById as Mock).mockResolvedValue(mockUser);
+      (recordTreasuryDeposit as Mock).mockResolvedValue('tx-1');
+      (createEntitlement as Mock).mockResolvedValue(undefined);
+      (updateWebhookEventStatus as Mock).mockResolvedValue(undefined);
+      (castVote as Mock).mockRejectedValue(new Error('vote is not open for participation'));
+
+      const request = createWebhookRequest({
+        event_type: 'transaction.completed',
+        event_id: 'evt_123',
+        data: { id: 'txn_123', custom_data: { orderId: 'payment-123' } },
+      });
+      const response = await handleWebhook(request);
+
+      expect(response.status).toBe(500);
+      expect(updateWebhookEventStatus).toHaveBeenCalledWith(
+        expect.anything(),
+        'failed',
+        expect.stringContaining('not open')
+      );
+      expect(updateWebhookEventStatus).not.toHaveBeenCalledWith(
+        expect.anything(),
+        'processed'
+      );
+    });
+
+    it('mints no tokens and sends no receipt when the ballot cannot be cast', async () => {
+      (paymentService.verifyWebhook as Mock).mockReturnValue(true);
+      (paymentService.parseWebhookEvent as Mock).mockReturnValue({
+        type: 'payment.succeeded',
+        paymentId: 'txn_123',
+        amount: 300,
+        metadata: { orderId: 'payment-123' },
+      });
+      (getWebhookEventByEventId as Mock).mockResolvedValue(null);
+      (createWebhookEvent as Mock).mockResolvedValue(undefined);
+      (getPaymentById as Mock).mockResolvedValue(mockPayment);
+      (markPaymentCompleted as Mock).mockResolvedValue(true);
+      (getUserById as Mock).mockResolvedValue(mockUser);
+      (recordTreasuryDeposit as Mock).mockResolvedValue('tx-1');
+      (createEntitlement as Mock).mockResolvedValue(undefined);
+      (updateWebhookEventStatus as Mock).mockResolvedValue(undefined);
+      (castVote as Mock).mockRejectedValue(new Error('option does not belong to vote'));
+
+      const request = createWebhookRequest({
+        event_type: 'transaction.completed',
+        event_id: 'evt_123',
+        data: { id: 'txn_123', custom_data: { orderId: 'payment-123' } },
+      });
+      await handleWebhook(request);
+
+      // The cast runs before anything irreversible, so a ballot that cannot be
+      // recorded does not leave tokens minted and a receipt sent for it.
+      expect(qubikService.mintTokens).not.toHaveBeenCalled();
+      expect(emailService.sendPaymentReceiptEmail).not.toHaveBeenCalled();
     });
 
     it('should handle transaction.payment_failed event', async () => {

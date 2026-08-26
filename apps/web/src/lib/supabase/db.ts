@@ -1254,40 +1254,97 @@ export async function activateIngestVote(
   return data ?? null;
 }
 
-export async function incrementVoteOption(optionId: string): Promise<void> {
-  // Use RPC function for atomic increment
-  const { error } = await supabaseAdmin.rpc('increment_vote_option', {
-    option_id: optionId,
-  });
+/** Why `cast_vote` refused a ballot. Mirrors the SQLSTATEs the function raises. */
+export type CastVoteRejection =
+  | 'VOTE_NOT_FOUND'
+  | 'VOTE_ENDED'
+  | 'VOTE_NOT_OPEN'
+  | 'OPTION_NOT_IN_VOTE';
 
-  if (error) {
-    // Fallback to manual increment
-    const { data: option } = await supabaseAdmin
-      .from('vote_options')
-      .select('votes')
-      .eq('id', optionId)
-      .single();
-
-    if (option) {
-      await supabaseAdmin
-        .from('vote_options')
-        .update({ votes: option.votes + 1 })
-        .eq('id', optionId);
-    }
+/** Thrown for a rejection the caller is expected to turn into a 4xx, not a 500. */
+export class CastVoteRejected extends Error {
+  constructor(readonly reason: CastVoteRejection, message: string) {
+    super(message);
+    this.name = 'CastVoteRejected';
   }
 }
 
-export async function recordUserVote(
-  voteRecord: InsertTables<'user_votes'>
-): Promise<UserVote> {
+const CAST_VOTE_REJECTIONS: Readonly<Record<string, CastVoteRejection>> = {
+  TV001: 'VOTE_NOT_FOUND',
+  TV002: 'VOTE_ENDED',
+  TV003: 'OPTION_NOT_IN_VOTE',
+  TV004: 'VOTE_NOT_OPEN',
+};
+
+/** What `cast_vote` recorded. `cast` is a fresh ballot; `already_voted` is a replay. */
+export interface CastVoteResult {
+  readonly outcome: 'cast' | 'already_voted';
+  readonly ballotId: string;
+  readonly optionId: string;
+  readonly optionVotes: number;
+  readonly participantCount: number;
+  readonly createdAt: string;
+}
+
+/**
+ * Record a ballot through the one transactional path.
+ *
+ * `cast_vote` validates that the vote is open and that the option belongs to
+ * it, inserts the ballot idempotently, and moves `vote_options.votes` and
+ * `votes.participant_count` in the same transaction. There is deliberately no
+ * fallback: the previous read-modify-write fallback here could only ever
+ * produce the lost update it was meant to work around, and a tally that is
+ * quietly wrong is worse than a request that fails and is retried.
+ *
+ * A replay returns `already_voted` with the ballot already cast, so callers do
+ * not need to key anything off a prior existence check.
+ */
+export async function castVote(args: {
+  userId: string;
+  voteId: string;
+  optionId: string;
+  paymentId?: string | null;
+}): Promise<CastVoteResult> {
   const { data, error } = await supabaseAdmin
-    .from('user_votes')
-    .insert(voteRecord)
-    .select()
+    .rpc('cast_vote', {
+      p_user_id: args.userId,
+      p_vote_id: args.voteId,
+      p_option_id: args.optionId,
+      p_payment_id: args.paymentId ?? null,
+    })
     .single();
 
-  if (error) throw new Error(`Failed to record vote: ${error.message}`);
-  return data;
+  if (error) {
+    const rejection = CAST_VOTE_REJECTIONS[error.code ?? ''];
+    if (rejection) throw new CastVoteRejected(rejection, error.message);
+    throw new Error(`Failed to cast vote: ${error.message}`);
+  }
+  if (!data) throw new Error('Failed to cast vote: cast_vote returned no row');
+
+  const row = data as {
+    out_outcome: string;
+    out_ballot_id: string;
+    out_option_id: string;
+    out_option_votes: number;
+    out_participant_count: number;
+    out_created_at: string;
+  };
+
+  // Not a fallback to 'already_voted': an outcome this code does not recognise
+  // is a contract mismatch, and reporting it as a duplicate would turn it into
+  // a successful-looking response that recorded nothing.
+  if (row.out_outcome !== 'cast' && row.out_outcome !== 'already_voted') {
+    throw new Error(`Failed to cast vote: unrecognised outcome ${JSON.stringify(row.out_outcome)}`);
+  }
+
+  return {
+    outcome: row.out_outcome,
+    ballotId: row.out_ballot_id,
+    optionId: row.out_option_id,
+    optionVotes: row.out_option_votes,
+    participantCount: row.out_participant_count,
+    createdAt: row.out_created_at,
+  };
 }
 
 export async function getUserVote(
@@ -1311,43 +1368,6 @@ export async function hasUserParticipated(
 ): Promise<boolean> {
   const vote = await getUserVote(userId, voteId);
   return !!vote;
-}
-
-/** Outcome of an idempotent ballot insert. `created: false` means the ballot already existed. */
-export interface BallotInsertResult {
-  readonly created: boolean;
-  readonly vote: UserVote;
-}
-
-/**
- * Insert a ballot, tolerating the `UNIQUE(user_id, vote_id)` constraint.
- *
- * A double-click, a retry or a replayed request must produce exactly one row,
- * never a 500, and must not move the tally twice - so the caller keys the
- * `incrementVoteOption` bump off `created`. Postgres reports the unique
- * violation as SQLSTATE 23505; on that code we read the existing ballot back
- * and report it as `created: false`.
- *
- * `recordUserVote` is deliberately left alone: the payments webhook still uses
- * the throwing form.
- */
-export async function recordUserVoteOnce(
-  voteRecord: InsertTables<'user_votes'>
-): Promise<BallotInsertResult> {
-  const { data, error } = await supabaseAdmin
-    .from('user_votes')
-    .insert(voteRecord)
-    .select()
-    .single();
-
-  if (!error && data) return { created: true, vote: data };
-
-  if (error?.code === '23505') {
-    const existing = await getUserVote(voteRecord.user_id, voteRecord.vote_id);
-    if (existing) return { created: false, vote: existing };
-  }
-
-  throw new Error(`Failed to record vote: ${error?.message ?? 'insert returned no row'}`);
 }
 
 export async function getUserVotes(userId: string): Promise<UserVote[]> {
