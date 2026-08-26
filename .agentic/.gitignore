@@ -3,3 +3,4 @@ lanes/*.json
 lanes/*.checkpoint.md
 metrics/*.jsonl
 .env
+config.local.json

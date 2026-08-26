@@ -1,0 +1,9 @@
+{
+  "email": {
+    "to": "dolev@taruu.co.il",
+    "from": "Taruu Autopilot <autopilot@pleiad.io>",
+    "subjectPrefix": "[taruu-autopilot]",
+    "digestHourLocal": 8
+  },
+  "autoAdmit": { "enabled": true, "onlyAssignee": "DolevSeren", "onlyStatus": ["Todo"] }
+}
