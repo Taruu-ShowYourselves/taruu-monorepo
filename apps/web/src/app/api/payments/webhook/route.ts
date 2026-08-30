@@ -11,8 +11,7 @@ import {
   updatePaymentStatus,
   createEntitlement,
   getUserById,
-  recordUserVote,
-  incrementVoteOption,
+  castVote,
   recordTreasuryDeposit,
   getWebhookEventByEventId,
   createWebhookEvent,
@@ -117,6 +116,40 @@ export async function POST(request: NextRequest) {
           break;
         }
 
+        // Record the vote first, before anything irreversible.
+        //
+        // `cast_vote` validates that the vote is open and that the option
+        // belongs to it - neither of which was checked here before, so a
+        // `payments.option_id` naming an option in a different vote used to move
+        // that other vote's tally. It is idempotent on (user_id, vote_id), so a
+        // redelivered notify records one ballot and one increment.
+        //
+        // A failure is deliberately NOT swallowed. It propagates to the handler
+        // below, which marks the webhook event `failed` with the reason, and it
+        // happens here rather than at the end so a ballot that cannot be
+        // recorded does not also mint tokens and email a receipt for it.
+        //
+        // This is durable evidence, not self-healing: the payment was claimed
+        // atomically above, so the provider's retry short-circuits on
+        // `markPaymentCompleted` and never reaches this code again. A payment
+        // whose ballot could not be cast needs reconciliation from
+        // `payments` + `webhook_events`, the same way a failed treasury accrual
+        // does. Swallowing the error left the event marked `processed`, which is
+        // the one state that guarantees nobody ever finds the missing ballot.
+        if (payment.type === 'vote_participation' && payment.vote_id && payment.option_id) {
+          await castVote({
+            userId: user.id,
+            voteId: payment.vote_id,
+            optionId: payment.option_id,
+            paymentId: payment.id,
+          });
+          log.info('Vote recorded', {
+            voteId: payment.vote_id,
+            optionId: payment.option_id,
+            userId: user.id,
+          });
+        }
+
         // 1 ILS = 1 SYNC token; payment.amount is in agorot
         const tokensToMint = Math.floor(payment.amount / 100);
 
@@ -183,22 +216,6 @@ export async function POST(request: NextRequest) {
           });
         } catch (emailError) {
           log.error('Error sending receipt email', { error: emailError, userId: user.id });
-        }
-
-        // Record the vote
-        if (payment.type === 'vote_participation' && payment.vote_id && payment.option_id) {
-          try {
-            await recordUserVote({
-              user_id: user.id,
-              vote_id: payment.vote_id,
-              option_id: payment.option_id,
-              payment_id: payment.id,
-            });
-            await incrementVoteOption(payment.option_id);
-            log.info('Vote recorded', { voteId: payment.vote_id, optionId: payment.option_id, userId: user.id });
-          } catch (voteError) {
-            log.error('Error recording vote', { error: voteError, voteId: payment.vote_id, optionId: payment.option_id });
-          }
         }
 
         break;

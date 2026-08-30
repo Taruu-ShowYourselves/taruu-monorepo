@@ -93,8 +93,20 @@ const toCharge = (row: Payment): CreationFeeCharge => ({
  */
 const chargeFailed = (): AppError => paymentInvalid('התשלום נכשל');
 
-function findExisting(key: string): ResultAsync<Payment | null, AppError> {
-  return ResultAsync.fromPromise(getPaymentByIdempotencyKey(key), chargeFailed);
+/**
+ * Scoped to the submitter, because the key is derived from ids an attacker can
+ * hold: `{submitterUserId}:vote_creation:{voteId}`. This lookup already only
+ * ever wants a row it wrote itself, so passing the owner costs nothing and
+ * removes the case where it could see one it did not.
+ */
+function findExisting(
+  key: string,
+  ownerUserId: string
+): ResultAsync<Payment | null, AppError> {
+  return ResultAsync.fromPromise(
+    getPaymentByIdempotencyKey(key, ownerUserId),
+    chargeFailed
+  );
 }
 
 export function createCreationFeePort(): CreationFeePort {
@@ -110,7 +122,7 @@ export function createCreationFeePort(): CreationFeePort {
       // Look up before inserting. This is what makes a second approval attempt
       // after a lost race safe: the key already exists, so the original
       // obligation is returned rather than a second one recorded.
-      return findExisting(idempotency_key).andThen((existing) => {
+      return findExisting(idempotency_key, submitterUserId).andThen((existing) => {
         if (existing) return okAsync<CreationFeeCharge, AppError>(toCharge(existing));
 
         return ResultAsync.fromPromise(
@@ -136,7 +148,7 @@ export function createCreationFeePort(): CreationFeePort {
             // hits the UNIQUE constraint. That is the idempotency key doing its
             // job, not a failure - re-read and return the row that won, so the
             // caller sees one obligation instead of a spurious 402.
-            findExisting(idempotency_key).andThen((row) =>
+            findExisting(idempotency_key, submitterUserId).andThen((row) =>
               row
                 ? okAsync<CreationFeeCharge, AppError>(toCharge(row))
                 : errAsync<CreationFeeCharge, AppError>(chargeFailed())

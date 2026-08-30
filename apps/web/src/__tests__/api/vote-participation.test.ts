@@ -25,9 +25,18 @@ vi.mock('@/lib/supabase/db', () => ({
   hasUserParticipated: vi.fn(),
   getUserByGoogleId: vi.fn(),
   getUserById: vi.fn(),
-  recordUserVote: vi.fn(),
-  recordUserVoteOnce: vi.fn(),
-  incrementVoteOption: vi.fn(),
+  castVote: vi.fn(),
+  // A real class, not a stub: the route narrows on `instanceof`, so a mocked
+  // constructor would make every rejection look like an unexpected 500.
+  CastVoteRejected: class CastVoteRejected extends Error {
+    constructor(
+      public reason: string,
+      message: string
+    ) {
+      super(message);
+      this.name = 'CastVoteRejected';
+    }
+  },
   updateUser: vi.fn(),
   getActiveVerificationRun: vi.fn(),
 }));
@@ -86,8 +95,8 @@ import {
   hasUserParticipated,
   getUserByGoogleId,
   getUserById,
-  recordUserVoteOnce,
-  incrementVoteOption,
+  castVote,
+  CastVoteRejected,
 } from '@/lib/supabase/db';
 import { checkVoterEligibility } from '@/services/verification/eligibility';
 import { supabaseAdmin } from '@/lib/supabase/server';
@@ -218,15 +227,13 @@ describe('Vote Participation API Routes', () => {
 
     it('accepts a body with no paymentTxId and never returns 402', async () => {
       setUpHappyPath();
-      (recordUserVoteOnce as Mock).mockResolvedValue({
-        created: true,
-        vote: {
-          id: 'user-vote-123',
-          user_id: mockSession.userId,
-          vote_id: 'vote-123',
-          option_id: OPTION_1,
-          created_at: '2026-08-02T12:00:00.000Z',
-        },
+      (castVote as Mock).mockResolvedValue({
+        outcome: 'cast',
+        ballotId: 'user-vote-123',
+        optionId: OPTION_1,
+        optionVotes: 1,
+        participantCount: 1,
+        createdAt: '2026-08-02T12:00:00.000Z',
       });
 
       const request = new NextRequest('http://localhost:3000/api/votes/vote-123/participate', {
@@ -364,7 +371,7 @@ describe('Vote Participation API Routes', () => {
 
       expect(response.status).toBe(403);
       expect(data.code).toBe('RESIDENCY_NOT_VERIFIED');
-      expect(recordUserVoteOnce).not.toHaveBeenCalled();
+      expect(castVote).not.toHaveBeenCalled();
     });
 
     it('returns 403 with IDENTITY_NOT_VERIFIED when identity is unverified', async () => {
@@ -387,22 +394,19 @@ describe('Vote Participation API Routes', () => {
 
       expect(response.status).toBe(403);
       expect(data.code).toBe('IDENTITY_NOT_VERIFIED');
-      expect(recordUserVoteOnce).not.toHaveBeenCalled();
+      expect(castVote).not.toHaveBeenCalled();
     });
 
     it('records the ballot, bumps the tally and the participant count', async () => {
       setUpHappyPath();
-      (recordUserVoteOnce as Mock).mockResolvedValue({
-        created: true,
-        vote: {
-          id: 'user-vote-123',
-          user_id: mockSession.userId,
-          vote_id: 'vote-123',
-          option_id: OPTION_1,
-          created_at: '2026-08-02T12:00:00.000Z',
-        },
+      (castVote as Mock).mockResolvedValue({
+        outcome: 'cast',
+        ballotId: 'user-vote-123',
+        optionId: OPTION_1,
+        optionVotes: 1,
+        participantCount: 1,
+        createdAt: '2026-08-02T12:00:00.000Z',
       });
-      (incrementVoteOption as Mock).mockResolvedValue(undefined);
 
       const request = new NextRequest('http://localhost:3000/api/votes/vote-123/participate', {
         method: 'POST',
@@ -416,22 +420,27 @@ describe('Vote Participation API Routes', () => {
       expect(data.alreadyRecorded).toBe(false);
       expect(data.participation.id).toBe('user-vote-123');
       expect(data.participation.createdAt).toBe('2026-08-02T12:00:00.000Z');
-      expect(incrementVoteOption).toHaveBeenCalledTimes(1);
-      expect(incrementVoteOption).toHaveBeenCalledWith(OPTION_1);
-      expect(supabaseAdmin.from).toHaveBeenCalledWith('votes');
+      expect(castVote).toHaveBeenCalledTimes(1);
+      expect(castVote).toHaveBeenCalledWith({
+        userId: mockSession.userId,
+        voteId: 'vote-123',
+        optionId: OPTION_1,
+      });
+      // The route no longer touches `votes` itself. Both counters move inside
+      // cast_vote's transaction; a write from here is the lost update this
+      // stage removed.
+      expect(supabaseAdmin.from).not.toHaveBeenCalledWith('votes');
     });
 
     it('passes no payment_id when recording a free ballot', async () => {
       setUpHappyPath();
-      (recordUserVoteOnce as Mock).mockResolvedValue({
-        created: true,
-        vote: {
-          id: 'user-vote-123',
-          user_id: mockSession.userId,
-          vote_id: 'vote-123',
-          option_id: OPTION_1,
-          created_at: '2026-08-02T12:00:00.000Z',
-        },
+      (castVote as Mock).mockResolvedValue({
+        outcome: 'cast',
+        ballotId: 'user-vote-123',
+        optionId: OPTION_1,
+        optionVotes: 1,
+        participantCount: 1,
+        createdAt: '2026-08-02T12:00:00.000Z',
       });
 
       const request = new NextRequest('http://localhost:3000/api/votes/vote-123/participate', {
@@ -440,21 +449,19 @@ describe('Vote Participation API Routes', () => {
       });
       await participate(request, { params: createParams('vote-123') });
 
-      const insertArg = (recordUserVoteOnce as Mock).mock.calls[0][0];
-      expect(insertArg.payment_id).toBeUndefined();
+      const castArg = (castVote as Mock).mock.calls[0][0];
+      expect(castArg.paymentId).toBeUndefined();
     });
 
     it('returns the existing ballot on a duplicate submit without moving the tally', async () => {
       setUpHappyPath();
-      (recordUserVoteOnce as Mock).mockResolvedValue({
-        created: false,
-        vote: {
-          id: 'existing-vote-999',
-          user_id: mockSession.userId,
-          vote_id: 'vote-123',
-          option_id: OPTION_1,
-          created_at: '2026-08-01T09:00:00.000Z',
-        },
+      (castVote as Mock).mockResolvedValue({
+        outcome: 'already_voted',
+        ballotId: 'existing-vote-999',
+        optionId: OPTION_1,
+        optionVotes: 1,
+        participantCount: 1,
+        createdAt: '2026-08-01T09:00:00.000Z',
       });
 
       const request = new NextRequest('http://localhost:3000/api/votes/vote-123/participate', {
@@ -467,21 +474,19 @@ describe('Vote Participation API Routes', () => {
       expect(response.status).toBe(200);
       expect(data.alreadyRecorded).toBe(true);
       expect(data.participation.id).toBe('existing-vote-999');
-      expect(incrementVoteOption).not.toHaveBeenCalled();
+      expect(castVote).toHaveBeenCalledTimes(1);
       expect(supabaseAdmin.from).not.toHaveBeenCalledWith('votes');
     });
 
     it('mints no tokens and sends no payment receipt for a free vote', async () => {
       setUpHappyPath();
-      (recordUserVoteOnce as Mock).mockResolvedValue({
-        created: true,
-        vote: {
-          id: 'user-vote-123',
-          user_id: mockSession.userId,
-          vote_id: 'vote-123',
-          option_id: OPTION_1,
-          created_at: '2026-08-02T12:00:00.000Z',
-        },
+      (castVote as Mock).mockResolvedValue({
+        outcome: 'cast',
+        ballotId: 'user-vote-123',
+        optionId: OPTION_1,
+        optionVotes: 1,
+        participantCount: 1,
+        createdAt: '2026-08-02T12:00:00.000Z',
       });
 
       const request = new NextRequest('http://localhost:3000/api/votes/vote-123/participate', {
@@ -497,15 +502,13 @@ describe('Vote Participation API Routes', () => {
     it('records the vote even when the chain service is unavailable', async () => {
       setUpHappyPath();
       (qubikService.recordVote as Mock).mockRejectedValue(new Error('Blockchain unavailable'));
-      (recordUserVoteOnce as Mock).mockResolvedValue({
-        created: true,
-        vote: {
-          id: 'user-vote-123',
-          user_id: mockSession.userId,
-          vote_id: 'vote-123',
-          option_id: OPTION_1,
-          created_at: '2026-08-02T12:00:00.000Z',
-        },
+      (castVote as Mock).mockResolvedValue({
+        outcome: 'cast',
+        ballotId: 'user-vote-123',
+        optionId: OPTION_1,
+        optionVotes: 1,
+        participantCount: 1,
+        createdAt: '2026-08-02T12:00:00.000Z',
       });
 
       const request = new NextRequest('http://localhost:3000/api/votes/vote-123/participate', {
@@ -518,7 +521,7 @@ describe('Vote Participation API Routes', () => {
       expect(response.status).toBe(200);
       expect(response.status).not.toBe(503);
       expect(data.alreadyRecorded).toBe(false);
-      expect(recordUserVoteOnce).toHaveBeenCalled();
+      expect(castVote).toHaveBeenCalled();
     });
 
     it('handles database errors gracefully', async () => {

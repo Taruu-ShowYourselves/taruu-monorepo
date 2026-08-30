@@ -221,6 +221,17 @@ describe('Verification API Routes', () => {
       expect(data.verificationStatus.phase).toBe('in_progress');
       expect(createVerificationRun).toHaveBeenCalled();
       expect(createVerificationScheduleItems).toHaveBeenCalled();
+      // Every window must name both the run and the resident. `user_id` is
+      // denormalised onto the schedule so migration 20260904000008 can anchor
+      // `(run_id, user_id)` to the run that owns it; the column is NOT NULL, so
+      // a window built without it fails the insert in production while a test
+      // that only asserts "was called" stays green.
+      const [submittedWindows] = (createVerificationScheduleItems as Mock).mock.calls[0];
+      expect(submittedWindows.length).toBeGreaterThan(0);
+      for (const window of submittedWindows) {
+        expect(window.run_id).toBe(mockVerificationRun.id);
+        expect(window.user_id).toBe(mockVerificationRun.user_id);
+      }
       expect(updateUser).toHaveBeenCalledWith(mockUser.id, { verification_status: 'pending' });
     });
 

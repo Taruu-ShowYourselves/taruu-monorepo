@@ -3,16 +3,17 @@ import { getSessionFromRequest } from '@/services/auth/session';
 import {
   getVoteWithOptions,
   getUserByGoogleId,
-  recordUserVoteOnce,
-  incrementVoteOption,
+  castVote,
+  CastVoteRejected,
+  type CastVoteResult,
 } from '@/lib/supabase/db';
-import { supabaseAdmin } from '@/lib/supabase/server';
 import { checkVoterEligibility } from '@/services/verification/eligibility';
 import { ParticipateRequestSchema } from '@sync/shared/contracts';
 import {
   voteParticipationLimiter,
   createRateLimitResponse,
 } from '@/lib/rate-limit';
+import { decideParticipationOpen } from '@/server/domain/votes/vote';
 import { decidePilotGate } from '@/server/domain/pilot/gate';
 import { listActiveCohortIds } from '@/server/infra/supabase/pilot.repo';
 import { markPilotParticipant } from '@/server/infra/supabase/pilot-registration.repo';
@@ -70,21 +71,27 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // A closed vote and a not-yet-open vote are different facts and must not
     // collapse into one client message - "refresh and try again" is actively
     // wrong advice for a vote that has ended.
-    if (vote.status === 'ended') {
-      return NextResponse.json({ error: 'Vote has ended', code: 'VOTE_ENDED' }, { status: 400 });
-    }
-
-    if (vote.status !== 'active') {
+    //
+    // These three checks used to be spelled out here, and the paid path in
+    // POST /api/payments/create made none of them. `decideParticipationOpen` is
+    // now the one place the rule lives, so the two ballot paths cannot drift
+    // and neither can drift from `cast_vote`, which is what actually enforces
+    // it under a row lock. One behaviour changed in the extraction: a vote that
+    // was scheduled, never opened, and whose end_date has passed now answers
+    // VOTE_ENDED rather than VOTE_NOT_OPEN, matching `cast_vote`. It is over,
+    // not pending.
+    const openness = decideParticipationOpen(vote, new Date());
+    if (!openness.open) {
       return NextResponse.json(
-        { error: 'Vote is not open yet', code: 'VOTE_NOT_OPEN' },
+        {
+          error:
+            openness.code === 'VOTE_ENDED'
+              ? 'Vote has ended'
+              : 'Vote is not open yet',
+          code: openness.code,
+        },
         { status: 400 }
       );
-    }
-
-    // Status can still lag the clock: a vote whose end_date has passed is
-    // ended, whatever the stored status says.
-    if (new Date(vote.end_date) < new Date()) {
-      return NextResponse.json({ error: 'Vote has ended', code: 'VOTE_ENDED' }, { status: 400 });
     }
 
     // Validate option exists
@@ -139,26 +146,60 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Persist the ballot. Idempotent: a duplicate submit returns the existing
-    // row instead of throwing or double-recording.
-    const { created, vote: ballot } = await recordUserVoteOnce({
-      user_id: session.userId,
-      vote_id: voteId,
-      option_id: optionId,
-    });
+    // Persist the ballot and both counters in one transaction. `cast_vote` is
+    // idempotent on (user_id, vote_id): a duplicate submit returns the ballot
+    // already cast and moves nothing. The checks above are still worth doing -
+    // they produce the specific Hebrew messages this endpoint returns - but
+    // they are no longer what protects the data. `cast_vote` re-checks that the
+    // vote is open and that the option belongs to it, so a vote that closes
+    // between the check and the write is refused rather than recorded.
+    let cast: CastVoteResult;
+    try {
+      cast = await castVote({
+        userId: session.userId,
+        voteId,
+        optionId,
+      });
+    } catch (castError) {
+      if (castError instanceof CastVoteRejected) {
+        // Reached only when the vote's state changed under us, since the checks
+        // above already cover these cases on a quiet path. Each reason keeps the
+        // response this endpoint already gives for that fact: a vote that
+        // disappeared is a 404, not a 400 saying it ended.
+        switch (castError.reason) {
+          case 'VOTE_NOT_FOUND':
+            return NextResponse.json(
+              { error: 'Vote not found', code: 'NOT_FOUND' },
+              { status: 404 }
+            );
+          case 'OPTION_NOT_IN_VOTE':
+            return NextResponse.json(
+              { error: 'Invalid option', code: 'INVALID_OPTION' },
+              { status: 400 }
+            );
+          case 'VOTE_ENDED':
+            return NextResponse.json(
+              { error: 'Vote has ended', code: 'VOTE_ENDED' },
+              { status: 400 }
+            );
+          case 'VOTE_NOT_OPEN':
+            return NextResponse.json(
+              { error: 'Vote is not open yet', code: 'VOTE_NOT_OPEN' },
+              { status: 400 }
+            );
+        }
+      }
+      throw castError;
+    }
 
-    // Move the tally and participant count only for a genuinely new ballot -
-    // never on the duplicate path, or the count drifts above the ballot count.
+    const created = cast.outcome === 'cast';
+    const ballot = {
+      id: cast.ballotId,
+      option_id: cast.optionId,
+      created_at: cast.createdAt,
+    };
+
     if (created) {
-      await incrementVoteOption(optionId);
-      await supabaseAdmin
-        .from('votes')
-        .update({
-          participant_count: (vote.participant_count || 0) + 1,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', voteId);
-
       // A verified resident who votes directly may have skipped the pilot
       // arrival page. Record the aggregate funnel event without ever blocking
       // their ballot on analytics work.

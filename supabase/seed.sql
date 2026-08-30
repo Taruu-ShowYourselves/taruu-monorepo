@@ -159,6 +159,13 @@ INSERT INTO verification_runs (
 -- SAMPLE PAYMENT
 -- ============================================
 
+-- A participation payment names the ballot choice it paid for. `vote_id` and
+-- `option_id` are not decoration here: `payments_ids_match_type` and
+-- `payments_option_belongs_to_vote` (migration 20260904000007) refuse a
+-- participation row without them, because such a row is a charge from which no
+-- ballot can ever be cast - the webhook casts only when both ids are present.
+-- The pair below is the Tel Aviv playground vote and its first option, seeded
+-- above.
 INSERT INTO payments (
   id,
   user_id,
@@ -168,7 +175,9 @@ INSERT INTO payments (
   status,
   provider,
   provider_id,
-  idempotency_key
+  idempotency_key,
+  vote_id,
+  option_id
 ) VALUES (
   '77777777-7777-7777-7777-777777777777',
   '11111111-1111-1111-1111-111111111111',
@@ -178,7 +187,9 @@ INSERT INTO payments (
   'completed',
   'green_invoice',
   'gi_doc_test_123',
-  'idempotent_test_key_001'
+  'idempotent_test_key_001',
+  '22222222-2222-2222-2222-222222222222',
+  '33333333-3333-3333-3333-333333333331'
 ) ON CONFLICT (id) DO NOTHING;
 
 -- ============================================
