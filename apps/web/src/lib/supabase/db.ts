@@ -580,16 +580,56 @@ export async function getPaymentByProviderId(
   return data;
 }
 
+/**
+ * Look up a payment by its idempotency key, WITHIN one user's payments.
+ *
+ * The owner is a required argument, not an optional narrowing, because
+ * `payments.idempotency_key` is UNIQUE across the whole table while the keys
+ * themselves are guessable: `POST /api/payments/create` accepts a caller-supplied
+ * `idempotencyKey` verbatim, and the key this codebase generates elsewhere is
+ * `{userId}:{type}:{voteId}` - every component of which is knowable. An
+ * unscoped lookup therefore answered "what is payment <key>?" for any
+ * authenticated caller, and the route returns the row's id, status, amount and
+ * currency straight back. That is another resident's payment record.
+ *
+ * Scoping lives here rather than in the callers on purpose. A caller that
+ * forgets the check reintroduces the whole hole, and there is no way to tell
+ * from the call site that the check is missing; a required parameter cannot be
+ * forgotten silently. `.eq('user_id', ownerUserId)` also means the database
+ * never returns the other row in the first place - the answer is "no such
+ * payment", not "found, then discarded", so nothing can leak through a log line
+ * or an error path in between.
+ *
+ * Returning null for a key that exists under a different owner is deliberate:
+ * to a caller who does not own it, the key is indistinguishable from one that
+ * was never used, which is what stops this from being an existence oracle.
+ * Migration 20260904000009 makes that safe rather than merely quiet - the
+ * UNIQUE constraint is now `(user_id, idempotency_key)`, so a key another
+ * resident holds does not collide on insert either. Before that swap, a
+ * guessable key held by somebody else read as "not found" here and then failed
+ * the global UNIQUE, which is how one request could permanently break another
+ * resident's charge.
+ *
+ * A query FAILURE is not absence and is not swallowed. `maybeSingle` already
+ * reports "no such row" as `data: null, error: null`, so a non-null error means
+ * the query itself did not run - and returning null for that would tell the
+ * caller "this key is free" during an outage, sending it on to an insert whose
+ * failure arrives later and less legibly.
+ */
 export async function getPaymentByIdempotencyKey(
-  key: string
+  key: string,
+  ownerUserId: string
 ): Promise<Payment | null> {
   const { data, error } = await supabaseAdmin
     .from('payments')
     .select('*')
     .eq('idempotency_key', key)
-    .single();
+    .eq('user_id', ownerUserId)
+    .maybeSingle();
 
-  if (error || !data) return null;
+  if (error) {
+    throw new Error(`Failed to look up payment by idempotency key: ${error.message}`);
+  }
   return data;
 }
 
@@ -2033,7 +2073,22 @@ export async function getIssueCoinHolders(
 }
 
 /**
- * Get or create Issue Coin holding
+ * Record a purchase against a holder's single holding for one Issue Coin.
+ *
+ * This used to SELECT the holding and then UPDATE or INSERT it. Two overlapping
+ * purchases by the same holder both read "no holding" and both inserted, which
+ * split their tokens and invested ILS across two rows -- and the next purchase's
+ * `.single()` lookup then errors on the two matches, so one race permanently
+ * broke buying for that holder.
+ *
+ * `claim_issue_coin_holding` does the whole thing in one INSERT ... ON CONFLICT
+ * DO UPDATE against `uq_issue_coin_holding_user` / `uq_issue_coin_holding_wallet`,
+ * so the accumulate-or-create decision is made under the lock that enforces the
+ * constraint. It lives in the database because inferring a PARTIAL unique index
+ * as an ON CONFLICT arbiter requires restating its WHERE clause, which PostgREST
+ * cannot express.
+ *
+ * Exactly one of userId / walletAddress must be given.
  */
 export async function upsertIssueCoinHolding(data: {
   issueCoinId: string;
@@ -2043,59 +2098,20 @@ export async function upsertIssueCoinHolding(data: {
   investedIls: number;
   isLocalResident?: boolean;
 }) {
-  const now = new Date().toISOString();
-  const existingQuery = supabaseAdmin
-    .from('issue_coin_holdings')
-    .select('*')
-    .eq('issue_coin_id', data.issueCoinId);
-
-  if (data.userId) {
-    existingQuery.eq('user_id', data.userId);
-  } else if (data.walletAddress) {
-    existingQuery.eq('wallet_address', data.walletAddress);
-  }
-
-  const { data: existing } = await existingQuery.single();
-
-  if (existing) {
-    // Update existing holding
-    const newAmount = (BigInt(existing.token_amount) + BigInt(data.tokenAmount)).toString();
-    const { data: updated, error } = await supabaseAdmin
-      .from('issue_coin_holdings')
-      .update({
-        token_amount: newAmount,
-        invested_ils: existing.invested_ils + data.investedIls,
-        last_purchase_at: now,
-      })
-      .eq('id', existing.id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return updated;
-  }
-
-  // Create new holding
-  const { data: created, error } = await supabaseAdmin
-    .from('issue_coin_holdings')
-    .insert({
-      issue_coin_id: data.issueCoinId,
-      user_id: data.userId,
-      wallet_address: data.walletAddress,
-      token_amount: data.tokenAmount,
-      invested_ils: data.investedIls,
-      is_local_resident: data.isLocalResident || false,
-      first_purchase_at: now,
-      last_purchase_at: now,
-    })
-    .select()
-    .single();
+  const { data: holding, error } = await supabaseAdmin.rpc('claim_issue_coin_holding', {
+    p_issue_coin_id: data.issueCoinId,
+    p_user_id: data.userId ?? null,
+    p_wallet_address: data.walletAddress ?? null,
+    p_token_amount: data.tokenAmount,
+    p_invested_ils: data.investedIls,
+    p_is_local_resident: data.isLocalResident ?? false,
+  });
 
   if (error) {
     console.error('Failed to upsert issue coin holding:', error);
     throw error;
   }
-  return created;
+  return holding;
 }
 
 /**
@@ -2187,35 +2203,12 @@ export async function updateVoteResolutionStatus(
   return data;
 }
 
-/**
- * Create a vote NFT record
- */
-export async function createVoteNft(data: {
-  voteId: string;
-  userId?: string;
-  walletAddress?: string;
-  type: 'verified_voter' | 'civic_patron';
-  metadata?: Record<string, unknown>;
-}) {
-  const { data: nft, error } = await supabaseAdmin
-    .from('vote_nfts')
-    .insert({
-      vote_id: data.voteId,
-      user_id: data.userId || null,
-      wallet_address: data.walletAddress || null,
-      type: data.type,
-      metadata: data.metadata as Json | null,
-      status: 'pending',
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Failed to create vote NFT:', error);
-    throw error;
-  }
-  return nft;
-}
+// `createVoteNft` was removed here. It took optional userId AND walletAddress
+// and inserted them both, which `chk_nft_holder_identity` now refuses, and it
+// inserted plainly, so a retry would raise on the holder indexes rather than be
+// absorbed. It had no callers. Leaving it exported would have left a second,
+// contract-breaking way to create these rows next to the one that honours them;
+// use `bulkCreateVoteNfts` (a single-element list is fine).
 
 /**
  * Update vote NFT status
@@ -2227,7 +2220,8 @@ export async function updateVoteNft(
     mintAddress?: string;
     metadataUri?: string;
     mintTxHash?: string;
-    errorMessage?: string;
+    /** null clears a message left by an earlier, since-retried failure. */
+    errorMessage?: string | null;
     retryCount?: number;
   }
 ) {
@@ -2415,12 +2409,22 @@ export async function getPendingNfts(limit = 50): Promise<PendingNftWithRecipien
       wallet_address: string | null;
       users: { qubik_wallet_address: string | null } | null;
     };
+    // Canonicalised the same way the holder columns are: surrounding whitespace
+    // trimmed, anything still containing whitespace treated as unusable. A
+    // padded address would otherwise be handed to the chain verbatim, and a
+    // malformed one would be marked terminally failed rather than left pending
+    // for the wallet to be corrected. Interior whitespace is never removed --
+    // that would name a different wallet.
+    const usable = (w: string | null | undefined) => {
+      const trimmed = w?.trim();
+      return trimmed && !/\s/.test(trimmed) ? trimmed : null;
+    };
     return {
       id: r.id,
       vote_id: r.vote_id,
       type: r.type,
       metadata: r.metadata,
-      recipient: r.wallet_address || r.users?.qubik_wallet_address || null,
+      recipient: usable(r.wallet_address) || usable(r.users?.qubik_wallet_address),
     };
   });
 }
@@ -2479,7 +2483,24 @@ export async function hasVoteNft(voteId: string, userId: string): Promise<boolea
 }
 
 /**
- * Bulk create vote NFT records
+ * Claim the NFT rows for a set of vote participants, idempotently.
+ *
+ * The same participant list reaches this function more than once: vote
+ * selection has no atomic claim (`getVotesNeedingResolution` reads
+ * `resolution_status IS NULL` and `resolveVote` writes 'resolving' only after),
+ * so overlapping cron ticks both enumerate it -- and a failed resolution is
+ * never re-selected, making a hand re-run the only recovery. A plain batch
+ * INSERT made that either a duplicate NFT (and, downstream, a second
+ * irreversible on-chain mint for one person) or -- once
+ * `uq_vote_nft_user_holder` and `uq_vote_nft_wallet_holder` existed -- a
+ * unique_violation aborting the whole batch.
+ *
+ * `claim_vote_nft_records` inserts ON CONFLICT DO NOTHING against those two
+ * partial indexes. It lives in the database because inferring a PARTIAL unique
+ * index as an ON CONFLICT arbiter requires restating its WHERE clause, which
+ * PostgREST cannot express.
+ *
+ * Returns how many rows this call actually created, so a no-op re-run returns 0.
  */
 export async function bulkCreateVoteNfts(
   records: Array<{
@@ -2489,26 +2510,73 @@ export async function bulkCreateVoteNfts(
     type: 'verified_voter' | 'civic_patron';
     metadata?: Record<string, unknown>;
   }>
-) {
-  const insertData = records.map((record) => ({
-    vote_id: record.voteId,
-    user_id: record.userId || null,
-    wallet_address: record.walletAddress || null,
-    type: record.type,
-    metadata: (record.metadata || null) as Json | null,
-    status: 'pending' as const,
-  }));
+): Promise<number> {
+  if (records.length === 0) {
+    return 0;
+  }
 
-  const { data, error } = await supabaseAdmin
-    .from('vote_nfts')
-    .insert(insertData)
-    .select();
+  // One vote per call, and refused rather than split. The old batch INSERT
+  // committed every record together; looping the RPC over several votes would
+  // instead leave earlier votes written when a later one throws, so a caller
+  // could not tell what had happened. The only caller enumerates one vote.
+  const voteId = records[0].voteId;
+  if (records.some((record) => record.voteId !== voteId)) {
+    throw new Error('bulkCreateVoteNfts: every record must belong to one vote');
+  }
+
+  const { data, error } = await supabaseAdmin.rpc('claim_vote_nft_records', {
+    p_vote_id: voteId,
+    p_records: records.map((record) => ({
+      user_id: record.userId ?? null,
+      wallet_address: record.walletAddress ?? null,
+      type: record.type,
+      metadata: record.metadata ?? null,
+    })) as unknown as Json,
+  });
 
   if (error) {
-    console.error('Failed to bulk create vote NFTs:', error);
+    console.error('Failed to claim vote NFT records:', error);
     throw error;
   }
-  return data || [];
+  return data ?? 0;
+}
+
+/**
+ * Atomically claim a single NFT row for minting.
+ *
+ * The status transition is the claim: `.eq('status', ...)` makes the UPDATE
+ * conditional, so of two workers holding the same row exactly one sees a row
+ * back and the other sees null and skips. Without it both would proceed to
+ * `mintCompressedNft` and produce two irreversible on-chain NFTs from one
+ * database row -- a duplicate no uniqueness constraint on this table can catch,
+ * because there is only ever one row.
+ *
+ * Only `pending` is claimable. A `failed` row is NOT retryable from here: a
+ * mint is marked failed whenever `mintCompressedNft` throws, which includes a
+ * timeout on a transaction the chain may well have accepted. Re-minting such a
+ * row would produce a second asset that no constraint on this table can see,
+ * because there is only ever one row. Retrying failed mints needs the same
+ * treatment the publication path got -- reconcile against the provider first,
+ * and only re-submit on positive evidence that nothing was broadcast. Nothing
+ * currently selects failed rows for minting, so narrowing this closes a door
+ * rather than removing a feature.
+ *
+ * Returns false when another worker got there first.
+ */
+export async function claimNftForMinting(nftId: string): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from('vote_nfts')
+    .update({ status: 'minting' })
+    .eq('id', nftId)
+    .eq('status', 'pending')
+    .select('id')
+    .maybeSingle();
+
+  if (error) {
+    console.error('Failed to claim NFT for minting:', error);
+    throw error;
+  }
+  return data !== null;
 }
 
 // ============================================

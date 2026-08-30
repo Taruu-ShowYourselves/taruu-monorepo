@@ -17,6 +17,7 @@ import {
   getIssueCoinHolders,
   updateIssueCoin,
   updateVoteNft,
+  claimNftForMinting,
   bulkCreateVoteNfts,
   getPendingNfts,
   getVoteNftStats,
@@ -42,6 +43,8 @@ interface MintResult {
   mintAddress?: string;
   txHash?: string;
   error?: string;
+  /** True when the row was not ours to mint: no work attempted, nothing spent. */
+  skipped?: boolean;
 }
 
 interface ResolutionResult {
@@ -104,7 +107,7 @@ async function getVoteById(voteId: string) {
 async function getVotersByVoteId(voteId: string) {
   const { data, error } = await supabaseAdmin
     .from('user_votes')
-    .select('user_id, option_id, created_at')
+    .select('user_id, option_id, created_at, users(qubik_wallet_address)')
     .eq('vote_id', voteId);
 
   if (error) {
@@ -184,18 +187,64 @@ export async function mintSingleNft(
   // Config / recipient skip: leave the record `pending` (not `failed`) so it's
   // picked up once a wallet is linked or the chain creds are set. No spend.
   if (!walletAddress) {
-    return { success: false, nftId, error: 'no recipient wallet' };
+    return { success: false, nftId, skipped: true, error: 'no recipient wallet' };
   }
   if (!isSolanaMintConfigured() || !isPinataConfigured()) {
-    return { success: false, nftId, error: 'minting not configured' };
+    return { success: false, nftId, skipped: true, error: 'minting not configured' };
+  }
+
+  // Claim the row BEFORE anything irreversible, and OUTSIDE the try below. Two
+  // scheduled minters can select the same pending row; an unconditional status
+  // write would let both through and mint the NFT twice on chain.
+  //
+  // The claim is outside the try because the catch marks the row `failed`, and
+  // `failed` is not re-claimable. A transient error from the claim itself means
+  // we do NOT own the row and nothing was attempted — writing `failed` there
+  // would permanently strand a row that was never minted, or worse, overwrite
+  // the state of the worker that did win it. Letting it throw leaves the row
+  // `pending` for the next run, which is the correct outcome.
+  let claimed: boolean;
+  try {
+    claimed = await claimNftForMinting(nftId);
+  } catch (error) {
+    // The row is left untouched, exactly as when the claim is lost: it must NOT
+    // reach the terminal-failure path below, because `failed` is not
+    // re-claimable and writing it here would strand a row nothing attempted.
+    //
+    // But this is NOT reported as a skip. Losing a claim is ordinary contention;
+    // failing to ask is a database outage, and counting it as skipped would let
+    // the cron report a clean run while nothing was minted.
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { success: false, nftId, error: `claim failed: ${message}` };
+  }
+  if (!claimed) {
+    // Overlapping cron runs are normal, not a fault. Reporting this as a
+    // failure would make a healthy schedule look like a broken minter.
+    return {
+      success: false,
+      nftId,
+      skipped: true,
+      error: 'already claimed by another minter',
+    };
+  }
+
+  // 1) Pin the metadata JSON to IPFS → on-chain metadata_uri. This is strictly
+  //    BEFORE the chain, so its failures are unambiguous: nothing was
+  //    broadcast, and the row is safe to return to `pending` and retry. Only a
+  //    failure from here on is ambiguous enough to warrant a terminal `failed`.
+  let metadataUri: string;
+  try {
+    metadataUri = await pinMetadata(metadata, metadata.name);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    // The ROW goes back to pending (nothing was broadcast, so retrying is
+    // safe), but the RESULT is a failure: an IPFS outage is a real dependency
+    // failure and counting it as a skip would hide it in the batch summary.
+    await updateVoteNft(nftId, { status: 'pending', errorMessage: message });
+    return { success: false, nftId, error: message };
   }
 
   try {
-    await updateVoteNft(nftId, { status: 'minting' });
-
-    // 1) Pin the metadata JSON to IPFS → on-chain metadata_uri.
-    const metadataUri = await pinMetadata(metadata, metadata.name);
-
     // 2) Mint the compressed NFT to the recipient wallet.
     const { assetId, signature } = await mintCompressedNft({
       recipient: walletAddress,
@@ -208,10 +257,18 @@ export async function mintSingleNft(
       mintAddress: assetId,
       mintTxHash: signature,
       metadataUri,
+      // A retry after a pinning failure would otherwise carry that message on a
+      // successfully minted row.
+      errorMessage: null,
     });
 
     return { success: true, nftId, mintAddress: assetId, txHash: signature };
   } catch (error) {
+    // A throw here does NOT prove the chain rejected the transaction — a
+    // timeout looks identical to a broadcast that succeeded. `failed` is
+    // therefore terminal by design: re-minting could produce a second asset
+    // that no constraint on this single row can see. Recovering these rows
+    // needs reconciliation against the chain, not a retry.
     const message = error instanceof Error ? error.message : 'Unknown error';
     await updateVoteNft(nftId, {
       status: 'failed',
@@ -280,6 +337,7 @@ export async function mintPendingNfts(
 
       const result = await mintSingleNft(nft.id, nft.recipient, metadata);
       if (result.success) summary.minted++;
+      else if (result.skipped) summary.skipped++;
       else summary.failed++;
     } catch (error) {
       summary.failed++;
@@ -320,14 +378,56 @@ export async function createNftRecordsForVote(voteId: string): Promise<number> {
     });
   }
 
+  // Every address a voter will already be minted to. A voter's NFT is keyed by
+  // user_id, and a wallet-held Issue Coin row is keyed by wallet_address, so the
+  // two never collide in the database even when both mint to the same address.
+  // Recognising the person here is what keeps that from becoming two NFTs.
+  // Compared in the form the database will store: `claim_vote_nft_records`
+  // trims surrounding whitespace, so comparing raw strings here would miss
+  // ' W ' against 'W' and emit two rows that mint to one address.
+  //
+  // Only the ENDS are trimmed. Removing an interior space would turn a
+  // malformed 'A B' into 'AB' -- a different and possibly real wallet -- so
+  // such a value is treated as unusable rather than repaired into someone
+  // else's address.
+  const canonicalWallet = (w: string | null | undefined) => {
+    const trimmed = w?.trim();
+    if (!trimmed || /\s/.test(trimmed)) return null;
+    return trimmed;
+  };
+  const voterWallets = new Set(
+    voters
+      .map((v) => canonicalWallet(
+        (v as { users?: { qubik_wallet_address?: string | null } | null })
+          .users?.qubik_wallet_address
+      ))
+      .filter((w): w is string => w !== null)
+  );
+
   // Get Issue Coin holders (external supporters)
   const issueCoin = await getIssueCoinByVoteId(voteId);
   if (issueCoin) {
     const holders = await getIssueCoinHolders(issueCoin.id, { residentsOnly: false });
 
     for (const holder of holders) {
-      // Skip holders who are also voters (they get Verified Voter NFT)
+      // Skip holders who are also voters (they get Verified Voter NFT), whether
+      // they are recognised by account or by the wallet their account links to.
       if (holder.user_id && voters.some((v) => v.user_id === holder.user_id)) {
+        continue;
+      }
+      const holderWallet = canonicalWallet(holder.wallet_address);
+      if (holderWallet && voterWallets.has(holderWallet)) {
+        continue;
+      }
+      // An unusable wallet cannot receive an NFT, and emitting the record
+      // anyway would make the claim RPC refuse the whole batch and fail the
+      // resolution for every other participant. The address itself is not
+      // logged.
+      if (holder.wallet_address && !holderWallet) {
+        console.warn('createNftRecordsForVote: skipping holder with an unusable wallet', {
+          voteId,
+          issueCoinId: issueCoin.id,
+        });
         continue;
       }
 
@@ -346,12 +446,12 @@ export async function createNftRecordsForVote(voteId: string): Promise<number> {
     }
   }
 
-  // Bulk create NFT records
-  if (records.length > 0) {
-    await bulkCreateVoteNfts(records);
+  // Claim the rows. Idempotent: a re-run of resolution claims 0 and the count
+  // returned is what this call actually created, not what it enumerated.
+  if (records.length === 0) {
+    return 0;
   }
-
-  return records.length;
+  return bulkCreateVoteNfts(records);
 }
 
 // === Vote Resolution Functions ===

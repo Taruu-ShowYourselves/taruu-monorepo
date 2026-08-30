@@ -13,6 +13,7 @@ import {
   voteParticipationLimiter,
   createRateLimitResponse,
 } from '@/lib/rate-limit';
+import { decideParticipationOpen } from '@/server/domain/votes/vote';
 import { decidePilotGate } from '@/server/domain/pilot/gate';
 import { listActiveCohortIds } from '@/server/infra/supabase/pilot.repo';
 import { markPilotParticipant } from '@/server/infra/supabase/pilot-registration.repo';
@@ -70,21 +71,27 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // A closed vote and a not-yet-open vote are different facts and must not
     // collapse into one client message - "refresh and try again" is actively
     // wrong advice for a vote that has ended.
-    if (vote.status === 'ended') {
-      return NextResponse.json({ error: 'Vote has ended', code: 'VOTE_ENDED' }, { status: 400 });
-    }
-
-    if (vote.status !== 'active') {
+    //
+    // These three checks used to be spelled out here, and the paid path in
+    // POST /api/payments/create made none of them. `decideParticipationOpen` is
+    // now the one place the rule lives, so the two ballot paths cannot drift
+    // and neither can drift from `cast_vote`, which is what actually enforces
+    // it under a row lock. One behaviour changed in the extraction: a vote that
+    // was scheduled, never opened, and whose end_date has passed now answers
+    // VOTE_ENDED rather than VOTE_NOT_OPEN, matching `cast_vote`. It is over,
+    // not pending.
+    const openness = decideParticipationOpen(vote, new Date());
+    if (!openness.open) {
       return NextResponse.json(
-        { error: 'Vote is not open yet', code: 'VOTE_NOT_OPEN' },
+        {
+          error:
+            openness.code === 'VOTE_ENDED'
+              ? 'Vote has ended'
+              : 'Vote is not open yet',
+          code: openness.code,
+        },
         { status: 400 }
       );
-    }
-
-    // Status can still lag the clock: a vote whose end_date has passed is
-    // ended, whatever the stored status says.
-    if (new Date(vote.end_date) < new Date()) {
-      return NextResponse.json({ error: 'Vote has ended', code: 'VOTE_ENDED' }, { status: 400 });
     }
 
     // Validate option exists

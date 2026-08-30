@@ -24,6 +24,25 @@ for migration in "$ROOT"/supabase/migrations/*.sql; do
 done
 echo "  applied $count migrations"
 
+# The seed is applied and then rolled back. It is not fixtures for the tests
+# below - it is a file that `supabase db reset` runs after the migrations, so a
+# constraint added by a migration can break local development without any test
+# noticing. Rolling it back keeps that check free of side effects: every test
+# below still starts from the same migrated-but-empty database.
+if [ -f "$ROOT/supabase/seed.sql" ]; then
+  echo "→ seed"
+  # Contents piped rather than `\i`: the path is resolved by whatever process
+  # runs psql, which is not always the one holding this checkout.
+  if { echo 'BEGIN;'; cat "$ROOT/supabase/seed.sql"; echo 'ROLLBACK;'; } \
+       | "${PSQL[@]}" >/tmp/db-test-seed.log 2>&1; then
+    echo "  ✓ seed.sql applies to a fully migrated database"
+  else
+    echo "  ✗ seed.sql no longer applies — supabase db reset will fail" >&2
+    tail -20 /tmp/db-test-seed.log >&2
+    exit 1
+  fi
+fi
+
 echo "→ tests"
 failed=0
 for test_file in "$ROOT"/supabase/tests/*.sql; do

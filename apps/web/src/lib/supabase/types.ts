@@ -544,6 +544,13 @@ export interface Database {
         Row: {
           id: string;
           run_id: string;
+          /**
+           * The run's resident (migration 20260904000008). Required, and
+           * required on Insert too: a window with no user cannot satisfy
+           * `verification_schedule_belongs_to_its_run`, so an optional field
+           * here would move a compile error to runtime.
+           */
+          user_id: string;
           window_start: string;
           window_end: string;
           completed: boolean;
@@ -553,6 +560,7 @@ export interface Database {
         Insert: {
           id?: string;
           run_id: string;
+          user_id: string;
           window_start: string;
           window_end: string;
           completed?: boolean;
@@ -562,6 +570,7 @@ export interface Database {
         Update: {
           id?: string;
           run_id?: string;
+          user_id?: string;
           window_start?: string;
           window_end?: string;
           completed?: boolean;
@@ -2484,6 +2493,24 @@ export interface Database {
           out_participant_count: number;
           out_created_at: string;
         }[];
+      };
+      claim_issue_coin_holding: {
+        Args: {
+          p_issue_coin_id: string;
+          p_user_id: string | null;
+          p_wallet_address: string | null;
+          p_token_amount: string;
+          p_invested_ils: number;
+          p_is_local_resident?: boolean;
+        };
+        Returns: Database['public']['Tables']['issue_coin_holdings']['Row'];
+      };
+      claim_vote_nft_records: {
+        Args: {
+          p_vote_id: string;
+          p_records: Json;
+        };
+        Returns: number;
       };
       increment_vote_option: {
         Args: {

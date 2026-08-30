@@ -15,9 +15,16 @@ import { getMunicipalityBounds } from '@/services/verification/municipality';
  */
 function generateCheckInWindows(
   runId: string,
+  // The run's resident. Denormalised onto every window since migration
+  // 20260904000008, so a check-in can be pinned to its window AND its person in
+  // one foreign key - the thing that stops one resident's GPS evidence counting
+  // as another's right to vote. It cannot disagree with the run: the composite
+  // key refuses a window whose (run_id, user_id) is not a real pair.
+  userId: string,
   numCheckIns: number = 6
 ): Array<{
   run_id: string;
+  user_id: string;
   window_start: string;
   window_end: string;
 }> {
@@ -25,6 +32,7 @@ function generateCheckInWindows(
   const periodEnd = new Date(now.getTime() + 21 * 24 * 60 * 60 * 1000);
   const windows: Array<{
     run_id: string;
+    user_id: string;
     window_start: string;
     window_end: string;
   }> = [];
@@ -52,6 +60,7 @@ function generateCheckInWindows(
 
     windows.push({
       run_id: runId,
+      user_id: userId,
       window_start: windowStart.toISOString(),
       window_end: windowEnd.toISOString(),
     });
@@ -124,7 +133,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Generate and save check-in windows
-    const windows = generateCheckInWindows(run.id, numCheckIns);
+    const windows = generateCheckInWindows(run.id, run.user_id, numCheckIns);
     await createVerificationScheduleItems(windows);
 
     // Update user verification status
