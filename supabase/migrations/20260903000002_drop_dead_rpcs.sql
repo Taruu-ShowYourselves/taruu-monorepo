@@ -33,15 +33,18 @@
 --   outside it. That residual matters for the seven non-definer routines,
 --   which anon can still execute today -- and removing exactly that reachable
 --   surface is the point of this migration, so an unknown external caller is
---   an argument for the drop rather than against it -- but it is an argument
---   for accepting a breaking change to an undocumented endpoint, not a proof
---   that none exists, and it should be read that way.
+--   an unknown caller is a reason the drop could break something, not
+--   evidence that it will not. The reason to accept that risk is separate and
+--   deliberate: these are undocumented endpoints, seven of them reachable by
+--   anon, and retiring that surface is the point. This migration accepts the
+--   residual external-caller risk knowingly.
 --
 --   The two SECURITY DEFINER routines are narrower but not exempt:
 --   20260904000001 left them executable only by postgres and service_role, so
 --   no anon or authenticated client can reach them at all. A service_role
---   holder still can -- and the only service_role code is this repository,
---   where the pickaxe above returns nothing.
+--   holder still can. There is no service_role call site in this repository;
+--   whether one exists in a backend outside it is not something the checks
+--   above can settle, and that residual is accepted on the same terms.
 --
 -- SECURITY STATE AT THE MOMENT OF THE DROP
 --

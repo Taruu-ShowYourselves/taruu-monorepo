@@ -70,13 +70,14 @@
 --
 -- lock_timeout bounds each individual lock acquisition. It does NOT bound how
 -- long an already-acquired lock is held: this transaction takes users first
--- and does not release it until COMMIT, so in the worst case -- every one of
--- the twelve later acquisitions waiting just under the timeout -- users stays
--- locked for far longer than three seconds. That worst case needs a dozen
--- concurrent lock holders to materialise; in the ordinary case each DROP is a
--- catalog update that returns as soon as the lock is granted, and the whole
--- file is milliseconds. The bound to rely on is "no single wait exceeds 3s",
--- not "the tables are locked for at most 3s".
+-- and does not release it until COMMIT. The thirteen indexes span ten tables
+-- (users has three, issue_coins two), and a lock is taken once per table, so
+-- after users there are at most nine further acquisitions that can wait. In
+-- the worst case -- nine conflicting holders, each wait landing just under the
+-- timeout -- users stays locked for far longer than three seconds. In the
+-- ordinary case each DROP is a catalog update that returns as soon as the lock
+-- is granted and the whole file is milliseconds. The bound to rely on is "no
+-- single wait exceeds 3s", not "the tables are locked for at most 3s".
 --
 -- The timeout is only useful inside a transaction that actually exists. scripts/db-test.sh applies each file with plain `psql -f` and no
 -- --single-transaction, so statements would otherwise autocommit one at a
