@@ -86,8 +86,29 @@
 --     * no NULL accumulates, so 20260904000010's preflight is not a cleanup
 --       task but an assertion that there was never anything to clean.
 --
---   Everything here is therefore satisfiable by both writers at once. Nothing
---   in this file can fail against the currently deployed application.
+--   Everything here is therefore satisfiable by both writers at once.
+--
+--   ONE ORDERING CONSTRAINT REMAINS, AND IT IS NOT OPTIONAL
+--
+--   This file makes the OLD writer safe. It cannot make the NEW writer safe
+--   before it has run, because until then the column does not exist and
+--   PostgREST rejects an INSERT naming it - no trigger, constraint or backfill
+--   can help with a column that is not there yet.
+--
+--   So the sequence is one-directional, not symmetric:
+--
+--       APPLY THIS MIGRATION FIRST, THEN DEPLOY THE APPLICATION.
+--
+--   Merging pull request #145 deploys automatically, so "before the deploy"
+--   means BEFORE THE MERGE. Applied in that order there is no window in which
+--   either writer fails: between this migration and the deploy only the old
+--   writer exists, and it works; after the deploy both work.
+--
+--   Applied in the other order there IS a window - every
+--   POST /api/verification/start fails from the deploy until this runs - and
+--   the request creates its verification_run before writing the schedule, so a
+--   failure there can leave an active run behind that makes the user's retry
+--   report a verification already in progress.
 --
 -- PRODUCTION SHAPE (read-only, 2026-08-30)
 --
@@ -175,9 +196,19 @@ LANGUAGE plpgsql
 SET search_path = ''
 AS $derive$
 BEGIN
-  -- Only ever fills a hole. A user_id the caller supplied is passed through
-  -- untouched, so the composite foreign key below - not this trigger - remains
-  -- the thing that decides whether the pair is allowed.
+  -- Only ever fills a hole, on INSERT or when an UPDATE nulls the column. A
+  -- user_id the caller supplied is passed through untouched, so the composite
+  -- foreign key below - not this trigger - remains the thing that decides
+  -- whether the pair is allowed.
+  --
+  -- It deliberately does NOT make user_id follow a reassigned run. An UPDATE
+  -- that moves run_id and leaves a stale non-NULL user_id skips the branch
+  -- below and is refused by the composite key. That is the wanted outcome:
+  -- silently re-pointing a row at a different person would rewrite whose
+  -- physical presence the check-ins under it evidence, and this table is the
+  -- ballot gate. `UPDATE OF run_id` is in the trigger's column list so that
+  -- setting run_id and user_id = NULL together re-derives correctly, not so
+  -- that a run can be reassigned unattended.
   IF NEW.user_id IS NULL THEN
     SELECT r.user_id
       INTO NEW.user_id

@@ -28,12 +28,27 @@
 --
 --   3. The backfill in 20260904000008 has completed. It runs inline in that
 --      migration and covers every row that existed when it was applied; the
---      trigger covers every row written since. The preflight below is what
---      proves both, and it refuses rather than repairs.
+--      trigger covers every row written since.
 --
---   Applying this early is safe for DATA - the preflight refuses - but it will
---   break the old writer the moment it succeeds, which is the whole reason the
---   split exists.
+--   WHAT THE PREFLIGHT BELOW CAN AND CANNOT PROVE
+--
+--   It proves there is nothing to clean: no NULL, no drift, no orphan. It
+--   CANNOT prove condition 1 or 2. A database with zero schedule rows passes
+--   every check vacuously, and that is exactly production's shape today - so
+--   `unfilled = 0` reads identically whether the new writer has been confirmed
+--   or has never run at all. The trigger makes this worse in one specific way:
+--   old-writer rows also carry a non-NULL user_id, so row contents cannot
+--   distinguish which writer produced them either.
+--
+--   No SQL in this file can close that gap - the deploy state is not visible
+--   from inside the database. Conditions 1 and 2 are therefore an OPERATOR
+--   precondition, checked by hand with the query above, and this comment is
+--   the only thing standing behind them. Do not read a green preflight as
+--   permission to apply.
+--
+--   Applying this early is safe for DATA - the preflight refuses on anything
+--   it can see - but it breaks the old writer the moment it succeeds, which is
+--   the whole reason the split exists.
 --
 -- PRODUCTION SHAPE (read-only, 2026-08-30)
 --
@@ -71,6 +86,51 @@ DECLARE
   drifted   UUID[];
   orphaned  UUID[];
 BEGIN
+  -- Section 2 is about to drop the last single-column keys. If the composite
+  -- keys that supersede them are missing, unvalidated, or the derive trigger
+  -- has gone, dropping would remove the only enforcement left rather than a
+  -- redundant duplicate - and on an empty or already-consistent database every
+  -- row check below would still pass. So the objects are asserted first.
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+     WHERE conname = 'verification_schedule_belongs_to_its_run'
+       AND conrelid = 'public.verification_schedule'::regclass
+       AND convalidated
+  ) THEN
+    RAISE EXCEPTION
+      'verification_schedule_belongs_to_its_run is missing or NOT VALID'
+      USING HINT = 'Apply 20260904000008 first. This migration is about to '
+                   'drop verification_schedule_run_id_fkey, which is the only '
+                   'other thing tying a window to a real run.';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+     WHERE conname = 'verification_attempts_belongs_to_its_run'
+       AND conrelid = 'public.verification_attempts'::regclass
+       AND convalidated
+  ) THEN
+    RAISE EXCEPTION
+      'verification_attempts_belongs_to_its_run is missing or NOT VALID'
+      USING HINT = 'Apply 20260904000008 first. This migration is about to '
+                   'drop verification_attempts_schedule_id_fkey.';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+     WHERE tgrelid = 'public.verification_schedule'::regclass
+       AND tgname  = 'verification_schedule_derive_user_id'
+       AND NOT tgisinternal
+       AND tgenabled <> 'D'
+  ) THEN
+    RAISE EXCEPTION
+      'verification_schedule_derive_user_id is missing or disabled'
+      USING HINT = 'Section 1 is about to make user_id NOT NULL. Without the '
+                   'trigger, rolling the application back to a writer that '
+                   'omits the column would then fail with no way forward '
+                   'except another migration.';
+  END IF;
+
   SELECT count(*) INTO unfilled
     FROM public.verification_schedule
    WHERE user_id IS NULL;
