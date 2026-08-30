@@ -1,18 +1,45 @@
 -- =============================================================================
--- DB cleanup stage 3: drop 9 dead public RPCs (2026-08-23 audit).
+-- DB cleanup stage 3: drop 9 dead public RPCs (2026-08-23 audit,
+-- re-verified against production 2026-08-30).
 --
--- Each function below has, verified on origin/main at commit c138bf9:
---   * zero references in apps/ and packages/ (web, mobile, agents) — the web
+-- WHY EACH IS DEAD
+--
+-- Verified on this branch's tree and against production:
+--   * zero references in apps/ and packages/ (web, mobile, agents) -- the web
 --     app reads and writes phone_verifications / payments / vote_nfts through
 --     the tables directly in src/lib/supabase/db.ts;
 --   * zero references from any other SQL function body, view definition,
---     trigger, RLS policy, or pg_cron job;
+--     trigger, RLS policy, or pg_cron job (pg_depend, pg_proc.prosrc,
+--     pg_get_viewdef, pg_policy, pg_trigger, cron.job all queried: empty);
 --   * no Supabase Edge Functions exist in this project at all;
---   * zero production invocations from ANY deployed client (old mobile or
---     web builds included): pg_stat_statements, tracking since its
---     2026-06-20 reset (4,762 distinct statements, under the eviction cap),
---     contains no call to any of the nine — the only entries mentioning
---     them are their own historical CREATE/GRANT DDL.
+--   * no client build could ever have called them: `git log --all -S<name>
+--     -- apps packages` returns ZERO commits for all nine. These names have
+--     never appeared in client source at any point in the repository's
+--     history, so no deployed build -- current or long-retired -- contains a
+--     call site.
+--
+--   That last check is the load-bearing one. pg_stat_statements also shows no
+--   invocation (4,770 statements, tracking since its 2026-06-20 reset; the
+--   only entries mentioning these names are their own CREATE/GRANT DDL) but
+--   it is NOT conclusive on its own: pg_stat_statements_info.dealloc = 12, so
+--   the view has evicted entries and cannot prove a negative over its window.
+--   The git-history check does not have that weakness.
+--
+-- SECURITY STATE AT THE MOMENT OF THE DROP
+--
+--   * check_verification_completion and get_or_create_payment are SECURITY
+--     DEFINER. 20260904000001 already revoked their PUBLIC/anon/authenticated
+--     EXECUTE; both now read `postgres=X/postgres | service_role=X/postgres`,
+--     so no browser or mobile client can reach them today regardless.
+--   * The other seven are NOT SECURITY DEFINER and still carry PUBLIC + anon
+--     + authenticated EXECUTE. They run with the caller's own privileges
+--     under RLS, so the exposure is bounded -- but it is real, and dropping
+--     them retires it along with the corresponding security-advisor warnings.
+--
+--   (An earlier revision of this header said "several were SECURITY DEFINER
+--   with authenticated/anon EXECUTE". That was true when it was written and
+--   stopped being true when 20260904000001 was applied. The split above is
+--   the current state.)
 --
 -- Origins, for the record:
 --   20240101000002_functions.sql:      check_verification_completion,
@@ -25,14 +52,67 @@
 --                                      record_phone_verification_attempt,
 --                                      mark_phone_verified
 --
--- Each name has exactly one overload (verified via pg_proc /
--- pg_get_function_identity_arguments); the signatures below are those exact
--- overloads, so nothing broader can be dropped. Several are SECURITY DEFINER
--- and grant-executable to authenticated/anon — removing them also retires
--- their Supabase security-advisor warnings.
+-- PRECISION AND RE-RUNNABILITY
 --
--- Rollback: recreate from the origin migrations listed above.
+-- Each name has exactly one overload (verified via pg_proc /
+-- pg_get_function_identity_arguments), and the signatures below are those
+-- exact overloads, so nothing broader can be dropped.
+--
+-- The DROPs are deliberately bare rather than IF EXISTS, against the wider
+-- repo habit. IF EXISTS resolves by signature: if an overload were ever
+-- added or a parameter type changed, IF EXISTS would silently match nothing
+-- and leave an anon-executable RPC in place while this migration reported
+-- success. For a file whose entire purpose is retiring reachable surface,
+-- failing loudly on a signature that no longer matches is the safer failure.
+-- Nothing here is partially applied on error: the file is one transaction.
+--
+-- ORDERING
+--
+-- These two files are stamped 20260903*, earlier than the 20260904* set that
+-- is already applied in production, so the fresh-database replay order (this
+-- file first) and the production order (this file last) differ. Both are
+-- proven:
+--   * Fresh replay -- 20260904000001, 000006 and 000009 each guard their
+--     handling of get_or_create_payment on `to_regprocedure(...) IS NOT NULL`
+--     and skip when it is absent; supabase/tests/payment_idempotency_scope.sql
+--     and supabase/tests/payments_option_id_uuid.sql use the same guard. The
+--     `Database tests` job replays the full chain in this order and passes.
+--   * Production -- applied after the 20260904* set, where all nine functions
+--     still exist with exactly these signatures (re-verified 2026-08-30),
+--     so every DROP resolves.
+-- Migrations in this project are applied deliberately, with the ledger row
+-- written explicitly, rather than by `supabase db push`; the out-of-order
+-- version is recorded, not inferred, and no repair step is required.
+--
+-- ROLLBACK
+--
+--   Seven of the nine recreate cleanly from the origin migrations listed
+--   above; they have not been modified since.
+--
+--   get_or_create_payment MUST NOT be restored from 20240101000002. Its body
+--   and its ACL have both moved on:
+--     * 20260904000006 rewrote the body to cast `p_option_id::UUID`, because
+--       payments.option_id is now uuid and the 2024 body inserts the TEXT
+--       parameter directly -- restoring the old body reintroduces a routine
+--       that fails at call time with
+--         column "option_id" is of type uuid but expression is of type text
+--     * 20260904000009 rewrote it again to scope the idempotency-key lookup
+--       by user_id; the 2024 body looks up by bare key and, under per-user
+--       uniqueness, can return another resident's payment row.
+--     * 20260904000001 revoked its PUBLIC/anon/authenticated EXECUTE. A
+--       freshly created function is granted EXECUTE to PUBLIC by default, so
+--       any recreation must repeat that revoke or it silently reopens the
+--       hole that migration closed.
+--   The correct source for a rollback is therefore the body in
+--   20260904000009 (the last migration to alter it), followed by
+--   `REVOKE ALL ON FUNCTION ... FROM PUBLIC, anon, authenticated`.
+--
+--   check_verification_completion is unmodified since 20240101000002, but the
+--   same ACL caveat applies: 20260904000001 revoked its default grants, so a
+--   recreation must repeat the revoke.
 -- =============================================================================
+
+SET lock_timeout = '3s';
 
 DROP FUNCTION public.can_send_phone_verification(p_user_id uuid, p_phone text, p_max_per_hour integer, p_max_per_day integer);
 DROP FUNCTION public.can_verify_phone_code(p_user_id uuid, p_max_attempts integer);
@@ -43,3 +123,7 @@ DROP FUNCTION public.check_verification_completion(run_uuid uuid);
 DROP FUNCTION public.get_or_create_payment(p_user_id uuid, p_type payment_type, p_amount integer, p_idempotency_key text, p_vote_id uuid, p_option_id text);
 DROP FUNCTION public.get_vote_nft_stats(p_vote_id uuid);
 DROP FUNCTION public.user_has_vote_nft(p_user_id uuid, p_vote_id uuid);
+
+-- Scoped to this file: if the runner shares one session across migrations,
+-- an unreset lock_timeout would silently apply to every later migration.
+RESET lock_timeout;
