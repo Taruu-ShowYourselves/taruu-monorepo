@@ -15,9 +15,12 @@
 --   * no build from this repository could ever have called them:
 --     `git log --all -S<name> -- apps packages agents growth infra scripts`
 --     returns ZERO commits for all nine. These names have never appeared in
---     any code directory at any point in this repository's history -- the
---     only non-migration hits anywhere are prose in docs/ and .planning/ --
---     so no deployed build, current or long-retired, contains a call site.
+--     any code directory at any point in this repository's history. The
+--     non-migration hits are prose in docs/, .planning/ and SECURITY-AUDIT.md,
+--     plus two guarded references in supabase/tests/ (payment_idempotency_
+--     scope.sql and payments_option_id_uuid.sql, both of which skip when the
+--     function is absent -- see ORDERING below). None is a deployed call site,
+--     so no build, current or long-retired, contains one.
 --
 --   That last check is the load-bearing one. pg_stat_statements also shows no
 --   invocation (4,770 statements, tracking since its 2026-06-20 reset; the
@@ -30,10 +33,15 @@
 --   outside it. That residual matters for the seven non-definer routines,
 --   which anon can still execute today -- and removing exactly that reachable
 --   surface is the point of this migration, so an unknown external caller is
---   an argument for the drop rather than against it. It does not apply at all
---   to the two SECURITY DEFINER routines: 20260904000001 already left them
---   executable only by postgres and service_role, so no anon or authenticated
---   client can reach them regardless of what its source contains.
+--   an argument for the drop rather than against it -- but it is an argument
+--   for accepting a breaking change to an undocumented endpoint, not a proof
+--   that none exists, and it should be read that way.
+--
+--   The two SECURITY DEFINER routines are narrower but not exempt:
+--   20260904000001 left them executable only by postgres and service_role, so
+--   no anon or authenticated client can reach them at all. A service_role
+--   holder still can -- and the only service_role code is this repository,
+--   where the pickaxe above returns nothing.
 --
 -- SECURITY STATE AT THE MOMENT OF THE DROP
 --
@@ -137,6 +145,10 @@
 --   recreation must repeat the revoke.
 -- =============================================================================
 
+-- This file owns its transaction; see the same note in the sibling migration
+-- 20260903000001. Applying it from a session that already opened a
+-- transaction makes the BEGIN a no-op warning and the COMMIT end the caller's
+-- transaction instead of this one.
 BEGIN;
 SET LOCAL lock_timeout = '3s';
 

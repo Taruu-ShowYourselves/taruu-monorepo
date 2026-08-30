@@ -10,9 +10,16 @@
 -- classes and no predicate/INCLUDE difference (verified against pg_index
 -- grouped by indkey/indclass/indpred/indexprs). None is attached to a
 -- constraint (verified via pg_constraint.conindid). The retained unique index
--- is therefore a perfect substitute: same relation, same key, same opclass,
--- same order, so every access path the duplicate served the twin serves at
--- the same cost.
+-- therefore offers every access path the duplicate offered: same relation,
+-- same key, same opclass, same order, so it satisfies the same predicates and
+-- the same orderings.
+--
+-- Equivalent in what it can serve, not byte-for-byte identical. The survivor
+-- is unique, so B-tree deduplication is disabled on it, and a nullable unique
+-- column may hold many NULLs the non-unique twin could deduplicate -- so index
+-- size and the cost of an IS NULL scan can move. What does not move is which
+-- queries can be answered, or whether they are answered correctly, and that is
+-- what this cleanup turns on.
 --
 -- That structural equivalence is the whole argument. It does not depend on
 -- usage statistics, which is just as well -- these indexes are NOT unused.
@@ -61,8 +68,17 @@
 -- queues, and every query arriving after it queues behind the DROP. On
 -- vote_sources and users that convoy would be user-visible.
 --
--- lock_timeout bounds that wait, but only inside a transaction that actually
--- exists. scripts/db-test.sh applies each file with plain `psql -f` and no
+-- lock_timeout bounds each individual lock acquisition. It does NOT bound how
+-- long an already-acquired lock is held: this transaction takes users first
+-- and does not release it until COMMIT, so in the worst case -- every one of
+-- the twelve later acquisitions waiting just under the timeout -- users stays
+-- locked for far longer than three seconds. That worst case needs a dozen
+-- concurrent lock holders to materialise; in the ordinary case each DROP is a
+-- catalog update that returns as soon as the lock is granted, and the whole
+-- file is milliseconds. The bound to rely on is "no single wait exceeds 3s",
+-- not "the tables are locked for at most 3s".
+--
+-- The timeout is only useful inside a transaction that actually exists. scripts/db-test.sh applies each file with plain `psql -f` and no
 -- --single-transaction, so statements would otherwise autocommit one at a
 -- time and a timeout on the eleventh DROP would leave ten indexes gone and
 -- the file un-retryable (the bare DROPs would then fail on the missing ones).
@@ -90,6 +106,13 @@
 --   recreation restores redundancy, not behaviour.
 -- =============================================================================
 
+-- This file owns its transaction. Do not apply it from a session that has
+-- already opened one: PostgreSQL does not nest, so the BEGIN below would only
+-- warn and the COMMIT would end the caller's transaction, not this one --
+-- committing whatever else it had pending and detaching these drops from any
+-- ledger write meant to be atomic with them. scripts/db-test.sh is safe (a
+-- fresh `psql -f` per migration); an interactive paste mid-transaction, or a
+-- wrapper that opens its own BEGIN, is not.
 BEGIN;
 SET LOCAL lock_timeout = '3s';
 
