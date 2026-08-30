@@ -230,6 +230,65 @@ BEGIN
 END;
 $test$;
 
+-- `space_admin_metrics` is the counter-example to the four above, and it gets
+-- its own assertion rather than relying on the catch-all.
+--
+-- The catch-all already covers it: it is SECURITY DEFINER, it is not on the
+-- allowlist, so an anon or authenticated grant makes the sweep fail. But it
+-- fails with a generic "reachable by anon/authenticated" naming a function
+-- nobody has context on, and this one has a history worth naming.
+--
+-- 20260802000013 created it service-role-only and said so in a comment. It was
+-- nonetheless found granting anon AND authenticated in production on
+-- 2026-08-30, while a database built from these migrations had the correct two
+-- entries - `REVOKE … FROM PUBLIC` had removed the PUBLIC default and left
+-- Supabase's separate named grants untouched, the same way it did for the six
+-- mutators in 20260904000001. 20260904000011 restores it.
+--
+-- The distinction that matters for this file: it is STABLE and returns only
+-- suppressed aggregates, so it is not dangerous the way a mutator is. It is
+-- excluded from the allowlist anyway, because `proposals_submitted` counts
+-- draft, in_review and rejected votes - administrative figures the public
+-- council page does not publish - and because the capability check that
+-- authorizes a caller lives in the application, which a direct PostgREST call
+-- does not pass through.
+DO $test$
+BEGIN
+  IF to_regprocedure('public.space_admin_metrics(uuid)') IS NULL THEN
+    RAISE EXCEPTION 'space_admin_metrics(uuid) is missing'
+      USING HINT = 'If it was deliberately removed, delete this assertion with it.';
+  END IF;
+
+  IF has_function_privilege('anon', 'public.space_admin_metrics(uuid)', 'EXECUTE') THEN
+    RAISE EXCEPTION
+      'anon can execute public.space_admin_metrics(uuid) - an administrative '
+      'surface whose only authorization is an application capability check'
+      USING HINT = 'Do not add it to the allowlist to make this pass. Revoke '
+                   'as 20260904000011 does: REVOKE ALL ON FUNCTION '
+                   'public.space_admin_metrics(UUID) FROM PUBLIC, anon, '
+                   'authenticated.';
+  END IF;
+
+  IF has_function_privilege('authenticated',
+                            'public.space_admin_metrics(uuid)', 'EXECUTE') THEN
+    RAISE EXCEPTION
+      'authenticated can execute public.space_admin_metrics(uuid) - being '
+      'signed in is not the capability that authorizes a space admin read'
+      USING HINT = 'See 20260904000011.';
+  END IF;
+
+  -- The other direction. The space admin dashboard reads this through
+  -- supabaseAdmin, so a revoke that took service_role with it would turn the
+  -- page into a 500 and this file would have called it a pass.
+  IF NOT has_function_privilege('service_role',
+                                'public.space_admin_metrics(uuid)', 'EXECUTE') THEN
+    RAISE EXCEPTION
+      'service_role lost EXECUTE on public.space_admin_metrics(uuid), which '
+      'the space admin metrics page depends on';
+  END IF;
+END;
+$test$;
+
 -- The live callers must keep working. The first three are reached from
 -- apps/web/src/lib/supabase/db.ts through the service-role client; the fourth
 -- is service-role housekeeping the migration deliberately preserves. If a
