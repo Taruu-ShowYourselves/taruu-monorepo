@@ -2753,7 +2753,12 @@ export async function getMunicipalityProfile(
       .from('votes')
       .select('*, vote_options (*)')
       .eq('municipality_id', municipalityId)
-      .in('status', ['active', 'ended'])
+      // The shared allow-list, not a private ['active','ended'] copy of it.
+      // The copy was the drift `PUBLIC_VOTE_STATUSES` exists to prevent: a
+      // scheduled ballot showed on /he/votes and vanished from its own
+      // municipality's desk, and a vote in resolution disappeared from both
+      // stretches rather than settling into the decided one.
+      .in('status', PUBLIC_VOTE_STATUSES)
       .order('created_at', { ascending: false })
       .limit(voteLimit * 2),
   ]);
@@ -2780,12 +2785,16 @@ export async function getMunicipalityProfile(
   const votes = (votesRes.data ?? []) as unknown as (Vote & {
     vote_options: VoteOption[];
   })[];
+  // Open is "the question is still standing" - a ballot taking votes now, or
+  // one approved and waiting for its start_date. Closed is "the public has
+  // answered": ended, plus the two resolution states, which are stages of
+  // recording that answer on-chain rather than a return to being undecided.
   const openVotes = votes
-    .filter((v) => v.status === 'active')
+    .filter((v) => v.status === 'active' || v.status === 'pending')
     .slice(0, voteLimit)
     .map(summarizeVote);
   const closedVotes = votes
-    .filter((v) => v.status === 'ended')
+    .filter((v) => ['ended', 'resolving', 'resolved'].includes(v.status))
     .slice(0, voteLimit)
     .map(summarizeVote);
 
