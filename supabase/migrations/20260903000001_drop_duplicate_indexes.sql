@@ -61,19 +61,27 @@
 -- queues, and every query arriving after it queues behind the DROP. On
 -- vote_sources and users that convoy would be user-visible.
 --
--- lock_timeout bounds that wait. On timeout the statement errors, the
--- migration's transaction rolls back with nothing committed, and it can be
--- retried at a quieter moment -- which is the correct outcome, and the reason
--- the DROPs below are deliberately bare rather than IF EXISTS: a clean
--- all-or-nothing abort is safe to re-run, whereas IF EXISTS would let a
+-- lock_timeout bounds that wait, but only inside a transaction that actually
+-- exists. scripts/db-test.sh applies each file with plain `psql -f` and no
+-- --single-transaction, so statements would otherwise autocommit one at a
+-- time and a timeout on the eleventh DROP would leave ten indexes gone and
+-- the file un-retryable (the bare DROPs would then fail on the missing ones).
+-- The BEGIN/COMMIT below is therefore load-bearing, not decoration: it is
+-- what makes the abort all-or-nothing and the retry clean, and it is what
+-- lets the DROPs stay bare rather than IF EXISTS -- IF EXISTS would let a
 -- renamed or already-missing index pass silently and leave this file claiming
 -- to have done work it did not do.
 --
+-- SET LOCAL rather than SET: it is scoped to the transaction and restored by
+-- both COMMIT and ROLLBACK, so it cannot leak into a later migration sharing
+-- the session, and it does not clobber a non-default lock_timeout the caller
+-- had already chosen (which a bare RESET would, by setting the default).
+--
 -- DROP INDEX CONCURRENTLY is the other option and is NOT used: it cannot run
--- inside a transaction block, so it would forfeit the all-or-nothing property
--- for thirteen drops that are individually instantaneous once the lock is in
--- hand. The wait, not the work, is the only hazard here, and lock_timeout is
--- the direct fix for a wait.
+-- inside a transaction block, so choosing it would mean giving up exactly the
+-- all-or-nothing property described above, for thirteen drops that are each
+-- instantaneous once the lock is in hand. The wait, not the work, is the only
+-- hazard here, and lock_timeout is the direct fix for a wait.
 --
 -- ROLLBACK
 --   Each is recreatable as a plain
@@ -82,7 +90,8 @@
 --   recreation restores redundancy, not behaviour.
 -- =============================================================================
 
-SET lock_timeout = '3s';
+BEGIN;
+SET LOCAL lock_timeout = '3s';
 
 DROP INDEX public.idx_users_email;
 DROP INDEX public.idx_users_did;
@@ -98,6 +107,4 @@ DROP INDEX public.idx_vote_card_art_vote;
 DROP INDEX public.idx_vote_sources_vote;
 DROP INDEX public.idx_webhook_events_event_id;
 
--- Scoped to this file: if the runner shares one session across migrations,
--- an unreset lock_timeout would silently apply to every later migration.
-RESET lock_timeout;
+COMMIT;

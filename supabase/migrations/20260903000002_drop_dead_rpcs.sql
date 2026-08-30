@@ -12,18 +12,28 @@
 --     trigger, RLS policy, or pg_cron job (pg_depend, pg_proc.prosrc,
 --     pg_get_viewdef, pg_policy, pg_trigger, cron.job all queried: empty);
 --   * no Supabase Edge Functions exist in this project at all;
---   * no client build could ever have called them: `git log --all -S<name>
---     -- apps packages` returns ZERO commits for all nine. These names have
---     never appeared in client source at any point in the repository's
---     history, so no deployed build -- current or long-retired -- contains a
---     call site.
+--   * no build from this repository could ever have called them:
+--     `git log --all -S<name> -- apps packages agents growth infra scripts`
+--     returns ZERO commits for all nine. These names have never appeared in
+--     any code directory at any point in this repository's history -- the
+--     only non-migration hits anywhere are prose in docs/ and .planning/ --
+--     so no deployed build, current or long-retired, contains a call site.
 --
 --   That last check is the load-bearing one. pg_stat_statements also shows no
 --   invocation (4,770 statements, tracking since its 2026-06-20 reset; the
 --   only entries mentioning these names are their own CREATE/GRANT DDL) but
 --   it is NOT conclusive on its own: pg_stat_statements_info.dealloc = 12, so
 --   the view has evicted entries and cannot prove a negative over its window.
---   The git-history check does not have that weakness.
+--
+--   State the bound honestly: the history check covers this repository, not
+--   source living elsewhere, and not a hand-written PostgREST call from
+--   outside it. That residual matters for the seven non-definer routines,
+--   which anon can still execute today -- and removing exactly that reachable
+--   surface is the point of this migration, so an unknown external caller is
+--   an argument for the drop rather than against it. It does not apply at all
+--   to the two SECURITY DEFINER routines: 20260904000001 already left them
+--   executable only by postgres and service_role, so no anon or authenticated
+--   client can reach them regardless of what its source contains.
 --
 -- SECURITY STATE AT THE MOMENT OF THE DROP
 --
@@ -64,7 +74,22 @@
 -- and leave an anon-executable RPC in place while this migration reported
 -- success. For a file whose entire purpose is retiring reachable surface,
 -- failing loudly on a signature that no longer matches is the safer failure.
--- Nothing here is partially applied on error: the file is one transaction.
+--
+-- That is only safe because the file establishes its own transaction below.
+-- scripts/db-test.sh runs `psql -f` without --single-transaction, so without
+-- an explicit BEGIN/COMMIT each DROP would autocommit and a failure partway
+-- down would leave some functions dropped and the rest live, with the bare
+-- DROPs making a retry impossible. SET LOCAL is used for the same reason it
+-- is in the sibling migration: transaction-scoped, restored by both COMMIT
+-- and ROLLBACK, so it neither leaks into a later migration nor overwrites a
+-- lock_timeout the caller had deliberately set.
+--
+-- `payment_type` is schema-qualified as `public.payment_type` in the
+-- get_or_create_payment signature below. Qualifying the function name does
+-- not qualify its argument types: those resolve through the applying
+-- session's search_path, so an unqualified enum makes this one DROP depend on
+-- a setting the file does not control. 20260904000001 qualifies the same
+-- signature for the same reason and says so at its line 151.
 --
 -- ORDERING
 --
@@ -112,7 +137,8 @@
 --   recreation must repeat the revoke.
 -- =============================================================================
 
-SET lock_timeout = '3s';
+BEGIN;
+SET LOCAL lock_timeout = '3s';
 
 DROP FUNCTION public.can_send_phone_verification(p_user_id uuid, p_phone text, p_max_per_hour integer, p_max_per_day integer);
 DROP FUNCTION public.can_verify_phone_code(p_user_id uuid, p_max_attempts integer);
@@ -120,10 +146,8 @@ DROP FUNCTION public.record_phone_verification_send(p_user_id uuid, p_phone text
 DROP FUNCTION public.record_phone_verification_attempt(p_user_id uuid);
 DROP FUNCTION public.mark_phone_verified(p_user_id uuid, p_phone text);
 DROP FUNCTION public.check_verification_completion(run_uuid uuid);
-DROP FUNCTION public.get_or_create_payment(p_user_id uuid, p_type payment_type, p_amount integer, p_idempotency_key text, p_vote_id uuid, p_option_id text);
+DROP FUNCTION public.get_or_create_payment(p_user_id uuid, p_type public.payment_type, p_amount integer, p_idempotency_key text, p_vote_id uuid, p_option_id text);
 DROP FUNCTION public.get_vote_nft_stats(p_vote_id uuid);
 DROP FUNCTION public.user_has_vote_nft(p_user_id uuid, p_vote_id uuid);
 
--- Scoped to this file: if the runner shares one session across migrations,
--- an unreset lock_timeout would silently apply to every later migration.
-RESET lock_timeout;
+COMMIT;
