@@ -210,4 +210,140 @@ BEGIN
 END;
 $catalog$;
 
+-- ── 5. the expand/contract rollout contract ─────────────────────────────────
+--
+-- 20260904000008 (expand) had to be applicable while the PREVIOUS application
+-- was still serving, and that application writes verification_schedule without
+-- a user_id. The trigger it added is what made that possible, and it is what
+-- guaranteed no NULL accumulated for 20260904000010 (contract) to trip over.
+--
+-- The window is over, but the property is still worth holding: it is the
+-- difference between a denormalised column that fills itself from the
+-- authoritative row and one that fails whenever a writer forgets it. These
+-- assertions are the negative controls for that - remove the trigger, or let
+-- it start guessing, and they fail.
+
+DO $rollout$
+DECLARE
+  v_carol    UUID := gen_random_uuid();
+  v_dave     UUID := gen_random_uuid();
+  v_run_c    UUID;
+  v_run_d    UUID;
+  v_window   UUID;
+  v_derived  UUID;
+  seen       TEXT;
+BEGIN
+  INSERT INTO public.municipalities (code, name_he, slug_he)
+       VALUES ('vaa-rollout-muni', 'רשות גלגול', 'vaa-rollout-muni')
+  ON CONFLICT (code) DO NOTHING;
+  INSERT INTO public.users (id, email, municipality_id)
+       VALUES (v_carol, 'carol@example.test', 'vaa-rollout-muni'),
+              (v_dave,  'dave@example.test',  'vaa-rollout-muni');
+
+  INSERT INTO public.verification_runs (user_id, municipality_id, total_check_ins)
+       VALUES (v_carol, 'vaa-rollout-muni', 5) RETURNING id INTO v_run_c;
+  INSERT INTO public.verification_runs (user_id, municipality_id, total_check_ins)
+       VALUES (v_dave,  'vaa-rollout-muni', 5) RETURNING id INTO v_run_d;
+
+  -- ── 5a. the pre-deploy writer's INSERT still works ────────────────────────
+  -- Exactly the shape the application shipped before #145: no user_id column
+  -- named at all. Under the one-shot form of 20260904000008 this raised
+  -- not_null_violation, which is the outage the split exists to prevent.
+  INSERT INTO public.verification_schedule (run_id, window_start, window_end)
+       VALUES (v_run_c, now(), now() + interval '30 minutes')
+    RETURNING id, user_id INTO v_window, v_derived;
+
+  IF v_window IS NULL THEN
+    RAISE EXCEPTION
+      'a window written without a user_id was refused - the pre-deploy writer '
+      'would have been broken by this schema';
+  END IF;
+
+  -- ── 5b. and it is filled from the run, not left NULL ──────────────────────
+  IF v_derived IS DISTINCT FROM v_carol THEN
+    RAISE EXCEPTION
+      'user_id derived as % but the run belongs to %', v_derived, v_carol;
+  END IF;
+
+  -- ── 5c. an explicit user_id is passed through, never overwritten ──────────
+  -- If the trigger overrode what the caller supplied it would be silently
+  -- repairing wrong input, and section 2 above - a window claiming somebody
+  -- else's resident - could never fail. The foreign key must stay the thing
+  -- that decides.
+  seen := NULL;
+  BEGIN
+    INSERT INTO public.verification_schedule (run_id, user_id, window_start, window_end)
+         VALUES (v_run_c, v_dave, now(), now() + interval '30 minutes');
+  EXCEPTION WHEN foreign_key_violation THEN
+    seen := 'refused';
+  END;
+  IF seen IS NULL THEN
+    RAISE EXCEPTION
+      'the trigger overwrote a caller-supplied user_id instead of letting the '
+      'composite key refuse it';
+  END IF;
+
+  -- ── 5d. an attempt against a derived window resolves ──────────────────────
+  -- The third failure mode the split had to remove: a schedule row carrying a
+  -- NULL user_id exposes no (id, user_id) pair, so the attempts composite key
+  -- matches nothing and the check-in path breaks even though nothing about
+  -- attempts changed.
+  INSERT INTO public.verification_attempts
+         (schedule_id, user_id, latitude, longitude, accuracy, passed)
+       VALUES (v_window, v_carol, 32.0853, 34.7818, 10, TRUE);
+
+  RAISE NOTICE 'verification attempt attribution: rollout compatibility OK';
+END;
+$rollout$;
+
+-- ── 6. the contract phase actually contracted ───────────────────────────────
+
+DO $contract$
+DECLARE
+  leftover TEXT;
+BEGIN
+  -- The trigger 20260904000010 deliberately keeps.
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger t
+     WHERE t.tgrelid = 'public.verification_schedule'::regclass
+       AND t.tgname  = 'verification_schedule_derive_user_id'
+       AND NOT t.tgisinternal
+  ) THEN
+    RAISE EXCEPTION
+      'verification_schedule_derive_user_id is gone - a writer that omits the '
+      'denormalised column now fails instead of resolving it';
+  END IF;
+
+  -- The two single-column keys the composite ones supersede. Kept through the
+  -- expand window on purpose, dropped by 20260904000010. Leaving them behind
+  -- is not a correctness bug, but it leaves two keys that can be read as
+  -- disagreeing about the same relationship.
+  SELECT string_agg(conname, ', ' ORDER BY conname)
+    INTO leftover
+    FROM pg_constraint
+   WHERE conname IN ('verification_schedule_run_id_fkey',
+                     'verification_attempts_schedule_id_fkey');
+
+  IF leftover IS NOT NULL THEN
+    RAISE EXCEPTION
+      'superseded single-column foreign key(s) still present: %', leftover
+      USING HINT = '20260904000010 drops these once user_id is NOT NULL.';
+  END IF;
+
+  -- Both composite keys must be VALIDATED, not merely declared. A NOT VALID
+  -- constraint accepts every row that already existed, which on this table is
+  -- the entire residency history.
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint
+     WHERE conname IN ('verification_schedule_belongs_to_its_run',
+                       'verification_attempts_belongs_to_its_run')
+       AND NOT convalidated
+  ) THEN
+    RAISE EXCEPTION 'a residency composite key was left NOT VALID';
+  END IF;
+
+  RAISE NOTICE 'verification attempt attribution: contract phase OK';
+END;
+$contract$;
+
 ROLLBACK;
