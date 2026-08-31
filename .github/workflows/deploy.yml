@@ -30,8 +30,18 @@ jobs:
   # `pnpm run deploy` from apps/web (wrangler OAuth). Without the
   # CLOUDFLARE_API_TOKEN secret the deploy job skips grey - no failure,
   # no notification. If the secret ever lands, CI takes over automatically.
+  #
+  # Where these jobs run is a repo variable, not a constant. GitHub stopped
+  # allocating hosted runners to this repo on 2026-08-06 - three jobs across
+  # two workflows died on "The job was not acquired by Runner of type hosted
+  # even after multiple attempts" while the status page read all-operational -
+  # and a release path that only knows one kind of machine has no answer to
+  # that. CI_RUNS_ON holds JSON: a string ('"ubuntu-latest"') or an array of
+  # labels ('["self-hosted","linux","x64","taruu-owner-saharbarak"]'). Unset,
+  # it falls back to ubuntu-latest. Neither direction needs a workflow edit,
+  # which matters when the broken thing is the only way to merge one.
   guard:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON || '"ubuntu-latest"') }}
     outputs:
       deployable: ${{ steps.check.outputs.deployable }}
     steps:
@@ -41,7 +51,7 @@ jobs:
   deploy:
     needs: guard
     if: needs.guard.outputs.deployable == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON || '"ubuntu-latest"') }}
     timeout-minutes: 20
     environment: production
     steps:
